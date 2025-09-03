@@ -49,8 +49,8 @@ export function AppSidebar() {
   const isActive = (path: string) => currentPath === path
   const getNavCls = ({ isActive }: { isActive: boolean }) =>
     isActive 
-      ? "bg-gradient-primary text-primary-foreground font-medium shadow-card" 
-      : "hover:bg-lab-secondary/10 text-foreground"
+      ? "bg-white/20 text-white font-medium shadow-card backdrop-blur-sm border border-white/30" 
+      : "hover:bg-white/10 text-white/90 hover:text-white transition-all duration-200"
 
   return (
     <Sidebar
@@ -90,12 +90,12 @@ export function AppSidebar() {
                       end 
                       className={({ isActive }) => getNavCls({ isActive })}
                     >
-                      <item.icon className="w-5 h-5 mr-3 text-white/80" />
+                      <item.icon className={`w-5 h-5 mr-3 ${isActive(item.url) ? "text-white" : "text-white/80"}`} />
                       <div className="flex-1">
-                        <div className={`font-medium ${isActive(item.url) ? "text-white" : "text-white"}`}>
+                        <div className={`font-medium ${isActive(item.url) ? "text-white" : "text-white/90"}`}>
                           {item.title}
                         </div>
-                        <div className={`text-xs ${isActive(item.url) ? "text-white/90" : "text-white/60"}`}>
+                        <div className={`text-xs ${isActive(item.url) ? "text-white/95" : "text-white/70"}`}>
                           {item.description}
                         </div>
                       </div>
