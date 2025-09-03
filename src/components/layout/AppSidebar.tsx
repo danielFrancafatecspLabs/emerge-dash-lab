@@ -49,33 +49,33 @@ export function AppSidebar() {
   const isActive = (path: string) => currentPath === path
   const getNavCls = ({ isActive }: { isActive: boolean }) =>
     isActive 
-      ? "bg-white/20 text-white font-medium shadow-card backdrop-blur-sm border border-white/30" 
-      : "hover:bg-white/10 text-white/90 hover:text-white transition-all duration-200"
+      ? "bg-lab-primary text-white font-medium shadow-card" 
+      : "hover:bg-muted text-foreground transition-all duration-200"
 
   return (
     <Sidebar
-      className="w-72 bg-gradient-primary border-r-0 transition-all duration-300"
+      className="w-72 bg-card border-r border-border transition-all duration-300"
       collapsible="icon"
     >
       <SidebarContent className="bg-transparent">
         {/* Header */}
-        <div className="p-6 border-b border-white/10">
+        <div className="p-6 border-b border-border">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
+            <div className="w-10 h-10 bg-lab-primary rounded-lg flex items-center justify-center">
               <BarChart3 className="w-6 h-6 text-white" />
             </div>
               <div>
-                <h2 className="text-lg font-bold text-white">Claro Brasil</h2>
-                <p className="text-sm text-white/80">P&D LAB</p>
+                <h2 className="text-lg font-bold text-foreground">Claro Brasil</h2>
+                <p className="text-sm text-muted-foreground">P&D LAB</p>
               </div>
           </div>
         </div>
 
         {/* Period Selection */}
-        <div className="p-6 border-b border-white/10">
+        <div className="p-6 border-b border-border">
           <div className="text-center">
-            <p className="text-sm text-white/80 mb-1">Período de aferição</p>
-            <div className="text-white font-medium">Jan/25 a Jun/25</div>
+            <p className="text-sm text-muted-foreground mb-1">Período de aferição</p>
+            <div className="text-foreground font-medium">Jan/25 a Jun/25</div>
           </div>
         </div>
 
@@ -90,12 +90,12 @@ export function AppSidebar() {
                       end 
                       className={({ isActive }) => getNavCls({ isActive })}
                     >
-                      <item.icon className={`w-5 h-5 mr-3 ${isActive(item.url) ? "text-white" : "text-white/80"}`} />
+                      <item.icon className={`w-5 h-5 mr-3 ${isActive(item.url) ? "text-white" : "text-foreground"}`} />
                       <div className="flex-1">
-                        <div className={`font-medium ${isActive(item.url) ? "text-white" : "text-white/90"}`}>
+                        <div className={`font-medium ${isActive(item.url) ? "text-white" : "text-foreground"}`}>
                           {item.title}
                         </div>
-                        <div className={`text-xs ${isActive(item.url) ? "text-white/95" : "text-white/70"}`}>
+                        <div className={`text-xs ${isActive(item.url) ? "text-white/90" : "text-muted-foreground"}`}>
                           {item.description}
                         </div>
                       </div>
