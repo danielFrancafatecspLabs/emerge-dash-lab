@@ -33,7 +33,7 @@ export function ExperimentStageChart({ data = defaultData }: ExperimentStageChar
           />
           <Bar 
             dataKey="value" 
-            fill="hsl(var(--lab-accent))"
+            fill="hsl(var(--lab-primary))"
             radius={[0, 4, 4, 0]}
           />
         </BarChart>

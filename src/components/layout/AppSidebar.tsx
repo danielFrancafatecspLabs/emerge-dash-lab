@@ -64,10 +64,10 @@ export function AppSidebar() {
             <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
               <BarChart3 className="w-6 h-6 text-white" />
             </div>
-            <div>
-              <h2 className="text-lg font-bold text-white">Experimentos</h2>
-              <p className="text-sm text-white/80">P&D LAB</p>
-            </div>
+              <div>
+                <h2 className="text-lg font-bold text-white">Claro Brasil</h2>
+                <p className="text-sm text-white/80">P&D LAB</p>
+              </div>
           </div>
         </div>
 

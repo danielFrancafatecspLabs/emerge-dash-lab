@@ -22,10 +22,10 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
             
             <div className="flex-1">
               <h1 className="text-xl font-bold text-foreground">
-                Laboratório de Tecnologias Emergentes
+                Claro Brasil - Laboratório de Tecnologias Emergentes
               </h1>
               <p className="text-sm text-muted-foreground">
-                Dashboard de monitoramento e análise
+                Dashboard de monitoramento e análise de inovação
               </p>
             </div>
           </header>

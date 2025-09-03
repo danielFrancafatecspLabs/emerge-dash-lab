@@ -27,10 +27,10 @@ export function MonthlyExperimentsChart({ data = defaultData }: MonthlyExperimen
           <Line 
             type="monotone" 
             dataKey="value" 
-            stroke="hsl(var(--lab-danger))" 
+            stroke="hsl(var(--lab-primary))" 
             strokeWidth={3}
-            dot={{ fill: 'hsl(var(--lab-danger))', strokeWidth: 2, r: 4 }}
-            activeDot={{ r: 6, fill: 'hsl(var(--lab-danger))' }}
+            dot={{ fill: 'hsl(var(--lab-primary))', strokeWidth: 2, r: 4 }}
+            activeDot={{ r: 6, fill: 'hsl(var(--lab-primary))' }}
           />
         </LineChart>
       </ResponsiveContainer>

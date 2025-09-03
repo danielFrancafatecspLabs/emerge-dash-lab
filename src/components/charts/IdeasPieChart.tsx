@@ -1,10 +1,10 @@
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend } from 'recharts'
 
 const defaultData = [
-  { name: 'Ideias Reprovadas no critério de seleção', value: 30, color: 'hsl(var(--lab-danger))' },
-  { name: 'Ideias Despriorizadas (em backlog)', value: 22, color: 'hsl(var(--lab-secondary))' },
-  { name: 'Experimentos que não atingiram o critério para piloto', value: 44, color: 'hsl(var(--lab-success))' },
-  { name: 'Experimentos sem engajamento do BU/Sponsor', value: 4, color: 'hsl(var(--lab-warning))' },
+  { name: 'Ideias Reprovadas no critério de seleção', value: 30, color: 'hsl(var(--lab-primary))' },
+  { name: 'Ideias Despriorizadas (em backlog)', value: 22, color: 'hsl(var(--lab-primary-dark))' },
+  { name: 'Experimentos que não atingiram o critério para piloto', value: 44, color: 'hsl(var(--lab-secondary))' },
+  { name: 'Experimentos sem engajamento do BU/Sponsor', value: 4, color: 'hsl(var(--lab-accent))' },
 ]
 
 interface IdeasPieChartProps {

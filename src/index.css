@@ -17,17 +17,17 @@ All colors MUST be HSL.
     --popover: 0 0% 100%;
     --popover-foreground: 203 30% 26%;
 
-    --primary: 203 89% 53%;
+    --primary: 0 85% 50%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 196 75% 88%;
-    --secondary-foreground: 203 30% 26%;
+    --secondary: 0 75% 95%;
+    --secondary-foreground: 0 30% 26%;
 
     --muted: 247 248 248;
     --muted-foreground: 148 5% 46%;
 
-    --accent: 196 75% 88%;
-    --accent-foreground: 203 30% 26%;
+    --accent: 0 75% 88%;
+    --accent-foreground: 0 30% 26%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
@@ -38,18 +38,18 @@ All colors MUST be HSL.
 
     --radius: 0.75rem;
 
-    /* Lab-specific design tokens */
-    --lab-primary: 203 89% 53%;
-    --lab-primary-dark: 203 89% 43%;
-    --lab-secondary: 142 71% 45%;
-    --lab-accent: 25 95% 53%;
+    /* Claro Brasil design tokens */
+    --lab-primary: 0 85% 50%;
+    --lab-primary-dark: 0 85% 40%;
+    --lab-secondary: 0 70% 60%;
+    --lab-accent: 0 90% 55%;
     --lab-danger: 0 84% 60%;
-    --lab-success: 142 71% 45%;
-    --lab-warning: 38 92% 50%;
+    --lab-success: 0 75% 45%;
+    --lab-warning: 15 90% 50%;
     
     /* Gradients */
     --gradient-primary: linear-gradient(135deg, hsl(var(--lab-primary)), hsl(var(--lab-primary-dark)));
-    --gradient-card: linear-gradient(145deg, hsl(0 0% 100%), hsl(220 13% 96%));
+    --gradient-card: linear-gradient(145deg, hsl(0 0% 100%), hsl(0 10% 96%));
     
     /* Shadows */
     --shadow-card: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);

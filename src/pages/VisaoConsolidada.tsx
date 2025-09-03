@@ -44,10 +44,10 @@ const VisaoConsolidada = () => {
         <Card className="shadow-card">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Em Andamento</CardTitle>
-            <TrendingUp className="h-4 w-4 text-lab-secondary" />
+            <TrendingUp className="h-4 w-4 text-lab-primary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-lab-secondary">30</div>
+            <div className="text-2xl font-bold text-lab-primary">30</div>
             <p className="text-xs text-muted-foreground">Experimentos ativos</p>
           </CardContent>
         </Card>
@@ -55,10 +55,10 @@ const VisaoConsolidada = () => {
         <Card className="shadow-card">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Taxa de Conversão</CardTitle>
-            <Lightbulb className="h-4 w-4 text-lab-warning" />
+            <Lightbulb className="h-4 w-4 text-lab-primary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-lab-warning">7.3%</div>
+            <div className="text-2xl font-bold text-lab-primary">7.3%</div>
             <p className="text-xs text-muted-foreground">Ideias → Piloto</p>
           </CardContent>
         </Card>

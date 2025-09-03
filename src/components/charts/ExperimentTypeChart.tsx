@@ -1,10 +1,10 @@
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from 'recharts'
 
 const defaultData = [
-  { name: 'WEB 3', value: 6, color: 'hsl(var(--lab-danger))' },
-  { name: 'Experimentos IA', value: 5, color: 'hsl(var(--lab-accent))' },
+  { name: 'WEB 3', value: 6, color: 'hsl(var(--lab-primary))' },
+  { name: 'Experimentos IA', value: 5, color: 'hsl(var(--lab-primary-dark))' },
   { name: 'Future network', value: 2, color: 'hsl(var(--lab-secondary))' },
-  { name: 'Outras Tecnologias', value: 2, color: 'hsl(var(--lab-warning))' },
+  { name: 'Outras Tecnologias', value: 2, color: 'hsl(var(--lab-accent))' },
 ]
 
 interface ExperimentTypeChartProps {
@@ -24,7 +24,7 @@ export function ExperimentTypeChart({ data = defaultData }: ExperimentTypeChartP
           <YAxis stroke="#64748b" fontSize={12} />
           <Bar 
             dataKey="value" 
-            fill="hsl(var(--lab-accent))"
+            fill="hsl(var(--lab-primary))"
             radius={[4, 4, 0, 0]}
           />
         </BarChart>

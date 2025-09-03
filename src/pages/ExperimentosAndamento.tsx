@@ -17,10 +17,10 @@ const processSteps = [
 ]
 
 const initiativeData = [
-  { name: 'WEB 3', value: 5, color: 'hsl(var(--lab-danger))' },
-  { name: 'Experimentos IA', value: 8, color: 'hsl(var(--lab-accent))' },
+  { name: 'WEB 3', value: 5, color: 'hsl(var(--lab-primary))' },
+  { name: 'Experimentos IA', value: 8, color: 'hsl(var(--lab-primary-dark))' },
   { name: 'Future network', value: 2, color: 'hsl(var(--lab-secondary))' },
-  { name: 'Outras Tecnologias', value: 2, color: 'hsl(var(--lab-warning))' },
+  { name: 'Outras Tecnologias', value: 2, color: 'hsl(var(--lab-accent))' },
 ]
 
 const areaData = [
@@ -150,7 +150,7 @@ const ExperimentosAndamento = () => {
                   <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                   <XAxis dataKey="name" stroke="#64748b" fontSize={12} />
                   <YAxis stroke="#64748b" fontSize={12} />
-                  <Bar dataKey="value" fill="hsl(var(--lab-accent))" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="value" fill="hsl(var(--lab-primary))" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -170,7 +170,7 @@ const ExperimentosAndamento = () => {
                   <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                   <XAxis dataKey="name" stroke="#64748b" fontSize={12} />
                   <YAxis stroke="#64748b" fontSize={12} />
-                  <Bar dataKey="value" fill="hsl(var(--lab-secondary))" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="value" fill="hsl(var(--lab-primary))" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
