@@ -3,9 +3,65 @@ import { ExperimentStageChart } from "@/components/charts/ExperimentStageChart"
 import { ExperimentTypeChart } from "@/components/charts/ExperimentTypeChart"
 import { MonthlyExperimentsChart } from "@/components/charts/MonthlyExperimentsChart"
 import { IdeasPieChart } from "@/components/charts/IdeasPieChart"
+
+import { useEffect, useState } from "react";
 import { DollarSign, TrendingUp, Target, Lightbulb } from "lucide-react"
 
 const VisaoConsolidada = () => {
+
+  const [total, setTotal] = useState<number | null>(null);
+  const [pilotosAndamento, setPilotosAndamento] = useState<number | null>(null);
+  const [pilotosConcluidos, setPilotosConcluidos] = useState<number | null>(null);
+  const [totalProspeccao, setTotalProspeccao] = useState<number | null>(null);
+  const [totalAndamento, setTotalAndamento] = useState<number | null>(null);
+  const [totalConcluido, setTotalConcluido] = useState<number | null>(null);
+  const [totalConcluidoGoNoGo, setTotalConcluidoGoNoGo] = useState<number | null>(null);
+
+  useEffect(() => {
+    fetch("/planilha1.csv")
+      .then(res => res.text())
+      .then(text => {
+        const linhas = text.split("\n");
+        const header = linhas[0].split(",");
+        const idxExperimentacao = header.findIndex(h => h.toLowerCase().includes("experimenta"));
+        const idxIdeia = header.findIndex(h => h.toLowerCase().includes("ideia"));
+        const idxPiloto = header.findIndex(h => h.toLowerCase().includes("piloto"));
+        const totalExperimentos = linhas.filter((l, i) => i > 0 && l.trim() !== "").length;
+        const totalEmProspeccao = linhas.slice(1).filter(linha => {
+          const cols = linha.split(",");
+          return cols[idxIdeia]?.trim().toLowerCase() === "em prospecção";
+        }).length;
+        const totalEmAndamento = linhas.slice(1).filter(linha => {
+          const cols = linha.split(",");
+          return cols[idxExperimentacao]?.trim().toLowerCase() === "em andamento";
+        }).length;
+        const totalConcluido = linhas.slice(1).filter(linha => {
+          const cols = linha.split(",");
+          return cols[idxExperimentacao]?.trim().toLowerCase() === "concluido";
+        }).length;
+        const totalConcluidoGoNoGo = linhas.slice(1).filter(linha => {
+          const cols = linha.split(",");
+          return cols[idxExperimentacao]?.trim().toLowerCase().includes("concluido - aguardando go/no");
+        }).length;
+        const totalPilotosAndamento = linhas.slice(1).filter(linha => {
+          const cols = linha.split(",");
+          return cols[idxPiloto]?.trim().toLowerCase() === "em andamento";
+        }).length;
+        const totalPilotosConcluidos = linhas.slice(1).filter(linha => {
+          const cols = linha.split(",");
+          return cols[idxPiloto]?.trim().toLowerCase().includes("concluido");
+        }).length;
+
+        setTotal(totalExperimentos);
+        setTotalProspeccao(totalEmProspeccao);
+        setTotalAndamento(totalEmAndamento);
+        setTotalConcluido(totalConcluido);
+        setTotalConcluidoGoNoGo(totalConcluidoGoNoGo);
+        setPilotosAndamento(totalPilotosAndamento);
+        setPilotosConcluidos(totalPilotosConcluidos);
+      });
+  }, []);
+
   return (
     <div className="space-y-6">
       {/* Header Section */}
@@ -29,15 +85,46 @@ const VisaoConsolidada = () => {
       </Card>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+  <div className="grid grid-cols-1 md:grid-cols-7 gap-6 mb-8">
+        <Card className="shadow-card">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Pilotos em Andamento</CardTitle>
+            <TrendingUp className="h-4 w-4 text-indigo-600" />
+          </CardHeader>
+          <CardContent className="flex flex-col justify-start min-h-[80px]">
+            <div className="text-2xl font-bold text-indigo-600 min-h-[32px] flex items-start">{pilotosAndamento !== null ? pilotosAndamento : "Carregando..."}</div>
+            <p className="text-xs text-muted-foreground">Pilotos ativos</p>
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-card">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Pilotos Concluídos</CardTitle>
+            <TrendingUp className="h-4 w-4 text-green-700" />
+          </CardHeader>
+          <CardContent className="flex flex-col justify-start min-h-[80px]">
+            <div className="text-2xl font-bold text-green-700 min-h-[32px] flex items-start">{pilotosConcluidos !== null ? pilotosConcluidos : "Carregando..."}</div>
+            <p className="text-xs text-muted-foreground">Pilotos concluídos</p>
+          </CardContent>
+        </Card>
         <Card className="shadow-card">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total de Experimentos</CardTitle>
             <Target className="h-4 w-4 text-lab-primary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-lab-primary">109</div>
+            <div className="text-2xl font-bold text-lab-primary">{total !== null ? total : "Carregando..."}</div>
             <p className="text-xs text-muted-foreground">+15% em relação ao período anterior</p>
+          </CardContent>
+        </Card>
+        <Card className="shadow-card">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Em Prospecção</CardTitle>
+            <TrendingUp className="h-4 w-4 text-blue-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-blue-600">{totalProspeccao !== null ? totalProspeccao : "Carregando..."}</div>
+            <p className="text-xs text-muted-foreground">Experimentos em prospecção</p>
           </CardContent>
         </Card>
 
@@ -47,8 +134,30 @@ const VisaoConsolidada = () => {
             <TrendingUp className="h-4 w-4 text-lab-primary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-lab-primary">30</div>
+            <div className="text-2xl font-bold text-lab-primary">{totalAndamento !== null ? totalAndamento : "Carregando..."}</div>
             <p className="text-xs text-muted-foreground">Experimentos ativos</p>
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-card">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Concluídos</CardTitle>
+            <TrendingUp className="h-4 w-4 text-green-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-600">{totalConcluido !== null ? totalConcluido : "Carregando..."}</div>
+            <p className="text-xs text-muted-foreground">Experimentos concluídos</p>
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-card">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Concluídos aguardando Go/No Go</CardTitle>
+            <TrendingUp className="h-4 w-4 text-yellow-500" />
+          </CardHeader>
+          <CardContent className="flex flex-col justify-start min-h-[80px]">
+            <div className="text-2xl font-bold text-yellow-500 min-h-[32px] flex items-start">{totalConcluidoGoNoGo !== null ? totalConcluidoGoNoGo : "Carregando..."}</div>
+            <p className="text-xs text-muted-foreground">Aguardando decisão</p>
           </CardContent>
         </Card>
 
