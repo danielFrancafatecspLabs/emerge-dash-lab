@@ -42,13 +42,15 @@ export const ColumnFilterDropdown: React.FC<ColumnFilterDropdownProps> = ({ opti
       <button
         type="button"
         className="px-2 py-1 rounded border border-blue-600 bg-white text-gray-800 text-xs flex items-center gap-1"
-        onClick={handleToggle}
+        onClick={(e) => {
+          e.stopPropagation();
+          setOpen((prev) => !prev);
+        }}
       >
         {label || "Filtrar"}
-        <span className="material-icons text-xs">arrow_drop_down</span>
       </button>
       {open && (
-        <div className="absolute left-0 mt-1 z-50 bg-white border border-gray-300 rounded shadow-lg min-w-[160px] max-h-60 overflow-auto">
+        <div className="absolute left-0 mt-1 z-[9999] bg-white border border-gray-300 rounded shadow-lg min-w-[160px] max-h-60 overflow-auto">
           {options.map((option) => (
             <label key={option} className="flex items-center px-2 py-1 cursor-pointer hover:bg-blue-50">
               <input

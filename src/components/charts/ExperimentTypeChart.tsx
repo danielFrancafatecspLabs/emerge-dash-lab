@@ -1,4 +1,4 @@
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from 'recharts'
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip, Legend, LabelList } from 'recharts';
 
 const defaultData = [
   { name: 'WEB 3', value: 6, color: 'hsl(var(--lab-primary))' },
@@ -26,7 +26,9 @@ export function ExperimentTypeChart({ data = defaultData }: ExperimentTypeChartP
             dataKey="value" 
             fill="hsl(var(--lab-primary))"
             radius={[4, 4, 0, 0]}
-          />
+            >
+              <LabelList dataKey="value" position="top" fontSize={13} />
+            </Bar>
         </BarChart>
       </ResponsiveContainer>
     </div>

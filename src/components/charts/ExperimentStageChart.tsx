@@ -1,4 +1,5 @@
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from 'recharts'
+import { LabelList } from 'recharts';
 
 const defaultData = [
   { name: 'Ideias Geradas', value: 109, percentage: 100 },
@@ -31,11 +32,9 @@ export function ExperimentStageChart({ data = defaultData }: ExperimentStageChar
             fontSize={12}
             width={90}
           />
-          <Bar 
-            dataKey="value" 
-            fill="hsl(var(--lab-primary))"
-            radius={[0, 4, 4, 0]}
-          />
+          <Bar dataKey="value" fill="hsl(var(--lab-primary))" radius={[6, 6, 0, 0]}>
+            <LabelList dataKey="value" position="right" fontSize={13} />
+          </Bar>
         </BarChart>
       </ResponsiveContainer>
     </div>

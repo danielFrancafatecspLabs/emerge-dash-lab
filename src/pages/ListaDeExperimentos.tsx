@@ -53,16 +53,24 @@ export default function ListaDeExperimentos() {
   useEffect(() => {
     let temp = data;
     if (!ideaFilter.includes('Selecionar tudo')) {
-      temp = temp.filter((item) => ideaFilter.includes((item['Ideia / Problema / Oportunidade'] || '').trim()));
+      temp = temp.filter((item) =>
+        ideaFilter.some(f => (item['Ideia / Problema / Oportunidade'] || '').trim().toLowerCase() === f.trim().toLowerCase())
+      );
     }
     if (!experimentacaoFilter.includes('Selecionar tudo')) {
-      temp = temp.filter((item) => experimentacaoFilter.includes((item['Experimentação'] || '').trim()));
+      temp = temp.filter((item) =>
+        experimentacaoFilter.some(f => (item['Experimentação'] || '').trim().toLowerCase() === f.trim().toLowerCase())
+      );
     }
     if (!pilotoFilter.includes('Selecionar tudo')) {
-      temp = temp.filter((item) => pilotoFilter.includes((item['Piloto'] || '').trim()));
+      temp = temp.filter((item) =>
+        pilotoFilter.some(f => (item['Piloto'] || '').trim().toLowerCase() === f.trim().toLowerCase())
+      );
     }
     if (!escalaFilter.includes('Selecionar tudo')) {
-      temp = temp.filter((item) => escalaFilter.includes((item['Escala'] || '').trim()));
+      temp = temp.filter((item) =>
+        escalaFilter.some(f => (item['Escala'] || '').trim().toLowerCase() === f.trim().toLowerCase())
+      );
     }
     if (search) {
       temp = temp.filter((item) =>

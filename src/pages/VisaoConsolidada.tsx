@@ -1,66 +1,27 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { ExperimentStageChart } from "@/components/charts/ExperimentStageChart"
-import { ExperimentTypeChart } from "@/components/charts/ExperimentTypeChart"
-import { MonthlyExperimentsChart } from "@/components/charts/MonthlyExperimentsChart"
-import { IdeasPieChart } from "@/components/charts/IdeasPieChart"
-
-import { useEffect, useState } from "react";
-import { DollarSign, TrendingUp, Target, Lightbulb } from "lucide-react"
+import { useExperimentos } from '@/hooks/useExperimentos';
+import { ExperimentStageChart } from '@/components/charts/ExperimentStageChart';
+import { ExperimentTypeChart } from '@/components/charts/ExperimentTypeChart';
+import { MonthlyExperimentsChart } from '@/components/charts/MonthlyExperimentsChart';
+import { IdeasPieChart } from '@/components/charts/IdeasPieChart'
+import { DollarSign, TrendingUp, Target, Lightbulb } from 'lucide-react';
 
 const VisaoConsolidada = () => {
-
-  const [total, setTotal] = useState<number | null>(null);
-  const [pilotosAndamento, setPilotosAndamento] = useState<number | null>(null);
-  const [pilotosConcluidos, setPilotosConcluidos] = useState<number | null>(null);
-  const [totalProspeccao, setTotalProspeccao] = useState<number | null>(null);
-  const [totalAndamento, setTotalAndamento] = useState<number | null>(null);
-  const [totalConcluido, setTotalConcluido] = useState<number | null>(null);
-  const [totalConcluidoGoNoGo, setTotalConcluidoGoNoGo] = useState<number | null>(null);
-
-  useEffect(() => {
-    fetch("/planilha1.csv")
-      .then(res => res.text())
-      .then(text => {
-        const linhas = text.split("\n");
-        const header = linhas[0].split(",");
-        const idxExperimentacao = header.findIndex(h => h.toLowerCase().includes("experimenta"));
-        const idxIdeia = header.findIndex(h => h.toLowerCase().includes("ideia"));
-        const idxPiloto = header.findIndex(h => h.toLowerCase().includes("piloto"));
-        const totalExperimentos = linhas.filter((l, i) => i > 0 && l.trim() !== "").length;
-        const totalEmProspeccao = linhas.slice(1).filter(linha => {
-          const cols = linha.split(",");
-          return cols[idxIdeia]?.trim().toLowerCase() === "em prospecção";
-        }).length;
-        const totalEmAndamento = linhas.slice(1).filter(linha => {
-          const cols = linha.split(",");
-          return cols[idxExperimentacao]?.trim().toLowerCase() === "em andamento";
-        }).length;
-        const totalConcluido = linhas.slice(1).filter(linha => {
-          const cols = linha.split(",");
-          return cols[idxExperimentacao]?.trim().toLowerCase() === "concluido";
-        }).length;
-        const totalConcluidoGoNoGo = linhas.slice(1).filter(linha => {
-          const cols = linha.split(",");
-          return cols[idxExperimentacao]?.trim().toLowerCase().includes("concluido - aguardando go/no");
-        }).length;
-        const totalPilotosAndamento = linhas.slice(1).filter(linha => {
-          const cols = linha.split(",");
-          return cols[idxPiloto]?.trim().toLowerCase() === "em andamento";
-        }).length;
-        const totalPilotosConcluidos = linhas.slice(1).filter(linha => {
-          const cols = linha.split(",");
-          return cols[idxPiloto]?.trim().toLowerCase().includes("concluido");
-        }).length;
-
-        setTotal(totalExperimentos);
-        setTotalProspeccao(totalEmProspeccao);
-        setTotalAndamento(totalEmAndamento);
-        setTotalConcluido(totalConcluido);
-        setTotalConcluidoGoNoGo(totalConcluidoGoNoGo);
-        setPilotosAndamento(totalPilotosAndamento);
-        setPilotosConcluidos(totalPilotosConcluidos);
-      });
-  }, []);
+  const {
+    total,
+    pilotosAndamento,
+    pilotosConcluidos,
+    totalProspeccao,
+    totalAndamento,
+    totalConcluido,
+    totalConcluidoGoNoGo,
+    loading,
+    experimentosPorEtapa,
+    experimentosPorTipo,
+    experimentosPorMes,
+  ideiasData,
+  anoColors,
+  } = useExperimentos();
 
   return (
     <div className="space-y-6">
@@ -185,7 +146,7 @@ const VisaoConsolidada = () => {
               <CardDescription>Distribuição por fase do processo</CardDescription>
             </CardHeader>
             <CardContent>
-              <ExperimentStageChart />
+              <ExperimentStageChart data={experimentosPorEtapa} />
             </CardContent>
           </Card>
 
@@ -196,7 +157,7 @@ const VisaoConsolidada = () => {
               <CardDescription>Categorização por tecnologia</CardDescription>
             </CardHeader>
             <CardContent>
-              <ExperimentTypeChart />
+              <ExperimentTypeChart data={experimentosPorTipo} />
             </CardContent>
           </Card>
 
@@ -207,7 +168,7 @@ const VisaoConsolidada = () => {
               <CardDescription>Evolução temporal dos experimentos</CardDescription>
             </CardHeader>
             <CardContent>
-              <MonthlyExperimentsChart />
+              <MonthlyExperimentsChart data={experimentosPorMes} anoColors={anoColors} />
             </CardContent>
           </Card>
 
@@ -218,7 +179,7 @@ const VisaoConsolidada = () => {
               <CardDescription>Análise de ideias não convertidas</CardDescription>
             </CardHeader>
             <CardContent>
-              <IdeasPieChart />
+              <IdeasPieChart data={ideiasData} />
             </CardContent>
           </Card>
         </div>

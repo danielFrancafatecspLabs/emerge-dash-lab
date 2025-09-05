@@ -1,4 +1,4 @@
-import { PieChart, Pie, Cell, ResponsiveContainer, Legend } from 'recharts'
+import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts'
 
 const defaultData = [
   { name: 'Ideias Reprovadas no critério de seleção', value: 30, color: 'hsl(var(--lab-primary))' },
@@ -29,6 +29,7 @@ export function IdeasPieChart({ data = defaultData }: IdeasPieChartProps) {
               <Cell key={`cell-${index}`} fill={entry.color} />
             ))}
           </Pie>
+          <Tooltip formatter={(value, name, props) => [`${value}`, props.payload.name]} />
           <Legend 
             verticalAlign="bottom" 
             height={36}
