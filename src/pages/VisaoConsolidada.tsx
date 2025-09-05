@@ -19,9 +19,20 @@ const VisaoConsolidada = () => {
     experimentosPorEtapa,
     experimentosPorTipo,
     experimentosPorMes,
-  ideiasData,
-  anoColors,
+    ideiasData,
+    anoColors,
+    data,
   } = useExperimentos();
+
+  // Calcular tempo médio para terminar um ciclo de experimento
+  const today = new Date();
+  const validExperimentos = data.filter(row => row['Início '] && !isNaN(new Date(row['Início ']).getTime()));
+  const totalDias = validExperimentos.reduce((acc, row) => {
+    const startDate = new Date(row['Início ']);
+    const diffDays = Math.max(0, Math.floor((today.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)));
+    return acc + diffDays;
+  }, 0);
+  const media = validExperimentos.length > 0 ? Math.round(totalDias / validExperimentos.length) : 0;
 
   return (
     <div className="space-y-6">
@@ -130,6 +141,18 @@ const VisaoConsolidada = () => {
           <CardContent>
             <div className="text-2xl font-bold text-lab-primary">7.3%</div>
             <p className="text-xs text-muted-foreground">Ideias → Piloto</p>
+          </CardContent>
+        </Card>
+
+        {/* Card tempo médio ciclo experimento */}
+        <Card className="shadow-card">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Tempo médio para terminar um ciclo de experimento</CardTitle>
+            <TrendingUp className="h-4 w-4 text-lab-primary" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-lab-primary">{media} dias</div>
+            <p className="text-xs text-muted-foreground">Base: experimentos com data de início</p>
           </CardContent>
         </Card>
       </div>

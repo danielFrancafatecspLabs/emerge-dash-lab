@@ -9,6 +9,7 @@ import ExperimentosAndamento from "./pages/ExperimentosAndamento";
 import EmConstrucao from "./pages/EmConstrucao";
 import NotFound from "./pages/NotFound";
 import ListaDeExperimentos from "./pages/ListaDeExperimentos";
+import BoardView from "./pages/BoardView";
 
 const queryClient = new QueryClient();
 
@@ -44,6 +45,7 @@ const App = () => (
               path="/lista-experimentos" 
               element={<ListaDeExperimentos />} 
             />
+            <Route path="/board-operacional" element={<BoardView />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

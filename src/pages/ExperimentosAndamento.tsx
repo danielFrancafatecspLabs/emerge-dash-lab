@@ -1,20 +1,32 @@
 import { useState } from "react"
+import { useExperimentos } from '@/hooks/useExperimentos';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from 'recharts'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, LabelList } from 'recharts'
 import { Upload, Download, Filter, Search } from "lucide-react"
 import { toast } from "sonner"
 
-const processSteps = [
-  { number: 15, label: "Experimentos em Andamento", status: "active" },
-  { number: 4, label: "Aguardando Avaliação Inicial", status: "waiting" },
-  { number: 3, label: "Aguardando Aprovação Executiva", status: "waiting" },
-  { number: 1, label: "Aguardando Processo de Delivery", status: "waiting" },
-  { number: 3, label: "Piloto em Validação", status: "validation" },
-  { number: 4, label: "Em Avaliação de Esforço e Custo", status: "evaluation" },
-]
+const statusLabels = [
+  { key: 'Em planejamento', label: 'Em Planejamento', color: 'border-indigo-600 text-indigo-700 bg-indigo-100' },
+  { key: 'Em refinamento', label: 'Em Refinamento', color: 'border-purple-600 text-purple-700 bg-purple-100' },
+  { key: 'Em andamento', label: 'Em Andamento', color: 'border-lab-primary text-lab-primary bg-lab-primary/10' },
+  { key: 'Em Testes', label: 'Em Testes', color: 'border-pink-600 text-pink-700 bg-pink-100' },
+  { key: 'Em validação', label: 'Em Validação', color: 'border-orange-600 text-orange-700 bg-orange-100' },
+  { key: 'Concluido', label: 'Concluídos', color: 'border-green-600 text-green-700 bg-green-100' },
+  { key: 'Concluido com Pivot', label: 'Concluídos com Pivot', color: 'border-blue-600 text-blue-700 bg-blue-100' },
+  { key: 'Concluido - Aguardando Go/No para Piloto', label: 'Concluídos Aguardando Go/No para Piloto', color: 'border-yellow-500 text-yellow-700 bg-yellow-100' },
+  { key: 'Arquivado', label: 'Arquivado', color: 'border-gray-400 text-gray-600 bg-gray-100' },
+];
+
+function normalizeStatus(status: string) {
+  if (!status) return '';
+  return status.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase();
+}
+
+
 
 const initiativeData = [
   { name: 'WEB 3', value: 5, color: 'hsl(var(--lab-primary))' },
@@ -54,17 +66,71 @@ const highlights = [
 ]
 
 const ExperimentosAndamento = () => {
-  const [searchTerm, setSearchTerm] = useState("")
+
+  const [searchTerm, setSearchTerm] = useState("");
+  const { data, loading, setData, experimentosPorTipo } = useExperimentos();
+
+  // Gerar dados de área a partir da lista de experimentos
+  const areaCounts: { [key: string]: number } = {};
+  data.forEach(item => {
+    const area = item['Área']?.trim();
+    if (area) {
+      areaCounts[area] = (areaCounts[area] || 0) + 1;
+    }
+  });
+  const areaData = Object.entries(areaCounts).map(([name, value]) => ({ name, value }));
+
+  // Filtra experimentos em andamento
+  const andamento = data.filter(item => (item['Experimentação'] || '').trim().toLowerCase() === 'em andamento');
+
+  // Função para atualizar comentário
+  const handleComentarioChange = (idx: number, value: string) => {
+    const updated = [...data];
+    const indexInData = data.findIndex(item => item['Iniciativa'] === andamento[idx]['Iniciativa']);
+    if (indexInData !== -1) {
+      updated[indexInData]['Comentários/Pendências/Ações'] = value;
+      setData(updated);
+    }
+  };
+
+  // Modal para descrição
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalDescricao, setModalDescricao] = useState("");
+  const [modalTitulo, setModalTitulo] = useState("");
+  const handleOpenModal = (item: any) => {
+    setModalTitulo(item['Iniciativa']);
+    setModalDescricao(item['Descrição'] || "Sem descrição disponível.");
+    setModalOpen(true);
+  };
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
+    const file = event.target.files?.[0];
     if (file && file.type === 'text/csv') {
-      toast.success(`Arquivo ${file.name} carregado com sucesso!`)
+      toast.success(`Arquivo ${file.name} carregado com sucesso!`);
       // Here you would process the CSV file
     } else {
-      toast.error("Por favor, selecione um arquivo CSV válido")
+      toast.error("Por favor, selecione um arquivo CSV válido");
     }
-  }
+  };
+
+  // Calcular statusCounts dinamicamente a partir dos dados, usando 'Experimentação'
+  // Função para normalizar status (remove acentos, minúsculas, trim)
+  const normalize = (str: string) => (str || '').normalize('NFD').replace(/\p{Diacritic}/gu, '').trim().toLowerCase();
+
+  // Calcular statusCounts para cada statusLabel
+  const statusCounts: { [key: string]: number } = {};
+  statusLabels.forEach(label => {
+    const normKey = normalize(label.key);
+    statusCounts[label.key] = data.filter(item => normalize(item['Experimentação']) === normKey).length;
+  });
+
+  // Hook para controlar card selecionado e experimentos filtrados
+  const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
+  const [statusModalOpen, setStatusModalOpen] = useState(false);
+  // Modal: filtrar experimentos pelo campo correto, normalizando
+  const experimentsForStatus = selectedStatus
+    ? data.filter(item => normalize(item['Experimentação']) === normalize(selectedStatus))
+    : [];
 
   return (
     <div className="space-y-6">
@@ -104,34 +170,51 @@ const ExperimentosAndamento = () => {
         </CardHeader>
         <CardContent>
           <div className="flex flex-wrap items-center gap-4 p-4">
-            {processSteps.map((step, index) => (
-              <div key={index} className="flex items-center">
-                <div className={`
-                  relative flex flex-col items-center p-4 rounded-lg border-2 min-w-[140px]
-                  ${step.status === 'active' ? 'bg-lab-primary/10 border-lab-primary' : 
-                    step.status === 'waiting' ? 'bg-lab-warning/10 border-lab-warning' :
-                    step.status === 'validation' ? 'bg-lab-secondary/10 border-lab-secondary' :
-                    'bg-lab-accent/10 border-lab-accent'}
-                `}>
-                  <div className={`
-                    text-2xl font-bold mb-1
-                    ${step.status === 'active' ? 'text-lab-primary' : 
-                      step.status === 'waiting' ? 'text-lab-warning' :
-                      step.status === 'validation' ? 'text-lab-secondary' :
-                      'text-lab-accent'}
-                  `}>
-                    {step.number}
+            {statusLabels.map((step, index) => (
+              <div key={step.key} className="flex items-center">
+                <button
+                  className={`relative flex flex-col items-center p-4 rounded-lg border-2 min-w-[140px] cursor-pointer transition hover:scale-105 ${step.color}`}
+                  onClick={() => {
+                    setSelectedStatus(step.key);
+                    setStatusModalOpen(true);
+                  }}
+                  aria-label={`Ver experimentos com status ${step.label}`}
+                >
+                  <div className={`text-2xl font-bold mb-1 ${step.color.split(' ')[1]}`}>
+                    {statusCounts[step.key] || 0}
                   </div>
                   <div className="text-xs text-center font-medium text-foreground">
                     {step.label}
                   </div>
-                </div>
-                {index < processSteps.length - 1 && (
+                </button>
+                {index < statusLabels.length - 1 && (
                   <div className="w-8 h-px bg-border mx-2" />
                 )}
               </div>
             ))}
           </div>
+
+          {/* Modal para mostrar experimentos do status selecionado */}
+          <Dialog open={statusModalOpen} onOpenChange={setStatusModalOpen}>
+            <DialogContent className="max-w-lg">
+              <DialogHeader>
+                <DialogTitle>Experimentos com status: {selectedStatus}</DialogTitle>
+                <DialogDescription>
+                  {experimentsForStatus.length === 0
+                    ? "Nenhum experimento encontrado."
+                    : `Total: ${experimentsForStatus.length}`}
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-2 max-h-96 overflow-y-auto">
+                {experimentsForStatus.map((exp, idx) => (
+                  <div key={exp['Iniciativa'] || idx} className="p-2 rounded border bg-muted">
+                    <div className="font-semibold">{exp['Iniciativa']}</div>
+                    <div className="text-xs text-muted-foreground">{exp['Descrição']}</div>
+                  </div>
+                ))}
+              </div>
+            </DialogContent>
+          </Dialog>
         </CardContent>
       </Card>
 
@@ -146,11 +229,13 @@ const ExperimentosAndamento = () => {
           <CardContent>
             <div className="h-80">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={initiativeData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                <BarChart data={experimentosPorTipo} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                   <XAxis dataKey="name" stroke="#64748b" fontSize={12} />
                   <YAxis stroke="#64748b" fontSize={12} />
-                  <Bar dataKey="value" fill="hsl(var(--lab-primary))" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="value" fill="hsl(var(--lab-primary))" radius={[4, 4, 0, 0]}>
+                    <LabelList dataKey="value" position="top" fontSize={13} />
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -164,13 +249,15 @@ const ExperimentosAndamento = () => {
             <CardDescription>Distribuição por área organizacional</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="h-80">
-              <ResponsiveContainer width="100%" height="100%">
+            <div className="h-80 overflow-x-auto">
+              <ResponsiveContainer width={Math.max(600, areaData.length * 80)} height="100%">
                 <BarChart data={areaData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                  <XAxis dataKey="name" stroke="#64748b" fontSize={12} />
+                  <XAxis dataKey="name" stroke="#64748b" fontSize={12} interval={0} angle={-45} textAnchor="end" height={60} />
                   <YAxis stroke="#64748b" fontSize={12} />
-                  <Bar dataKey="value" fill="hsl(var(--lab-primary))" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="value" fill="hsl(var(--lab-primary))" radius={[4, 4, 0, 0]}>
+                    <LabelList dataKey="value" position="top" fontSize={13} />
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -192,27 +279,11 @@ const ExperimentosAndamento = () => {
         </CardContent>
       </Card>
 
-      {/* Highlights Table */}
+      {/* Lista de Experimentos em Andamento */}
       <Card className="shadow-card">
         <CardHeader>
-          <CardTitle>Destaques</CardTitle>
-          <CardDescription>Experimentos em destaque no período</CardDescription>
-          
-          <div className="flex gap-3 mt-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-              <Input
-                placeholder="Buscar experimentos..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-            <Button variant="outline" size="sm">
-              <Filter className="w-4 h-4 mr-2" />
-              Filtros
-            </Button>
-          </div>
+          <CardTitle>Experimentos em Andamento</CardTitle>
+          <CardDescription>Lista dos experimentos ativos, editáveis</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
@@ -227,27 +298,36 @@ const ExperimentosAndamento = () => {
                 </tr>
               </thead>
               <tbody>
-                {highlights
-                  .filter(item => 
-                    searchTerm === "" || 
-                    item.area.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                    item.experiment.toLowerCase().includes(searchTerm.toLowerCase())
-                  )
-                  .map((item, index) => (
-                  <tr key={index} className="border-b hover:bg-muted/50">
+                {andamento.map((item, idx) => (
+                  <tr key={item['Iniciativa']} className="border-b hover:bg-muted/50 cursor-pointer" onClick={() => handleOpenModal(item)}>
                     <td className="p-3">
-                      <Badge variant="secondary">{item.area}</Badge>
+                      <Badge variant="secondary">{item['Área']}</Badge>
                     </td>
-                    <td className="p-3 font-medium">{item.experiment}</td>
-                    <td className="p-3">{item.responsible}</td>
+                    <td className="p-3 font-medium">{item['Iniciativa']}</td>
+                    <td className="p-3">{item['Sponsor/BO']}</td>
                     <td className="p-3">
                       <Badge className="bg-lab-success/10 text-lab-success border-lab-success">
-                        SeCiTi Labs
+                        {item['Experimentação']}
                       </Badge>
                     </td>
-                    <td className="p-3 text-sm text-muted-foreground">{item.status}</td>
+                    <td className="p-3 text-sm text-muted-foreground" onClick={e => e.stopPropagation()}>
+                      <Input
+                        value={item['Comentários/Pendências/Ações'] || ''}
+                        onChange={e => handleComentarioChange(idx, e.target.value)}
+                        placeholder="Adicionar comentário, pendência ou ação..."
+                        className="w-full"
+                      />
+                    </td>
                   </tr>
                 ))}
+      <Dialog open={modalOpen} onOpenChange={setModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{modalTitulo}</DialogTitle>
+            <DialogDescription>{modalDescricao}</DialogDescription>
+          </DialogHeader>
+        </DialogContent>
+      </Dialog>
               </tbody>
             </table>
           </div>

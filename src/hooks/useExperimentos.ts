@@ -129,6 +129,7 @@ export function useExperimentos() {
 
   return {
     data,
+    setData,
     loading,
     total,
     totalProspeccao,

@@ -9,6 +9,7 @@ const navigationItems = [
   { title: "Visão Consolidada", url: "/", icon: BarChart3 },
   { title: "Experimentos em Andamento", url: "/experimentos-andamento", icon: Activity },
   { title: "Lista de Experimentos", url: "/lista-experimentos", icon: FileText },
+  { title: "Board Operacional", url: "/board-operacional", icon: Menu },
   { title: "Relatórios", url: "/relatorios", icon: FileText },
   { title: "Configurações", url: "/configuracoes", icon: Settings },
 ];

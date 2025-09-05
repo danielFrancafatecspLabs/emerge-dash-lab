@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog';
 import Papa from 'papaparse';
 import { Pencil, Eye, EyeOff } from 'lucide-react';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../components/ui/table';
@@ -35,6 +36,7 @@ export default function ListaDeExperimentos() {
   const [editData, setEditData] = useState<any | null>(null);
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
   const [hiddenColumns, setHiddenColumns] = useState<string[]>([]);
+  const [manageColumnsOpen, setManageColumnsOpen] = useState(false);
   const [ideaFilter, setIdeaFilter] = useState<string[]>(['Selecionar tudo']);
   const [experimentacaoFilter, setExperimentacaoFilter] = useState<string[]>(['Selecionar tudo']);
   const [pilotoFilter, setPilotoFilter] = useState<string[]>(['Selecionar tudo']);
@@ -120,20 +122,81 @@ export default function ListaDeExperimentos() {
   return (
     <div className="p-6">
       <h1 className="text-2xl font-bold mb-4">Lista de Experimentos</h1>
-      <div className="flex flex-col gap-2 mb-4">
-        <div className="flex gap-2 mb-2">
+
+      {/* Card de tempo médio para terminar um ciclo de experimento */}
+      {(() => {
+        const today = new Date();
+        const validExperimentos = filtered.filter(row => row['Início '] && !isNaN(new Date(row['Início ']).getTime()));
+        const totalDias = validExperimentos.reduce((acc, row) => {
+          const startDate = new Date(row['Início ']);
+          const diffDays = Math.max(0, Math.floor((today.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)));
+          return acc + diffDays;
+        }, 0);
+        const media = validExperimentos.length > 0 ? Math.round(totalDias / validExperimentos.length) : 0;
+        return (
+          <div className="mb-6">
+            <div className="bg-white border border-gray-200 rounded-lg shadow p-4 flex flex-col items-start w-fit">
+              <span className="text-xs font-semibold text-muted-foreground mb-1">Tempo médio para terminar um ciclo de experimento</span>
+              <span className="text-2xl font-bold text-lab-primary">{media} dias</span>
+            </div>
+          </div>
+        );
+      })()}
+  {/* Removido bloco duplicado de filtros, busca e legenda */}
+
+      {/* Modal para gerenciar colunas */}
+      <Dialog open={manageColumnsOpen} onOpenChange={setManageColumnsOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Gerenciar Colunas</DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col gap-2 mt-2">
+            {columns.map(col => (
+              <label key={col} className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={!hiddenColumns.includes(col)}
+                  onChange={() => toggleColumn(col)}
+                />
+                <span>{col}</span>
+              </label>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
+      {/* Filtros, busca e legenda agrupados */}
+      <div className="flex flex-col gap-4 mb-6 items-start">
+        <div className="flex flex-wrap gap-3 items-center">
           <ColumnFilterDropdown options={IDEA_OPTIONS} selected={ideaFilter} onChange={setIdeaFilter} label="Ideia/Problema/Oportunidade" />
           <ColumnFilterDropdown options={EXPERIMENTACAO_OPTIONS} selected={experimentacaoFilter} onChange={setExperimentacaoFilter} label="Experimentação" />
           <ColumnFilterDropdown options={PILOTO_OPTIONS} selected={pilotoFilter} onChange={setPilotoFilter} label="Piloto" />
           <ColumnFilterDropdown options={ESCALA_OPTIONS} selected={escalaFilter} onChange={setEscalaFilter} label="Escala" />
-        </div>
-        <div className="flex gap-4 items-center">
           <Input
             placeholder="Buscar..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-96 text-gray-800 bg-white border border-gray-300"
+            className="w-48 text-gray-800 bg-white border border-gray-300 ml-2"
           />
+          <button
+            className="px-3 py-2 rounded bg-gray-200 text-gray-800 hover:bg-gray-300 border border-gray-300 ml-2"
+            onClick={() => setManageColumnsOpen(true)}
+          >
+            Gerenciar Colunas
+          </button>
+        </div>
+        <div className="flex gap-6 items-center mt-2">
+          <div className="flex items-center gap-2">
+            <span className="inline-block w-4 h-4 rounded-full bg-green-500 animate-pulse" />
+            <span className="text-sm">Dentro do prazo</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="inline-block w-4 h-4 rounded-full bg-red-500 animate-pulse" />
+            <span className="text-sm">Fora do prazo</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="inline-block w-4 h-4 rounded-full bg-yellow-400 animate-pulse" />
+            <span className="text-sm">Pendência</span>
+          </div>
         </div>
       </div>
       <Table>
@@ -172,9 +235,34 @@ export default function ListaDeExperimentos() {
                   <Pencil className="w-4 h-4 text-blue-600" />
                 </button>
               </TableCell>
-              {columns.map((col) => (
+              {columns.map((col, colIdx) => (
                 <TableCell key={col}>
-                  {col === '#' ? (
+                  {col === 'Iniciativa' ? (
+                    <div className="flex flex-col gap-1">
+                      <span>{row[col]}</span>
+                      {/* Círculos de tempo em andamento */}
+                      {row['Início '] && (
+                        (() => {
+                          const startDate = new Date(row['Início ']);
+                          const today = new Date();
+                          const diffDays = Math.max(0, Math.floor((today.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)));
+                          // Máximo de 5 círculos, cada círculo representa 10 dias
+                          const numCircles = Math.min(5, Math.ceil(diffDays / 10));
+                          return (
+                            <div className="flex gap-1 mt-1">
+                              {[...Array(numCircles)].map((_, i) => (
+                                <span
+                                  key={i}
+                                  className="inline-block w-4 h-4 rounded-full bg-red-500 animate-pulse cursor-pointer"
+                                  title={`${diffDays} dias em andamento`}
+                                />
+                              ))}
+                            </div>
+                          );
+                        })()
+                      )}
+                    </div>
+                  ) : col === '#' ? (
                     row[col] === '1.0' ? <BlinkingDot color="#ef4444" />
                     : row[col] === '2.0' ? <BlinkingDot color="#eab308" />
                     : row[col] === '3.0' ? <BlinkingDot color="#22c55e" />
