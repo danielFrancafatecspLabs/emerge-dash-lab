@@ -8,6 +8,7 @@ import VisaoConsolidada from "./pages/VisaoConsolidada";
 import ExperimentosAndamento from "./pages/ExperimentosAndamento";
 import EmConstrucao from "./pages/EmConstrucao";
 import NotFound from "./pages/NotFound";
+import ListaDeExperimentos from "./pages/ListaDeExperimentos";
 
 const queryClient = new QueryClient();
 
@@ -38,6 +39,10 @@ const App = () => (
                   descricao="Painel de configurações do sistema de monitoramento" 
                 />
               } 
+            />
+            <Route 
+              path="/lista-experimentos" 
+              element={<ListaDeExperimentos />} 
             />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
