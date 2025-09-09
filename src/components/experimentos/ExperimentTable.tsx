@@ -216,7 +216,27 @@ export function ExperimentTable({
                           ? row[col].texto ?? JSON.stringify(row[col])
                           : row[col]}
                       </span>
-                      {/* ...círculos de tempo em andamento... */}
+                      <span className="text-xs text-gray-500">
+                        {(() => {
+                          // Try to get the start date from the row
+                          const startDateRaw =
+                            row["Início "] ||
+                            row["Início"] ||
+                            row["Data de Início"];
+                          if (!startDateRaw) return null;
+                          const startDate = new Date(startDateRaw);
+                          if (isNaN(startDate.getTime())) return null;
+                          const today = new Date();
+                          const diffDays = Math.max(
+                            0,
+                            Math.floor(
+                              (today.getTime() - startDate.getTime()) /
+                                (1000 * 60 * 60 * 24)
+                            )
+                          );
+                          return `${diffDays} dias na coluna`;
+                        })()}
+                      </span>
                     </div>
                   ) : col === "Sinal" ? (
                     (() => {
