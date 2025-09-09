@@ -54,7 +54,7 @@ export function ExperimentTable({ columns, data, filtered, hiddenColumns, select
             <TableHead className="sticky top-0 bg-white z-10"></TableHead>
             {columns.map((col) => (
               <TableHead key={col} className="sticky top-0 bg-white z-10 relative group">
-                <span>{col === 'Sinal' ? 'Sinal' : col}</span>
+w                <span>{col === 'Sinal' ? 'Sinal' : col}</span>
                 <button
                   className="absolute right-1 top-1 p-1 text-gray-500 hover:text-blue-600"
                   onClick={() => toggleColumn(col)}
