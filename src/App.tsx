@@ -10,6 +10,7 @@ import EmConstrucao from "./pages/EmConstrucao";
 import NotFound from "./pages/NotFound";
 import ListaDeExperimentos from "./pages/ListaDeExperimentos";
 import BoardView from "./pages/BoardView";
+import EsteiraDeDemandas from "./pages/EsteiraDeDemandas";
 
 const queryClient = new QueryClient();
 
@@ -22,30 +23,34 @@ const App = () => (
         <DashboardLayout>
           <Routes>
             <Route path="/" element={<VisaoConsolidada />} />
-            <Route path="/experimentos-andamento" element={<ExperimentosAndamento />} />
-            <Route 
-              path="/relatorios" 
-              element={
-                <EmConstrucao 
-                  titulo="Relatórios" 
-                  descricao="Módulo de geração de relatórios detalhados dos experimentos" 
-                />
-              } 
+            <Route
+              path="/experimentos-andamento"
+              element={<ExperimentosAndamento />}
             />
-            <Route 
-              path="/configuracoes" 
+            <Route
+              path="/relatorios"
               element={
-                <EmConstrucao 
-                  titulo="Configurações" 
-                  descricao="Painel de configurações do sistema de monitoramento" 
+                <EmConstrucao
+                  titulo="Relatórios"
+                  descricao="Módulo de geração de relatórios detalhados dos experimentos"
                 />
-              } 
+              }
             />
-            <Route 
-              path="/lista-experimentos" 
-              element={<ListaDeExperimentos />} 
+            <Route
+              path="/configuracoes"
+              element={
+                <EmConstrucao
+                  titulo="Configurações"
+                  descricao="Painel de configurações do sistema de monitoramento"
+                />
+              }
+            />
+            <Route
+              path="/lista-experimentos"
+              element={<ListaDeExperimentos />}
             />
             <Route path="/board-operacional" element={<BoardView />} />
+            <Route path="/esteira-demandas" element={<EsteiraDeDemandas />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
