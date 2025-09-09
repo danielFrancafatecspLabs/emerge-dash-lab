@@ -1,10 +1,16 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { useExperimentos } from '@/hooks/useExperimentos';
-import { ExperimentStageChart } from '@/components/charts/ExperimentStageChart';
-import { ExperimentTypeChart } from '@/components/charts/ExperimentTypeChart';
-import { MonthlyExperimentsChart } from '@/components/charts/MonthlyExperimentsChart';
-import { IdeasPieChart } from '@/components/charts/IdeasPieChart'
-import { DollarSign, TrendingUp, Target, Lightbulb } from 'lucide-react';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { useExperimentos } from "@/hooks/useExperimentos";
+import { ExperimentStageChart } from "@/components/charts/ExperimentStageChart";
+import { ExperimentTypeChart } from "@/components/charts/ExperimentTypeChart";
+import { MonthlyExperimentsChart } from "@/components/charts/MonthlyExperimentsChart";
+import { IdeasPieChart } from "@/components/charts/IdeasPieChart";
+import { DollarSign, TrendingUp, Target, Lightbulb } from "lucide-react";
 // import mongoose from 'mongoose';
 
 const VisaoConsolidada = () => {
@@ -27,32 +33,58 @@ const VisaoConsolidada = () => {
   } = useExperimentos();
 
   const backlogClassificacoes = ["Backlog", "Em backlog", "Não iniciado"];
-  const backlogColunas = ["Situação Atual e Próximos passos", "Experimentação", "Status", "Classificação"];
+  const backlogColunas = [
+    "Situação Atual e Próximos passos",
+    "Ideia/Problema/Oportunidade",
+    "Status",
+    "Classificação",
+  ];
   let totalBacklog = 0;
   if (data && data.length > 0) {
     totalBacklog = backlogColunas.reduce((acc, col) => {
-      return acc + backlogClassificacoes.reduce((sum, classificacao) => {
-        return sum + getCount(col, classificacao);
-      }, 0);
+      return (
+        acc +
+        backlogClassificacoes.reduce((sum, classificacao) => {
+          return sum + getCount(col, classificacao);
+        }, 0)
+      );
     }, 0);
   }
 
   // Calcular tempo médio para terminar um ciclo de experimento
   const today = new Date();
-  const validExperimentos = data.filter(row => typeof row['Início '] === 'string' && row['Início '] && !isNaN(new Date(row['Início ']).getTime()));
+  const validExperimentos = data.filter(
+    (row) =>
+      typeof row["Início "] === "string" &&
+      row["Início "] &&
+      !isNaN(new Date(row["Início "]).getTime())
+  );
   const totalDias = validExperimentos.reduce((acc, row) => {
-    const startDate = typeof row['Início '] === 'string' ? new Date(row['Início ']) : today;
-    const diffDays = Math.max(0, Math.floor((today.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)));
+    const startDate =
+      typeof row["Início "] === "string" ? new Date(row["Início "]) : today;
+    const diffDays = Math.max(
+      0,
+      Math.floor(
+        (today.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)
+      )
+    );
     return acc + diffDays;
   }, 0);
-  const media = validExperimentos.length > 0 ? Math.round(totalDias / validExperimentos.length) : 0;
+  const media =
+    validExperimentos.length > 0
+      ? Math.round(totalDias / validExperimentos.length)
+      : 0;
 
   return (
     <div className="space-y-6">
       {/* Header Section */}
       <div className="mb-8">
-        <h2 className="text-3xl font-bold text-foreground mb-2">Visão Consolidada</h2>
-        <p className="text-muted-foreground">Benefícios esperados dos Experimentos</p>
+        <h2 className="text-3xl font-bold text-foreground mb-2">
+          Visão Consolidada
+        </h2>
+        <p className="text-muted-foreground">
+          Benefícios esperados dos Experimentos
+        </p>
       </div>
 
       {/* Economic Potential Card */}
@@ -64,21 +96,31 @@ const VisaoConsolidada = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-3xl font-bold text-lab-primary mb-1">R$ 69.850.000</div>
-          <p className="text-sm text-muted-foreground">Projeção anual consolidada</p>
+          <div className="text-3xl font-bold text-lab-primary mb-1">
+            R$ 69.850.000
+          </div>
+          <p className="text-sm text-muted-foreground">
+            Projeção anual consolidada
+          </p>
         </CardContent>
       </Card>
 
       {/* KPI Cards */}
-       <div className="grid grid-cols-1 md:grid-cols-7 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-7 gap-6 mb-8">
         <Card className="shadow-card">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total de Experimentos</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Total de Experimentos
+            </CardTitle>
             <Target className="h-4 w-4 text-lab-primary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-lab-primary">{total !== null ? total : "Carregando..."}</div>
-            <p className="text-xs text-muted-foreground">+15% em relação ao período anterior</p>
+            <div className="text-2xl font-bold text-lab-primary">
+              {total !== null ? total : "Carregando..."}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              +15% em relação ao período anterior
+            </p>
           </CardContent>
         </Card>
         <Card className="shadow-card">
@@ -90,11 +132,13 @@ const VisaoConsolidada = () => {
             <div className="text-2xl font-bold text-yellow-500">
               {loading && (!data || data.length === 0)
                 ? "Carregando..."
-                : (!loading && data && data.length === 0)
-                  ? "Nenhum experimento encontrado"
-                  : totalBacklog}
+                : !loading && data && data.length === 0
+                ? "Nenhum experimento encontrado"
+                : totalBacklog}
             </div>
-            <p className="text-xs text-muted-foreground">Experimentos no backlog</p>
+            <p className="text-xs text-muted-foreground">
+              Experimentos no backlog
+            </p>
           </CardContent>
         </Card>
         <Card className="shadow-card">
@@ -103,8 +147,12 @@ const VisaoConsolidada = () => {
             <TrendingUp className="h-4 w-4 text-blue-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-blue-600">{totalProspeccao !== null ? totalProspeccao : "Carregando..."}</div>
-            <p className="text-xs text-muted-foreground">Experimentos em prospecção</p>
+            <div className="text-2xl font-bold text-blue-600">
+              {totalProspeccao !== null ? totalProspeccao : "Carregando..."}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Experimentos em prospecção
+            </p>
           </CardContent>
         </Card>
 
@@ -114,7 +162,9 @@ const VisaoConsolidada = () => {
             <TrendingUp className="h-4 w-4 text-lab-primary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-lab-primary">{totalAndamento !== null ? totalAndamento : "Carregando..."}</div>
+            <div className="text-2xl font-bold text-lab-primary">
+              {totalAndamento !== null ? totalAndamento : "Carregando..."}
+            </div>
             <p className="text-xs text-muted-foreground">Experimentos ativos</p>
           </CardContent>
         </Card>
@@ -125,47 +175,67 @@ const VisaoConsolidada = () => {
             <TrendingUp className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">{totalConcluido !== null ? totalConcluido : "Carregando..."}</div>
-            <p className="text-xs text-muted-foreground">Experimentos concluídos</p>
+            <div className="text-2xl font-bold text-green-600">
+              {totalConcluido !== null ? totalConcluido : "Carregando..."}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Experimentos concluídos
+            </p>
           </CardContent>
         </Card>
 
         <Card className="shadow-card">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Concluídos aguardando Go/No Go</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Concluídos aguardando Go/No Go
+            </CardTitle>
             <TrendingUp className="h-4 w-4 text-yellow-500" />
           </CardHeader>
           <CardContent className="flex flex-col justify-start min-h-[80px]">
-            <div className="text-2xl font-bold text-yellow-500 min-h-[32px] flex items-start">{totalConcluidoGoNoGo !== null ? totalConcluidoGoNoGo : "Carregando..."}</div>
+            <div className="text-2xl font-bold text-yellow-500 min-h-[32px] flex items-start">
+              {totalConcluidoGoNoGo !== null
+                ? totalConcluidoGoNoGo
+                : "Carregando..."}
+            </div>
             <p className="text-xs text-muted-foreground">Aguardando decisão</p>
           </CardContent>
         </Card>
 
         <Card className="shadow-card">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pilotos em Andamento</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Pilotos em Andamento
+            </CardTitle>
             <TrendingUp className="h-4 w-4 text-indigo-600" />
           </CardHeader>
           <CardContent className="flex flex-col justify-start min-h-[80px]">
-            <div className="text-2xl font-bold text-indigo-600 min-h-[32px] flex items-start">{pilotosAndamento !== null ? pilotosAndamento : "Carregando..."}</div>
+            <div className="text-2xl font-bold text-indigo-600 min-h-[32px] flex items-start">
+              {pilotosAndamento !== null ? pilotosAndamento : "Carregando..."}
+            </div>
             <p className="text-xs text-muted-foreground">Pilotos ativos</p>
           </CardContent>
         </Card>
 
         <Card className="shadow-card">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pilotos Concluídos</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Pilotos Concluídos
+            </CardTitle>
             <TrendingUp className="h-4 w-4 text-green-700" />
           </CardHeader>
           <CardContent className="flex flex-col justify-start min-h-[80px]">
-            <div className="text-2xl font-bold text-green-700 min-h-[32px] flex items-start">{pilotosConcluidos !== null ? pilotosConcluidos : "Carregando..."}</div>
+            <div className="text-2xl font-bold text-green-700 min-h-[32px] flex items-start">
+              {pilotosConcluidos !== null ? pilotosConcluidos : "Carregando..."}
+            </div>
             <p className="text-xs text-muted-foreground">Pilotos concluídos</p>
           </CardContent>
         </Card>
 
         <Card className="shadow-card">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Taxa de Conversão</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Taxa de Conversão
+            </CardTitle>
             <Lightbulb className="h-4 w-4 text-lab-primary" />
           </CardHeader>
           <CardContent>
@@ -177,26 +247,36 @@ const VisaoConsolidada = () => {
         {/* Card tempo médio ciclo experimento */}
         <Card className="shadow-card">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Tempo médio para terminar um ciclo de experimento</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Tempo médio para terminar um ciclo de experimento
+            </CardTitle>
             <TrendingUp className="h-4 w-4 text-lab-primary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-lab-primary">{media} dias</div>
-            <p className="text-xs text-muted-foreground">Base: experimentos com data de início</p>
+            <div className="text-2xl font-bold text-lab-primary">
+              {media} dias
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Base: experimentos com data de início
+            </p>
           </CardContent>
         </Card>
       </div>
 
       {/* Charts Section */}
       <div>
-        <h3 className="text-2xl font-bold text-foreground mb-6">Resultado de Experimentos</h3>
-        
+        <h3 className="text-2xl font-bold text-foreground mb-6">
+          Resultado de Experimentos
+        </h3>
+
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Experimentos por Etapa */}
           <Card className="shadow-card">
             <CardHeader>
               <CardTitle className="text-lg">Experimentos por Etapa</CardTitle>
-              <CardDescription>Distribuição por fase do processo</CardDescription>
+              <CardDescription>
+                Distribuição por fase do processo
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <ExperimentStageChart data={experimentosPorEtapa} />
@@ -206,7 +286,9 @@ const VisaoConsolidada = () => {
           {/* Piloto/Projeto por Tipo */}
           <Card className="shadow-card">
             <CardHeader>
-              <CardTitle className="text-lg">Piloto/Projeto por Tipo de experimento</CardTitle>
+              <CardTitle className="text-lg">
+                Piloto/Projeto por Tipo de experimento
+              </CardTitle>
               <CardDescription>Categorização por tecnologia</CardDescription>
             </CardHeader>
             <CardContent>
@@ -217,19 +299,30 @@ const VisaoConsolidada = () => {
           {/* Experimentos por Mês */}
           <Card className="shadow-card">
             <CardHeader>
-              <CardTitle className="text-lg">QTD DE EXPERIMENTOS REALIZADOS POR MÊS</CardTitle>
-              <CardDescription>Evolução temporal dos experimentos</CardDescription>
+              <CardTitle className="text-lg">
+                QTD DE EXPERIMENTOS REALIZADOS POR MÊS
+              </CardTitle>
+              <CardDescription>
+                Evolução temporal dos experimentos
+              </CardDescription>
             </CardHeader>
             <CardContent>
-              <MonthlyExperimentsChart data={experimentosPorMes} anoColors={anoColors} />
+              <MonthlyExperimentsChart
+                data={experimentosPorMes}
+                anoColors={anoColors}
+              />
             </CardContent>
           </Card>
 
           {/* Ideias que não evoluíram */}
           <Card className="shadow-card">
             <CardHeader>
-              <CardTitle className="text-lg">Ideias que não evoluíram para piloto</CardTitle>
-              <CardDescription>Análise de ideias não convertidas</CardDescription>
+              <CardTitle className="text-lg">
+                Ideias que não evoluíram para piloto
+              </CardTitle>
+              <CardDescription>
+                Análise de ideias não convertidas
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <IdeasPieChart data={ideiasData} />
@@ -238,9 +331,7 @@ const VisaoConsolidada = () => {
         </div>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default VisaoConsolidada
-
-
+export default VisaoConsolidada;
