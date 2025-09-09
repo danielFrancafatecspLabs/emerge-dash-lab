@@ -5,6 +5,7 @@ import { ExperimentTypeChart } from '@/components/charts/ExperimentTypeChart';
 import { MonthlyExperimentsChart } from '@/components/charts/MonthlyExperimentsChart';
 import { IdeasPieChart } from '@/components/charts/IdeasPieChart'
 import { DollarSign, TrendingUp, Target, Lightbulb } from 'lucide-react';
+// import mongoose from 'mongoose';
 
 const VisaoConsolidada = () => {
   const {
@@ -212,3 +213,5 @@ const VisaoConsolidada = () => {
 }
 
 export default VisaoConsolidada
+
+
