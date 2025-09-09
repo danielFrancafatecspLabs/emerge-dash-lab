@@ -69,8 +69,11 @@ const highlights = [
 const ExperimentosAndamento = () => {
   const [editIdx, setEditIdx] = useState<number | null>(null);
   const [editValue, setEditValue] = useState<string>("");
+  // Estado para modal de histórico de situação
+  const [historyModalOpen, setHistoryModalOpen] = useState(false);
+  const [historyModalData, setHistoryModalData] = useState<any>(null);
 
-  // Função para salvar edição do campo
+  // Função para salvar edição do campo, movendo texto atual para o histórico
   const handleSaveEdit = async (idx: number) => {
     const item = andamento[idx];
     const id = item._id;
@@ -78,14 +81,33 @@ const ExperimentosAndamento = () => {
       const updated = [...data];
       const indexInData = data.findIndex(d => d._id === id);
       if (indexInData !== -1) {
+        // Atualiza apenas o campo Situação Atual e Próximos passos e o histórico
+        const prevText = updated[indexInData]["Situação Atual e Próximos passos"] || updated[indexInData]["Situacao Atual e Proximos passos"] || updated[indexInData]["Situacao Atual"];
+        let historico = [];
+        if (Array.isArray(updated[indexInData]['Comentários/Pendências/Ações'])) {
+          historico = [...updated[indexInData]['Comentários/Pendências/Ações']];
+        } else if (typeof updated[indexInData]['Comentários/Pendências/Ações'] === 'string' && updated[indexInData]['Comentários/Pendências/Ações'].trim()) {
+          historico.push({ texto: updated[indexInData]['Comentários/Pendências/Ações'], data: new Date().toISOString() });
+        }
+        if (typeof prevText === 'string' && prevText.trim()) {
+          historico.push({ texto: prevText, data: new Date().toISOString() });
+        }
+        // Cria novo objeto apenas com os campos necessários
+        const novoObj = {
+          _id: updated[indexInData]._id,
+          "Situação Atual e Próximos passos": editValue,
+          'Comentários/Pendências/Ações': historico
+        };
+        // Atualiza apenas os campos necessários localmente
         updated[indexInData]["Situação Atual e Próximos passos"] = editValue;
+        updated[indexInData]['Comentários/Pendências/Ações'] = historico;
         setData(updated);
         setEditIdx(null);
         setEditValue("");
         await fetch(`http://localhost:4000/experimentos/${id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(updated[indexInData]),
+          body: JSON.stringify(novoObj),
         });
       }
     }
@@ -97,7 +119,7 @@ const ExperimentosAndamento = () => {
   // Gerar dados de área a partir da lista de experimentos
   const areaCounts: { [key: string]: number } = {};
   data.forEach(item => {
-    const area = item['Área']?.trim();
+    const area = typeof item['Área'] === 'string' ? item['Área'].trim() : undefined;
     if (area) {
       areaCounts[area] = (areaCounts[area] || 0) + 1;
     }
@@ -105,7 +127,7 @@ const ExperimentosAndamento = () => {
   const areaData = Object.entries(areaCounts).map(([name, value]) => ({ name, value }));
 
   // Filtra experimentos em andamento
-  const andamento = data.filter(item => (item['Experimentação'] || '').trim().toLowerCase() === 'em andamento');
+  const andamento = data.filter(item => typeof item['Experimentação'] === 'string' && item['Experimentação'].trim().toLowerCase() === 'em andamento');
 
   // Função para atualizar comentário e salvar no backend
   const handleComentarioChange = async (idx: number, value: string) => {
@@ -139,6 +161,11 @@ const ExperimentosAndamento = () => {
     setModalDescricao(item['Descrição'] || "Sem descrição disponível.");
     setModalOpen(true);
   };
+  // Modal para histórico de situação
+  const handleOpenHistoryModal = (item: any) => {
+    setHistoryModalData(item);
+    setHistoryModalOpen(true);
+  };
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -158,7 +185,7 @@ const ExperimentosAndamento = () => {
   const statusCounts: { [key: string]: number } = {};
   statusLabels.forEach(label => {
     const normKey = normalize(label.key);
-    statusCounts[label.key] = data.filter(item => normalize(item['Experimentação']) === normKey).length;
+    statusCounts[label.key] = data.filter(item => typeof item['Experimentação'] === 'string' && normalize(item['Experimentação']) === normKey).length;
   });
 
   // Hook para controlar card selecionado e experimentos filtrados
@@ -166,7 +193,7 @@ const ExperimentosAndamento = () => {
   const [statusModalOpen, setStatusModalOpen] = useState(false);
   // Modal: filtrar experimentos pelo campo correto, normalizando
   const experimentsForStatus = selectedStatus
-    ? data.filter(item => normalize(item['Experimentação']) === normalize(selectedStatus))
+    ? data.filter(item => typeof item['Experimentação'] === 'string' && normalize(item['Experimentação']) === normalize(selectedStatus))
     : [];
 
   return (
@@ -244,9 +271,9 @@ const ExperimentosAndamento = () => {
               </DialogHeader>
               <div className="space-y-2 max-h-96 overflow-y-auto">
                 {experimentsForStatus.map((exp, idx) => (
-                  <div key={exp['Iniciativa'] || idx} className="p-2 rounded border bg-muted">
-                    <div className="font-semibold">{exp['Iniciativa']}</div>
-                    <div className="text-xs text-muted-foreground">{exp['Descrição']}</div>
+                  <div key={typeof exp['Iniciativa'] === 'string' ? exp['Iniciativa'] : idx} className="p-2 rounded border bg-muted">
+                    <div className="font-semibold">{typeof exp['Iniciativa'] === 'string' ? exp['Iniciativa'] : ''}</div>
+                    <div className="text-xs text-muted-foreground">{typeof exp['Descrição'] === 'string' ? exp['Descrição'] : ''}</div>
                   </div>
                 ))}
               </div>
@@ -336,19 +363,22 @@ const ExperimentosAndamento = () => {
               </thead>
               <tbody>
                 {andamento.map((item, idx) => (
-                  <tr key={item['Iniciativa']} className="border-b hover:bg-muted/50 cursor-pointer" onClick={() => handleOpenModal(item)}>
+                  <tr key={typeof item['Iniciativa'] === 'string' ? item['Iniciativa'] : idx} className="border-b hover:bg-muted/50 cursor-pointer" onClick={() => handleOpenModal(item)}>
                     <td className="p-3">
-                      <Badge variant="secondary">{item['Área']}</Badge>
+                      <Badge variant="secondary">{typeof item['Área'] === 'string' ? item['Área'] : ''}</Badge>
                     </td>
-                    <td className="p-3 font-medium">{item['Iniciativa']}</td>
-                    <td className="p-3">{item['Sponsor/BO']}</td>
+                    <td className="p-3 font-medium">{typeof item['Iniciativa'] === 'string' ? item['Iniciativa'] : ''}</td>
+                    <td className="p-3">{typeof item['Sponsor/BO'] === 'string' ? item['Sponsor/BO'] : ''}</td>
                     <td className="p-3">
                       <Badge className="bg-lab-success/10 text-lab-success border-lab-success">
-                        {item['Experimentação']}
+                        {typeof item['Experimentação'] === 'string' ? item['Experimentação'] : ''}
                       </Badge>
                     </td>
-                    <td className="p-3 text-sm text-muted-foreground" onClick={e => e.stopPropagation()}>
-                      <div className="mb-1 text-sm font-semibold text-gray-800 flex items-center gap-2">
+                    <td className="p-3 text-sm text-muted-foreground">
+                      <div
+                        className="mb-1 text-sm font-semibold text-gray-800 flex items-center gap-2 cursor-pointer"
+                        onClick={e => { e.stopPropagation(); handleOpenHistoryModal(item); }}
+                      >
                         {editIdx === idx ? (
                           <>
                             <input
@@ -369,18 +399,30 @@ const ExperimentosAndamento = () => {
                           </>
                         ) : (
                           <>
-                            {item['Situação Atual e Próximos passos'] || item['Situacao Atual e Proximos passos'] || item['Situacao Atual']
-                              ? <span>{item['Situação Atual e Próximos passos'] || item['Situacao Atual e Proximos passos'] || item['Situacao Atual']}</span>
-                              : (Array.isArray(item['Comentários/Pendências/Ações']) && item['Comentários/Pendências/Ações'].length > 0
-                                ? <span>{item['Comentários/Pendências/Ações'][item['Comentários/Pendências/Ações'].length - 1].texto}</span>
-                                : null)
-                            }
+                            {typeof item['Situação Atual e Próximos passos'] === 'string' ? (
+                              <span>{item['Situação Atual e Próximos passos']}</span>
+                            ) : typeof item['Situacao Atual e Proximos passos'] === 'string' ? (
+                              <span>{item['Situacao Atual e Proximos passos']}</span>
+                            ) : typeof item['Situacao Atual'] === 'string' ? (
+                              <span>{item['Situacao Atual']}</span>
+                            ) : Array.isArray(item['Comentários/Pendências/Ações']) && item['Comentários/Pendências/Ações'].length > 0 ? (
+                              (() => {
+                                const last = item['Comentários/Pendências/Ações'][item['Comentários/Pendências/Ações'].length - 1];
+                                return typeof last === 'object' && 'texto' in last ? <span>{last.texto}</span> : null;
+                              })()
+                            ) : null}
                             <button
                               className="p-1 hover:bg-blue-100 rounded"
                               title="Editar situação atual"
-                              onClick={() => {
+                              onClick={e => {
+                                e.stopPropagation();
                                 setEditIdx(idx);
-                                setEditValue(item['Situação Atual e Próximos passos'] || item['Situacao Atual e Proximos passos'] || item['Situacao Atual'] || "");
+                                setEditValue(
+                                  typeof item['Situação Atual e Próximos passos'] === 'string' ? item['Situação Atual e Próximos passos'] :
+                                  typeof item['Situacao Atual e Proximos passos'] === 'string' ? item['Situacao Atual e Proximos passos'] :
+                                  typeof item['Situacao Atual'] === 'string' ? item['Situacao Atual'] :
+                                  ""
+                                );
                               }}
                             >
                               <Pencil className="w-4 h-4 text-blue-600" strokeWidth={2.2} />
@@ -391,12 +433,42 @@ const ExperimentosAndamento = () => {
                     </td>
                   </tr>
                 ))}
+                {/* Modal de descrição do experimento */}
                 <Dialog open={modalOpen} onOpenChange={setModalOpen}>
                   <DialogContent>
                     <DialogHeader>
                       <DialogTitle>{modalTitulo}</DialogTitle>
                       <DialogDescription>{modalDescricao}</DialogDescription>
                     </DialogHeader>
+                  </DialogContent>
+                </Dialog>
+                {/* Modal de histórico de situação atual e próximos passos */}
+                <Dialog open={historyModalOpen} onOpenChange={setHistoryModalOpen}>
+                  <DialogContent className="max-w-lg">
+                    <DialogHeader>
+                      <DialogTitle>Histórico de Situação Atual e Próximos Passos</DialogTitle>
+                      <DialogDescription>
+                        {historyModalData && Array.isArray(historyModalData['Comentários/Pendências/Ações']) && historyModalData['Comentários/Pendências/Ações'].length > 0
+                          ? `Total: ${historyModalData['Comentários/Pendências/Ações'].length}`
+                          : 'Nenhum histórico disponível.'}
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-2 max-h-96 overflow-y-auto">
+                      {historyModalData && Array.isArray(historyModalData['Comentários/Pendências/Ações']) && historyModalData['Comentários/Pendências/Ações'].length > 0 ? (
+                        historyModalData['Comentários/Pendências/Ações']
+                          .sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime())
+                          .map((coment, idx) => (
+                            <div key={idx} className="mb-3 p-3 border rounded bg-muted">
+                              <div className="text-xs text-gray-500 mb-1">
+                                {coment.data ? new Date(coment.data).toLocaleString() : 'Sem data'}
+                              </div>
+                              <div className="font-semibold">{coment.texto || coment.comentario || coment.acao || 'Sem texto'}</div>
+                            </div>
+                          ))
+                      ) : (
+                        <div className="text-gray-400">Nenhum histórico disponível.</div>
+                      )}
+                    </div>
                   </DialogContent>
                 </Dialog>
               </tbody>
