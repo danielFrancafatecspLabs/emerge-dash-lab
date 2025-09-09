@@ -39,9 +39,9 @@ const VisaoConsolidada = () => {
 
   // Calcular tempo médio para terminar um ciclo de experimento
   const today = new Date();
-  const validExperimentos = data.filter(row => row['Início '] && !isNaN(new Date(row['Início ']).getTime()));
+  const validExperimentos = data.filter(row => typeof row['Início '] === 'string' && row['Início '] && !isNaN(new Date(row['Início ']).getTime()));
   const totalDias = validExperimentos.reduce((acc, row) => {
-    const startDate = new Date(row['Início ']);
+    const startDate = typeof row['Início '] === 'string' ? new Date(row['Início ']) : today;
     const diffDays = Math.max(0, Math.floor((today.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)));
     return acc + diffDays;
   }, 0);

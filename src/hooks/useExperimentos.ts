@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react';
 import Papa from 'papaparse';
 
-export type Experimento = { [key: string]: string };
+export type ComentarioHistorico = { texto: string; data: string };
+export type Experimento = {
+  [key: string]: string | ComentarioHistorico[];
+};
 
 export function useExperimentos() {
   const [data, setData] = useState<Experimento[]>([]);
@@ -18,16 +21,22 @@ export function useExperimentos() {
 
   // Contadores por status
   const getCount = (col: string, value: string) =>
-    data.filter((item) => (item[col] || '').trim().toLowerCase() === value.trim().toLowerCase()).length;
+    data.filter((item) => {
+      const val = item[col];
+      if (typeof val === 'string') {
+        return val.trim().toLowerCase() === value.trim().toLowerCase();
+      }
+      return false;
+    }).length;
 
   // Exemplos de contadores
   const total = data.length;
   const totalProspeccao = getCount('Ideia / Problema / Oportunidade', 'em prospecção');
   const totalAndamento = getCount('Experimentação', 'em andamento');
   const totalConcluido = getCount('Experimentação', 'concluido');
-  const totalConcluidoGoNoGo = data.filter((item) => (item['Experimentação'] || '').toLowerCase().includes('concluido - aguardando go/no')).length;
+  const totalConcluidoGoNoGo = data.filter((item) => typeof item['Experimentação'] === 'string' && item['Experimentação'].toLowerCase().includes('concluido - aguardando go/no')).length;
   const pilotosAndamento = getCount('Piloto', 'em andamento');
-  const pilotosConcluidos = data.filter((item) => (item['Piloto'] || '').toLowerCase().includes('concluido')).length;
+  const pilotosConcluidos = data.filter((item) => typeof item['Piloto'] === 'string' && item['Piloto'].toLowerCase().includes('concluido')).length;
 
   // Gráfico: Experimentos por Etapa (usando Experimentação, Piloto, Escala, Ideia)
   const etapas = [
@@ -38,15 +47,15 @@ export function useExperimentos() {
   ];
   const experimentosPorEtapa = etapas.map((etapa) => ({
     name: etapa,
-    value: data.filter((item) => item[etapa] && item[etapa].trim() !== '').length,
+    value: data.filter((item) => typeof item[etapa] === 'string' && item[etapa].trim() !== '').length,
     percentage: 0,
   }));
 
   // Gráfico: Experimentos por Tipo (Tecnologia)
-  const tipos = Array.from(new Set(data.map(item => item['Tecnologia']).filter(Boolean)));
+  const tipos = Array.from(new Set(data.map(item => typeof item['Tecnologia'] === 'string' ? item['Tecnologia'] : undefined).filter(Boolean)));
   const experimentosPorTipo = tipos.map((tipo) => ({
     name: tipo,
-    value: data.filter((item) => (item['Tecnologia'] || '').trim() === tipo.trim()).length,
+    value: data.filter((item) => typeof item['Tecnologia'] === 'string' && item['Tecnologia'].trim() === tipo.trim()).length,
     color: 'hsl(var(--lab-primary))',
   }));
 
@@ -54,8 +63,8 @@ export function useExperimentos() {
   const meses = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
   const mesesAnos: { [key: string]: { [key: string]: number } } = {};
   data.forEach(item => {
-    let mesConclusao = item['Mês Conclusão']?.trim();
-    let anoConclusao = item['Ano Conclusão']?.trim();
+    let mesConclusao = typeof item['Mês Conclusão'] === 'string' ? item['Mês Conclusão'].trim() : undefined;
+    let anoConclusao = typeof item['Ano Conclusão'] === 'string' ? item['Ano Conclusão'].trim() : undefined;
     // Se vier como float, converte para inteiro string
     if (anoConclusao && !isNaN(Number(anoConclusao))) {
       anoConclusao = String(parseInt(anoConclusao));
@@ -80,8 +89,8 @@ export function useExperimentos() {
       // Adiciona lista de iniciativas para cada ano/mês
       obj[`${ano}_iniciativas`] = data
         .filter(item => {
-          let mesConclusao = item['Mês Conclusão']?.trim();
-          let anoConclusao = item['Ano Conclusão']?.trim();
+          let mesConclusao = typeof item['Mês Conclusão'] === 'string' ? item['Mês Conclusão'].trim() : undefined;
+          let anoConclusao = typeof item['Ano Conclusão'] === 'string' ? item['Ano Conclusão'].trim() : undefined;
           if (mesConclusao && !isNaN(Number(mesConclusao))) {
             const idx = Number(mesConclusao) - 1;
             if (idx >= 0 && idx < meses.length) mesConclusao = meses[idx];
@@ -91,7 +100,7 @@ export function useExperimentos() {
           }
           return mesConclusao === mes && anoConclusao === ano;
         })
-        .map(item => item['Iniciativa'])
+        .map(item => typeof item['Iniciativa'] === 'string' ? item['Iniciativa'] : undefined)
         .filter(Boolean);
     });
     return obj;
@@ -106,22 +115,22 @@ export function useExperimentos() {
   const ideiasData = [
     {
       name: 'Ideias Reprovadas no critério de seleção',
-      value: data.filter((item) => (item['Situação Atual e Próximos passos'] || '').toLowerCase().includes('reprovada')).length,
+      value: data.filter((item) => typeof item['Situação Atual e Próximos passos'] === 'string' && item['Situação Atual e Próximos passos'].toLowerCase().includes('reprovada')).length,
       color: 'hsl(var(--lab-primary))',
     },
     {
       name: 'Ideias Despriorizadas (em backlog)',
-      value: data.filter((item) => (item['Situação Atual e Próximos passos'] || '').toLowerCase().includes('backlog')).length,
+      value: data.filter((item) => typeof item['Situação Atual e Próximos passos'] === 'string' && item['Situação Atual e Próximos passos'].toLowerCase().includes('backlog')).length,
       color: 'hsl(var(--lab-primary-dark))',
     },
     {
       name: 'Experimentos que não atingiram o critério para piloto',
-      value: data.filter((item) => (item['Situação Atual e Próximos passos'] || '').toLowerCase().includes('não atingiu critério')).length,
+      value: data.filter((item) => typeof item['Situação Atual e Próximos passos'] === 'string' && item['Situação Atual e Próximos passos'].toLowerCase().includes('não atingiu critério')).length,
       color: 'hsl(var(--lab-secondary))',
     },
     {
       name: 'Experimentos sem engajamento do BU/Sponsor',
-      value: data.filter((item) => (item['Situação Atual e Próximos passos'] || '').toLowerCase().includes('sem engajamento')).length,
+      value: data.filter((item) => typeof item['Situação Atual e Próximos passos'] === 'string' && item['Situação Atual e Próximos passos'].toLowerCase().includes('sem engajamento')).length,
       color: 'hsl(var(--lab-accent))',
     },
   ];
