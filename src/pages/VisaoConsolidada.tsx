@@ -58,28 +58,7 @@ const VisaoConsolidada = () => {
       </Card>
 
       {/* KPI Cards */}
-  <div className="grid grid-cols-1 md:grid-cols-7 gap-6 mb-8">
-        <Card className="shadow-card">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pilotos em Andamento</CardTitle>
-            <TrendingUp className="h-4 w-4 text-indigo-600" />
-          </CardHeader>
-          <CardContent className="flex flex-col justify-start min-h-[80px]">
-            <div className="text-2xl font-bold text-indigo-600 min-h-[32px] flex items-start">{pilotosAndamento !== null ? pilotosAndamento : "Carregando..."}</div>
-            <p className="text-xs text-muted-foreground">Pilotos ativos</p>
-          </CardContent>
-        </Card>
-
-        <Card className="shadow-card">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pilotos Concluídos</CardTitle>
-            <TrendingUp className="h-4 w-4 text-green-700" />
-          </CardHeader>
-          <CardContent className="flex flex-col justify-start min-h-[80px]">
-            <div className="text-2xl font-bold text-green-700 min-h-[32px] flex items-start">{pilotosConcluidos !== null ? pilotosConcluidos : "Carregando..."}</div>
-            <p className="text-xs text-muted-foreground">Pilotos concluídos</p>
-          </CardContent>
-        </Card>
+       <div className="grid grid-cols-1 md:grid-cols-7 gap-6 mb-8">
         <Card className="shadow-card">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total de Experimentos</CardTitle>
@@ -131,6 +110,28 @@ const VisaoConsolidada = () => {
           <CardContent className="flex flex-col justify-start min-h-[80px]">
             <div className="text-2xl font-bold text-yellow-500 min-h-[32px] flex items-start">{totalConcluidoGoNoGo !== null ? totalConcluidoGoNoGo : "Carregando..."}</div>
             <p className="text-xs text-muted-foreground">Aguardando decisão</p>
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-card">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Pilotos em Andamento</CardTitle>
+            <TrendingUp className="h-4 w-4 text-indigo-600" />
+          </CardHeader>
+          <CardContent className="flex flex-col justify-start min-h-[80px]">
+            <div className="text-2xl font-bold text-indigo-600 min-h-[32px] flex items-start">{pilotosAndamento !== null ? pilotosAndamento : "Carregando..."}</div>
+            <p className="text-xs text-muted-foreground">Pilotos ativos</p>
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-card">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Pilotos Concluídos</CardTitle>
+            <TrendingUp className="h-4 w-4 text-green-700" />
+          </CardHeader>
+          <CardContent className="flex flex-col justify-start min-h-[80px]">
+            <div className="text-2xl font-bold text-green-700 min-h-[32px] flex items-start">{pilotosConcluidos !== null ? pilotosConcluidos : "Carregando..."}</div>
+            <p className="text-xs text-muted-foreground">Pilotos concluídos</p>
           </CardContent>
         </Card>
 
