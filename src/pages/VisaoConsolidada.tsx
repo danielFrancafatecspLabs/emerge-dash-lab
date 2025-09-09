@@ -23,13 +23,25 @@ const VisaoConsolidada = () => {
     ideiasData,
     anoColors,
     data,
+    getCount,
   } = useExperimentos();
+
+  const backlogClassificacoes = ["Backlog", "Em backlog", "Não iniciado"];
+  const backlogColunas = ["Situação Atual e Próximos passos", "Experimentação", "Status", "Classificação"];
+  let totalBacklog = 0;
+  if (data && data.length > 0) {
+    totalBacklog = backlogColunas.reduce((acc, col) => {
+      return acc + backlogClassificacoes.reduce((sum, classificacao) => {
+        return sum + getCount(col, classificacao);
+      }, 0);
+    }, 0);
+  }
 
   // Calcular tempo médio para terminar um ciclo de experimento
   const today = new Date();
-  const validExperimentos = data.filter(row => row['Início '] && !isNaN(new Date(row['Início ']).getTime()));
+  const validExperimentos = data.filter(row => typeof row['Início '] === 'string' && row['Início '] && !isNaN(new Date(row['Início ']).getTime()));
   const totalDias = validExperimentos.reduce((acc, row) => {
-    const startDate = new Date(row['Início ']);
+    const startDate = typeof row['Início '] === 'string' ? new Date(row['Início ']) : today;
     const diffDays = Math.max(0, Math.floor((today.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)));
     return acc + diffDays;
   }, 0);
@@ -67,6 +79,22 @@ const VisaoConsolidada = () => {
           <CardContent>
             <div className="text-2xl font-bold text-lab-primary">{total !== null ? total : "Carregando..."}</div>
             <p className="text-xs text-muted-foreground">+15% em relação ao período anterior</p>
+          </CardContent>
+        </Card>
+        <Card className="shadow-card">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Backlog</CardTitle>
+            <TrendingUp className="h-4 w-4 text-yellow-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-yellow-500">
+              {loading && (!data || data.length === 0)
+                ? "Carregando..."
+                : (!loading && data && data.length === 0)
+                  ? "Nenhum experimento encontrado"
+                  : totalBacklog}
+            </div>
+            <p className="text-xs text-muted-foreground">Experimentos no backlog</p>
           </CardContent>
         </Card>
         <Card className="shadow-card">
