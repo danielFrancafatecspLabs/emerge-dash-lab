@@ -123,81 +123,103 @@ export function ExperimentTable({
               </TableCell>
               {columns.map((col) => (
                 <TableCell key={col}>
-                  {(() => {
-                    if (col === "Comentários/Pendências e Ações") {
-                      if (
-                        row["Situação Atual e Próximos passos"] ||
-                        row["Situacao Atual e Proximos passos"] ||
-                        row["Situacao Atual"]
-                      ) {
-                        return (
-                          <div className="mb-1 text-sm font-semibold text-gray-800">
-                            Situação atual:{" "}
-                            {row["Situação Atual e Próximos passos"] ||
-                              row["Situacao Atual e Proximos passos"] ||
-                              row["Situacao Atual"]}
-                          </div>
-                        );
-                      } else if (
+                  {col === "Comentários/Pendências e Ações" ? (
+                    <div>
+                      {row["Situação Atual e Próximos passos"] ||
+                      row["Situacao Atual e Proximos passos"] ||
+                      row["Situacao Atual"] ? (
+                        <div className="mb-1 text-sm font-semibold text-gray-800">
+                          Situação atual:{" "}
+                          {row["Situação Atual e Próximos passos"] ||
+                            row["Situacao Atual e Proximos passos"] ||
+                            row["Situacao Atual"]}
+                        </div>
+                      ) : (
                         Array.isArray(row[col]) &&
-                        row[col].length > 0
-                      ) {
-                        return (
+                        row[col].length > 0 && (
                           <div className="mb-1 text-sm font-semibold text-gray-800">
                             Situação atual:{" "}
                             {row[col][row[col].length - 1].texto}
                           </div>
+                        )
+                      )}
+                      <input
+                        type="text"
+                        className="border rounded px-2 py-1 w-full"
+                        value={comentarioDraft[row._id] ?? ""}
+                        placeholder="Adicionar comentário..."
+                        onChange={(e) =>
+                          setComentarioDraft((prev) => ({
+                            ...prev,
+                            [row._id]: e.target.value,
+                          }))
+                        }
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                      {comentarioDraft[row._id] &&
+                        comentarioDraft[row._id].trim() && (
+                          <button
+                            className="ml-2 px-2 py-1 bg-blue-600 text-white rounded text-xs"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleSalvarComentario(row);
+                            }}
+                          >
+                            Salvar
+                          </button>
+                        )}
+                      <button
+                        className="text-xs text-blue-600 underline mt-1 ml-2"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setHistoryModal({ row, col });
+                        }}
+                      >
+                        Ver histórico
+                      </button>
+                    </div>
+                  ) : optionsMap[col] ? (
+                    <InlineDropdown
+                      value={row[col] || ""}
+                      options={optionsMap[col]}
+                      onChange={async (novoValor) => {
+                        const atualizado = { ...row, [col]: novoValor };
+                        const res = await fetch(
+                          `http://localhost:4000/experimentos/${row._id}`,
+                          {
+                            method: "PUT",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify(atualizado),
+                          }
                         );
-                      }
-                      return null;
-                    }
-                    if (optionsMap[col]) {
-                      return (
-                        <InlineDropdown
-                          value={row[col] || ""}
-                          options={optionsMap[col]}
-                          onChange={async (novoValor) => {
-                            const atualizado = { ...row, [col]: novoValor };
-                            const res = await fetch(
-                              `http://localhost:4000/experimentos/${row._id}`,
-                              {
-                                method: "PUT",
-                                headers: { "Content-Type": "application/json" },
-                                body: JSON.stringify(atualizado),
-                              }
-                            );
-                            if (res.ok) {
-                              setData(
-                                data.map((item) =>
-                                  item._id === row._id ? atualizado : item
-                                )
-                              );
-                              setFiltered(
-                                filtered.map((item) =>
-                                  item._id === row._id ? atualizado : item
-                                )
-                              );
-                              window.alert(
-                                `Campo "${col}" atualizado com sucesso!`
-                              );
-                            }
-                          }}
-                        />
-                      );
-                    }
-                    if (col === "Iniciativa") {
-                      return (
-                        <div className="flex flex-col gap-1">
-                          <span>
-                            {typeof row[col] === "object" && row[col] !== null
-                              ? row[col].texto || JSON.stringify(row[col])
-                              : row[col]}
-                          </span>
-                          {/* ...círculos de tempo em andamento... */}
-                        </div>
-                      );
-                    }
-                    if (col === "Sinal") {
+                        if (res.ok) {
+                          setData(
+                            data.map((item) =>
+                              item._id === row._id ? atualizado : item
+                            )
+                          );
+                          setFiltered(
+                            filtered.map((item) =>
+                              item._id === row._id ? atualizado : item
+                            )
+                          );
+                          window.alert(
+                            `Campo "${col}" atualizado com sucesso!`
+                          );
+                        }
+                      }}
+                    />
+                  ) : col === "Iniciativa" ? (
+                    <div className="flex flex-col gap-1">
+                      <span>
+                        {typeof row[col] === "object" && row[col] !== null
+                          ? row[col].texto ?? JSON.stringify(row[col])
+                          : row[col]}
+                      </span>
+                      {/* ...círculos de tempo em andamento... */}
+                    </div>
+                  ) : col === "Sinal" ? (
+                    (() => {
                       const status = row["#"] || row["Sinal"] || row["Status"];
                       if (status === "1.0")
                         return <BlinkingDot color="#ef4444" />;
@@ -206,30 +228,16 @@ export function ExperimentTable({
                       if (status === "3.0")
                         return <BlinkingDot color="#22c55e" />;
                       if (status) return <BlinkingDot color="#a3a3a3" />;
-                      return <BlinkingDot color="#d1d5db" />;
-                    }
-                    if (
-                      col.toLowerCase().includes("previsão de término") &&
-                      row[col]
-                    ) {
-                      return typeof row[col] === "string"
-                        ? row[col].split(" ")[0]
-                        : "";
-                    }
-                    if (Array.isArray(row[col])) {
-                      return row[col]
-                        .map((item) =>
-                          typeof item === "object" && item !== null
-                            ? item.texto || JSON.stringify(item)
-                            : String(item)
-                        )
-                        .join(", ");
-                    }
-                    if (typeof row[col] === "object" && row[col] !== null) {
-                      return row[col].texto || JSON.stringify(row[col]);
-                    }
-                    return row[col];
-                  })()}
+                      return <BlinkingDot color="#d1d5db" />; // cinza claro para vazio
+                    })()
+                  ) : col.toLowerCase().includes("previsão de término") &&
+                    row[col] ? (
+                    row[col].split(" ")[0]
+                  ) : typeof row[col] === "object" && row[col] !== null ? (
+                    row[col].texto ?? JSON.stringify(row[col])
+                  ) : (
+                    String(row[col])
+                  )}
                 </TableCell>
               ))}
             </TableRow>
