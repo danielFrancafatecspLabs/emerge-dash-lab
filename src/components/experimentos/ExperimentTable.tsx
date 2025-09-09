@@ -54,7 +54,7 @@ export function ExperimentTable({ columns, data, filtered, hiddenColumns, select
             <TableHead className="sticky top-0 bg-white z-10"></TableHead>
             {columns.map((col) => (
               <TableHead key={col} className="sticky top-0 bg-white z-10 relative group">
-                <span>{col}</span>
+                <span>{col === 'Sinal' ? 'Sinal' : col}</span>
                 <button
                   className="absolute right-1 top-1 p-1 text-gray-500 hover:text-blue-600"
                   onClick={() => toggleColumn(col)}
@@ -138,11 +138,15 @@ export function ExperimentTable({ columns, data, filtered, hiddenColumns, select
                       <span>{row[col]}</span>
                       {/* ...círculos de tempo em andamento... */}
                     </div>
-                  ) : col === '#' ? (
-                    row[col] === '1.0' ? <BlinkingDot color="#ef4444" />
-                    : row[col] === '2.0' ? <BlinkingDot color="#eab308" />
-                    : row[col] === '3.0' ? <BlinkingDot color="#22c55e" />
-                    : row[col]
+                  ) : col === 'Sinal' ? (
+                    (() => {
+                      const status = row['#'] || row['Sinal'] || row['Status'];
+                      if (status === '1.0') return <BlinkingDot color="#ef4444" />;
+                      if (status === '2.0') return <BlinkingDot color="#eab308" />;
+                      if (status === '3.0') return <BlinkingDot color="#22c55e" />;
+                      if (status) return <BlinkingDot color="#a3a3a3" />;
+                      return <BlinkingDot color="#d1d5db" />; // cinza claro para vazio
+                    })()
                   ) : col.toLowerCase().includes('previsão de término') && row[col] ? (
                     row[col].split(' ')[0]
                   ) : row[col]}
