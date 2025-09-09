@@ -142,5 +142,6 @@ export function useExperimentos() {
     experimentosPorMes,
     anoColors,
     ideiasData,
+    getCount,
   };
 }
