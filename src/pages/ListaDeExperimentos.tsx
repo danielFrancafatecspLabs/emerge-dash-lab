@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog';
-import Papa from 'papaparse';
-import { Pencil, Eye, EyeOff } from 'lucide-react';
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '../components/ui/table';
 import { Input } from '../components/ui/input';
 import { ColumnFilterDropdown } from '../components/ui/ColumnFilterDropdown';
+import { ExperimentTable } from '../components/experimentos/ExperimentTable';
+import { ExperimentEditModal } from '../components/experimentos/ExperimentEditModal';
+import { ExperimentNewModal } from '../components/experimentos/ExperimentNewModal';
+import { InlineDropdown } from '../components/experimentos/InlineDropdown';
+import { BlinkingDot } from '../components/experimentos/BlinkingDot';
 
+// Constants moved here to resolve import error
 const IDEA_OPTIONS = [
   'Selecionar tudo', 'Backlog', 'Em Backlog', 'Arquivado', 'Concluido', 'Concluído', 'Em prospecção', 'Não iniciado', 'Para'
 ];
@@ -19,16 +21,10 @@ const ESCALA_OPTIONS = [
   'Selecionar tudo', 'Vazias', 'Arquivado', 'Em produtização'
 ];
 
-function BlinkingDot({ color }: { color: string }) {
-  return (
-    <span
-      className="inline-block w-4 h-4 rounded-full animate-pulse"
-      style={{ backgroundColor: color, boxShadow: `0 0 8px 2px ${color}` }}
-    />
-  );
-}
-
 export default function ListaDeExperimentos() {
+  const [newExpOpen, setNewExpOpen] = useState(false);
+  const [newExpData, setNewExpData] = useState<any>({});
+
   const [data, setData] = useState<any[]>([]);
   const [filtered, setFiltered] = useState<any[]>([]);
   const [search, setSearch] = useState('');
@@ -43,15 +39,15 @@ export default function ListaDeExperimentos() {
   const [escalaFilter, setEscalaFilter] = useState<string[]>(['Selecionar tudo']);
 
   useEffect(() => {
-    fetch('/planilha1.csv')
-      .then((res) => res.text())
-      .then((csv) => {
-        const result = Papa.parse(csv, { header: true });
-        setData(result.data as any[]);
-        setFiltered(result.data as any[]);
+    fetch('http://localhost:4000/experimentos')
+      .then((res) => res.json())
+      .then((json) => {
+        setData(json as any[]);
+        setFiltered(json as any[]);
       });
   }, []);
 
+  // Filtering logic (from previous code)
   useEffect(() => {
     let temp = data;
     if (!ideaFilter.includes('Selecionar tudo')) {
@@ -82,29 +78,40 @@ export default function ListaDeExperimentos() {
     setFiltered(temp);
   }, [data, ideaFilter, experimentacaoFilter, pilotoFilter, escalaFilter, search]);
 
-  const columns = data.length > 0
+  // Garante que a coluna 'Sinal' sempre aparece
+  const baseCols = data.length > 0
     ? Object.keys(data[0])
+        .map(col => col === '#' ? 'Sinal' : col)
+        .filter((col) => col !== '_id' && col !== 'id')
         .filter((col) => !col.toLowerCase().includes('unnamed'))
         .filter((col) => !col.toLowerCase().includes('datas perdidas'))
-        .filter((col) => !hiddenColumns.includes(col))
     : [];
+  const columns = (baseCols.includes('Sinal') ? baseCols : ['Sinal', ...baseCols])
+    .filter((col) => !hiddenColumns.includes(col));
 
   const handleEdit = (idx: number) => {
     setEditIdx(idx);
     setEditData({ ...filtered[idx] });
     setSelectedIdx(idx);
   };
-  const handleEditChange = (key: string, value: string) => {
-    if (editData) setEditData({ ...editData, [key]: value });
-  };
   const handleEditSave = () => {
     if (editIdx !== null && editData) {
-      const updated = [...data];
-      const originalIdx = data.findIndex((item) => item['#'] === filtered[editIdx]['#']);
-      if (originalIdx !== -1) updated[originalIdx] = editData;
-      setData(updated);
-      setEditIdx(null);
-      setEditData(null);
+      if (editData._id) {
+        fetch(`http://localhost:4000/experimentos/${editData._id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(editData),
+        }).then(async (res) => {
+          if (res.ok) {
+            const atualizado = await res.json();
+            const updated = data.map((item) => item._id === atualizado._id ? atualizado : item);
+            setData(updated);
+            setFiltered(updated);
+            setEditIdx(null);
+            setEditData(null);
+          }
+        });
+      }
     }
   };
   const handleEditCancel = () => {
@@ -122,51 +129,43 @@ export default function ListaDeExperimentos() {
   return (
     <div className="p-6">
       <h1 className="text-2xl font-bold mb-4">Lista de Experimentos</h1>
-
-      {/* Card de tempo médio para terminar um ciclo de experimento */}
-      {(() => {
-        const today = new Date();
-        const validExperimentos = filtered.filter(row => row['Início '] && !isNaN(new Date(row['Início ']).getTime()));
-        const totalDias = validExperimentos.reduce((acc, row) => {
-          const startDate = new Date(row['Início ']);
-          const diffDays = Math.max(0, Math.floor((today.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)));
-          return acc + diffDays;
-        }, 0);
-        const media = validExperimentos.length > 0 ? Math.round(totalDias / validExperimentos.length) : 0;
-        return (
-          <div className="mb-6">
-            <div className="bg-white border border-gray-200 rounded-lg shadow p-4 flex flex-col items-start w-fit">
-              <span className="text-xs font-semibold text-muted-foreground mb-1">Tempo médio para terminar um ciclo de experimento</span>
-              <span className="text-2xl font-bold text-lab-primary">{media} dias</span>
-            </div>
-          </div>
-        );
-      })()}
-  {/* Removido bloco duplicado de filtros, busca e legenda */}
-
-      {/* Modal para gerenciar colunas */}
-      <Dialog open={manageColumnsOpen} onOpenChange={setManageColumnsOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Gerenciar Colunas</DialogTitle>
-          </DialogHeader>
-          <div className="flex flex-col gap-2 mt-2">
-            {columns.map(col => (
-              <label key={col} className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={!hiddenColumns.includes(col)}
-                  onChange={() => toggleColumn(col)}
-                />
-                <span>{col}</span>
-              </label>
-            ))}
-          </div>
-        </DialogContent>
-      </Dialog>
-      {/* Filtros, busca e legenda agrupados */}
       <div className="flex flex-col gap-4 mb-6 items-start">
         <div className="flex flex-wrap gap-3 items-center">
+        <div className="relative">
+          <button
+            className="px-4 py-2 rounded bg-gray-200 text-gray-800 font-bold border border-gray-400 hover:bg-gray-300"
+            onClick={() => setManageColumnsOpen((open) => !open)}
+          >
+            Gerenciar colunas
+          </button>
+          {manageColumnsOpen && (
+            <div className="absolute z-10 mt-2 bg-white border border-gray-300 rounded shadow-lg p-3 min-w-[200px]">
+              <div className="font-bold mb-2 text-sm">Mostrar/ocultar colunas</div>
+              {columns.filter(col => col !== 'Status').map((col) => (
+                <label key={col} className="flex items-center gap-2 mb-1 text-sm cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={!hiddenColumns.includes(col)}
+                    onChange={() => toggleColumn(col)}
+                  />
+                  {col}
+                </label>
+              ))}
+              <button
+                className="mt-2 px-2 py-1 rounded bg-gray-100 text-xs border border-gray-300 hover:bg-gray-200"
+                onClick={() => setManageColumnsOpen(false)}
+              >
+                Fechar
+              </button>
+            </div>
+          )}
+        </div>
+          <button
+            className="px-4 py-2 rounded bg-green-600 text-white font-bold hover:bg-green-700"
+            onClick={() => setNewExpOpen(true)}
+          >
+            Novo Experimento
+          </button>
           <ColumnFilterDropdown options={IDEA_OPTIONS} selected={ideaFilter} onChange={setIdeaFilter} label="Ideia/Problema/Oportunidade" />
           <ColumnFilterDropdown options={EXPERIMENTACAO_OPTIONS} selected={experimentacaoFilter} onChange={setExperimentacaoFilter} label="Experimentação" />
           <ColumnFilterDropdown options={PILOTO_OPTIONS} selected={pilotoFilter} onChange={setPilotoFilter} label="Piloto" />
@@ -177,129 +176,122 @@ export default function ListaDeExperimentos() {
             onChange={(e) => setSearch(e.target.value)}
             className="w-48 text-gray-800 bg-white border border-gray-300 ml-2"
           />
-          <button
-            className="px-3 py-2 rounded bg-gray-200 text-gray-800 hover:bg-gray-300 border border-gray-300 ml-2"
-            onClick={() => setManageColumnsOpen(true)}
-          >
-            Gerenciar Colunas
-          </button>
         </div>
         <div className="flex gap-6 items-center mt-2">
           <div className="flex items-center gap-2">
-            <span className="inline-block w-4 h-4 rounded-full bg-green-500 animate-pulse" />
+            <BlinkingDot color="#22c55e" />
             <span className="text-sm">Dentro do prazo</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="inline-block w-4 h-4 rounded-full bg-red-500 animate-pulse" />
+            <BlinkingDot color="#ef4444" />
             <span className="text-sm">Fora do prazo</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="inline-block w-4 h-4 rounded-full bg-yellow-400 animate-pulse" />
+            <BlinkingDot color="#eab308" />
             <span className="text-sm">Pendência</span>
           </div>
         </div>
       </div>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>#</TableHead>
-            <TableHead></TableHead>
-            {columns.map((col) => (
-              <TableHead key={col} className="relative group">
-                <span>{col}</span>
-                <button
-                  className="absolute right-1 top-1 p-1 text-gray-500 hover:text-blue-600"
-                  onClick={() => toggleColumn(col)}
-                  title={hiddenColumns.includes(col) ? 'Exibir coluna' : 'Ocultar coluna'}
-                >
-                  {hiddenColumns.includes(col) ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
-                </button>
-              </TableHead>
-            ))}
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {filtered.map((row, idx) => (
-            <TableRow
-              key={idx}
-              className={
-                selectedIdx === idx
-                  ? "border-2 border-blue-500 rounded-lg shadow-lg bg-blue-50 transition-all duration-200"
-                  : "hover:border-blue-300 hover:bg-blue-100 cursor-pointer transition-all duration-200"
-              }
-              onClick={() => setSelectedIdx(idx)}
-            >
-              <TableCell>{idx + 1}</TableCell>
-              <TableCell>
-                <button onClick={() => handleEdit(idx)} className="p-1 hover:bg-gray-100 rounded">
-                  <Pencil className="w-4 h-4 text-blue-600" />
-                </button>
-              </TableCell>
-              {columns.map((col, colIdx) => (
-                <TableCell key={col}>
-                  {col === 'Iniciativa' ? (
-                    <div className="flex flex-col gap-1">
-                      <span>{row[col]}</span>
-                      {/* Círculos de tempo em andamento */}
-                      {row['Início '] && (
-                        (() => {
-                          const startDate = new Date(row['Início ']);
-                          const today = new Date();
-                          const diffDays = Math.max(0, Math.floor((today.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)));
-                          // Máximo de 5 círculos, cada círculo representa 10 dias
-                          const numCircles = Math.min(5, Math.ceil(diffDays / 10));
-                          return (
-                            <div className="flex gap-1 mt-1">
-                              {[...Array(numCircles)].map((_, i) => (
-                                <span
-                                  key={i}
-                                  className="inline-block w-4 h-4 rounded-full bg-red-500 animate-pulse cursor-pointer"
-                                  title={`${diffDays} dias em andamento`}
-                                />
-                              ))}
-                            </div>
-                          );
-                        })()
-                      )}
-                    </div>
-                  ) : col === '#' ? (
-                    row[col] === '1.0' ? <BlinkingDot color="#ef4444" />
-                    : row[col] === '2.0' ? <BlinkingDot color="#eab308" />
-                    : row[col] === '3.0' ? <BlinkingDot color="#22c55e" />
-                    : row[col]
-                  ) : col.toLowerCase().includes('previsão de término') && row[col] ? (
-                    row[col].split(' ')[0]
-                  ) : row[col]}
-                </TableCell>
-              ))}
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-      {editIdx !== null && editData && (
-        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-4xl flex flex-col">
-            <h2 className="text-xl font-bold mb-4">Editar Experimento</h2>
-            <div className="grid grid-cols-4 gap-4 mb-4">
-              {columns.map((col) => (
-                <div key={col} className="flex flex-col">
-                  <label className="text-sm font-medium text-gray-700 mb-1">{col}</label>
-                  <input
-                    className="border rounded px-2 py-1 text-gray-800"
-                    value={editData[col] || ''}
-                    onChange={(e) => handleEditChange(col, e.target.value)}
-                    disabled={col === '#'}
-                  />
-                </div>
-              ))}
-            </div>
-            <div className="flex gap-2 justify-end">
-              <button onClick={handleEditCancel} className="px-4 py-2 rounded bg-gray-200 text-gray-800">Cancelar</button>
-              <button onClick={handleEditSave} className="px-4 py-2 rounded bg-blue-600 text-white">Salvar</button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ExperimentNewModal
+        open={newExpOpen}
+        columns={columns}
+        newExpData={newExpData}
+        onChange={(key, value) => setNewExpData({ ...newExpData, [key]: value })}
+        onCancel={() => { setNewExpOpen(false); setNewExpData({}); }}
+        onSave={async () => {
+          const res = await fetch('http://localhost:4000/experimentos', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(newExpData),
+          });
+          if (res.ok) {
+            const novo = await res.json();
+            setData([novo, ...data]);
+            setFiltered([novo, ...filtered]);
+            setNewExpOpen(false);
+            setNewExpData({});
+          }
+        }}
+        optionsMap={{
+          'Ideia / Problema / Oportunidade': IDEA_OPTIONS,
+          'Experimentação': EXPERIMENTACAO_OPTIONS,
+          'Piloto': PILOTO_OPTIONS,
+          'Escala': ESCALA_OPTIONS,
+        }}
+      />
+      <ExperimentEditModal
+        open={editIdx !== null && !!editData}
+        columns={columns}
+        editData={editData}
+        onChange={(key, value) => setEditData({ ...editData, [key]: value })}
+        onCancel={() => { setEditIdx(null); setEditData(null); }}
+        onSave={handleEditSave}
+        onDelete={async () => {
+          if (editData && editData._id) {
+            const res = await fetch(`http://localhost:4000/experimentos/${editData._id}`, {
+              method: 'DELETE',
+            });
+            if (res.ok) {
+              setData(data.filter((item) => item._id !== editData._id));
+              setFiltered(filtered.filter((item) => item._id !== editData._id));
+              setEditIdx(null);
+              setEditData(null);
+            }
+          }
+        }}
+        optionsMap={{
+          'Ideia / Problema / Oportunidade': IDEA_OPTIONS,
+          'Experimentação': EXPERIMENTACAO_OPTIONS,
+          'Piloto': PILOTO_OPTIONS,
+          'Escala': ESCALA_OPTIONS,
+        }}
+      />
+      <ExperimentTable
+        columns={columns}
+        data={data.map(item => {
+          const valorRaw = item['#'] ?? item['Sinal'];
+          const valor = typeof valorRaw === 'string' ? parseFloat(valorRaw) : valorRaw;
+          const cor = valor === 2.0 ? '#eab308' : valor === 3.0 ? '#22c55e' : valor === 1.0 ? '#ef4444' : '#d1d5db';
+          const newItem = { ...item };
+          if ('#' in newItem || 'Sinal' in newItem) {
+            newItem['Sinal'] = (
+              <span className="flex items-center">
+                <BlinkingDot color={cor} />
+              </span>
+            );
+            if ('#' in newItem) delete newItem['#'];
+          }
+          return newItem;
+        })}
+        filtered={filtered.map(item => {
+          const valorRaw = item['#'] ?? item['Sinal'];
+          const valor = typeof valorRaw === 'string' ? parseFloat(valorRaw) : valorRaw;
+          const cor = valor === 2.0 ? '#eab308' : valor === 3.0 ? '#22c55e' : valor === 1.0 ? '#ef4444' : '#d1d5db';
+          const newItem = { ...item };
+          if ('#' in newItem || 'Sinal' in newItem) {
+            newItem['Sinal'] = (
+              <span className="flex items-center">
+                <BlinkingDot color={cor} />
+              </span>
+            );
+            if ('#' in newItem) delete newItem['#'];
+          }
+          return newItem;
+        })}
+        hiddenColumns={hiddenColumns}
+        selectedIdx={selectedIdx}
+        setSelectedIdx={setSelectedIdx}
+        handleEdit={handleEdit}
+        toggleColumn={toggleColumn}
+        optionsMap={{
+          'Ideia / Problema / Oportunidade': IDEA_OPTIONS,
+          'Experimentação': EXPERIMENTACAO_OPTIONS,
+          'Piloto': PILOTO_OPTIONS,
+          'Escala': ESCALA_OPTIONS,
+        }}
+        setData={setData}
+        setFiltered={setFiltered}
+      />
     </div>
   );
 }

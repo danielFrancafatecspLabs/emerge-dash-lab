@@ -8,11 +8,10 @@ export function useExperimentos() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('/planilha1.csv')
-      .then((res) => res.text())
-      .then((csv) => {
-        const result = Papa.parse(csv, { header: true });
-        setData(result.data as Experimento[]);
+    fetch('http://localhost:4000/experimentos')
+      .then((res) => res.json())
+      .then((json) => {
+        setData(json as Experimento[]);
         setLoading(false);
       });
   }, []);
