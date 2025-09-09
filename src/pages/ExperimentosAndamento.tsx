@@ -1,4 +1,5 @@
 import { useState } from "react"
+import { Pencil } from "lucide-react";
 import { useExperimentos } from '@/hooks/useExperimentos';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -66,6 +67,29 @@ const highlights = [
 ]
 
 const ExperimentosAndamento = () => {
+  const [editIdx, setEditIdx] = useState<number | null>(null);
+  const [editValue, setEditValue] = useState<string>("");
+
+  // Função para salvar edição do campo
+  const handleSaveEdit = async (idx: number) => {
+    const item = andamento[idx];
+    const id = item._id;
+    if (id) {
+      const updated = [...data];
+      const indexInData = data.findIndex(d => d._id === id);
+      if (indexInData !== -1) {
+        updated[indexInData]["Situação Atual e Próximos passos"] = editValue;
+        setData(updated);
+        setEditIdx(null);
+        setEditValue("");
+        await fetch(`http://localhost:4000/experimentos/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updated[indexInData]),
+        });
+      }
+    }
+  };
 
   const [searchTerm, setSearchTerm] = useState("");
   const { data, loading, setData, experimentosPorTipo } = useExperimentos();
@@ -324,13 +348,45 @@ const ExperimentosAndamento = () => {
                       </Badge>
                     </td>
                     <td className="p-3 text-sm text-muted-foreground" onClick={e => e.stopPropagation()}>
-                      {/* Exibe Situação Atual e Próximos passos igual à ListaDeExperimentos */}
-                      <div className="mb-1 text-sm font-semibold text-gray-800">
-                        {item['Situação Atual e Próximos passos'] || item['Situacao Atual e Proximos passos'] || item['Situacao Atual'] ? (
-                          <>{item['Situação Atual e Próximos passos'] || item['Situacao Atual e Proximos passos'] || item['Situacao Atual']}</>
-                        ) : (Array.isArray(item['Comentários/Pendências/Ações']) && item['Comentários/Pendências/Ações'].length > 0 ? (
-                          <>{item['Comentários/Pendências/Ações'][item['Comentários/Pendências/Ações'].length - 1].texto}</>
-                        ) : null)}
+                      <div className="mb-1 text-sm font-semibold text-gray-800 flex items-center gap-2">
+                        {editIdx === idx ? (
+                          <>
+                            <input
+                              type="text"
+                              className="border rounded px-2 py-1 w-full"
+                              value={editValue}
+                              onChange={e => setEditValue(e.target.value)}
+                              autoFocus
+                            />
+                            <button
+                              className="ml-2 px-2 py-1 bg-blue-600 text-white rounded text-xs"
+                              onClick={() => handleSaveEdit(idx)}
+                            >Salvar</button>
+                            <button
+                              className="ml-2 px-2 py-1 bg-gray-300 text-gray-800 rounded text-xs"
+                              onClick={() => { setEditIdx(null); setEditValue(""); }}
+                            >Cancelar</button>
+                          </>
+                        ) : (
+                          <>
+                            {item['Situação Atual e Próximos passos'] || item['Situacao Atual e Proximos passos'] || item['Situacao Atual']
+                              ? <span>{item['Situação Atual e Próximos passos'] || item['Situacao Atual e Proximos passos'] || item['Situacao Atual']}</span>
+                              : (Array.isArray(item['Comentários/Pendências/Ações']) && item['Comentários/Pendências/Ações'].length > 0
+                                ? <span>{item['Comentários/Pendências/Ações'][item['Comentários/Pendências/Ações'].length - 1].texto}</span>
+                                : null)
+                            }
+                            <button
+                              className="p-1 hover:bg-blue-100 rounded"
+                              title="Editar situação atual"
+                              onClick={() => {
+                                setEditIdx(idx);
+                                setEditValue(item['Situação Atual e Próximos passos'] || item['Situacao Atual e Proximos passos'] || item['Situacao Atual'] || "");
+                              }}
+                            >
+                              <Pencil className="w-4 h-4 text-blue-600" strokeWidth={2.2} />
+                            </button>
+                          </>
+                        )}
                       </div>
                     </td>
                   </tr>
