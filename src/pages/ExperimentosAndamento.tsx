@@ -54,7 +54,7 @@ const highlights = [
   {
     area: "Experiência",
     experiment: "Acesso \"Código do Produto de Acesso Mega GB TI\"",
-    responsible: "SeCiTi Labs", 
+    responsible: "SeCiTi Labs",
     status: "Passo de obtenção esperimentado do cabo da tela"
   },
   {
@@ -83,13 +83,26 @@ const ExperimentosAndamento = () => {
   // Filtra experimentos em andamento
   const andamento = data.filter(item => (item['Experimentação'] || '').trim().toLowerCase() === 'em andamento');
 
-  // Função para atualizar comentário
-  const handleComentarioChange = (idx: number, value: string) => {
+  // Função para atualizar comentário e salvar no backend
+  const handleComentarioChange = async (idx: number, value: string) => {
     const updated = [...data];
     const indexInData = data.findIndex(item => item['Iniciativa'] === andamento[idx]['Iniciativa']);
     if (indexInData !== -1) {
       updated[indexInData]['Comentários/Pendências/Ações'] = value;
       setData(updated);
+      // Salvar no backend
+      const id = updated[indexInData]._id;
+      if (id) {
+        try {
+          await fetch(`http://localhost:4000/experimentos/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(updated[indexInData]),
+          });
+        } catch (err) {
+          toast.error('Erro ao salvar comentário!');
+        }
+      }
     }
   };
 
@@ -140,7 +153,7 @@ const ExperimentosAndamento = () => {
           <h2 className="text-3xl font-bold text-foreground mb-2">Experimentos em Andamento</h2>
           <p className="text-muted-foreground">Acompanhamento detalhado dos processos ativos</p>
         </div>
-        
+
         <div className="flex gap-3">
           <div className="relative">
             <Input
@@ -154,7 +167,7 @@ const ExperimentosAndamento = () => {
               Carregar CSV
             </Button>
           </div>
-          
+
           <Button variant="outline">
             <Download className="w-4 h-4 mr-2" />
             Exportar
@@ -294,7 +307,7 @@ const ExperimentosAndamento = () => {
                   <th className="text-left p-3 font-medium text-muted-foreground">Experimento</th>
                   <th className="text-left p-3 font-medium text-muted-foreground">Responsável</th>
                   <th className="text-left p-3 font-medium text-muted-foreground">Status</th>
-                  <th className="text-left p-3 font-medium text-muted-foreground">Comentários/Pendências/Ações</th>
+                  <th className="text-left p-3 font-medium text-muted-foreground">Situação Atual e Próximos passos</th>
                 </tr>
               </thead>
               <tbody>
@@ -311,23 +324,25 @@ const ExperimentosAndamento = () => {
                       </Badge>
                     </td>
                     <td className="p-3 text-sm text-muted-foreground" onClick={e => e.stopPropagation()}>
-                      <Input
-                        value={item['Comentários/Pendências/Ações'] || ''}
-                        onChange={e => handleComentarioChange(idx, e.target.value)}
-                        placeholder="Adicionar comentário, pendência ou ação..."
-                        className="w-full"
-                      />
+                      {/* Exibe Situação Atual e Próximos passos igual à ListaDeExperimentos */}
+                      <div className="mb-1 text-sm font-semibold text-gray-800">
+                        {item['Situação Atual e Próximos passos'] || item['Situacao Atual e Proximos passos'] || item['Situacao Atual'] ? (
+                          <>{item['Situação Atual e Próximos passos'] || item['Situacao Atual e Proximos passos'] || item['Situacao Atual']}</>
+                        ) : (Array.isArray(item['Comentários/Pendências/Ações']) && item['Comentários/Pendências/Ações'].length > 0 ? (
+                          <>{item['Comentários/Pendências/Ações'][item['Comentários/Pendências/Ações'].length - 1].texto}</>
+                        ) : null)}
+                      </div>
                     </td>
                   </tr>
                 ))}
-      <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{modalTitulo}</DialogTitle>
-            <DialogDescription>{modalDescricao}</DialogDescription>
-          </DialogHeader>
-        </DialogContent>
-      </Dialog>
+                <Dialog open={modalOpen} onOpenChange={setModalOpen}>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>{modalTitulo}</DialogTitle>
+                      <DialogDescription>{modalDescricao}</DialogDescription>
+                    </DialogHeader>
+                  </DialogContent>
+                </Dialog>
               </tbody>
             </table>
           </div>
