@@ -35,8 +35,9 @@ const VisaoConsolidada = () => {
   const backlogClassificacoes = ["Backlog", "Em backlog", "Não iniciado"];
   const backlogColunas = [
     "Situação Atual e Próximos passos",
-    "Ideia/Problema/Oportunidade",
+    "Ideia / Problema / Oportunidade",
     "Status",
+    "Experimentação",
     "Classificação",
   ];
   let totalBacklog = 0;
