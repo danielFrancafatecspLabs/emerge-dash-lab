@@ -12,6 +12,7 @@ import NotFound from "./pages/NotFound";
 import ListaDeExperimentos from "./pages/ListaDeExperimentos";
 import BoardView from "./pages/BoardView";
 import EsteiraDeDemandas from "./pages/EsteiraDeDemandas";
+import Login from "./pages/Login";
 
 const queryClient = new QueryClient();
 
@@ -21,45 +22,27 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <DashboardLayout>
-          <Routes>
-            <Route path="/" element={<VisaoConsolidada />} />
-            <Route
-              path="/experimentos-andamento"
-              element={<ExperimentosAndamento />}
-            />
-            <Route
-              path="/pilotos-em-andamento"
-              element={<PilotosEmAndamento />}
-            />
-            <Route
-              path="/relatorios"
-              element={
-                <EmConstrucao
-                  titulo="Relatórios"
-                  descricao="Módulo de geração de relatórios detalhados dos experimentos"
-                />
-              }
-            />
-            <Route
-              path="/configuracoes"
-              element={
-                <EmConstrucao
-                  titulo="Configurações"
-                  descricao="Painel de configurações do sistema de monitoramento"
-                />
-              }
-            />
-            <Route
-              path="/lista-experimentos"
-              element={<ListaDeExperimentos />}
-            />
-            <Route path="/board-operacional" element={<BoardView />} />
-            <Route path="/esteira-demandas" element={<EsteiraDeDemandas />} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </DashboardLayout>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route
+            path="/*"
+            element={
+              localStorage.getItem("user")
+                ? <DashboardLayout><Routes>
+                    <Route path="/" element={<VisaoConsolidada />} />
+                    <Route path="/experimentos-andamento" element={<ExperimentosAndamento />} />
+                    <Route path="/pilotos-em-andamento" element={<PilotosEmAndamento />} />
+                    <Route path="/relatorios" element={<EmConstrucao titulo="Relatórios" descricao="Módulo de geração de relatórios detalhados dos experimentos" />} />
+                    <Route path="/configuracoes" element={<EmConstrucao titulo="Configurações" descricao="Painel de configurações do sistema de monitoramento" />} />
+                    <Route path="/lista-experimentos" element={<ListaDeExperimentos />} />
+                    <Route path="/board-operacional" element={<BoardView />} />
+                    <Route path="/esteira-demandas" element={<EsteiraDeDemandas />} />
+                    <Route path="*" element={<NotFound />} />
+                  </Routes></DashboardLayout>
+                : <Login />
+            }
+          />
+        </Routes>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

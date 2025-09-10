@@ -1,7 +1,23 @@
 
-import path from 'path';
+
+const express = require('express');
+const mongoose = require('mongoose');
+const path = require('path');
+const authRoutes = require('./api/routes/auth');
+require('dotenv').config();
 
 const app = express();
+app.use(express.json());
+
+// Conexão com MongoDB Atlas
+mongoose.connect(process.env.MONGO_URI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+}).then(() => console.log('MongoDB Atlas conectado')).catch(err => console.error('Erro MongoDB:', err));
+
+// Rotas de autenticação
+app.use('/api', authRoutes);
+
 const EXCEL_PATH = path.join(process.cwd(), 'Status_Iniciativas beOn Labs v2.0.xlsx');
 
 
