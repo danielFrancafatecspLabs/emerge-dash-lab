@@ -1,0 +1,367 @@
+import { useState } from "react";
+import { BlinkingDot } from "@/components/experimentos/BlinkingDot";
+import { Pencil } from "lucide-react";
+import { useExperimentos } from "@/hooks/useExperimentos";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  ResponsiveContainer,
+  LabelList,
+} from "recharts";
+import { Upload, Download } from "lucide-react";
+import { toast } from "sonner";
+
+const pilotoStages = [
+  "2.0 - EXECUÇÃO PILOTO",
+  "2.1 - APURAÇÃO DOS RESULTADOS",
+  "2.2 - DEFINIÇÃO DE CUSTOS",
+  "2.2.2 - HLE",
+  "2.2.3 APROVAÇÃO HLE TI",
+  "2.2.4 APROVAÇÃO HLE NEGOCIOS",
+  "2.3 - GO NOGO",
+  "2.4 - APROVAÇÃO COMITE DE INVESTIMENTO",
+  "2.5 - ROLL-OUT",
+];
+
+const statusLabels = [
+  {
+    key: "Não iniciado",
+    label: "Não Iniciado",
+    color: "border-gray-400 text-gray-600 bg-gray-100",
+  },
+  {
+    key: "Em andamento",
+    label: "Em Andamento",
+    color: "border-lab-primary text-lab-primary bg-lab-primary/10",
+  },
+  {
+    key: "Concluído",
+    label: "Concluído",
+    color: "border-green-600 text-green-700 bg-green-100",
+  },
+];
+
+function normalizeStatus(status: string) {
+  if (!status) return "";
+  return status
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .toLowerCase();
+}
+
+const PilotosEmAndamento = () => {
+  const { data, loading, setData } = useExperimentos();
+  const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
+  const [statusModalOpen, setStatusModalOpen] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalDescricao, setModalDescricao] = useState("");
+  const [modalTitulo, setModalTitulo] = useState("");
+
+  // Filtrar pilotos em andamento
+  const andamento = data.filter(
+    (item) =>
+      typeof item["Piloto"] === "string" &&
+      normalizeStatus(item["Piloto"]) === "em andamento"
+  );
+
+  // Calcular statusCounts para cada statusLabel
+  const statusCounts: { [key: string]: number } = {};
+  statusLabels.forEach((label) => {
+    const normKey = normalizeStatus(label.key);
+    statusCounts[label.key] = data.filter(
+      (item) =>
+        typeof item["Piloto"] === "string" &&
+        normalizeStatus(item["Piloto"]) === normKey
+    ).length;
+  });
+
+  // Modal: filtrar pilotos pelo campo correto, normalizando
+  const pilotosForStatus = selectedStatus
+    ? data.filter(
+        (item) =>
+          typeof item["Piloto"] === "string" &&
+          normalizeStatus(item["Piloto"]) === normalizeStatus(selectedStatus)
+      )
+    : [];
+
+  // Gerar dados de área a partir da lista de pilotos
+  const areaCounts: { [key: string]: number } = {};
+  data.forEach((item) => {
+    const area =
+      typeof item["Área"] === "string" ? item["Área"].trim() : undefined;
+    if (area) {
+      areaCounts[area] = (areaCounts[area] || 0) + 1;
+    }
+  });
+  const areaData = Object.entries(areaCounts).map(([name, value]) => ({
+    name,
+    value,
+  }));
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex justify-between items-center mb-8">
+        <div>
+          <h2 className="text-3xl font-bold text-foreground mb-2">
+            Pilotos em Andamento
+          </h2>
+          <p className="text-muted-foreground">
+            Acompanhamento detalhado dos pilotos ativos
+          </p>
+        </div>
+        <div className="flex gap-3">
+          <Button variant="outline">
+            <Download className="w-4 h-4 mr-2" />
+            Exportar
+          </Button>
+        </div>
+      </div>
+
+      {/* Pipeline dos Pilotos */}
+      <Card className="shadow-elevated">
+        <CardHeader>
+          <CardTitle>Pipeline de Pilotos</CardTitle>
+          <CardDescription>Visão geral do fluxo de pilotos</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-wrap items-center gap-4 p-4">
+            {pilotoStages.map((step, index) => (
+              <div key={step} className="flex items-center">
+                <div
+                  className={`relative flex flex-col items-center p-4 rounded-lg border-2 min-w-[140px] transition ${
+                    statusLabels[index]?.color ||
+                    "border-gray-400 bg-gray-100 text-gray-600"
+                  }`}
+                >
+                  <div className="text-xs text-center font-medium text-foreground">
+                    {step}
+                  </div>
+                </div>
+                {index < pilotoStages.length - 1 && (
+                  <div className="w-8 h-px bg-border mx-2" />
+                )}
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Cards de status */}
+      <div className="flex gap-4 mb-6">
+        {statusLabels.map((step) => (
+          <Card
+            key={step.key}
+            className={`cursor-pointer w-48 h-24 flex flex-col items-center justify-center ${step.color} text-foreground font-bold text-lg shadow-md`}
+            onClick={() => {
+              setSelectedStatus(step.key);
+              setStatusModalOpen(true);
+            }}
+          >
+            <CardContent className="flex flex-col items-center justify-center">
+              <span>{step.label}</span>
+              <span className="text-3xl mt-2">{statusCounts[step.key]}</span>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {/* Modal para mostrar pilotos do status selecionado */}
+      <Dialog open={statusModalOpen} onOpenChange={setStatusModalOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Pilotos com status: {selectedStatus}</DialogTitle>
+            <DialogDescription>
+              {pilotosForStatus.length === 0
+                ? "Nenhum piloto encontrado."
+                : `Total: ${pilotosForStatus.length}`}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 max-h-96 overflow-y-auto">
+            {pilotosForStatus.map((exp, idx) => (
+              <div
+                key={
+                  typeof exp["Iniciativa"] === "string"
+                    ? exp["Iniciativa"]
+                    : idx
+                }
+                className="p-2 rounded border bg-muted"
+              >
+                <div className="font-semibold">
+                  {typeof exp["Iniciativa"] === "string"
+                    ? exp["Iniciativa"]
+                    : ""}
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  {typeof exp["Descrição"] === "string" ? exp["Descrição"] : ""}
+                </div>
+              </div>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Gráficos */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Qtde Por Área */}
+        <Card className="shadow-card">
+          <CardHeader>
+            <CardTitle>Qtde Por Área</CardTitle>
+            <CardDescription>
+              Distribuição por área organizacional
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="h-80 overflow-x-auto">
+              <ResponsiveContainer
+                width={Math.max(600, areaData.length * 80)}
+                height="100%"
+              >
+                <BarChart
+                  data={areaData}
+                  margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                  <XAxis
+                    dataKey="name"
+                    stroke="#64748b"
+                    fontSize={12}
+                    interval={0}
+                    angle={-45}
+                    textAnchor="end"
+                    height={60}
+                  />
+                  <YAxis stroke="#64748b" fontSize={12} />
+                  <Bar
+                    dataKey="value"
+                    fill="hsl(var(--lab-primary))"
+                    radius={[4, 4, 0, 0]}
+                  >
+                    <LabelList dataKey="value" position="top" fontSize={13} />
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Lista de Pilotos em Andamento */}
+      <Card className="shadow-card">
+        <CardHeader>
+          <CardTitle>Pilotos em Andamento</CardTitle>
+          <CardDescription>Lista dos pilotos ativos</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b">
+                  <th className="text-left p-3 font-medium text-muted-foreground">
+                    Área Demandante
+                  </th>
+                  <th className="text-left p-3 font-medium text-muted-foreground">
+                    Piloto
+                  </th>
+                  <th className="text-left p-3 font-medium text-muted-foreground">
+                    Responsável
+                  </th>
+                  <th className="text-left p-3 font-medium text-muted-foreground">
+                    Status
+                  </th>
+                  <th className="text-left p-3 font-medium text-muted-foreground">
+                    Situação Atual e Próximos passos
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {andamento.map((item, idx) => (
+                  <tr
+                    key={
+                      typeof item["Iniciativa"] === "string"
+                        ? item["Iniciativa"]
+                        : idx
+                    }
+                    className="border-b hover:bg-muted/50 cursor-pointer"
+                    onClick={() => {
+                      setModalTitulo(item["Iniciativa"]);
+                      setModalDescricao(
+                        item["Descrição"] || "Sem descrição disponível."
+                      );
+                      setModalOpen(true);
+                    }}
+                  >
+                    <td className="p-3">
+                      <Badge variant="secondary">
+                        {typeof item["Área"] === "string" ? item["Área"] : ""}
+                      </Badge>
+                    </td>
+                    <td className="p-3 font-medium">
+                      {typeof item["Iniciativa"] === "string"
+                        ? item["Iniciativa"]
+                        : ""}
+                    </td>
+                    <td className="p-3">
+                      {typeof item["Sponsor/BO"] === "string"
+                        ? item["Sponsor/BO"]
+                        : ""}
+                    </td>
+                    <td className="p-3">
+                      <Badge className="bg-lab-success/10 text-lab-success border-lab-success">
+                        {typeof item["Piloto"] === "string"
+                          ? item["Piloto"]
+                          : ""}
+                      </Badge>
+                    </td>
+                    <td className="p-3 text-sm text-muted-foreground">
+                      {typeof item["Situação Atual e Próximos passos"] ===
+                      "string" ? (
+                        <span>{item["Situação Atual e Próximos passos"]}</span>
+                      ) : typeof item["Situacao Atual e Proximos passos"] ===
+                        "string" ? (
+                        <span>{item["Situacao Atual e Proximos passos"]}</span>
+                      ) : typeof item["Situacao Atual"] === "string" ? (
+                        <span>{item["Situacao Atual"]}</span>
+                      ) : null}
+                    </td>
+                  </tr>
+                ))}
+                {/* Modal de descrição do piloto */}
+                <Dialog open={modalOpen} onOpenChange={setModalOpen}>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>{modalTitulo}</DialogTitle>
+                      <DialogDescription>{modalDescricao}</DialogDescription>
+                    </DialogHeader>
+                  </DialogContent>
+                </Dialog>
+              </tbody>
+            </table>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+
+export default PilotosEmAndamento;

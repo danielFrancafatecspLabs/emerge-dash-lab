@@ -291,25 +291,44 @@ const VisaoConsolidada = () => {
                   {
                     name: "Aprovados no critério de seleção",
                     value: data.filter(
-                      item =>
-                        typeof item["Ideia / Problema / Oportunidade"] === "string" &&
-                        ["concluído", "concluido"].includes(item["Ideia / Problema / Oportunidade"].toLowerCase())
+                      (item) =>
+                        typeof item["Ideia / Problema / Oportunidade"] ===
+                          "string" &&
+                        ["concluído", "concluido"].includes(
+                          item["Ideia / Problema / Oportunidade"].toLowerCase()
+                        )
                     ).length,
                     color: "#fbbf24",
                   },
                   {
                     name: "Experimentos Concluídos",
-                    value: data.filter(item => typeof item["Experimentação"] === "string" && item["Experimentação"].toLowerCase().includes("concluido")).length,
+                    value: data.filter(
+                      (item) =>
+                        typeof item["Experimentação"] === "string" &&
+                        item["Experimentação"]
+                          .toLowerCase()
+                          .includes("concluido")
+                    ).length,
                     color: "#fde68a",
                   },
                   {
                     name: "Piloto Concluídos",
-                    value: data.filter(item => typeof item["Piloto"] === "string" && ["concluido", "em andamento"].some(s => (item["Piloto"] as string).toLowerCase().includes(s))).length,
+                    value: data.filter(
+                      (item) =>
+                        typeof item["Piloto"] === "string" &&
+                        ["concluido", "em andamento"].some((s) =>
+                          (item["Piloto"] as string).toLowerCase().includes(s)
+                        )
+                    ).length,
                     color: "#4ade80",
                   },
                   {
                     name: "Projeto / Produto",
-                    value: data.filter(item => typeof item["Escala"] === "string" && item["Escala"].toLowerCase().includes("produtização")).length,
+                    value: data.filter(
+                      (item) =>
+                        typeof item["Escala"] === "string" &&
+                        item["Escala"].toLowerCase().includes("produtização")
+                    ).length,
                     color: "#2563eb",
                   },
                 ]}

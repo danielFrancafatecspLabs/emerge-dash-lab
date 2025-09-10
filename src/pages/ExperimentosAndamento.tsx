@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
+import { ExperimentDetailCard } from "@/components/experimentos/ExperimentDetailCard";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, LabelList } from 'recharts'
 import { Upload, Download, Filter, Search } from "lucide-react"
 import { toast } from "sonner"
@@ -169,11 +170,9 @@ const ExperimentosAndamento = () => {
 
   // Modal para descrição
   const [modalOpen, setModalOpen] = useState(false);
-  const [modalDescricao, setModalDescricao] = useState("");
-  const [modalTitulo, setModalTitulo] = useState("");
+  const [modalExperiment, setModalExperiment] = useState<any>(null);
   const handleOpenModal = (item: any) => {
-    setModalTitulo(item['Iniciativa']);
-    setModalDescricao(item['Descrição'] || "Sem descrição disponível.");
+    setModalExperiment(item);
     setModalOpen(true);
   };
   // Modal para histórico de situação
@@ -391,7 +390,17 @@ const ExperimentosAndamento = () => {
                       <td className="p-3">
                         <Badge variant="secondary">{typeof item['Área'] === 'string' ? item['Área'] : ''}</Badge>
                       </td>
-                      <td className="p-3 font-medium">{typeof item['Iniciativa'] === 'string' ? item['Iniciativa'] : ''}</td>
+                      <td className="p-3 font-medium">
+                        <span
+                          className="underline cursor-pointer text-lab-primary hover:text-lab-primary-dark"
+                          onClick={e => {
+                            e.stopPropagation();
+                            handleOpenModal(item);
+                          }}
+                        >
+                          {typeof item['Iniciativa'] === 'string' ? item['Iniciativa'] : ''}
+                        </span>
+                      </td>
                       <td className="p-3">{typeof item['Sponsor/BO'] === 'string' ? item['Sponsor/BO'] : ''}</td>
                       <td className="p-3">
                         <Badge className="bg-lab-success/10 text-lab-success border-lab-success">
@@ -461,13 +470,14 @@ const ExperimentosAndamento = () => {
                     </tr>
                   );
                 })}
-                {/* Modal de descrição do experimento */}
+                {/* Modal de detalhes do experimento */}
                 <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>{modalTitulo}</DialogTitle>
-                      <DialogDescription>{modalDescricao}</DialogDescription>
-                    </DialogHeader>
+                  <DialogContent className="max-w-3xl w-full">
+                    {modalExperiment && (
+                      <div className="w-full">
+                        <ExperimentDetailCard experiment={modalExperiment} onClose={() => setModalOpen(false)} />
+                      </div>
+                    )}
                   </DialogContent>
                 </Dialog>
                 {/* Modal de histórico de situação atual e próximos passos */}
