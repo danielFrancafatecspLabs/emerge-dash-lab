@@ -6,7 +6,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { useExperimentos } from "@/hooks/useExperimentos";
-import { ExperimentStageChart } from "@/components/charts/ExperimentStageChart";
+import { ExperimentFunnelChart } from "@/components/charts/ExperimentFunnelChart";
 import { ExperimentTypeChart } from "@/components/charts/ExperimentTypeChart";
 import { MonthlyExperimentsChart } from "@/components/charts/MonthlyExperimentsChart";
 import { IdeasPieChart } from "@/components/charts/IdeasPieChart";
@@ -280,7 +280,36 @@ const VisaoConsolidada = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <ExperimentStageChart data={experimentosPorEtapa} />
+              {/* Funil de conversão por etapa */}
+              <ExperimentFunnelChart
+                stages={[
+                  {
+                    name: "Ideias geradas",
+                    value: data.length,
+                    color: "#f43f5e",
+                  },
+                  {
+                    name: "Aprovados no critério de seleção",
+                    value: data.filter(item => typeof item["Experimentação"] === "string" && item["Experimentação"].toLowerCase().includes("em andamento")).length,
+                    color: "#fbbf24",
+                  },
+                  {
+                    name: "Experimentos Concluídos",
+                    value: data.filter(item => typeof item["Experimentação"] === "string" && item["Experimentação"].toLowerCase().includes("concluido")).length,
+                    color: "#fde68a",
+                  },
+                  {
+                    name: "Piloto Concluídos",
+                    value: data.filter(item => typeof item["Piloto"] === "string" && ["concluido", "em andamento"].some(s => (item["Piloto"] as string).toLowerCase().includes(s))).length,
+                    color: "#4ade80",
+                  },
+                  {
+                    name: "Projeto / Produto",
+                    value: data.filter(item => typeof item["Escala"] === "string" && item["Escala"].toLowerCase().includes("produtização")).length,
+                    color: "#2563eb",
+                  },
+                ]}
+              />
             </CardContent>
           </Card>
 
