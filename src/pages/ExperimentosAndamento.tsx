@@ -1,4 +1,5 @@
 import { useState } from "react"
+import { BlinkingDot } from "@/components/experimentos/BlinkingDot";
 import { Pencil } from "lucide-react";
 import { useExperimentos } from '@/hooks/useExperimentos';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -126,8 +127,22 @@ const ExperimentosAndamento = () => {
   });
   const areaData = Object.entries(areaCounts).map(([name, value]) => ({ name, value }));
 
-  // Filtra experimentos em andamento
-  const andamento = data.filter(item => typeof item['Experimentação'] === 'string' && item['Experimentação'].trim().toLowerCase() === 'em andamento');
+  // Função para determinar prioridade do sinal
+  function getSignalPriority(item: any) {
+    // Exemplo: status crítico (vermelho), atenção (amarelo), ok (verde)
+    const status = (typeof item['Situação Atual e Próximos passos'] === 'string' ? item['Situação Atual e Próximos passos'] :
+      typeof item['Situacao Atual e Proximos passos'] === 'string' ? item['Situacao Atual e Proximos passos'] :
+      typeof item['Situacao Atual'] === 'string' ? item['Situacao Atual'] : '').toLowerCase();
+    // Ajuste conforme regras reais de negócio
+    if (status.includes('atencao') || status.includes('pendente') || status.includes('problema') || status.includes('em atraso')) return 1; // vermelho
+    if (status.includes('em andamento') || status.includes('em testes') || status.includes('validacao') || status.includes('aguardando')) return 2; // amarelo
+    return 3; // verde
+  }
+
+  // Filtra experimentos em andamento e ordena por prioridade do sinal
+  const andamento = data
+    .filter(item => typeof item['Experimentação'] === 'string' && item['Experimentação'].trim().toLowerCase() === 'em andamento')
+    .sort((a, b) => getSignalPriority(a) - getSignalPriority(b));
 
   // Função para atualizar comentário e salvar no backend
   const handleComentarioChange = async (idx: number, value: string) => {
@@ -358,81 +373,94 @@ const ExperimentosAndamento = () => {
                   <th className="text-left p-3 font-medium text-muted-foreground">Experimento</th>
                   <th className="text-left p-3 font-medium text-muted-foreground">Responsável</th>
                   <th className="text-left p-3 font-medium text-muted-foreground">Status</th>
+                  <th className="text-left p-3 font-medium text-muted-foreground">Sinal</th>
                   <th className="text-left p-3 font-medium text-muted-foreground">Situação Atual e Próximos passos</th>
                 </tr>
               </thead>
               <tbody>
-                {andamento.map((item, idx) => (
-                  <tr key={typeof item['Iniciativa'] === 'string' ? item['Iniciativa'] : idx} className="border-b hover:bg-muted/50 cursor-pointer" onClick={() => handleOpenModal(item)}>
-                    <td className="p-3">
-                      <Badge variant="secondary">{typeof item['Área'] === 'string' ? item['Área'] : ''}</Badge>
-                    </td>
-                    <td className="p-3 font-medium">{typeof item['Iniciativa'] === 'string' ? item['Iniciativa'] : ''}</td>
-                    <td className="p-3">{typeof item['Sponsor/BO'] === 'string' ? item['Sponsor/BO'] : ''}</td>
-                    <td className="p-3">
-                      <Badge className="bg-lab-success/10 text-lab-success border-lab-success">
-                        {typeof item['Experimentação'] === 'string' ? item['Experimentação'] : ''}
-                      </Badge>
-                    </td>
-                    <td className="p-3 text-sm text-muted-foreground">
-                      <div
-                        className="mb-1 text-sm font-semibold text-gray-800 flex items-center gap-2 cursor-pointer"
-                        onClick={e => { e.stopPropagation(); handleOpenHistoryModal(item); }}
-                      >
-                        {editIdx === idx ? (
-                          <>
-                            <input
-                              type="text"
-                              className="border rounded px-2 py-1 w-full"
-                              value={editValue}
-                              onChange={e => setEditValue(e.target.value)}
-                              autoFocus
-                            />
-                            <button
-                              className="ml-2 px-2 py-1 bg-blue-600 text-white rounded text-xs"
-                              onClick={() => handleSaveEdit(idx)}
-                            >Salvar</button>
-                            <button
-                              className="ml-2 px-2 py-1 bg-gray-300 text-gray-800 rounded text-xs"
-                              onClick={() => { setEditIdx(null); setEditValue(""); }}
-                            >Cancelar</button>
-                          </>
-                        ) : (
-                          <>
-                            {typeof item['Situação Atual e Próximos passos'] === 'string' ? (
-                              <span>{item['Situação Atual e Próximos passos']}</span>
-                            ) : typeof item['Situacao Atual e Proximos passos'] === 'string' ? (
-                              <span>{item['Situacao Atual e Proximos passos']}</span>
-                            ) : typeof item['Situacao Atual'] === 'string' ? (
-                              <span>{item['Situacao Atual']}</span>
-                            ) : Array.isArray(item['Comentários/Pendências/Ações']) && item['Comentários/Pendências/Ações'].length > 0 ? (
-                              (() => {
-                                const last = item['Comentários/Pendências/Ações'][item['Comentários/Pendências/Ações'].length - 1];
-                                return typeof last === 'object' && 'texto' in last ? <span>{last.texto}</span> : null;
-                              })()
-                            ) : null}
-                            <button
-                              className="p-1 hover:bg-blue-100 rounded"
-                              title="Editar situação atual"
-                              onClick={e => {
-                                e.stopPropagation();
-                                setEditIdx(idx);
-                                setEditValue(
-                                  typeof item['Situação Atual e Próximos passos'] === 'string' ? item['Situação Atual e Próximos passos'] :
-                                  typeof item['Situacao Atual e Proximos passos'] === 'string' ? item['Situacao Atual e Proximos passos'] :
-                                  typeof item['Situacao Atual'] === 'string' ? item['Situacao Atual'] :
-                                  ""
-                                );
-                              }}
-                            >
-                              <Pencil className="w-4 h-4 text-blue-600" strokeWidth={2.2} />
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                {andamento.map((item, idx) => {
+                  // Determina cor da bolinha
+                  const priority = getSignalPriority(item);
+                  let signalColor = '';
+                  let signalLabel = '';
+                  if (priority === 1) { signalColor = '#ef4444'; signalLabel = 'Precisa atenção'; }
+                  else if (priority === 2) { signalColor = '#eab308'; signalLabel = 'Atenção'; }
+                  else { signalColor = '#22c55e'; signalLabel = 'OK'; }
+                  return (
+                    <tr key={typeof item['Iniciativa'] === 'string' ? item['Iniciativa'] : idx} className="border-b hover:bg-muted/50 cursor-pointer" onClick={() => handleOpenModal(item)}>
+                      <td className="p-3">
+                        <Badge variant="secondary">{typeof item['Área'] === 'string' ? item['Área'] : ''}</Badge>
+                      </td>
+                      <td className="p-3 font-medium">{typeof item['Iniciativa'] === 'string' ? item['Iniciativa'] : ''}</td>
+                      <td className="p-3">{typeof item['Sponsor/BO'] === 'string' ? item['Sponsor/BO'] : ''}</td>
+                      <td className="p-3">
+                        <Badge className="bg-lab-success/10 text-lab-success border-lab-success">
+                          {typeof item['Experimentação'] === 'string' ? item['Experimentação'] : ''}
+                        </Badge>
+                      </td>
+                      <td className="p-3">
+                        <BlinkingDot color={signalColor} />
+                      </td>
+                      <td className="p-3 text-sm text-muted-foreground">
+                        <div
+                          className="mb-1 text-sm font-semibold text-gray-800 flex items-center gap-2 cursor-pointer"
+                          onClick={e => { e.stopPropagation(); handleOpenHistoryModal(item); }}
+                        >
+                          {editIdx === idx ? (
+                            <>
+                              <input
+                                type="text"
+                                className="border rounded px-2 py-1 w-full"
+                                value={editValue}
+                                onChange={e => setEditValue(e.target.value)}
+                                autoFocus
+                              />
+                              <button
+                                className="ml-2 px-2 py-1 bg-blue-600 text-white rounded text-xs"
+                                onClick={() => handleSaveEdit(idx)}
+                              >Salvar</button>
+                              <button
+                                className="ml-2 px-2 py-1 bg-gray-300 text-gray-800 rounded text-xs"
+                                onClick={() => { setEditIdx(null); setEditValue(""); }}
+                              >Cancelar</button>
+                            </>
+                          ) : (
+                            <>
+                              {typeof item['Situação Atual e Próximos passos'] === 'string' ? (
+                                <span>{item['Situação Atual e Próximos passos']}</span>
+                              ) : typeof item['Situacao Atual e Proximos passos'] === 'string' ? (
+                                <span>{item['Situacao Atual e Proximos passos']}</span>
+                              ) : typeof item['Situacao Atual'] === 'string' ? (
+                                <span>{item['Situacao Atual']}</span>
+                              ) : Array.isArray(item['Comentários/Pendências/Ações']) && item['Comentários/Pendências/Ações'].length > 0 ? (
+                                (() => {
+                                  const last = item['Comentários/Pendências/Ações'][item['Comentários/Pendências/Ações'].length - 1];
+                                  return typeof last === 'object' && 'texto' in last ? <span>{last.texto}</span> : null;
+                                })()
+                              ) : null}
+                              <button
+                                className="p-1 hover:bg-blue-100 rounded"
+                                title="Editar situação atual"
+                                onClick={e => {
+                                  e.stopPropagation();
+                                  setEditIdx(idx);
+                                  setEditValue(
+                                    typeof item['Situação Atual e Próximos passos'] === 'string' ? item['Situação Atual e Próximos passos'] :
+                                    typeof item['Situacao Atual e Proximos passos'] === 'string' ? item['Situacao Atual e Proximos passos'] :
+                                    typeof item['Situacao Atual'] === 'string' ? item['Situacao Atual'] :
+                                    ""
+                                  );
+                                }}
+                              >
+                                <Pencil className="w-4 h-4 text-blue-600" strokeWidth={2.2} />
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
                 {/* Modal de descrição do experimento */}
                 <Dialog open={modalOpen} onOpenChange={setModalOpen}>
                   <DialogContent>
