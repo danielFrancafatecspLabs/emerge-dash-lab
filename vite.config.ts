@@ -8,6 +8,8 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 8080,
+    allowedHosts: ["emerge-dash-lab.onrender.com"],
+    // ...other server options...
   },
   plugins: [
     react(),
