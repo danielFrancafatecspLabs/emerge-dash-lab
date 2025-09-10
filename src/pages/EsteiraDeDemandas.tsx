@@ -22,17 +22,9 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 const EsteiraDeDemandas = () => {
-  const { data, loading } = useExperimentos();
+  const { data = [], loading } = useExperimentos();
   // Extrai todas as áreas únicas do backend
-  const areas = Array.from(
-    new Set(
-      (data || [])
-        .map((item) =>
-          typeof item["Área"] === "string" ? item["Área"].trim() : null
-        )
-        .filter(Boolean)
-    )
-  );
+  const areas = Array.from(new Set(data.map((item: any) => item["Área"]).filter(Boolean)));
   const [selectedArea, setSelectedArea] = useState<string | null>(null);
 
   // Agrupa iniciativas por status
@@ -42,10 +34,10 @@ const EsteiraDeDemandas = () => {
   });
   // Filtra experimentos pela área selecionada
   const filteredData = selectedArea
-    ? data.filter((item) => item["Área"] === selectedArea)
+    ? data.filter((item: any) => item["Área"] === selectedArea)
     : data;
   if (filteredData && Array.isArray(filteredData)) {
-    filteredData.forEach((item) => {
+    filteredData.forEach((item: any) => {
       let statusRaw =
         item["Experimentação"] ||
         item["Piloto"] ||
@@ -92,9 +84,9 @@ const EsteiraDeDemandas = () => {
   }
 
   return (
-    <div className="flex h-screen">
+    <div className="flex min-h-screen">
       {/* Sidebar */}
-      <aside className="w-64 bg-gradient-to-b from-red-700 to-red-900 text-white flex flex-col py-8 px-4 gap-2 shadow-xl rounded-r-2xl">
+      <aside className="w-64 bg-gradient-to-b from-red-700 to-red-900 text-white flex flex-col py-8 px-4 gap-2 shadow-xl rounded-r-2xl overflow-y-auto">
         <h2 className="text-2xl font-bold mb-6 tracking-tight">Áreas</h2>
         <div className="flex flex-col gap-2">
           <div
@@ -119,14 +111,14 @@ const EsteiraDeDemandas = () => {
               <span className="inline-block w-2 h-2 rounded-full bg-white/80 mr-2" />
               {area}
               <span className="ml-auto bg-white/20 px-2 py-0.5 rounded text-xs">
-                {data.filter((item) => item["Área"] === area).length}
+                {data.filter((item: any) => item["Área"] === area).length}
               </span>
             </div>
           ))}
         </div>
       </aside>
-      {/* Esteira de Demandas */}
-      <main className="flex-1 overflow-auto bg-gradient-to-b from-white to-gray-100 p-10">
+  {/* Esteira de Demandas */}
+  <main className="flex-1 bg-gradient-to-b from-white to-gray-100 p-10 flex flex-col overflow-y-auto">
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-4xl font-extrabold text-red-700 tracking-tight mb-1">
@@ -140,7 +132,8 @@ const EsteiraDeDemandas = () => {
             Exportar Relatório
           </button>
         </div>
-        <div className="flex gap-0">
+  {/* Container scrollável para as colunas */}
+  <div className="flex gap-0 flex-1" style={{ minHeight: 0 }}>
           {STATUS_COLUNAS.map((status, idx) => (
             <React.Fragment key={status}>
               <div
@@ -228,6 +221,7 @@ const EsteiraDeDemandas = () => {
       </main>
     </div>
   );
-};
+// ...existing code...
+}
 
 export default EsteiraDeDemandas;
