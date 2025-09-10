@@ -290,7 +290,11 @@ const VisaoConsolidada = () => {
                   },
                   {
                     name: "Aprovados no critério de seleção",
-                    value: data.filter(item => typeof item["Experimentação"] === "string" && item["Experimentação"].toLowerCase().includes("em andamento")).length,
+                    value: data.filter(
+                      item =>
+                        typeof item["Ideia / Problema / Oportunidade"] === "string" &&
+                        ["concluído", "concluido"].includes(item["Ideia / Problema / Oportunidade"].toLowerCase())
+                    ).length,
                     color: "#fbbf24",
                   },
                   {
