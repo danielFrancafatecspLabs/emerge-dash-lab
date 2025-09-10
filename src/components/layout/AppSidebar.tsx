@@ -11,6 +11,11 @@ const navigationItems = [
     icon: Activity,
   },
   {
+    title: "Pilotos em Andamento",
+    url: "/pilotos-em-andamento",
+    icon: Activity,
+  },
+  {
     title: "Lista de Experimentos",
     url: "/lista-experimentos",
     icon: FileText,
@@ -39,7 +44,6 @@ export function AppSidebar() {
       </div>
       <nav className="flex-1 px-4 py-6 space-y-2">
         {navigationItems.map((item) => (
-        
           <NavLink
             key={item.title}
             to={item.url}

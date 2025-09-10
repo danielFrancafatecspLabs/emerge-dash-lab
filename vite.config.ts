@@ -11,11 +11,9 @@ export default defineConfig(({ mode }) => ({
     allowedHosts: ["emerge-dash-lab.onrender.com"],
     // ...other server options...
   },
-  plugins: [
-    react(),
-    mode === 'development' &&
-    componentTagger(),
-  ].filter(Boolean),
+  plugins: [react(), mode === "development" && componentTagger()].filter(
+    Boolean
+  ),
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),

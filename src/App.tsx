@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { DashboardLayout } from "./components/layout/DashboardLayout";
 import VisaoConsolidada from "./pages/VisaoConsolidada";
 import ExperimentosAndamento from "./pages/ExperimentosAndamento";
+import PilotosEmAndamento from "./pages/PilotosEmAndamento";
 import EmConstrucao from "./pages/EmConstrucao";
 import NotFound from "./pages/NotFound";
 import ListaDeExperimentos from "./pages/ListaDeExperimentos";
@@ -26,6 +27,10 @@ const App = () => (
             <Route
               path="/experimentos-andamento"
               element={<ExperimentosAndamento />}
+            />
+            <Route
+              path="/pilotos-em-andamento"
+              element={<PilotosEmAndamento />}
             />
             <Route
               path="/relatorios"
