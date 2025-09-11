@@ -1,3 +1,4 @@
+<<<<<<< HEAD:frontend/src/pages/Login.tsx
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -93,6 +94,18 @@ export default function Login() {
           </form>
         </CardContent>
       </Card>
+=======
+
+import React from "react";
+import claroLogo from "@/assets/logo_claro.png";
+
+export default function Login() {
+  return (
+    <div className="flex flex-col items-center justify-center min-h-screen">
+      <img src={claroLogo} alt="Logo Claro" className="w-16 h-16 mb-2" />
+      <h1 className="text-3xl font-bold text-lab-primary">Login desativado</h1>
+      <p className="mt-4">A autenticação foi removida deste sistema.</p>
+>>>>>>> fb7190b (refactor: Remove authentication logic and update PilotosEmAndamento component styling):src/pages/Login.tsx
     </div>
   );
 }
