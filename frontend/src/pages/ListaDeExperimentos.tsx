@@ -151,6 +151,10 @@ export default function ListaDeExperimentos() {
   let columns = baseCols.filter(
     (col) => col !== "#" && !hiddenColumns.includes(col)
   );
+  const pilotoIdx = columns.indexOf("Piloto");
+  if (pilotoIdx > -1) {
+    columns.splice(pilotoIdx + 1, 0, "StatusPiloto");
+  }
   const sinalIdx = columns.indexOf("Sinal");
   const ideiaIdx = columns.indexOf("Ideia / Problema / Oportunidade");
   if (sinalIdx > -1 && ideiaIdx > -1 && sinalIdx !== ideiaIdx - 1) {
@@ -333,8 +337,49 @@ export default function ListaDeExperimentos() {
       )}
       <ExperimentTable
         columns={columns}
-        data={data}
-        filtered={filtered}
+        data={data.map((item) => {
+          // Adiciona StatusPiloto para experimentos em piloto
+          let statusPiloto = "";
+          if (typeof item["Piloto"] === "string" && item["Piloto"].trim()) {
+            // Pipeline de PilotosEmAndamento
+            const pilotoStages = [
+              "2.0 - EXECUÇÃO PILOTO",
+              "2.1 - APURAÇÃO DE RESULTADOS",
+              "2.2 - DEFINIÇÃO DE CUSTOS",
+              "2.2.2 - HLE",
+              "2.2.3 APROVAÇÃO HLE TI",
+              "2.2.4 APROVAÇÃO HLE NEGOCIOS",
+              "2.3 - GO NOGO",
+              "2.4 - APROVAÇÃO COMITE DE INVESTIMENTO",
+              "2.5 - ROLL-OUT",
+              "2.6 - CANCELADO",
+            ];
+            // Se o valor do campo Piloto for igual a algum estágio, exibe esse valor
+            const foundStage = pilotoStages.find((stage) => item["Piloto"].trim().toUpperCase() === stage.toUpperCase());
+            statusPiloto = foundStage || "";
+          }
+          return { ...item, StatusPiloto: statusPiloto };
+        })}
+        filtered={filtered.map((item) => {
+          let statusPiloto = "";
+          if (typeof item["Piloto"] === "string" && item["Piloto"].trim()) {
+            const pilotoStages = [
+              "2.0 - EXECUÇÃO PILOTO",
+              "2.1 - APURAÇÃO DE RESULTADOS",
+              "2.2 - DEFINIÇÃO DE CUSTOS",
+              "2.2.2 - HLE",
+              "2.2.3 APROVAÇÃO HLE TI",
+              "2.2.4 APROVAÇÃO HLE NEGOCIOS",
+              "2.3 - GO NOGO",
+              "2.4 - APROVAÇÃO COMITE DE INVESTIMENTO",
+              "2.5 - ROLL-OUT",
+              "2.6 - CANCELADO",
+            ];
+            const foundStage = pilotoStages.find((stage) => item["Piloto"].trim().toUpperCase() === stage.toUpperCase());
+            statusPiloto = foundStage || "";
+          }
+          return { ...item, StatusPiloto: statusPiloto };
+        })}
         hiddenColumns={hiddenColumns}
         selectedIdx={selectedIdx}
         setSelectedIdx={setSelectedIdx}
