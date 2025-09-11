@@ -13,21 +13,29 @@ dotenv.config({ path: envPath });
 
 const app = express();
 const allowedOrigins = [
-  'https://seu-dominio.com',
-  'https://www.seu-dominio.com'
+  "http://localhost:5173",
+  "http://localhost:3000",
+  "https://seu-dominio.com",
+  "https://www.seu-dominio.com",
 ];
-app.use(cors({
-  origin: (origin, callback) => {
-    // Permite requests sem origin (ex: mobile, curl)
-    if (!origin) return callback(null, true);
-    if (allowedOrigins.includes(origin)) {
-      return callback(null, true);
-    } else {
-      return callback(new Error('Not allowed by CORS'));
-    }
-  },
-  credentials: true
-}));
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      // Permite requests sem origin (ex: mobile, curl)
+      if (!origin) return callback(null, true);
+      // Permite todas as origens em desenvolvimento
+      if (process.env.NODE_ENV !== "production") {
+        return callback(null, true);
+      }
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      } else {
+        return callback(new Error("Not allowed by CORS"));
+      }
+    },
+    credentials: true,
+  })
+);
 app.use(express.json());
 
 // Conexão com MongoDB Atlas
