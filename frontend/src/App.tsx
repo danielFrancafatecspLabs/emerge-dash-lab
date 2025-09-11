@@ -8,6 +8,7 @@ import VisaoConsolidada from "./pages/VisaoConsolidada";
 import ExperimentosAndamento from "./pages/ExperimentosAndamento";
 import PilotosEmAndamento from "./pages/PilotosEmAndamento";
 import EmConstrucao from "./pages/EmConstrucao";
+import Config from "./pages/Config";
 import NotFound from "./pages/NotFound";
 import ListaDeExperimentos from "./pages/ListaDeExperimentos";
 import BoardView from "./pages/BoardView";
@@ -27,19 +28,46 @@ const App = () => (
           <Route
             path="/*"
             element={
-              localStorage.getItem("user")
-                ? <DashboardLayout><Routes>
+              localStorage.getItem("user") ? (
+                <DashboardLayout>
+                  <Routes>
                     <Route path="/" element={<VisaoConsolidada />} />
-                    <Route path="/experimentos-andamento" element={<ExperimentosAndamento />} />
-                    <Route path="/pilotos-em-andamento" element={<PilotosEmAndamento />} />
-                    <Route path="/relatorios" element={<EmConstrucao titulo="Relatórios" descricao="Módulo de geração de relatórios detalhados dos experimentos" />} />
-                    <Route path="/configuracoes" element={<EmConstrucao titulo="Configurações" descricao="Painel de configurações do sistema de monitoramento" />} />
-                    <Route path="/lista-experimentos" element={<ListaDeExperimentos />} />
+                    <Route
+                      path="/experimentos-andamento"
+                      element={<ExperimentosAndamento />}
+                    />
+                    <Route
+                      path="/pilotos-em-andamento"
+                      element={<PilotosEmAndamento />}
+                    />
+                    <Route
+                      path="/relatorios"
+                      element={
+                        <EmConstrucao
+                          titulo="Relatórios"
+                          descricao="Módulo de geração de relatórios detalhados dos experimentos"
+                        />
+                      }
+                    />
+                    <Route
+                      path="/configuracoes"
+                      element={<Config />}
+                    />
+                    <Route
+                      path="/lista-experimentos"
+                      element={<ListaDeExperimentos />}
+                    />
                     <Route path="/board-operacional" element={<BoardView />} />
-                    <Route path="/esteira-demandas" element={<EsteiraDeDemandas />} />
+                    <Route
+                      path="/esteira-demandas"
+                      element={<EsteiraDeDemandas />}
+                    />
                     <Route path="*" element={<NotFound />} />
-                  </Routes></DashboardLayout>
-                : <Login />
+                  </Routes>
+                </DashboardLayout>
+              ) : (
+                <Login />
+              )
             }
           />
         </Routes>
