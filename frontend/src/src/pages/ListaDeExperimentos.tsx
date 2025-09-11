@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from "react";
-import { Input } from "../components/ui/input";
-import { ColumnFilterDropdown } from "../components/ui/ColumnFilterDropdown";
-import { ExperimentTable } from "../components/experimentos/ExperimentTable";
-import { ExperimentEditModal } from "../components/experimentos/ExperimentEditModal";
-import { ExperimentDetailCard } from "../components/experimentos/ExperimentDetailCard";
-import { ExperimentNewModal } from "../components/experimentos/ExperimentNewModal";
-import { InlineDropdown } from "../components/experimentos/InlineDropdown";
-import { BlinkingDot } from "../components/experimentos/BlinkingDot";
+import { Input } from "@/components/ui/input";
+import { ColumnFilterDropdown } from "@/components/ui/ColumnFilterDropdown";
+import { ExperimentTable } from "@/components/experimentos/ExperimentTable";
+import { ExperimentEditModal } from "@/components/experimentos/ExperimentEditModal";
+import { ExperimentDetailCard } from "@/components/experimentos/ExperimentDetailCard";
+import { ExperimentNewModal } from "@/components/experimentos/ExperimentNewModal";
+import { InlineDropdown } from "@/components/experimentos/InlineDropdown";
+import { BlinkingDot } from "@/components/experimentos/BlinkingDot";
 
 // Constants moved here to resolve import error
 const IDEA_OPTIONS = [
@@ -72,7 +72,7 @@ export default function ListaDeExperimentos() {
   ]);
 
   useEffect(() => {
-    fetch("http://localhost:4000/experimentos")
+    fetch("http://localhost:3001/api/experimentos")
       .then((res) => res.json())
       .then((json) => {
         setData(json as any[]);
@@ -168,7 +168,7 @@ export default function ListaDeExperimentos() {
   const handleEditSave = () => {
     if (editIdx !== null && editData) {
       if (editData._id) {
-        fetch(`http://localhost:4000/experimentos/${editData._id}`, {
+        fetch(`http://localhost:3001/api/experimentos/${editData._id}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(editData),
@@ -302,7 +302,7 @@ export default function ListaDeExperimentos() {
           setNewExpData({});
         }}
         onSave={async () => {
-          const res = await fetch("http://localhost:4000/experimentos", {
+          const res = await fetch("http://localhost:3001/api/experimentos", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(newExpData),

@@ -50,15 +50,59 @@ npm run dev
 - Click on "New codespace" to launch a new Codespace environment.
 - Edit files directly within the Codespace and commit and push your changes once you're done.
 
-## What technologies are used for this project?
+## Estrutura do Projeto
 
-This project is built with:
+O projeto está organizado em duas principais camadas:
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+- **frontend/**: Aplicação React, Vite, TypeScript, Tailwind, shadcn-ui
+- **backend/**: API Node.js/Express, MongoDB, com camadas Controller, Service, Model, Route
+
+## Tecnologias Utilizadas
+
+- **Frontend**: Vite, TypeScript, React, shadcn-ui, Tailwind CSS
+- **Backend**: Node.js, Express, MongoDB (Mongoose)
+
+## Como rodar o projeto localmente
+
+### Backend
+
+1. Instale as dependências (se necessário):
+   ```sh
+   cd backend
+   npm install
+   ```
+2. Configure o arquivo `.env` com as variáveis:
+   ```env
+   MONGODB_URI=<sua_string_de_conexao>
+   JWT_SECRET=<sua_chave_secreta>
+   ```
+3. Inicie o servidor:
+   ```sh
+   npm start
+   # ou
+   node server.js
+   ```
+
+### Frontend
+
+1. Instale as dependências:
+   ```sh
+   cd frontend
+   npm install
+   ```
+2. Inicie o servidor de desenvolvimento:
+   ```sh
+   npm run dev
+   ```
+
+## Deploy
+
+Consulte Lovable ou utilize seu serviço de hospedagem preferido para frontend e backend.
+
+## Observações
+
+- O backend segue Clean Code e Design Patterns modernos (Controller, Service, Model, Route).
+- O frontend está totalmente separado e pode consumir a API do backend.
 
 ## How can I deploy this project?
 
