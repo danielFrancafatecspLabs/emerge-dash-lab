@@ -67,7 +67,7 @@ export default function ListaDeExperimentos() {
   );
 
   useEffect(() => {
-  fetch("/api/experimentos")
+    fetch("/api/experimentos")
       .then((res) => res.json())
       .then((json) => {
         setData(json as Experiment[]);
@@ -279,14 +279,11 @@ export default function ListaDeExperimentos() {
           }}
           onSave={async () => {
             try {
-              const res = await fetch(
-                "/api/experimentos",
-                {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify(newExpData),
-                }
-              );
+              const res = await fetch("/api/experimentos", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(newExpData),
+              });
               if (res.ok) {
                 const created = (await res.json()) as Experiment;
                 setData((p) => [created, ...p]);

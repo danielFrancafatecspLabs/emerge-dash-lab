@@ -48,10 +48,7 @@ const App = () => (
                         />
                       }
                     />
-                    <Route
-                      path="/configuracoes"
-                      element={<Config />}
-                    />
+                    <Route path="/configuracoes" element={<Config />} />
                     <Route
                       path="/lista-experimentos"
                       element={<ListaDeExperimentos />}
