@@ -179,7 +179,7 @@ const ExperimentosAndamento = () => {
         setData(updated);
         setEditIdx(null);
         setEditValue("");
-        await fetch(`http://localhost:3001/api/experimentos/${id}`, {
+  await fetch(`/api/experimentos/${id}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(novoObj),
@@ -257,7 +257,7 @@ const ExperimentosAndamento = () => {
       const id = updated[indexInData]._id;
       if (id) {
         try {
-          await fetch(`http://localhost:3001/api/experimentos/${id}`, {
+          await fetch(`/api/experimentos/${id}`, {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(updated[indexInData]),

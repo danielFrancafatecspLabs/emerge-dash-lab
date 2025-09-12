@@ -135,7 +135,7 @@ export const ExperimentDetailCard: React.FC<ExperimentDetailCardProps> = ({
       }
 
       const res = await fetch(
-        `http://localhost:3001/api/experimentos/${experiment._id}`,
+        `/api/experimentos/${experiment._id}`,
         {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
@@ -161,7 +161,7 @@ export const ExperimentDetailCard: React.FC<ExperimentDetailCardProps> = ({
     setFeedback("");
     try {
       const res = await fetch(
-        `http://localhost:3001/api/experimentos/${experiment._id}`,
+        `/api/experimentos/${experiment._id}`,
         {
           method: "DELETE",
         }

@@ -94,7 +94,7 @@ export function ExperimentTable({
     historico.push({ texto: novoValor, data: new Date().toISOString() });
     const atualizado = { ...row, "Comentários/Pendências e Ações": historico };
     const res = await fetch(
-      `http://localhost:3001/api/experimentos/${row._id}`,
+      `/api/experimentos/${row._id}`,
       {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -498,7 +498,7 @@ export function ExperimentTable({
                             onChange={async (novoValor) => {
                               const atualizado = { ...row, [col]: novoValor };
                               const res = await fetch(
-                                `http://localhost:3001/api/experimentos/${row._id}`,
+                                `/api/experimentos/${row._id}`,
                                 {
                                   method: "PUT",
                                   headers: {

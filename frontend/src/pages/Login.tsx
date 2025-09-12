@@ -1,49 +1,22 @@
-<<<<<<< HEAD:frontend/src/pages/Login.tsx
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { User, Lock } from "lucide-react";
 import claroLogo from "@/assets/logo_claro.png";
 
-// ...existing code...
-
 export default function Login() {
-  async function handleRegister(e: React.MouseEvent) {
-    e.preventDefault();
-    setLoading(true);
-    setError("");
-    try {
-      const res = await fetch("http://localhost:3001/api/auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username: user, password: pass }),
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setError("");
-        alert("Usuário registrado com sucesso!");
-      } else {
-        setError(data.error || "Erro ao registrar usuário");
-      }
-    } catch (err) {
-      setError("Erro de conexão com o servidor");
-    }
-    setLoading(false);
-  }
   const [user, setUser] = useState("");
   const [pass, setPass] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const navigate = useNavigate();
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     setError("");
     try {
-      const res = await fetch("http://localhost:3001/api/auth/login", {
+  const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username: user, password: pass }),
@@ -60,6 +33,29 @@ export default function Login() {
         }
       } else {
         setError(data.error || "Usuário ou senha inválidos");
+      }
+    } catch (err) {
+      setError("Erro de conexão com o servidor");
+    }
+    setLoading(false);
+  }
+
+  async function handleRegister(e: React.MouseEvent) {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+    try {
+  const res = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: user, password: pass }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setError("");
+        alert("Usuário registrado com sucesso!");
+      } else {
+        setError(data.error || "Erro ao registrar usuário");
       }
     } catch (err) {
       setError("Erro de conexão com o servidor");
@@ -110,6 +106,7 @@ export default function Login() {
             <Button
               type="submit"
               className="w-full h-12 text-lg font-bold bg-lab-primary hover:bg-lab-primary-dark rounded-xl shadow"
+              disabled={loading}
             >
               Entrar
             </Button>
@@ -125,18 +122,6 @@ export default function Login() {
           </form>
         </CardContent>
       </Card>
-=======
-
-import React from "react";
-import claroLogo from "@/assets/logo_claro.png";
-
-export default function Login() {
-  return (
-    <div className="flex flex-col items-center justify-center min-h-screen">
-      <img src={claroLogo} alt="Logo Claro" className="w-16 h-16 mb-2" />
-      <h1 className="text-3xl font-bold text-lab-primary">Login desativado</h1>
-      <p className="mt-4">A autenticação foi removida deste sistema.</p>
->>>>>>> fb7190b (refactor: Remove authentication logic and update PilotosEmAndamento component styling):src/pages/Login.tsx
     </div>
   );
 }
