@@ -51,6 +51,20 @@ mongoose
 app.use("/api/auth", authRoutes);
 app.use("/api/experimentos", experimentosRoutes);
 
+// Rota dedicada para o repositório de relatórios e fichas
+import Experimento from "./src/models/Experimento.js";
+app.get("/api/repositorio", async (req, res) => {
+  try {
+    const lista = await Experimento.find(
+      {},
+      "iniciativa descricao relatorio ficha"
+    );
+    res.json(lista);
+  } catch (err) {
+    res.status(500).json({ error: "Erro ao listar repositório." });
+  }
+});
+
 const EXCEL_PATH = path.join(
   process.cwd(),
   "Status_Iniciativas beOn Labs v2.0.xlsx"
@@ -76,4 +90,5 @@ app.get("/api/total-ideias", (req, res) => {
   }
 });
 
-app.listen(3001, () => console.log("API rodando em http://localhost:3001"));
+const PORT = process.env.PORT || 3001;
+app.listen(PORT, () => console.log(`API rodando em http://localhost:${PORT}`));
