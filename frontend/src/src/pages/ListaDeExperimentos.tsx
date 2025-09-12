@@ -2,10 +2,9 @@ import React, { useEffect, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { ColumnFilterDropdown } from "@/components/ui/ColumnFilterDropdown";
 import { ExperimentTable } from "@/components/experimentos/ExperimentTable";
-import { ExperimentEditModal } from "@/components/experimentos/ExperimentEditModal";
+import type { Experiment } from "@/components/experimentos/ExperimentTable";
 import { ExperimentDetailCard } from "@/components/experimentos/ExperimentDetailCard";
 import { ExperimentNewModal } from "@/components/experimentos/ExperimentNewModal";
-import { InlineDropdown } from "@/components/experimentos/InlineDropdown";
 import { BlinkingDot } from "@/components/experimentos/BlinkingDot";
 
 // Constants moved here to resolve import error
@@ -50,13 +49,13 @@ const ESCALA_OPTIONS = [
 
 export default function ListaDeExperimentos() {
   const [newExpOpen, setNewExpOpen] = useState(false);
-  const [newExpData, setNewExpData] = useState<any>({});
+  const [newExpData, setNewExpData] = useState<Record<string, unknown>>({});
 
-  const [data, setData] = useState<any[]>([]);
-  const [filtered, setFiltered] = useState<any[]>([]);
+  const [data, setData] = useState<Experiment[]>([]);
+  const [filtered, setFiltered] = useState<Experiment[]>([]);
   const [search, setSearch] = useState("");
   const [editIdx, setEditIdx] = useState<number | null>(null);
-  const [editData, setEditData] = useState<any | null>(null);
+  const [editData, setEditData] = useState<Experiment | null>(null);
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
   const [hiddenColumns, setHiddenColumns] = useState<string[]>([]);
   const [manageColumnsOpen, setManageColumnsOpen] = useState(false);
@@ -75,8 +74,8 @@ export default function ListaDeExperimentos() {
     fetch("/api/experimentos")
       .then((res) => res.json())
       .then((json) => {
-        setData(json as any[]);
-        setFiltered(json as any[]);
+        setData(json as Experiment[]);
+        setFiltered(json as Experiment[]);
       });
   }, []);
 
@@ -87,9 +86,9 @@ export default function ListaDeExperimentos() {
       temp = temp.filter((item) =>
         ideaFilter.some(
           (f) =>
-            (item["Ideia / Problema / Oportunidade"] || "")
-              .trim()
-              .toLowerCase() === f.trim().toLowerCase()
+            typeof item["Ideia / Problema / Oportunidade"] === "string" &&
+            item["Ideia / Problema / Oportunidade"].trim().toLowerCase() ===
+              f.trim().toLowerCase()
         )
       );
     }
@@ -97,8 +96,9 @@ export default function ListaDeExperimentos() {
       temp = temp.filter((item) =>
         experimentacaoFilter.some(
           (f) =>
-            (item["Experimentação"] || "").trim().toLowerCase() ===
-            f.trim().toLowerCase()
+            typeof item["Experimentação"] === "string" &&
+            item["Experimentação"].trim().toLowerCase() ===
+              f.trim().toLowerCase()
         )
       );
     }
@@ -106,8 +106,8 @@ export default function ListaDeExperimentos() {
       temp = temp.filter((item) =>
         pilotoFilter.some(
           (f) =>
-            (item["Piloto"] || "").trim().toLowerCase() ===
-            f.trim().toLowerCase()
+            typeof item["Piloto"] === "string" &&
+            item["Piloto"].trim().toLowerCase() === f.trim().toLowerCase()
         )
       );
     }
@@ -115,8 +115,8 @@ export default function ListaDeExperimentos() {
       temp = temp.filter((item) =>
         escalaFilter.some(
           (f) =>
-            (item["Escala"] || "").trim().toLowerCase() ===
-            f.trim().toLowerCase()
+            typeof item["Escala"] === "string" &&
+            item["Escala"].trim().toLowerCase() === f.trim().toLowerCase()
         )
       );
     }
@@ -148,22 +148,26 @@ export default function ListaDeExperimentos() {
           .filter((col) => !col.toLowerCase().includes("datas perdidas"))
       : [];
   // Remove '#' column and ensure 'Sinal' is the second column
-  let columns = baseCols.filter(
-    (col) => col !== "#" && !hiddenColumns.includes(col)
-  );
-  const sinalIdx = columns.indexOf("Sinal");
-  const ideiaIdx = columns.indexOf("Ideia / Problema / Oportunidade");
-  if (sinalIdx > -1 && ideiaIdx > -1 && sinalIdx !== ideiaIdx - 1) {
-    // Remove 'Sinal' from its current position
-    columns.splice(sinalIdx, 1);
-    // Insert 'Sinal' before 'Ideia / Problema / Oportunidade'
-    columns.splice(ideiaIdx, 0, "Sinal");
-  }
+  const columns = (() => {
+    const cols = baseCols.filter(
+      (col) => col !== "#" && !hiddenColumns.includes(col)
+    );
+    const sinalIdx = cols.indexOf("Sinal");
+    const ideiaIdx = cols.indexOf("Ideia / Problema / Oportunidade");
+    if (sinalIdx > -1 && ideiaIdx > -1 && sinalIdx !== ideiaIdx - 1) {
+      // Remove 'Sinal' from its current position
+      cols.splice(sinalIdx, 1);
+      // Insert 'Sinal' before 'Ideia / Problema / Oportunidade'
+      cols.splice(ideiaIdx, 0, "Sinal");
+    }
+    return cols;
+  })();
 
-  const handleEdit = (idx: number) => {
-    setEditIdx(idx);
-    setEditData({ ...filtered[idx] });
-    setSelectedIdx(idx);
+  const handleEdit = (row: Experiment) => {
+    const idx = filtered.findIndex((it) => it._id === row._id);
+    setEditIdx(idx >= 0 ? idx : null);
+    setEditData({ ...row });
+    setSelectedIdx(idx >= 0 ? idx : null);
   };
   const handleEditSave = () => {
     if (editIdx !== null && editData) {
@@ -308,7 +312,7 @@ export default function ListaDeExperimentos() {
             body: JSON.stringify(newExpData),
           });
           if (res.ok) {
-            const novo = await res.json();
+            const novo = (await res.json()) as Experiment;
             setData([novo, ...data]);
             setFiltered([novo, ...filtered]);
             setNewExpOpen(false);
