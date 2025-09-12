@@ -4,7 +4,8 @@
   "main": "server.js",
   "type": "module",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "migrate:backfill-owners": "node ./scripts/backfill_responsavel_relator.js"
   },
   "dependencies": {
     "bcrypt": "^5.1.1",

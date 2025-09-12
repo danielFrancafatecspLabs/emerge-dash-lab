@@ -9,6 +9,28 @@ import claroLogo from "@/assets/logo_claro.png";
 // ...existing code...
 
 export default function Login() {
+  async function handleRegister(e: React.MouseEvent) {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+    try {
+      const res = await fetch("http://localhost:3001/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: user, password: pass }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setError("");
+        alert("Usuário registrado com sucesso!");
+      } else {
+        setError(data.error || "Erro ao registrar usuário");
+      }
+    } catch (err) {
+      setError("Erro de conexão com o servidor");
+    }
+    setLoading(false);
+  }
   const [user, setUser] = useState("");
   const [pass, setPass] = useState("");
   const [error, setError] = useState("");
@@ -20,7 +42,7 @@ export default function Login() {
     setLoading(true);
     setError("");
     try {
-  const res = await fetch("http://localhost:3001/api/auth/login", {
+      const res = await fetch("http://localhost:3001/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username: user, password: pass }),
@@ -89,6 +111,15 @@ export default function Login() {
               className="w-full h-12 text-lg font-bold bg-lab-primary hover:bg-lab-primary-dark rounded-xl shadow"
             >
               Entrar
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full h-12 text-lg font-bold mt-2"
+              onClick={handleRegister}
+              disabled={loading}
+            >
+              Registrar
             </Button>
           </form>
         </CardContent>
