@@ -16,7 +16,7 @@ export default function Login() {
     setLoading(true);
     setError("");
     try {
-  const res = await fetch("/api/auth/login", {
+      const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username: user, password: pass }),
@@ -45,7 +45,7 @@ export default function Login() {
     setLoading(true);
     setError("");
     try {
-  const res = await fetch("/api/auth/register", {
+      const res = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username: user, password: pass }),
