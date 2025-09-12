@@ -131,8 +131,13 @@ export function useExperimentos() {
     }
   });
   const anos = Object.keys(mesesAnos).sort();
+  interface ExperimentosPorMesObj {
+    month: string;
+    [ano: string]: number | string[] | string;
+  }
+
   const experimentosPorMes = meses.map((mes) => {
-    const obj: any = { month: mes };
+    const obj: ExperimentosPorMesObj = { month: mes };
     anos.forEach((ano) => {
       obj[ano] = mesesAnos[ano][mes] || 0;
       // Adiciona lista de iniciativas para cada ano/mês
