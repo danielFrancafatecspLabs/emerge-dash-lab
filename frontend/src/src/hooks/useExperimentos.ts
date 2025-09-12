@@ -11,7 +11,7 @@ export function useExperimentos() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-      fetch("/api/experimentos")
+    fetch("/api/experimentos")
       .then((res) => res.json())
       .then((json) => {
         setData(json as Experimento[]);

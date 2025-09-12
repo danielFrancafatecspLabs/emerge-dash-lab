@@ -93,14 +93,11 @@ export function ExperimentTable({
       : [];
     historico.push({ texto: novoValor, data: new Date().toISOString() });
     const atualizado = { ...row, "Comentários/Pendências e Ações": historico };
-    const res = await fetch(
-      `/api/experimentos/${row._id}`,
-      {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(atualizado),
-      }
-    );
+    const res = await fetch(`/api/experimentos/${row._id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(atualizado),
+    });
     if (res.ok) {
       const updatedObj = await res.json();
       setData(data.map((item) => (item._id === row._id ? updatedObj : item)));

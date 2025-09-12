@@ -179,7 +179,7 @@ const ExperimentosAndamento = () => {
         setData(updated);
         setEditIdx(null);
         setEditValue("");
-  await fetch(`/api/experimentos/${id}`, {
+        await fetch(`/api/experimentos/${id}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(novoObj),
