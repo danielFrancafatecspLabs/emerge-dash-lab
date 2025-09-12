@@ -67,7 +67,7 @@ export default function ListaDeExperimentos() {
   );
 
   useEffect(() => {
-    fetch("http://localhost:3001/api/experimentos")
+  fetch("/api/experimentos")
       .then((res) => res.json())
       .then((json) => {
         setData(json as Experiment[]);
@@ -202,7 +202,8 @@ export default function ListaDeExperimentos() {
                     "2.6 - CANCELADO",
                   ];
                   const foundStage = pilotoStages.find(
-                    (stage) => pilotoVal.trim().toUpperCase() === stage.toUpperCase()
+                    (stage) =>
+                      pilotoVal.trim().toUpperCase() === stage.toUpperCase()
                   );
                   statusPiloto = foundStage || "";
                 }
@@ -279,7 +280,7 @@ export default function ListaDeExperimentos() {
           onSave={async () => {
             try {
               const res = await fetch(
-                "http://localhost:3001/api/experimentos",
+                "/api/experimentos",
                 {
                   method: "POST",
                   headers: { "Content-Type": "application/json" },

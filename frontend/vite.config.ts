@@ -10,7 +10,7 @@ export default defineConfig(({ mode }) => ({
     port: 8080,
     allowedHosts: ["emerge-dash-lab.onrender.com"],
     proxy: {
-      "/api": "http://localhost:3001",
+      "/api": process.env.VITE_API_PROXY || "http://localhost:3001",
     },
     // ...other server options...
   },
