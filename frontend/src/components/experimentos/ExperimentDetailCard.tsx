@@ -134,14 +134,11 @@ export const ExperimentDetailCard: React.FC<ExperimentDetailCardProps> = ({
         body[histKey] = hist;
       }
 
-      const res = await fetch(
-        `/api/experimentos/${experiment._id}`,
-        {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(body),
-        }
-      );
+      const res = await fetch(`/api/experimentos/${experiment._id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
       if (res.ok) {
         const updated = await res.json();
         setFeedback("Alterações salvas com sucesso!");
@@ -160,12 +157,9 @@ export const ExperimentDetailCard: React.FC<ExperimentDetailCardProps> = ({
   const handleDelete = async () => {
     setFeedback("");
     try {
-      const res = await fetch(
-        `/api/experimentos/${experiment._id}`,
-        {
-          method: "DELETE",
-        }
-      );
+      const res = await fetch(`/api/experimentos/${experiment._id}`, {
+        method: "DELETE",
+      });
       if (res.ok) {
         setFeedback("Experimento deletado com sucesso!");
         onDeleted?.(experiment._id);

@@ -72,7 +72,7 @@ export default function ListaDeExperimentos() {
   ]);
 
   useEffect(() => {
-  fetch("/api/experimentos")
+    fetch("/api/experimentos")
       .then((res) => res.json())
       .then((json) => {
         setData(json as any[]);
@@ -168,7 +168,7 @@ export default function ListaDeExperimentos() {
   const handleEditSave = () => {
     if (editIdx !== null && editData) {
       if (editData._id) {
-  fetch(`/api/experimentos/${editData._id}`, {
+        fetch(`/api/experimentos/${editData._id}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(editData),
