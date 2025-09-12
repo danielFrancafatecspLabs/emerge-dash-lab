@@ -88,6 +88,11 @@ export default function ListaDeExperimentos() {
     const cols = baseCols.filter(
       (col) => col !== "#" && !hiddenColumns.includes(col)
     );
+    // Insere StatusPiloto após Piloto, se existir
+    const pilotoIdx = cols.indexOf("Piloto");
+    if (pilotoIdx > -1 && cols.indexOf("StatusPiloto") === -1) {
+      cols.splice(pilotoIdx + 1, 0, "StatusPiloto");
+    }
     const sinalIdx = cols.indexOf("Sinal");
     const ideiaIdx = cols.indexOf("Ideia / Problema / Oportunidade");
     if (sinalIdx > -1 && ideiaIdx > -1 && sinalIdx !== ideiaIdx - 1) {
@@ -179,7 +184,30 @@ export default function ListaDeExperimentos() {
           <div>
             <ExperimentTable
               columns={columns}
-              data={searchAppliedData}
+              data={searchAppliedData.map((item) => {
+                // Computa StatusPiloto a partir de Piloto, quando aplicável
+                let statusPiloto = "";
+                const pilotoVal = item["Piloto"];
+                if (typeof pilotoVal === "string" && pilotoVal.trim()) {
+                  const pilotoStages = [
+                    "2.0 - EXECUÇÃO PILOTO",
+                    "2.1 - APURAÇÃO DE RESULTADOS",
+                    "2.2 - DEFINIÇÃO DE CUSTOS",
+                    "2.2.2 - HLE",
+                    "2.2.3 APROVAÇÃO HLE TI",
+                    "2.2.4 APROVAÇÃO HLE NEGOCIOS",
+                    "2.3 - GO NOGO",
+                    "2.4 - APROVAÇÃO COMITE DE INVESTIMENTO",
+                    "2.5 - ROLL-OUT",
+                    "2.6 - CANCELADO",
+                  ];
+                  const foundStage = pilotoStages.find(
+                    (stage) => pilotoVal.trim().toUpperCase() === stage.toUpperCase()
+                  );
+                  statusPiloto = foundStage || "";
+                }
+                return { ...item, StatusPiloto: statusPiloto } as Experiment;
+              })}
               filtered={filtered}
               hiddenColumns={hiddenColumns}
               selectedIdx={selectedIdx}

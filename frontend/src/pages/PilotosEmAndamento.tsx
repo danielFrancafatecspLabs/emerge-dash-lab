@@ -32,15 +32,16 @@ import { Upload, Download } from "lucide-react";
 import { toast } from "sonner";
 
 const pilotoStages = [
-  "2.0 - EXECUÇÃO PILOTO",
-  "2.1 - APURAÇÃO DOS RESULTADOS",
-  "2.2 - DEFINIÇÃO DE CUSTOS",
-  "2.2.2 - HLE",
-  "2.2.3 APROVAÇÃO HLE TI",
-  "2.2.4 APROVAÇÃO HLE NEGOCIOS",
-  "2.3 - GO NOGO",
-  "2.4 - APROVAÇÃO COMITE DE INVESTIMENTO",
-  "2.5 - ROLL-OUT",
+  { key: "2.0 - EXECUÇÃO PILOTO", color: "border-lab-primary text-lab-primary bg-lab-primary/10" },
+  { key: "2.1 - APURAÇÃO DE RESULTADOS", color: "border-orange-600 text-orange-700 bg-orange-100" },
+  { key: "2.2 - DEFINIÇÃO DE CUSTOS", color: "border-indigo-600 text-indigo-700 bg-indigo-100" },
+  { key: "2.2.2 - HLE", color: "border-purple-600 text-purple-700 bg-purple-100" },
+  { key: "2.2.3 APROVAÇÃO HLE TI", color: "border-blue-600 text-blue-700 bg-blue-100" },
+  { key: "2.2.4 APROVAÇÃO HLE NEGOCIOS", color: "border-yellow-500 text-yellow-700 bg-yellow-100" },
+  { key: "2.3 - GO NOGO", color: "border-green-600 text-green-700 bg-green-100" },
+  { key: "2.4 - APROVAÇÃO COMITE DE INVESTIMENTO", color: "border-gray-400 text-gray-600 bg-gray-100" },
+  { key: "2.5 - ROLL-OUT", color: "border-pink-600 text-pink-700 bg-pink-100" },
+  { key: "2.6 - CANCELADO", color: "border-red-600 text-red-700 bg-red-100" },
 ];
 
 const statusLabels = [
@@ -146,16 +147,13 @@ const PilotosEmAndamento = () => {
         </CardHeader>
         <CardContent>
           <div className="flex flex-wrap items-center gap-4 p-4">
-            {pilotoStages.map((step, index) => (
-              <div key={step} className="flex items-center">
+            {pilotoStages.map((stage, index) => (
+              <div key={stage.key} className="flex items-center">
                 <div
-                  className={`relative flex flex-col items-center p-4 rounded-lg border-2 min-w-[140px] transition ${
-                    statusLabels[index]?.color ||
-                    "border-gray-400 bg-gray-100 text-gray-600"
-                  }`}
+                  className={`relative flex flex-col items-center p-4 rounded-lg border-2 min-w-[140px] transition ${stage.color}`}
                 >
                   <div className="text-xs text-center font-medium text-foreground">
-                    {step}
+                    {stage.key}
                   </div>
                 </div>
                 {index < pilotoStages.length - 1 && (
@@ -167,24 +165,7 @@ const PilotosEmAndamento = () => {
         </CardContent>
       </Card>
 
-      {/* Cards de status */}
-      <div className="flex gap-4 mb-6">
-        {statusLabels.map((step) => (
-          <Card
-            key={step.key}
-            className={`cursor-pointer w-48 h-24 flex flex-col items-center justify-center ${step.color} text-foreground font-bold text-lg shadow-md`}
-            onClick={() => {
-              setSelectedStatus(step.key);
-              setStatusModalOpen(true);
-            }}
-          >
-            <CardContent className="flex flex-col items-center justify-center">
-              <span>{step.label}</span>
-              <span className="text-3xl mt-2">{statusCounts[step.key]}</span>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+  {/* ...cards de status removidos conforme solicitado... */}
 
       {/* Modal para mostrar pilotos do status selecionado */}
       <Dialog open={statusModalOpen} onOpenChange={setStatusModalOpen}>
@@ -304,10 +285,8 @@ const PilotosEmAndamento = () => {
                     }
                     className="border-b hover:bg-muted/50 cursor-pointer"
                     onClick={() => {
-                      setModalTitulo(item["Iniciativa"]);
-                      setModalDescricao(
-                        item["Descrição"] || "Sem descrição disponível."
-                      );
+                      setModalTitulo(typeof item["Iniciativa"] === "string" ? item["Iniciativa"] : "");
+                      setModalDescricao(typeof item["Descrição"] === "string" ? item["Descrição"] : "Sem descrição disponível.");
                       setModalOpen(true);
                     }}
                   >
