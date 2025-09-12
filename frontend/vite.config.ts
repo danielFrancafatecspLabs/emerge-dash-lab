@@ -9,9 +9,6 @@ export default defineConfig(({ mode }) => ({
     host: "::",
     port: 8080,
     allowedHosts: ["emerge-dash-lab.onrender.com"],
-    proxy: {
-      "/api": process.env.VITE_API_PROXY || "http://localhost:3001",
-    },
     // ...other server options...
   },
   plugins: [react(), mode === "development" && componentTagger()].filter(

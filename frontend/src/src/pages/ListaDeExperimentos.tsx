@@ -71,7 +71,7 @@ export default function ListaDeExperimentos() {
   ]);
 
   useEffect(() => {
-    fetch("/api/experimentos")
+    fetch("http://localhost:3002/api/experimentos")
       .then((res) => res.json())
       .then((json) => {
         setData(json as Experiment[]);
@@ -172,7 +172,7 @@ export default function ListaDeExperimentos() {
   const handleEditSave = () => {
     if (editIdx !== null && editData) {
       if (editData._id) {
-        fetch(`/api/experimentos/${editData._id}`, {
+        fetch(`http://localhost:3002/api/experimentos/${editData._id}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(editData),
@@ -306,7 +306,7 @@ export default function ListaDeExperimentos() {
           setNewExpData({});
         }}
         onSave={async () => {
-          const res = await fetch("/api/experimentos", {
+          const res = await fetch("http://localhost:3002/api/experimentos", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(newExpData),
