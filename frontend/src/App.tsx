@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { DashboardLayout } from "./components/layout/DashboardLayout";
 import VisaoConsolidada from "./pages/VisaoConsolidada";
+import Repositorio from "./pages/Repositorio";
 import ExperimentosAndamento from "./pages/ExperimentosAndamento";
 import PilotosEmAndamento from "./pages/PilotosEmAndamento";
 import EmConstrucao from "./pages/EmConstrucao";
@@ -58,6 +59,7 @@ const App = () => (
                       path="/esteira-demandas"
                       element={<EsteiraDeDemandas />}
                     />
+                    <Route path="/repositorio" element={<Repositorio />} />
                     <Route path="*" element={<NotFound />} />
                   </Routes>
                 </DashboardLayout>

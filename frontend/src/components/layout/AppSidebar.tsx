@@ -24,6 +24,7 @@ const navigationItems = [
   { title: "Board Operacional", url: "/board-operacional", icon: Menu },
   { title: "Relatórios", url: "/relatorios", icon: FileText },
   { title: "Configurações", url: "/configuracoes", icon: Settings },
+  { title: "Repositório", url: "/repositorio", icon: FileText },
 ];
 
 export function AppSidebar() {
