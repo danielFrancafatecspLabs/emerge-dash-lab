@@ -1,4 +1,5 @@
 import { useState } from "react";
+import type { Experiment } from "@/components/experimentos/ExperimentTable";
 import { BlinkingDot } from "@/components/experimentos/BlinkingDot";
 import { Pencil } from "lucide-react";
 import { useExperimentos } from "@/hooks/useExperimentos";
@@ -131,7 +132,9 @@ const ExperimentosAndamento = () => {
   const [editValue, setEditValue] = useState<string>("");
   // Estado para modal de histórico de situação
   const [historyModalOpen, setHistoryModalOpen] = useState(false);
-  const [historyModalData, setHistoryModalData] = useState<any>(null);
+  const [historyModalData, setHistoryModalData] = useState<Experiment | null>(
+    null
+  );
 
   // Função para salvar edição do campo, movendo texto atual para o histórico
   const handleSaveEdit = async (idx: number) => {
@@ -176,7 +179,7 @@ const ExperimentosAndamento = () => {
         setData(updated);
         setEditIdx(null);
         setEditValue("");
-  await fetch(`http://localhost:3001/api/experimentos/${id}`, {
+        await fetch(`http://localhost:3001/api/experimentos/${id}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(novoObj),
@@ -202,8 +205,8 @@ const ExperimentosAndamento = () => {
     value,
   }));
 
-  // Função para determinar prioridade do sinal
-  function getSignalPriority(item: any) {
+  // Função para determinar prioridade do sinal (aceita qualquer linha com index signature)
+  function getSignalPriority(item: Record<string, unknown>) {
     // Exemplo: status crítico (vermelho), atenção (amarelo), ok (verde)
     const status = (
       typeof item["Situação Atual e Próximos passos"] === "string"
@@ -268,14 +271,16 @@ const ExperimentosAndamento = () => {
 
   // Modal para descrição
   const [modalOpen, setModalOpen] = useState(false);
-  const [modalExperiment, setModalExperiment] = useState<any>(null);
-  const handleOpenModal = (item: any) => {
-    setModalExperiment(item);
+  const [modalExperiment, setModalExperiment] = useState<Experiment | null>(
+    null
+  );
+  const handleOpenModal = (item: unknown) => {
+    setModalExperiment(item as Experiment);
     setModalOpen(true);
   };
   // Modal para histórico de situação
-  const handleOpenHistoryModal = (item: any) => {
-    setHistoryModalData(item);
+  const handleOpenHistoryModal = (item: unknown) => {
+    setHistoryModalData(item as Experiment);
     setHistoryModalOpen(true);
   };
 
@@ -777,10 +782,7 @@ const ExperimentosAndamento = () => {
                                   : "Sem data"}
                               </div>
                               <div className="font-semibold">
-                                {coment.texto ||
-                                  coment.comentario ||
-                                  coment.acao ||
-                                  "Sem texto"}
+                                {coment.texto || "Sem texto"}
                               </div>
                             </div>
                           ))

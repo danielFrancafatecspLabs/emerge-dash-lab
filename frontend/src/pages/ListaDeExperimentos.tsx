@@ -1,14 +1,18 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Input } from "../components/ui/input";
-import { ColumnFilterDropdown } from "../components/ui/ColumnFilterDropdown";
 import { ExperimentTable } from "../components/experimentos/ExperimentTable";
-import { ExperimentEditModal } from "../components/experimentos/ExperimentEditModal";
+import type { Experiment } from "../components/experimentos/ExperimentTable";
 import { ExperimentDetailCard } from "../components/experimentos/ExperimentDetailCard";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "../components/ui/dialog";
+import { Plus, SlidersHorizontal } from "lucide-react";
 import { ExperimentNewModal } from "../components/experimentos/ExperimentNewModal";
-import { InlineDropdown } from "../components/experimentos/InlineDropdown";
 import { BlinkingDot } from "../components/experimentos/BlinkingDot";
 
-// Constants moved here to resolve import error
 const IDEA_OPTIONS = [
   "Selecionar tudo",
   "Backlog",
@@ -39,7 +43,7 @@ const PILOTO_OPTIONS = [
   "Vazias",
   "Concluido",
   "Em andamento",
-  "Nõa iniciado",
+  "Não iniciado",
 ];
 const ESCALA_OPTIONS = [
   "Selecionar tudo",
@@ -49,306 +53,255 @@ const ESCALA_OPTIONS = [
 ];
 
 export default function ListaDeExperimentos() {
-  const [newExpOpen, setNewExpOpen] = useState(false);
-  const [newExpData, setNewExpData] = useState<any>({});
-
-  const [data, setData] = useState<any[]>([]);
-  const [filtered, setFiltered] = useState<any[]>([]);
+  const [data, setData] = useState<Experiment[]>([]);
+  const [filtered, setFiltered] = useState<Experiment[]>([]);
   const [search, setSearch] = useState("");
-  const [editIdx, setEditIdx] = useState<number | null>(null);
-  const [editData, setEditData] = useState<any | null>(null);
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
   const [hiddenColumns, setHiddenColumns] = useState<string[]>([]);
-  const [manageColumnsOpen, setManageColumnsOpen] = useState(false);
-  const [ideaFilter, setIdeaFilter] = useState<string[]>(["Selecionar tudo"]);
-  const [experimentacaoFilter, setExperimentacaoFilter] = useState<string[]>([
-    "Selecionar tudo",
-  ]);
-  const [pilotoFilter, setPilotoFilter] = useState<string[]>([
-    "Selecionar tudo",
-  ]);
-  const [escalaFilter, setEscalaFilter] = useState<string[]>([
-    "Selecionar tudo",
-  ]);
+  const [showColManager, setShowColManager] = useState(false);
+  const [showNewExp, setShowNewExp] = useState(false);
+  const [newExpData, setNewExpData] = useState<Record<string, unknown>>({});
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [detailExperiment, setDetailExperiment] = useState<Experiment | null>(
+    null
+  );
 
   useEffect(() => {
-  fetch("http://localhost:3001/api/experimentos")
+    fetch("http://localhost:3001/api/experimentos")
       .then((res) => res.json())
       .then((json) => {
-        setData(json as any[]);
-        setFiltered(json as any[]);
+        setData(json as Experiment[]);
+        setFiltered(json as Experiment[]);
       });
   }, []);
 
-  // Filtering logic (from previous code)
-  useEffect(() => {
-    let temp = data;
-    if (!ideaFilter.includes("Selecionar tudo")) {
-      temp = temp.filter((item) =>
-        ideaFilter.some(
-          (f) =>
-            (item["Ideia / Problema / Oportunidade"] || "")
-              .trim()
-              .toLowerCase() === f.trim().toLowerCase()
-        )
-      );
-    }
-    if (!experimentacaoFilter.includes("Selecionar tudo")) {
-      temp = temp.filter((item) =>
-        experimentacaoFilter.some(
-          (f) =>
-            (item["Experimentação"] || "").trim().toLowerCase() ===
-            f.trim().toLowerCase()
-        )
-      );
-    }
-    if (!pilotoFilter.includes("Selecionar tudo")) {
-      temp = temp.filter((item) =>
-        pilotoFilter.some(
-          (f) =>
-            (item["Piloto"] || "").trim().toLowerCase() ===
-            f.trim().toLowerCase()
-        )
-      );
-    }
-    if (!escalaFilter.includes("Selecionar tudo")) {
-      temp = temp.filter((item) =>
-        escalaFilter.some(
-          (f) =>
-            (item["Escala"] || "").trim().toLowerCase() ===
-            f.trim().toLowerCase()
-        )
-      );
-    }
-    if (search) {
-      temp = temp.filter((item) =>
-        Object.values(item).some(
-          (v) =>
-            typeof v === "string" &&
-            v.toLowerCase().includes(search.toLowerCase())
-        )
-      );
-    }
-    setFiltered(temp);
-  }, [
-    data,
-    ideaFilter,
-    experimentacaoFilter,
-    pilotoFilter,
-    escalaFilter,
-    search,
-  ]);
-
-  // Garante que a coluna '#' sempre aparece
-  const baseCols =
-    data.length > 0
+  const baseCols = useMemo(() => {
+    return data.length > 0
       ? Object.keys(data[0])
           .filter((col) => col !== "_id" && col !== "id")
           .filter((col) => !col.toLowerCase().includes("unnamed"))
           .filter((col) => !col.toLowerCase().includes("datas perdidas"))
       : [];
-  // Remove '#' column and ensure 'Sinal' is the second column
-  let columns = baseCols.filter(
-    (col) => col !== "#" && !hiddenColumns.includes(col)
-  );
-  const sinalIdx = columns.indexOf("Sinal");
-  const ideiaIdx = columns.indexOf("Ideia / Problema / Oportunidade");
-  if (sinalIdx > -1 && ideiaIdx > -1 && sinalIdx !== ideiaIdx - 1) {
-    // Remove 'Sinal' from its current position
-    columns.splice(sinalIdx, 1);
-    // Insert 'Sinal' before 'Ideia / Problema / Oportunidade'
-    columns.splice(ideiaIdx, 0, "Sinal");
-  }
+  }, [data]);
 
-  const handleEdit = (idx: number) => {
-    setEditIdx(idx);
-    setEditData({ ...filtered[idx] });
-    setSelectedIdx(idx);
-  };
-  const handleEditSave = () => {
-    if (editIdx !== null && editData) {
-      if (editData._id) {
-  fetch(`http://localhost:3001/api/experimentos/${editData._id}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(editData),
-        }).then(async (res) => {
-          if (res.ok) {
-            const atualizado = await res.json();
-            const updated = data.map((item) =>
-              item._id === atualizado._id ? atualizado : item
-            );
-            setData(updated);
-            setFiltered(updated);
-            setEditIdx(null);
-            setEditData(null);
-          }
-        });
-      }
+  const columns = useMemo(() => {
+    const cols = baseCols.filter(
+      (col) => col !== "#" && !hiddenColumns.includes(col)
+    );
+    const sinalIdx = cols.indexOf("Sinal");
+    const ideiaIdx = cols.indexOf("Ideia / Problema / Oportunidade");
+    if (sinalIdx > -1 && ideiaIdx > -1 && sinalIdx !== ideiaIdx - 1) {
+      cols.splice(sinalIdx, 1);
+      cols.splice(ideiaIdx, 0, "Sinal");
     }
-  };
-  const handleEditCancel = () => {
-    setEditIdx(null);
-    setEditData(null);
-  };
+    return cols;
+  }, [baseCols, hiddenColumns]);
+
+  const columnsMapOptions: Record<string, string[]> = useMemo(
+    () => ({
+      "Ideia / Problema / Oportunidade": IDEA_OPTIONS,
+      Experimentação: EXPERIMENTACAO_OPTIONS,
+      Piloto: PILOTO_OPTIONS,
+      Escala: ESCALA_OPTIONS,
+    }),
+    []
+  );
+
   const toggleColumn = (col: string) => {
     setHiddenColumns((prev) =>
       prev.includes(col) ? prev.filter((c) => c !== col) : [...prev, col]
     );
   };
 
+  const searchAppliedData = useMemo(() => {
+    if (!search) return data;
+    const q = search.toLowerCase();
+    return data.filter((item) =>
+      Object.values(item).some((v) =>
+        typeof v === "string" ? v.toLowerCase().includes(q) : false
+      )
+    );
+  }, [data, search]);
+
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold mb-4">Lista de Experimentos</h1>
-      <div className="flex flex-col gap-4 mb-6 items-start">
-        <div className="flex flex-wrap gap-3 items-center">
+    <div className="min-h-screen bg-gradient-to-b from-white to-rose-50 p-3 md:p-4">
+      <div className="h-full w-full flex flex-col gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <h1 className="text-2xl font-extrabold text-[#7a0019] mr-2">
+            Lista de Experimentos
+          </h1>
+          <span className="text-sm text-gray-600 mr-2">
+            {search
+              ? `${searchAppliedData.length} de ${data.length}`
+              : `${data.length}`}{" "}
+            itens
+          </span>
           <div className="relative">
-            <button
-              className="px-4 py-2 rounded bg-gray-200 text-gray-800 font-bold border border-gray-400 hover:bg-gray-300"
-              onClick={() => setManageColumnsOpen((open) => !open)}
-            >
-              Gerenciar colunas
-            </button>
-            {manageColumnsOpen && (
-              <div className="absolute z-10 mt-2 bg-white border border-gray-300 rounded shadow-lg p-3 min-w-[200px]">
-                <div className="font-bold mb-2 text-sm">
-                  Mostrar/ocultar colunas
-                </div>
-                {columns
-                  .filter((col) => col !== "Status")
-                  .map((col) => (
-                    <label
-                      key={col}
-                      className="flex items-center gap-2 mb-1 text-sm cursor-pointer"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={!hiddenColumns.includes(col)}
-                        onChange={() => toggleColumn(col)}
-                      />
-                      {col}
-                    </label>
-                  ))}
-                <button
-                  className="mt-2 px-2 py-1 rounded bg-gray-100 text-xs border border-gray-300 hover:bg-gray-200"
-                  onClick={() => setManageColumnsOpen(false)}
-                >
-                  Fechar
-                </button>
-              </div>
-            )}
+            <Input
+              placeholder="Buscar por título, squad, status..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-72 text-gray-900 bg-white border-2 border-[#7a0019]/30 rounded-xl pl-10 shadow-sm focus:ring-2 focus:ring-[#7a0019]"
+            />
+            <span className="absolute left-3 top-2.5 text-[#7a0019]/70">
+              🔎
+            </span>
+          </div>
+          <div className="flex items-center gap-4 text-sm text-gray-700">
+            <div className="flex items-center gap-2">
+              <BlinkingDot color="#22c55e" />
+              <span>Dentro do prazo</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <BlinkingDot color="#ef4444" />
+              <span>Fora do prazo</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <BlinkingDot color="#eab308" />
+              <span>Pendência</span>
+            </div>
           </div>
           <button
-            className="px-4 py-2 rounded bg-green-600 text-white font-bold hover:bg-green-700"
-            onClick={() => setNewExpOpen(true)}
+            className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-[#7a0019] text-white hover:bg-[#5a0011] shadow"
+            onClick={() => setShowNewExp(true)}
           >
-            Novo Experimento
+            <Plus className="w-4 h-4" /> Novo experimento
           </button>
-          <ColumnFilterDropdown
-            options={IDEA_OPTIONS}
-            selected={ideaFilter}
-            onChange={setIdeaFilter}
-            label="Ideia/Problema/Oportunidade"
-          />
-          <ColumnFilterDropdown
-            options={EXPERIMENTACAO_OPTIONS}
-            selected={experimentacaoFilter}
-            onChange={setExperimentacaoFilter}
-            label="Experimentação"
-          />
-          <ColumnFilterDropdown
-            options={PILOTO_OPTIONS}
-            selected={pilotoFilter}
-            onChange={setPilotoFilter}
-            label="Piloto"
-          />
-          <ColumnFilterDropdown
-            options={ESCALA_OPTIONS}
-            selected={escalaFilter}
-            onChange={setEscalaFilter}
-            label="Escala"
-          />
-          <Input
-            placeholder="Buscar..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-48 text-gray-800 bg-white border border-gray-300 ml-2"
-          />
+          <button
+            className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-white border-2 border-[#7a0019]/30 text-[#7a0019] hover:bg-rose-50"
+            onClick={() => setShowColManager(true)}
+          >
+            <SlidersHorizontal className="w-4 h-4" /> Gerenciar colunas
+          </button>
         </div>
-        <div className="flex gap-6 items-center mt-2">
-          <div className="flex items-center gap-2">
-            <BlinkingDot color="#22c55e" />
-            <span className="text-sm">Dentro do prazo</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <BlinkingDot color="#ef4444" />
-            <span className="text-sm">Fora do prazo</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <BlinkingDot color="#eab308" />
-            <span className="text-sm">Pendência</span>
+
+        <div className="flex-1">
+          <div>
+            <ExperimentTable
+              columns={columns}
+              data={searchAppliedData}
+              filtered={filtered}
+              hiddenColumns={hiddenColumns}
+              selectedIdx={selectedIdx}
+              setSelectedIdx={setSelectedIdx}
+              handleEdit={(row) => {
+                const idx = searchAppliedData.findIndex(
+                  (r) => r._id === row._id
+                );
+                setSelectedIdx(idx >= 0 ? idx : null);
+                setDetailExperiment(row);
+                setDetailOpen(true);
+              }}
+              toggleColumn={toggleColumn}
+              optionsMap={columnsMapOptions}
+              setData={setData}
+              setFiltered={setFiltered}
+            />
           </div>
         </div>
-      </div>
-      <ExperimentNewModal
-        open={newExpOpen}
-        columns={columns}
-        newExpData={newExpData}
-        onChange={(key, value) =>
-          setNewExpData({ ...newExpData, [key]: value })
-        }
-        onCancel={() => {
-          setNewExpOpen(false);
-          setNewExpData({});
-        }}
-        onSave={async () => {
-          const res = await fetch("http://localhost:3001/api/experimentos", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(newExpData),
-          });
-          if (res.ok) {
-            const novo = await res.json();
-            setData([novo, ...data]);
-            setFiltered([novo, ...filtered]);
-            setNewExpOpen(false);
-            setNewExpData({});
+
+        {/* Dialog: Gerenciar Colunas */}
+        <Dialog open={showColManager} onOpenChange={setShowColManager}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="text-[#7a0019]">
+                Gerenciar colunas
+              </DialogTitle>
+            </DialogHeader>
+            <div className="grid grid-cols-2 gap-3 mt-2">
+              {baseCols
+                .filter((c) => c !== "#")
+                .map((col) => (
+                  <label key={col} className="flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      className="accent-[#7a0019]"
+                      checked={!hiddenColumns.includes(col)}
+                      onChange={() => toggleColumn(col)}
+                    />
+                    <span className="truncate" title={col}>
+                      {col}
+                    </span>
+                  </label>
+                ))}
+            </div>
+            <div className="flex justify-end mt-4">
+              <button
+                className="px-3 py-2 rounded bg-[#7a0019] text-white hover:bg-[#5a0011]"
+                onClick={() => setShowColManager(false)}
+              >
+                Fechar
+              </button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Modal: Novo Experimento */}
+        <ExperimentNewModal
+          open={showNewExp}
+          columns={baseCols.filter((c) => c !== "_id" && c !== "id")}
+          newExpData={newExpData}
+          onChange={(key, value) =>
+            setNewExpData((p) => ({ ...p, [key]: value }))
           }
-        }}
-        optionsMap={{
-          "Ideia / Problema / Oportunidade": IDEA_OPTIONS,
-          Experimentação: EXPERIMENTACAO_OPTIONS,
-          Piloto: PILOTO_OPTIONS,
-          Escala: ESCALA_OPTIONS,
-        }}
-      />
-      {editIdx !== null && !!editData && (
-        <ExperimentDetailCard
-          experiment={editData}
-          onClose={() => {
-            setEditIdx(null);
-            setEditData(null);
+          onCancel={() => {
+            setShowNewExp(false);
+            setNewExpData({});
           }}
+          onSave={async () => {
+            try {
+              const res = await fetch(
+                "http://localhost:3001/api/experimentos",
+                {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify(newExpData),
+                }
+              );
+              if (res.ok) {
+                const created = (await res.json()) as Experiment;
+                setData((p) => [created, ...p]);
+                setFiltered((p) => [created, ...p]);
+                setShowNewExp(false);
+                setNewExpData({});
+              }
+            } catch (e) {
+              console.error(e);
+            }
+          }}
+          optionsMap={columnsMapOptions}
         />
-      )}
-      <ExperimentTable
-        columns={columns}
-        data={data}
-        filtered={filtered}
-        hiddenColumns={hiddenColumns}
-        selectedIdx={selectedIdx}
-        setSelectedIdx={setSelectedIdx}
-        handleEdit={handleEdit}
-        toggleColumn={toggleColumn}
-        optionsMap={{
-          "Ideia / Problema / Oportunidade": IDEA_OPTIONS,
-          Experimentação: EXPERIMENTACAO_OPTIONS,
-          Piloto: PILOTO_OPTIONS,
-          Escala: ESCALA_OPTIONS,
-        }}
-        setData={setData}
-        setFiltered={setFiltered}
-      />
+
+        {/* Modal: Detalhe do Experimento */}
+        {detailOpen && detailExperiment && (
+          <ExperimentDetailCard
+            experiment={detailExperiment}
+            columns={[
+              ...new Set([...(columns || []), "Responsavel", "Relator"]),
+            ]}
+            optionsMap={columnsMapOptions}
+            onClose={() => {
+              setDetailOpen(false);
+              setDetailExperiment(null);
+            }}
+            onSaved={(updated) => {
+              setData((p) =>
+                p.map((it) => (it._id === updated._id ? updated : it))
+              );
+              setFiltered((p) =>
+                p.map((it) => (it._id === updated._id ? updated : it))
+              );
+              setDetailExperiment(updated);
+            }}
+            onDeleted={(id) => {
+              setData((p) => p.filter((it) => it._id !== id));
+              setFiltered((p) => p.filter((it) => it._id !== id));
+              setDetailOpen(false);
+              setDetailExperiment(null);
+            }}
+          />
+        )}
+      </div>
     </div>
   );
 }
