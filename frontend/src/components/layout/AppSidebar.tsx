@@ -25,24 +25,13 @@ const navigationItems = [
   { title: "Relatórios", url: "/relatorios", icon: FileText },
   { title: "Configurações", url: "/configuracoes", icon: Settings },
   { title: "Repositório", url: "/repositorio", icon: FileText },
+  { title: "Sobre Nós", url: "/sobre-nos", icon: FileText },
 ];
 
 export function AppSidebar() {
   return (
     <aside className="w-64 h-screen bg-gray-900 text-white flex flex-col fixed top-0 left-0 z-40">
-      <div className="flex items-center px-6 py-4 border-b border-gray-800 gap-3">
-        <img
-          src={claroLogo}
-          alt="Logo Claro"
-          className="w-10 h-10 object-contain"
-        />
-        <div>
-          <span className="text-xl font-bold block">Claro Brasil</span>
-          <span className="text-sm text-muted-foreground block">
-            Laboratório de Tecnologias Emergentes
-          </span>
-        </div>
-      </div>
+      {/* Header removido para visual mais limpo */}
       <nav className="flex-1 px-4 py-6 space-y-2">
         {navigationItems.map((item) => (
           <NavLink

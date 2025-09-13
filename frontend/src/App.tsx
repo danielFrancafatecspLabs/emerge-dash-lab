@@ -13,6 +13,7 @@ import Config from "./pages/Config";
 import NotFound from "./pages/NotFound";
 import ListaDeExperimentos from "./pages/ListaDeExperimentos";
 import BoardView from "./pages/BoardView";
+import SobreNos from "./pages/SobreNos";
 import EsteiraDeDemandas from "./pages/EsteiraDeDemandas";
 import Login from "./pages/Login";
 
@@ -59,7 +60,8 @@ const App = () => (
                       path="/esteira-demandas"
                       element={<EsteiraDeDemandas />}
                     />
-                    <Route path="/repositorio" element={<Repositorio />} />
+              <Route path="/repositorio" element={<Repositorio />} />
+              <Route path="/sobre-nos" element={<SobreNos />} />
                     <Route path="*" element={<NotFound />} />
                   </Routes>
                 </DashboardLayout>
