@@ -228,6 +228,10 @@ export function ExperimentTable({
               <TableHead className="sticky left-0 z-20 bg-[#7a0019] text-white font-semibold text-sm border-r border-white/10 w-12 text-center">
                 #
               </TableHead>
+              {/* Coluna de edição */}
+              <TableHead className="bg-[#7a0019] text-white font-semibold text-sm border-r border-white/10 w-12 text-center">
+                Editar
+              </TableHead>
               {columnsOrdered.map((col) => (
                 <TableHead
                   key={col}
@@ -432,29 +436,65 @@ export function ExperimentTable({
                   <TableCell className="sticky left-0 z-10 bg-white border-r border-gray-200">
                     {idx + 1}
                   </TableCell>
-                  {columnsOrdered.map((col) => (
-                    <TableCell key={col}>
-                      {col === "Sinal"
-                        ? (() => {
-                            // Define cor da bolinha conforme valor
-                            let val = row[col];
-                            if (typeof val === "string") val = parseFloat(val);
-                            let color = "#bbb";
-                            if (val === 3) color = "#22c55e"; // verde
-                            else if (val === 2) color = "#eab308"; // amarelo
-                            else if (val === 1) color = "#ef4444"; // vermelho
-                            // Outros valores: cinza
-                            return (
-                              <span className="flex items-center">
-                                <BlinkingDot color={color} />
-                              </span>
-                            );
-                          })()
-                        : typeof row[col] === "object" && row[col] !== null
-                        ? JSON.stringify(row[col])
-                        : String(row[col] ?? "")}
-                    </TableCell>
-                  ))}
+                  {/* Botão de edição */}
+                  <TableCell className="text-center">
+                    <button
+                      onClick={() => handleEdit(row)}
+                      className="p-1 rounded hover:bg-rose-100"
+                      title="Editar experimento"
+                    >
+                      <Pencil className="w-5 h-5 text-[#7a0019]" />
+                    </button>
+                  </TableCell>
+                  {columnsOrdered.map((col) => {
+                    // Colunas que devem mostrar "Não iniciado" se vazio/nulo
+                    const isSpecialCol =
+                      /ideia|problema|oportunidade|experimentação|piloto|escala/i.test(
+                        col
+                      );
+                    const value = row[col];
+                    let cellContent;
+                    if (col === "Sinal") {
+                      // ...sinal logic...
+                      let val = value;
+                      if (typeof val === "string") val = parseFloat(val);
+                      let color = "#bbb";
+                      if (val === 3) color = "#22c55e";
+                      else if (val === 2) color = "#eab308";
+                      else if (val === 1) color = "#ef4444";
+                      cellContent = (
+                        <span className="flex items-center">
+                          <BlinkingDot color={color} />
+                        </span>
+                      );
+                    } else if (isSpecialCol && (!value || value === "")) {
+                      cellContent = (
+                        <span
+                          className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-gradient-to-r from-gray-100 to-gray-200 border border-gray-300 shadow-sm text-sm text-gray-500 font-semibold tracking-wide"
+                          style={{ fontFamily: "Segoe UI, Arial, sans-serif" }}
+                        >
+                          <svg
+                            width="16"
+                            height="16"
+                            fill="none"
+                            stroke="#bdbdbd"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            className="mr-1"
+                          >
+                            <circle cx="8" cy="8" r="7" />
+                          </svg>
+                          Não iniciado
+                        </span>
+                      );
+                    } else if (typeof value === "object" && value !== null) {
+                      cellContent = JSON.stringify(value);
+                    } else {
+                      cellContent = String(value ?? "");
+                    }
+                    return <TableCell key={col}>{cellContent}</TableCell>;
+                  })}
                 </TableRow>
               ))
             )}
