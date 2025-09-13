@@ -4,7 +4,7 @@ import { InlineDropdown } from "./InlineDropdown";
 interface ExperimentNewModalProps {
   open: boolean;
   columns: string[];
-  newExpData: any;
+  newExpData: Record<string, string>;
   onChange: (key: string, value: string) => void;
   onCancel: () => void;
   onSave: () => void;
