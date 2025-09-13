@@ -233,8 +233,22 @@ function BoardDofa({ onCardClick }) {
 }
 
 // Componente Principal
+
+import { ExperimentEditModal } from "../components/experimentos/ExperimentEditModal";
+
 export default function ListaDeExperimentos() {
-  const { data } = useExperimentos();
+  const { data: originalData } = useExperimentos();
+  const [data, setData] = useState([]);
+  const [filtered, setFiltered] = useState([]);
+
+  // Atualiza os dados quando originalData muda
+  React.useEffect(() => {
+    if (originalData && Array.isArray(originalData)) {
+      setData(originalData);
+      setFiltered(originalData);
+      console.log("Dados carregados:", originalData);
+    }
+  }, [originalData]);
   const [boardView, setBoardView] = useState(false);
   const [selectedExperiment, setSelectedExperiment] = useState(null);
   const [hiddenColumns, setHiddenColumns] = useState([]);
@@ -242,6 +256,8 @@ export default function ListaDeExperimentos() {
   const [showColManager, setShowColManager] = useState(false);
   const [showNewModal, setShowNewModal] = useState(false);
   const [newExpData, setNewExpData] = useState({});
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editData, setEditData] = useState(null);
 
   const columns = useMemo(() => {
     if (!data || data.length === 0) return [];
@@ -252,18 +268,18 @@ export default function ListaDeExperimentos() {
 
   const filteredData = useMemo(() => {
     if (!search || !data)
-      return data
-        ? data.map((item) => ({ ...item, Sinal: item.Sinal || item["#"] }))
+      return filtered
+        ? filtered.map((item) => ({ ...item, Sinal: item.Sinal || item["#"] }))
         : [];
     const q = search.toLowerCase();
-    return data
+    return filtered
       .map((item) => ({ ...item, Sinal: item.Sinal || item["#"] }))
       .filter((item) =>
         Object.values(item).some((v) =>
           typeof v === "string" ? v.toLowerCase().includes(q) : false
         )
       );
-  }, [data, search]);
+  }, [filtered, search, data]);
 
   const handleCardClick = (item) => {
     setSelectedExperiment(item);
@@ -273,6 +289,39 @@ export default function ListaDeExperimentos() {
     setHiddenColumns((prev) =>
       prev.includes(col) ? prev.filter((c) => c !== col) : [...prev, col]
     );
+  };
+
+  // Função chamada ao clicar no lápis
+  const handleEdit = (row) => {
+    setEditData(row);
+    setEditModalOpen(true);
+  };
+
+  // Função para salvar edição (exemplo, pode ser ajustada conforme backend)
+  const handleEditSave = () => {
+    if (editData && editData._id) {
+      fetch(`http://localhost:3002/api/experimentos/${editData._id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(editData),
+      }).then(async (res) => {
+        if (res.ok) {
+          const atualizado = await res.json();
+          const updated = data.map((item) =>
+            item._id === atualizado._id ? atualizado : item
+          );
+          setData(updated);
+          setFiltered(updated);
+          setEditModalOpen(false);
+          setEditData(null);
+        }
+      });
+    }
+  };
+
+  const handleEditCancel = () => {
+    setEditModalOpen(false);
+    setEditData(null);
   };
 
   return (
@@ -370,19 +419,36 @@ export default function ListaDeExperimentos() {
             </Dialog>
           </>
         ) : (
-          <ExperimentTable
-            columns={columns}
-            data={filteredData}
-            filtered={filteredData}
-            hiddenColumns={hiddenColumns}
-            toggleColumn={toggleColumn}
-            selectedIdx={0}
-            setSelectedIdx={() => {}}
-            handleEdit={() => {}}
-            optionsMap={{}}
-            setData={() => {}}
-            setFiltered={() => {}}
-          />
+          <>
+            <ExperimentTable
+              columns={columns}
+              data={filteredData}
+              filtered={filteredData}
+              hiddenColumns={hiddenColumns}
+              toggleColumn={toggleColumn}
+              selectedIdx={0}
+              setSelectedIdx={() => {}}
+              handleEdit={handleEdit}
+              optionsMap={{}}
+              setData={() => {}}
+              setFiltered={() => {}}
+            />
+            {/* Modal de edição */}
+            {editModalOpen && (
+              <ExperimentEditModal
+                open={editModalOpen}
+                columns={columns}
+                editData={editData}
+                onChange={(key, value) =>
+                  setEditData((prev) => ({ ...prev, [key]: value }))
+                }
+                onCancel={handleEditCancel}
+                onSave={handleEditSave}
+                onDelete={handleEditCancel}
+                optionsMap={{}}
+              />
+            )}
+          </>
         )}
         {/* Modal para novo experimento */}
         {showNewModal && (
