@@ -1,3 +1,16 @@
+/* Animação para lâmpada piscando na tabela de experimentos */
+.animate-blink {
+  animation: blinkLamp 1s infinite;
+}
+@keyframes blinkLamp {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
+}
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -46,14 +59,20 @@ All colors MUST be HSL.
     --lab-danger: 0 84% 60%;
     --lab-success: 0 75% 45%;
     --lab-warning: 15 90% 50%;
-    
+
     /* Gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(var(--lab-primary)), hsl(var(--lab-primary-dark)));
+    --gradient-primary: linear-gradient(
+      135deg,
+      hsl(var(--lab-primary)),
+      hsl(var(--lab-primary-dark))
+    );
     --gradient-card: linear-gradient(145deg, hsl(0 0% 100%), hsl(0 10% 96%));
-    
+
     /* Shadows */
-    --shadow-card: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-    --shadow-elevated: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+    --shadow-card: 0 4px 6px -1px rgb(0 0 0 / 0.1),
+      0 2px 4px -2px rgb(0 0 0 / 0.1);
+    --shadow-elevated: 0 10px 15px -3px rgb(0 0 0 / 0.1),
+      0 4px 6px -4px rgb(0 0 0 / 0.1);
 
     --sidebar-background: 0 0% 98%;
 

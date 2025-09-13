@@ -60,8 +60,8 @@ const App = () => (
                       path="/esteira-demandas"
                       element={<EsteiraDeDemandas />}
                     />
-              <Route path="/repositorio" element={<Repositorio />} />
-              <Route path="/sobre-nos" element={<SobreNos />} />
+                    <Route path="/repositorio" element={<Repositorio />} />
+                    <Route path="/sobre-nos" element={<SobreNos />} />
                     <Route path="*" element={<NotFound />} />
                   </Routes>
                 </DashboardLayout>

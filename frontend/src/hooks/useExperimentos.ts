@@ -3,6 +3,7 @@ import Papa from "papaparse";
 
 export type ComentarioHistorico = { texto: string; data: string };
 export type Experimento = {
+  _id: string;
   [key: string]: string | ComentarioHistorico[];
 };
 

@@ -21,7 +21,6 @@ const navigationItems = [
     icon: FileText,
   },
   { title: "Esteira de Demandas", url: "/esteira-demandas", icon: Menu },
-  { title: "Board Operacional", url: "/board-operacional", icon: Menu },
   { title: "Relatórios", url: "/relatorios", icon: FileText },
   { title: "Configurações", url: "/configuracoes", icon: Settings },
   { title: "Repositório", url: "/repositorio", icon: FileText },
@@ -31,7 +30,17 @@ const navigationItems = [
 export function AppSidebar() {
   return (
     <aside className="w-64 h-screen bg-gray-900 text-white flex flex-col fixed top-0 left-0 z-40">
-      {/* Header removido para visual mais limpo */}
+      <div className="flex flex-col items-center justify-center py-6 border-b border-gray-800">
+        <span
+          className="text-3xl font-semibold tracking-tight text-white mb-1"
+          style={{ fontFamily: "Arial, Helvetica, sans-serif" }}
+        >
+          Claro
+        </span>
+        <span className="text-sm font-medium text-white opacity-80 tracking-wide">
+          Portfólio beOn Labs
+        </span>
+      </div>
       <nav className="flex-1 px-4 py-6 space-y-2">
         {navigationItems.map((item) => (
           <NavLink
