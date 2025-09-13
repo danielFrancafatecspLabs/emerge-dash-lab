@@ -6,6 +6,8 @@ const ExperimentoSchema = new mongoose.Schema(
     descricao: { type: String },
     relatorio: { type: String }, // URL do relatório
     ficha: { type: String }, // URL da ficha
+    Sinal: { type: String }, // Mapeado do campo '#'
+    // ... outros campos dinâmicos
   },
   { strict: false }
 );

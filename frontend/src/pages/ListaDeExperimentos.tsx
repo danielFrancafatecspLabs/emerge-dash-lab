@@ -251,13 +251,18 @@ export default function ListaDeExperimentos() {
   }, [data, hiddenColumns]);
 
   const filteredData = useMemo(() => {
-    if (!search || !data) return data || [];
+    if (!search || !data)
+      return data
+        ? data.map((item) => ({ ...item, Sinal: item.Sinal || item["#"] }))
+        : [];
     const q = search.toLowerCase();
-    return data.filter((item) =>
-      Object.values(item).some((v) =>
-        typeof v === "string" ? v.toLowerCase().includes(q) : false
-      )
-    );
+    return data
+      .map((item) => ({ ...item, Sinal: item.Sinal || item["#"] }))
+      .filter((item) =>
+        Object.values(item).some((v) =>
+          typeof v === "string" ? v.toLowerCase().includes(q) : false
+        )
+      );
   }, [data, search]);
 
   const handleCardClick = (item) => {
