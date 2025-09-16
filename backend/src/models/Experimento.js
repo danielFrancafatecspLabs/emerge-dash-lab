@@ -7,6 +7,7 @@ const ExperimentoSchema = new mongoose.Schema(
     relatorio: { type: String }, // URL do relatório
     ficha: { type: String }, // URL da ficha
     Sinal: { type: String }, // Mapeado do campo '#'
+    tamanho: { type: String, enum: ["P", "M", "G"] }, // Tamanho do experimento
     // ... outros campos dinâmicos
   },
   { strict: false }

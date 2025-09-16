@@ -16,11 +16,19 @@ class ExperimentoService {
     if (data["#"]) {
       data.Sinal = data["#"];
     }
+    // Aceita campo tamanho (P, M, G)
+    if (data.tamanho && ["P", "M", "G"].includes(data.tamanho)) {
+      data.tamanho = data.tamanho;
+    }
     const novo = new Experimento(data);
     return novo.save();
   }
 
   static async atualizar(id, data) {
+    // Aceita campo tamanho (P, M, G)
+    if (data.tamanho && ["P", "M", "G"].includes(data.tamanho)) {
+      data.tamanho = data.tamanho;
+    }
     return Experimento.findByIdAndUpdate(id, data, { new: true });
   }
 
