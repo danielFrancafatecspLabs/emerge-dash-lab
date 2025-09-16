@@ -18,6 +18,7 @@ import {
   XCircle,
   Star,
   Lightbulb,
+  TestTube,
 } from "lucide-react";
 import { ArrowUpDown, ChevronUp, ChevronDown, X as XIcon } from "lucide-react";
 import { InlineDropdown } from "./InlineDropdown";
@@ -163,6 +164,10 @@ export function ExperimentTable({
   const columnsOrdered = React.useMemo(() => {
     // Remove '#' and '_id' from columns, as we'll show them together in a new column
     const cols = columns.filter((c) => c !== "#" && c !== "_id");
+    // Adiciona coluna 'Tamanho do Experimento' se não existir
+    if (!cols.includes("Tamanho do Experimento")) {
+      cols.push("Tamanho do Experimento");
+    }
     const sinalIdx = cols.indexOf("Sinal");
     const ideiaIdx = cols.findIndex(
       (c) =>
@@ -447,15 +452,36 @@ export function ExperimentTable({
                     </button>
                   </TableCell>
                   {columnsOrdered.map((col) => {
-                    // Colunas que devem mostrar "Não iniciado" se vazio/nulo
-                    const isSpecialCol =
-                      /ideia|problema|oportunidade|experimentação|piloto|escala/i.test(
-                        col
+                    // Renderização especial para coluna 'Tamanho do Experimento'
+                    if (col === "Tamanho do Experimento") {
+                      return (
+                        <TableCell key={col}>
+                          <select
+                            value={
+                              typeof row.tamanho === "string" ? row.tamanho : ""
+                            }
+                            onChange={async (e) => {
+                              const novo = { ...row, tamanho: e.target.value };
+                              await handleEdit(novo); // Atualiza no backend
+                            }}
+                            className="border rounded px-2 py-1 text-sm"
+                          >
+                            <option value="">Selecione</option>
+                            <option value="P">P</option>
+                            <option value="M">M</option>
+                            <option value="G">G</option>
+                          </select>
+                        </TableCell>
                       );
+                    }
+                    const isExperimentacaoCol = /experimenta/i.test(col);
+                    const isIdeiaProblemaOportunidade =
+                      /(ideia|problema|oportunidade)/i.test(col);
+                    const isIniciativaCol = /iniciativa/i.test(col);
                     const value = row[col];
                     let cellContent;
+
                     if (col === "Sinal") {
-                      // ...sinal logic...
                       let val = value;
                       if (typeof val === "string") val = parseFloat(val);
                       let color = "#bbb";
@@ -467,31 +493,169 @@ export function ExperimentTable({
                           <BlinkingDot color={color} />
                         </span>
                       );
-                    } else if (isSpecialCol && (!value || value === "")) {
+                    } else if (isIniciativaCol) {
+                      const badgeColor =
+                        "bg-gradient-to-r from-[#7a0019]/90 to-gray-700/90";
+                      const textColor = "text-white";
+                      let icon = (
+                        <Star className="w-4 h-4 text-[#eab308] animate-spin-slow" />
+                      );
+                      if (
+                        typeof value === "string" &&
+                        value.toLowerCase().includes("estratégica")
+                      ) {
+                        icon = (
+                          <Lightbulb className="w-4 h-4 text-[#eab308] animate-pulse" />
+                        );
+                      }
                       cellContent = (
                         <span
-                          className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-gradient-to-r from-gray-100 to-gray-200 border border-gray-300 shadow-sm text-sm text-gray-500 font-semibold tracking-wide"
-                          style={{ fontFamily: "Segoe UI, Arial, sans-serif" }}
+                          className={`inline-flex items-center gap-2 px-4 py-1 rounded-full shadow-lg border-2 border-[#7a0019]/30 font-bold text-sm ${badgeColor} ${textColor} transition-all duration-300`}
+                          style={{
+                            fontFamily: "Segoe UI, Arial, sans-serif",
+                            minWidth: 140,
+                            justifyContent: "center",
+                            display: "inline-flex",
+                          }}
                         >
-                          <svg
-                            width="16"
-                            height="16"
-                            fill="none"
-                            stroke="#bdbdbd"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            className="mr-1"
-                          >
-                            <circle cx="8" cy="8" r="7" />
-                          </svg>
-                          Não iniciado
+                          {icon}
+                          {typeof value === "string" ? value : "Sem iniciativa"}
                         </span>
                       );
-                    } else if (typeof value === "object" && value !== null) {
-                      cellContent = JSON.stringify(value);
+                    } else if (isExperimentacaoCol) {
+                      const status =
+                        typeof value === "string"
+                          ? value.trim().toLowerCase()
+                          : "";
+                      let icon, badgeColor, textColor, displayValue;
+                      if (status.includes("concluido")) {
+                        icon = (
+                          <Lightbulb className="w-4 h-4 text-green-400 animate-pulse" />
+                        );
+                        badgeColor =
+                          "bg-gradient-to-r from-green-200/80 to-green-400/80 border-green-300";
+                        textColor = "text-green-900";
+                        displayValue = "Concluído";
+                      } else if (status.includes("arquivado")) {
+                        icon = <Lightbulb className="w-4 h-4 text-gray-400" />;
+                        badgeColor =
+                          "bg-gradient-to-r from-gray-100/80 to-gray-400/80 border-gray-300";
+                        textColor = "text-gray-700";
+                        displayValue = "Arquivado";
+                      } else if (status.includes("andamento")) {
+                        icon = (
+                          <TestTube className="w-4 h-4 text-yellow-400 animate-pulse" />
+                        );
+                        badgeColor =
+                          "bg-gradient-to-r from-yellow-50/80 to-yellow-200/80 border-yellow-200";
+                        textColor = "text-yellow-700";
+                        displayValue = "Em andamento";
+                      } else if (
+                        status === "" ||
+                        status.includes("não iniciado")
+                      ) {
+                        icon = <Lightbulb className="w-4 h-4 text-gray-400" />;
+                        badgeColor = "bg-gray-100/60 border-gray-300";
+                        textColor = "text-gray-700";
+                        displayValue = "Não iniciado";
+                      } else if (status.includes("pivot")) {
+                        icon = (
+                          <Lightbulb className="w-4 h-4 text-purple-400 animate-pulse" />
+                        );
+                        badgeColor =
+                          "bg-gradient-to-r from-purple-200/80 to-purple-400/80 border-purple-300";
+                        textColor = "text-purple-900";
+                        displayValue = "Pivot";
+                      } else if (status.includes("backlog")) {
+                        icon = (
+                          <Lightbulb className="w-4 h-4 text-orange-400 animate-pulse" />
+                        );
+                        badgeColor =
+                          "bg-gradient-to-r from-orange-200/80 to-orange-400/80 border-orange-300";
+                        textColor = "text-orange-900";
+                        displayValue = "Backlog";
+                      } else {
+                        icon = <Lightbulb className="w-4 h-4 text-gray-400" />;
+                        badgeColor =
+                          "bg-gradient-to-r from-gray-100/80 to-gray-400/80 border-gray-300";
+                        textColor = "text-gray-700";
+                        displayValue =
+                          typeof value === "string" && value !== ""
+                            ? value
+                            : "Não iniciado";
+                      }
+                      cellContent = (
+                        <span
+                          className={`inline-flex items-center gap-2 px-4 py-1 rounded-full shadow border-2 font-bold text-sm ${badgeColor} ${textColor} transition-all duration-300`}
+                          style={{
+                            fontFamily: "Segoe UI, Arial, sans-serif",
+                            minWidth: 140,
+                            justifyContent: "center",
+                            display: "inline-flex",
+                          }}
+                        >
+                          {icon}
+                          {displayValue}
+                        </span>
+                      );
+                    } else if (isIdeiaProblemaOportunidade) {
+                      const status =
+                        typeof value === "string"
+                          ? value.trim().toLowerCase()
+                          : "";
+                      let icon, badgeColor, textColor, displayValue;
+                      if (status === "concluído" || status === "concluido") {
+                        icon = (
+                          <Lightbulb className="w-4 h-4 text-yellow-300 animate-pulse" />
+                        );
+                        badgeColor = "bg-yellow-100/60 border-yellow-300";
+                        textColor = "text-yellow-700";
+                        displayValue = "Concluído";
+                      } else if (status === "" || status === "não iniciado") {
+                        icon = <Lightbulb className="w-4 h-4 text-gray-400" />;
+                        badgeColor = "bg-gray-100/60 border-gray-300";
+                        textColor = "text-gray-700";
+                        displayValue = "Não iniciado";
+                      } else if (status === "em prospecção") {
+                        icon = (
+                          <Lightbulb className="w-4 h-4 text-orange-400 animate-pulse" />
+                        );
+                        badgeColor = "bg-orange-100/60 border-orange-300";
+                        textColor = "text-orange-700";
+                        displayValue = "Em prospecção";
+                      } else if (status === "parado") {
+                        icon = <Lightbulb className="w-4 h-4 text-red-500" />;
+                        badgeColor = "bg-red-100/60 border-red-300";
+                        textColor = "text-red-700";
+                        displayValue = "Parado";
+                      } else {
+                        icon = <Lightbulb className="w-4 h-4 text-gray-400" />;
+                        badgeColor = "bg-gray-100/60 border-gray-300";
+                        textColor = "text-gray-700";
+                        displayValue =
+                          typeof value === "string" && value !== ""
+                            ? value
+                            : "Não iniciado";
+                      }
+                      cellContent = (
+                        <span
+                          className={`inline-flex items-center gap-2 px-4 py-1 rounded-full shadow border ${badgeColor} font-bold text-sm ${textColor} transition-all duration-300`}
+                          style={{
+                            fontFamily: "Segoe UI, Arial, sans-serif",
+                            minWidth: 140,
+                            justifyContent: "center",
+                            display: "inline-flex",
+                          }}
+                        >
+                          {icon}
+                          {displayValue}
+                        </span>
+                      );
                     } else {
-                      cellContent = String(value ?? "");
+                      cellContent =
+                        typeof value === "string" || typeof value === "number"
+                          ? value
+                          : "";
                     }
                     return <TableCell key={col}>{cellContent}</TableCell>;
                   })}
@@ -501,65 +665,6 @@ export function ExperimentTable({
           </TableBody>
         </Table>
       </div>
-
-      {/* Filtro flutuante removido, agora o dropdown é renderizado por coluna no TableHead */}
-      <div
-        className={`fixed top-6 right-6 bg-[#7a0019] text-white px-5 py-2 rounded-xl shadow-2xl z-50 font-bold text-sm transition-opacity duration-300 ${
-          showPopup ? "opacity-100" : "opacity-0 pointer-events-none"
-        }`}
-        role="status"
-        aria-live="polite"
-      >
-        <BadgeCheck className="inline w-4 h-4 mr-1" /> Atualizado com sucesso!
-      </div>
-
-      {historyModal && (
-        <div
-          className="fixed inset-0 bg-black/60 flex items-center justify-center z-50"
-          role="dialog"
-          aria-modal="true"
-        >
-          <div className="bg-white rounded-2xl shadow-2xl p-6 max-w-lg w-full relative border border-[#7a0019]/30">
-            <button
-              className="absolute top-3 right-3 text-gray-500 hover:text-[#7a0019] bg-white rounded-full p-1 shadow"
-              onClick={() => setHistoryModal(null)}
-              aria-label="Fechar histórico"
-            >
-              <XCircle className="w-5 h-5" />
-            </button>
-            <h2 className="text-xl font-extrabold mb-4 text-[#7a0019] flex items-center gap-2">
-              <MessageCircle className="w-5 h-5 text-[#7a0019]" /> Histórico de
-              Situação Atual
-            </h2>
-            {Array.isArray(historyModal.row[historyModal.col]) ? (
-              (historyModal.row[historyModal.col] as ExperimentHistory[])
-                .slice()
-                .sort(
-                  (a, b) =>
-                    new Date(b.data).getTime() - new Date(a.data).getTime()
-                )
-                .map((coment, idx) => (
-                  <div
-                    key={idx}
-                    className="mb-3 p-3 border rounded-xl bg-rose-50"
-                  >
-                    <div className="text-xs text-gray-600 mb-1 flex items-center gap-1">
-                      <CalendarDays className="w-4 h-4 text-[#7a0019]" />
-                      {coment.data
-                        ? new Date(coment.data).toLocaleString()
-                        : "Sem data"}
-                    </div>
-                    <div className="font-semibold text-gray-900">
-                      {coment.texto || "Sem texto"}
-                    </div>
-                  </div>
-                ))
-            ) : (
-              <div className="text-gray-400">Nenhum histórico disponível.</div>
-            )}
-          </div>
-        </div>
-      )}
     </div>
   );
 }
