@@ -1,7 +1,7 @@
-import User from "../models/User.js";
-// Rota de registro de usuário padrão
-import express from "express";
+import express from 'express';
+import bcrypt from 'bcryptjs';
 import AuthController from "../controllers/AuthController.js";
+import User from '../models/User.js'; // Make sure User model is imported
 
 const router = express.Router();
 
@@ -21,4 +21,5 @@ router.post("/register", async (req, res) => {
 	await user.save();
 	res.status(201).json({ message: "Usuário criado com sucesso." });
 });
+
 export default router;

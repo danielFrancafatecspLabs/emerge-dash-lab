@@ -9,7 +9,15 @@ export default defineConfig(({ mode }) => ({
     host: "::",
     port: 8080,
     allowedHosts: ["emerge-dash-lab.onrender.com"],
-    // ...other server options...
+
+    // ✅ Adicionado proxy para redirecionar chamadas de /api para o backend local
+    proxy: {
+      "/api": {
+        target: "http://localhost:3002", // backend
+        changeOrigin: true,
+        secure: false,
+      },
+    },
   },
   plugins: [react(), mode === "development" && componentTagger()].filter(
     Boolean
