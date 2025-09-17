@@ -5,7 +5,7 @@ import { useExperimentos } from "@/hooks/useExperimentos";
 export default function EficienciaOperacional() {
   const { data, loading } = useExperimentos();
   const today = new Date();
-  // Função para calcular tempo médio por tamanho
+  // Função para calcular tempo médio por tamanho usando percentil 85%
   function getMediaPorTamanho(tamanho: "P" | "M" | "G") {
     const filtered = data.filter(
       (row) =>
@@ -14,40 +14,57 @@ export default function EficienciaOperacional() {
         row["Início "] &&
         !isNaN(new Date(row["Início "]).getTime())
     );
-    const totalDias = filtered.reduce((acc, row) => {
+    const diasArray = filtered.map((row) => {
       const startDate =
         typeof row["Início "] === "string" ? new Date(row["Início "]) : today;
-      const diffDays = Math.max(
+      return Math.max(
         0,
         Math.floor(
           (today.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)
         )
       );
-      return acc + diffDays;
-    }, 0);
-    return filtered.length > 0 ? Math.round(totalDias / filtered.length) : 0;
+    });
+    const diasOrdenados = diasArray.sort((a, b) => a - b);
+    const percentil = 0.85;
+    const n = Math.floor(diasOrdenados.length * percentil);
+    const diasParaMedia = diasOrdenados.slice(0, n > 0 ? n : 1);
+    return diasParaMedia.length > 0
+      ? Math.round(
+          diasParaMedia.reduce((acc, val) => acc + val, 0) /
+            diasParaMedia.length
+        )
+      : 0;
   }
-  // Tempo médio geral
+  // Tempo médio geral usando percentil 85%
   const validExperimentos = data.filter(
     (row) =>
       typeof row["Início "] === "string" &&
       row["Início "] &&
       !isNaN(new Date(row["Início "]).getTime())
   );
-  const totalDias = validExperimentos.reduce((acc, row) => {
+  const diasArrayGeral = validExperimentos.map((row) => {
     const startDate =
       typeof row["Início "] === "string" ? new Date(row["Início "]) : today;
-    const diffDays = Math.max(
+    return Math.max(
       0,
       Math.floor(
         (today.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)
       )
     );
-    return acc + diffDays;
-  }, 0);
+  });
+  const diasOrdenadosGeral = diasArrayGeral.sort((a, b) => a - b);
+  const percentilGeral = 0.85;
+  const nGeral = Math.floor(diasOrdenadosGeral.length * percentilGeral);
+  const diasParaMediaGeral = diasOrdenadosGeral.slice(
+    0,
+    nGeral > 0 ? nGeral : 1
+  );
   const mediaGeral =
-    validExperimentos.length > 0
-      ? Math.round(totalDias / validExperimentos.length)
+    diasParaMediaGeral.length > 0
+      ? Math.round(
+          diasParaMediaGeral.reduce((acc, val) => acc + val, 0) /
+            diasParaMediaGeral.length
+        )
       : 0;
   const mediaP = getMediaPorTamanho("P");
   const mediaM = getMediaPorTamanho("M");
