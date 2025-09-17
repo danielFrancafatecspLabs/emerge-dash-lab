@@ -1,3 +1,4 @@
+import React from "react";
 import {
   Card,
   CardContent,
@@ -13,7 +14,19 @@ import { IdeasPieChart } from "@/components/charts/IdeasPieChart";
 import { DollarSign, TrendingUp, Target, Lightbulb } from "lucide-react";
 // import mongoose from 'mongoose';
 
+interface ExperimentoPorMes {
+  month: string;
+  ano: number;
+  [key: string]: string | number;
+}
+
 const VisaoConsolidada = () => {
+  // Filtro de ano para gráfico de experimentos por mês
+  const [anoSelecionado, setAnoSelecionado] = React.useState<
+    "Todos" | 2023 | 2024 | 2025
+  >("Todos");
+  // Filtrar dados conforme ano selecionado
+  const anosDisponiveis = [2023, 2024, 2025];
   const {
     total,
     pilotosAndamento,
@@ -31,6 +44,12 @@ const VisaoConsolidada = () => {
     data,
     getCount,
   } = useExperimentos();
+  const experimentosPorMesFiltrado =
+    anoSelecionado === "Todos"
+      ? experimentosPorMes
+      : experimentosPorMes.filter(
+          (serie: ExperimentoPorMes) => serie.ano === anoSelecionado
+        );
 
   const backlogClassificacoes = ["Backlog", "Em backlog", "Não iniciado"];
   const backlogColunas = [
@@ -52,7 +71,7 @@ const VisaoConsolidada = () => {
     }, 0);
   }
 
-  // Calcular tempo médio para terminar um ciclo de experimento
+  // Calcular tempo médio para terminar um ciclo de experimento usando o percentil 85%
   const today = new Date();
   const validExperimentos = data.filter(
     (row) =>
@@ -60,20 +79,30 @@ const VisaoConsolidada = () => {
       row["Início "] &&
       !isNaN(new Date(row["Início "]).getTime())
   );
-  const totalDias = validExperimentos.reduce((acc, row) => {
+  // Calcular dias para cada experimento
+  const diasArray = validExperimentos.map((row) => {
     const startDate =
       typeof row["Início "] === "string" ? new Date(row["Início "]) : today;
-    const diffDays = Math.max(
+    return Math.max(
       0,
       Math.floor(
         (today.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)
       )
     );
-    return acc + diffDays;
-  }, 0);
+  });
+  // Ordenar dias
+  const diasOrdenados = diasArray.sort((a, b) => a - b);
+  // Calcular índice do percentil 85%
+  const percentil = 0.85;
+  const n = Math.floor(diasOrdenados.length * percentil);
+  const diasParaMedia = diasOrdenados.slice(0, n > 0 ? n : 1);
+  // Calcular média dos dias até o percentil 85%
   const media =
-    validExperimentos.length > 0
-      ? Math.round(totalDias / validExperimentos.length)
+    diasParaMedia.length > 0
+      ? Math.round(
+          diasParaMedia.reduce((acc, val) => acc + val, 0) /
+            diasParaMedia.length
+        )
       : 0;
 
   return (
@@ -156,7 +185,6 @@ const VisaoConsolidada = () => {
             </p>
           </CardContent>
         </Card>
-
         <Card className="shadow-card">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Em Andamento</CardTitle>
@@ -169,7 +197,6 @@ const VisaoConsolidada = () => {
             <p className="text-xs text-muted-foreground">Experimentos ativos</p>
           </CardContent>
         </Card>
-
         <Card className="shadow-card">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Concluídos</CardTitle>
@@ -184,7 +211,6 @@ const VisaoConsolidada = () => {
             </p>
           </CardContent>
         </Card>
-
         <Card className="shadow-card">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
@@ -201,7 +227,6 @@ const VisaoConsolidada = () => {
             <p className="text-xs text-muted-foreground">Aguardando decisão</p>
           </CardContent>
         </Card>
-
         <Card className="shadow-card">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
@@ -216,7 +241,6 @@ const VisaoConsolidada = () => {
             <p className="text-xs text-muted-foreground">Pilotos ativos</p>
           </CardContent>
         </Card>
-
         <Card className="shadow-card">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
@@ -231,7 +255,6 @@ const VisaoConsolidada = () => {
             <p className="text-xs text-muted-foreground">Pilotos concluídos</p>
           </CardContent>
         </Card>
-
         <Card className="shadow-card">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
@@ -244,8 +267,6 @@ const VisaoConsolidada = () => {
             <p className="text-xs text-muted-foreground">Ideias → Piloto</p>
           </CardContent>
         </Card>
-
-        {/* Card tempo médio ciclo experimento */}
         <Card className="shadow-card">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
@@ -269,7 +290,31 @@ const VisaoConsolidada = () => {
         <h3 className="text-2xl font-bold text-foreground mb-6">
           Resultado de Experimentos
         </h3>
-
+        {/* Filtro de ano para gráfico de experimentos por mês */}
+        <div className="mb-4 flex items-center gap-2">
+          <label htmlFor="ano-select" className="text-sm font-medium">
+            Filtrar por ano:
+          </label>
+          <select
+            id="ano-select"
+            className="border rounded px-2 py-1 text-sm"
+            value={anoSelecionado}
+            onChange={(e) =>
+              setAnoSelecionado(
+                e.target.value === "Todos"
+                  ? "Todos"
+                  : (Number(e.target.value) as 2023 | 2024 | 2025)
+              )
+            }
+          >
+            <option value="Todos">Todos</option>
+            {anosDisponiveis.map((ano) => (
+              <option key={ano} value={ano}>
+                {ano}
+              </option>
+            ))}
+          </select>
+        </div>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Experimentos por Etapa */}
           <Card className="shadow-card">
@@ -280,7 +325,6 @@ const VisaoConsolidada = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {/* Funil de conversão por etapa */}
               <ExperimentFunnelChart
                 stages={[
                   {
@@ -355,13 +399,25 @@ const VisaoConsolidada = () => {
               <CardTitle className="text-lg">
                 QTD DE EXPERIMENTOS REALIZADOS POR MÊS
               </CardTitle>
-              <CardDescription>
-                Evolução temporal dos experimentos
-              </CardDescription>
             </CardHeader>
             <CardContent>
               <MonthlyExperimentsChart
-                data={experimentosPorMes}
+                data={experimentosPorMesFiltrado.map(
+                  (item: ExperimentoPorMes) => {
+                    const { month, ...rest } = item;
+                    // Remove any string[] values
+                    const filteredRest: { [ano: string]: string | number } = {};
+                    Object.entries(rest).forEach(([key, value]) => {
+                      if (
+                        typeof value === "string" ||
+                        typeof value === "number"
+                      ) {
+                        filteredRest[key] = value;
+                      }
+                    });
+                    return { month, ...filteredRest };
+                  }
+                )}
                 anoColors={anoColors}
               />
             </CardContent>
