@@ -29,10 +29,38 @@ export default function SobreNos() {
             <Briefcase className="w-8 h-8" /> Nosso Propósito
           </h2>
           <p className="text-lg text-gray-700 mb-6">
-            Transformar a área de TI em um motor de inovação, reduzindo o tempo
-            entre a ideia e a entrega de valor, com experimentos rápidos,
-            validados e escaláveis.
+            Transformar a área de TI em um motor de inovação, reduzindo o tempo entre a ideia e a entrega de valor, com experimentos rápidos, validados e escaláveis.
+            Fortalecer a colaboração entre times multidisciplinares, promovendo uma cultura orientada a dados e aprendizado contínuo.
           </p>
+          <h2 className="text-3xl font-bold text-[#7a0019] mb-4 flex items-center gap-2">
+            <ShieldCheck className="w-8 h-8" /> Technology Readiness Level (TRL)
+          </h2>
+          <p className="text-lg text-gray-700 mb-2">
+            O TRL é uma escala internacional que mede o grau de maturidade de
+            uma tecnologia, variando de 1 (conceito básico) até 9 (implementação
+            em operação real).
+          </p>
+          <p className="text-lg text-gray-700 mb-6">
+            No contexto de P&D, o TRL é essencial para monitorar a evolução de
+            experimentos, identificar gargalos e planejar transições mais
+            seguras entre pesquisa, protótipo, piloto e adoção em escala.
+          </p>
+        </section>
+
+        <section>
+          <h2 className="text-3xl font-bold text-[#7a0019] mb-4 flex items-center gap-2">
+            <Brain className="w-8 h-8" /> Como Atuamos
+          </h2>
+          <ul className="text-lg text-gray-700 list-disc ml-6 mb-6">
+            <li>Pesquisa e análise de tecnologias emergentes</li>
+            <li>Validação técnica de soluções digitais</li>
+            <li>Prototipação e testes em ambiente controlado</li>
+            <li>Redução de custos e riscos por meio de experimentos</li>
+            <li>
+              Colaboração com outros laboratórios do beOn Labs para soluções
+              integradas
+            </li>
+          </ul>
           <h2 className="text-3xl font-bold text-[#7a0019] mb-4 flex items-center gap-2">
             <Network className="w-8 h-8" /> Pilares
           </h2>
@@ -54,35 +82,6 @@ export default function SobreNos() {
               <b>Áreas envolvidas</b>: TI, HITSS, Digital, Engenharia e BCC
             </li>
           </ul>
-        </section>
-
-        <section>
-          <h2 className="text-3xl font-bold text-[#7a0019] mb-4 flex items-center gap-2">
-            <Brain className="w-8 h-8" /> Como Atuamos
-          </h2>
-          <ul className="text-lg text-gray-700 list-disc ml-6 mb-6">
-            <li>Pesquisa e análise de tecnologias emergentes</li>
-            <li>Validação técnica de soluções digitais</li>
-            <li>Prototipação e testes em ambiente controlado</li>
-            <li>Redução de custos e riscos por meio de experimentos</li>
-            <li>
-              Colaboração com outros laboratórios do beOn Labs para soluções
-              integradas
-            </li>
-          </ul>
-          <h2 className="text-3xl font-bold text-[#7a0019] mb-4 flex items-center gap-2">
-            <ShieldCheck className="w-8 h-8" /> Technology Readiness Level (TRL)
-          </h2>
-          <p className="text-lg text-gray-700 mb-2">
-            O TRL é uma escala internacional que mede o grau de maturidade de
-            uma tecnologia, variando de 1 (conceito básico) até 9 (implementação
-            em operação real).
-          </p>
-          <p className="text-lg text-gray-700 mb-6">
-            No contexto de P&D, o TRL é essencial para monitorar a evolução de
-            experimentos, identificar gargalos e planejar transições mais
-            seguras entre pesquisa, protótipo, piloto e adoção em escala.
-          </p>
         </section>
 
         <section className="md:col-span-2">
