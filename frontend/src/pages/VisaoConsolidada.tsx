@@ -12,7 +12,7 @@ import { ExperimentTypeChart } from "@/components/charts/ExperimentTypeChart";
 import { MonthlyExperimentsChart } from "@/components/charts/MonthlyExperimentsChart";
 import { IdeasPieChart } from "@/components/charts/IdeasPieChart";
 import { DollarSign, TrendingUp, Target, Lightbulb } from "lucide-react";
-// import mongoose from 'mongoose';
+// import { filtrarPorAno } from "@/lib/experimentosUtils";
 
 interface ExperimentoPorMes {
   month: string;
@@ -44,12 +44,10 @@ const VisaoConsolidada = () => {
     data,
     getCount,
   } = useExperimentos();
-  const experimentosPorMesFiltrado =
-    anoSelecionado === "Todos"
-      ? experimentosPorMes
-      : experimentosPorMes.filter(
-          (serie: ExperimentoPorMes) => serie.ano === anoSelecionado
-        );
+  const experimentosPorMesFiltrado = filtrarPorAno(
+    experimentosPorMes,
+    anoSelecionado
+  );
 
   const backlogClassificacoes = ["Backlog", "Em backlog", "Não iniciado"];
   const backlogColunas = [
@@ -117,172 +115,197 @@ const VisaoConsolidada = () => {
         </p>
       </div>
 
-      {/* Economic Potential Card */}
-      <Card className="bg-gradient-card shadow-elevated border-lab-primary/20">
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-lab-primary">
-            <DollarSign className="w-5 h-5" />
-            Potencial Econômico
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-3xl font-bold text-lab-primary mb-1">
-            R$ 69.850.000
-          </div>
-          <p className="text-sm text-muted-foreground">
-            Projeção anual consolidada
-          </p>
-        </CardContent>
-      </Card>
+      {/* Indicadores Section */}
+      <div className="mb-8">
+        <h3 className="text-xl font-semibold text-foreground mb-4">
+          Indicadores
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          {/* Potencial Econômico */}
+          <Card className="bg-gradient-card shadow-elevated border-lab-primary/20">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-lab-primary">
+                <DollarSign className="w-5 h-5" />
+                Potencial Econômico
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-lab-primary mb-1">
+                R$ 69.850.000
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Projeção anual consolidada
+              </p>
+            </CardContent>
+          </Card>
+          {/* Taxa de Conversão */}
+          <Card className="shadow-card">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-sm font-medium">
+                <Lightbulb className="h-4 w-4 text-lab-primary" />
+                Taxa de Conversão
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-lab-primary">7.3%</div>
+              <p className="text-xs text-muted-foreground">Ideias → Piloto</p>
+            </CardContent>
+          </Card>
+          {/* Tempo médio ciclo */}
+          <Card className="shadow-card">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-sm font-medium">
+                <TrendingUp className="h-4 w-4 text-lab-primary" />
+                Tempo médio para terminar um ciclo de experimento
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-lab-primary">
+                {media} dias
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Base: experimentos com data de início
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-7 gap-6 mb-8">
-        <Card className="shadow-card">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Total de Experimentos
-            </CardTitle>
-            <Target className="h-4 w-4 text-lab-primary" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-lab-primary">
-              {total !== null ? total : "Carregando..."}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              +15% em relação ao período anterior
-            </p>
-          </CardContent>
-        </Card>
-        <Card className="shadow-card">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Backlog</CardTitle>
-            <TrendingUp className="h-4 w-4 text-yellow-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-yellow-500">
-              {loading && (!data || data.length === 0)
-                ? "Carregando..."
-                : !loading && data && data.length === 0
-                ? "Nenhum experimento encontrado"
-                : totalBacklog}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Experimentos no backlog
-            </p>
-          </CardContent>
-        </Card>
-        <Card className="shadow-card">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Em Prospecção</CardTitle>
-            <TrendingUp className="h-4 w-4 text-blue-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-blue-600">
-              {totalProspeccao !== null ? totalProspeccao : "Carregando..."}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Experimentos em prospecção
-            </p>
-          </CardContent>
-        </Card>
-        <Card className="shadow-card">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Em Andamento</CardTitle>
-            <TrendingUp className="h-4 w-4 text-lab-primary" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-lab-primary">
-              {totalAndamento !== null ? totalAndamento : "Carregando..."}
-            </div>
-            <p className="text-xs text-muted-foreground">Experimentos ativos</p>
-          </CardContent>
-        </Card>
-        <Card className="shadow-card">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Concluídos</CardTitle>
-            <TrendingUp className="h-4 w-4 text-green-600" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">
-              {totalConcluido !== null ? totalConcluido : "Carregando..."}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Experimentos concluídos
-            </p>
-          </CardContent>
-        </Card>
-        <Card className="shadow-card">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Concluídos aguardando Go/No Go
-            </CardTitle>
-            <TrendingUp className="h-4 w-4 text-yellow-500" />
-          </CardHeader>
-          <CardContent className="flex flex-col justify-start min-h-[80px]">
-            <div className="text-2xl font-bold text-yellow-500 min-h-[32px] flex items-start">
-              {totalConcluidoGoNoGo !== null
-                ? totalConcluidoGoNoGo
-                : "Carregando..."}
-            </div>
-            <p className="text-xs text-muted-foreground">Aguardando decisão</p>
-          </CardContent>
-        </Card>
-        <Card className="shadow-card">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Pilotos em Andamento
-            </CardTitle>
-            <TrendingUp className="h-4 w-4 text-indigo-600" />
-          </CardHeader>
-          <CardContent className="flex flex-col justify-start min-h-[80px]">
-            <div className="text-2xl font-bold text-indigo-600 min-h-[32px] flex items-start">
-              {pilotosAndamento !== null ? pilotosAndamento : "Carregando..."}
-            </div>
-            <p className="text-xs text-muted-foreground">Pilotos ativos</p>
-          </CardContent>
-        </Card>
-        <Card className="shadow-card">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Pilotos Concluídos
-            </CardTitle>
-            <TrendingUp className="h-4 w-4 text-green-700" />
-          </CardHeader>
-          <CardContent className="flex flex-col justify-start min-h-[80px]">
-            <div className="text-2xl font-bold text-green-700 min-h-[32px] flex items-start">
-              {pilotosConcluidos !== null ? pilotosConcluidos : "Carregando..."}
-            </div>
-            <p className="text-xs text-muted-foreground">Pilotos concluídos</p>
-          </CardContent>
-        </Card>
-        <Card className="shadow-card">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Taxa de Conversão
-            </CardTitle>
-            <Lightbulb className="h-4 w-4 text-lab-primary" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-lab-primary">7.3%</div>
-            <p className="text-xs text-muted-foreground">Ideias → Piloto</p>
-          </CardContent>
-        </Card>
-        <Card className="shadow-card">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Tempo médio para terminar um ciclo de experimento
-            </CardTitle>
-            <TrendingUp className="h-4 w-4 text-lab-primary" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-lab-primary">
-              {media} dias
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Base: experimentos com data de início
-            </p>
-          </CardContent>
-        </Card>
+      {/* Contagens Section */}
+      <div className="mb-8">
+        <h3 className="text-xl font-semibold text-foreground mb-4">
+          Contagens
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-7 gap-6">
+          {/* Total de Experimentos */}
+          <Card className="shadow-card">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-sm font-medium">
+                <Target className="h-4 w-4 text-lab-primary" />
+                Total de Experimentos
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-lab-primary">
+                {total !== null ? total : "Carregando..."}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                +15% em relação ao período anterior
+              </p>
+            </CardContent>
+          </Card>
+          {/* Backlog */}
+          <Card className="shadow-card">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-sm font-medium">
+                <TrendingUp className="h-4 w-4 text-yellow-500" />
+                Backlog
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-yellow-500">
+                {loading && (!data || data.length === 0)
+                  ? "Carregando..."
+                  : totalBacklog}
+              </div>
+            </CardContent>
+          </Card>
+          {/* Em Andamento (Experimentação) */}
+          <Card className="shadow-card">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-sm font-medium">
+                <TrendingUp className="h-4 w-4 text-blue-500" />
+                Em Andamento
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-blue-500">
+                {data
+                  ? data.filter(
+                      (item) =>
+                        typeof item["Experimentação"] === "string" &&
+                        item["Experimentação"]
+                          .toLowerCase()
+                          .includes("em andamento")
+                    ).length
+                  : "Carregando..."}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Experimentação em andamento
+              </p>
+            </CardContent>
+          </Card>
+          {/* Concluídos */}
+          <Card className="shadow-card">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-sm font-medium">
+                <TrendingUp className="h-4 w-4 text-green-600" />
+                Concluídos
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-green-600">
+                {totalConcluido !== null ? totalConcluido : "Carregando..."}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Experimentos concluídos
+              </p>
+            </CardContent>
+          </Card>
+          {/* Concluídos aguardando Go/No Go */}
+          <Card className="shadow-card">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-sm font-medium">
+                <TrendingUp className="h-4 w-4 text-yellow-500" />
+                Concluídos aguardando Go/No Go
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-col justify-start min-h-[80px]">
+              <div className="text-2xl font-bold text-yellow-500 min-h-[32px] flex items-start">
+                {totalConcluidoGoNoGo !== null
+                  ? totalConcluidoGoNoGo
+                  : "Carregando..."}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Aguardando decisão
+              </p>
+            </CardContent>
+          </Card>
+          {/* Pilotos em Andamento */}
+          <Card className="shadow-card">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-sm font-medium">
+                <TrendingUp className="h-4 w-4 text-indigo-600" />
+                Pilotos em Andamento
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-col justify-start min-h-[80px]">
+              <div className="text-2xl font-bold text-indigo-600 min-h-[32px] flex items-start">
+                {pilotosAndamento !== null ? pilotosAndamento : "Carregando..."}
+              </div>
+              <p className="text-xs text-muted-foreground">Pilotos ativos</p>
+            </CardContent>
+          </Card>
+          {/* Pilotos Concluídos */}
+          <Card className="shadow-card">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-sm font-medium">
+                <TrendingUp className="h-4 w-4 text-green-700" />
+                Pilotos Concluídos
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-col justify-start min-h-[80px]">
+              <div className="text-2xl font-bold text-green-700 min-h-[32px] flex items-start">
+                {pilotosConcluidos !== null
+                  ? pilotosConcluidos
+                  : "Carregando..."}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Pilotos concluídos
+              </p>
+            </CardContent>
+          </Card>
+        </div>
       </div>
 
       {/* Charts Section */}
@@ -291,30 +314,7 @@ const VisaoConsolidada = () => {
           Resultado de Experimentos
         </h3>
         {/* Filtro de ano para gráfico de experimentos por mês */}
-        <div className="mb-4 flex items-center gap-2">
-          <label htmlFor="ano-select" className="text-sm font-medium">
-            Filtrar por ano:
-          </label>
-          <select
-            id="ano-select"
-            className="border rounded px-2 py-1 text-sm"
-            value={anoSelecionado}
-            onChange={(e) =>
-              setAnoSelecionado(
-                e.target.value === "Todos"
-                  ? "Todos"
-                  : (Number(e.target.value) as 2023 | 2024 | 2025)
-              )
-            }
-          >
-            <option value="Todos">Todos</option>
-            {anosDisponiveis.map((ano) => (
-              <option key={ano} value={ano}>
-                {ano}
-              </option>
-            ))}
-          </select>
-        </div>
+
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Experimentos por Etapa */}
           <Card className="shadow-card">
@@ -399,25 +399,67 @@ const VisaoConsolidada = () => {
               <CardTitle className="text-lg">
                 QTD DE EXPERIMENTOS REALIZADOS POR MÊS
               </CardTitle>
+              <div className="mb-4 flex items-center gap-2">
+                <label htmlFor="ano-select" className="text-sm font-medium">
+                  Filtrar por ano:
+                </label>
+                <select
+                  id="ano-select"
+                  className="border rounded px-2 py-1 text-sm"
+                  value={anoSelecionado}
+                  onChange={(e) =>
+                    setAnoSelecionado(
+                      e.target.value === "Todos"
+                        ? "Todos"
+                        : (Number(e.target.value) as 2023 | 2024 | 2025)
+                    )
+                  }
+                >
+                  <option value="Todos">Todos</option>
+                  {anosDisponiveis.map((ano) => (
+                    <option key={ano} value={ano}>
+                      {ano}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </CardHeader>
             <CardContent>
               <MonthlyExperimentsChart
-                data={experimentosPorMesFiltrado.map(
-                  (item: ExperimentoPorMes) => {
-                    const { month, ...rest } = item;
-                    // Remove any string[] values
-                    const filteredRest: { [ano: string]: string | number } = {};
-                    Object.entries(rest).forEach(([key, value]) => {
-                      if (
-                        typeof value === "string" ||
-                        typeof value === "number"
-                      ) {
-                        filteredRest[key] = value;
-                      }
+                data={(() => {
+                  if (anoSelecionado === "Todos") {
+                    // Todas as linhas (todos os anos)
+                    return experimentosPorMesFiltrado.map((item) => {
+                      const { month, ...rest } = item;
+                      const filteredRest: {
+                        [ano: string]: string | number | string[];
+                      } = {};
+                      Object.entries(rest).forEach(([key, value]) => {
+                        if (
+                          typeof value === "string" ||
+                          typeof value === "number" ||
+                          Array.isArray(value)
+                        ) {
+                          filteredRest[key] = value;
+                        }
+                      });
+                      return { month, ...filteredRest };
                     });
-                    return { month, ...filteredRest };
+                  } else {
+                    // Só a linha do ano selecionado, com iniciativas
+                    return experimentosPorMesFiltrado.map((item) => {
+                      const { month } = item;
+                      const value = item[anoSelecionado] || 0;
+                      const iniciativas =
+                        item[`${anoSelecionado}_iniciativas`] || [];
+                      return {
+                        month,
+                        [anoSelecionado]: value,
+                        [`${anoSelecionado}_iniciativas`]: iniciativas,
+                      };
+                    });
                   }
-                )}
+                })()}
                 anoColors={anoColors}
               />
             </CardContent>
@@ -443,4 +485,23 @@ const VisaoConsolidada = () => {
   );
 };
 
+function filtrarPorAno(
+  experimentosPorMes: {
+    [ano: string]: string | number | string[];
+    month: string;
+  }[],
+  anoSelecionado: "Todos" | 2023 | 2024 | 2025
+) {
+  if (anoSelecionado === "Todos") {
+    return experimentosPorMes;
+  }
+  return experimentosPorMes.filter((item) => {
+    // Some items may have an 'ano' property, otherwise check if the year key exists
+    if (typeof item.ano === "number") {
+      return item.ano === anoSelecionado;
+    }
+    // If not, check if the year key exists and is not zero/empty
+    return item[anoSelecionado] !== undefined && item[anoSelecionado] !== 0;
+  });
+}
 export default VisaoConsolidada;
