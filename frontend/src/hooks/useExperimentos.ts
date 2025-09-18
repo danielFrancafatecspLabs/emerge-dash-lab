@@ -135,6 +135,7 @@ export function useExperimentos() {
   type ExperimentoPorMes = {
     month: string;
     [ano: string]: number | string[] | string | undefined;
+    // Exemplo: { '2023_iniciativas': ['Exp 1', 'Exp 2'] }
   };
 
   const experimentosPorMes: ExperimentoPorMes[] = meses.map((mes) => {
@@ -161,11 +162,22 @@ export function useExperimentos() {
           }
           return mesConclusao === mes && anoConclusao === ano;
         })
-        .map((item) =>
-          typeof item["Iniciativa"] === "string"
-            ? item["Iniciativa"]
-            : undefined
-        )
+        .map((item) => {
+          // Mostra nome do experimento, se existir, senão mostra ideia/problema
+          if (
+            typeof item["Iniciativa"] === "string" &&
+            item["Iniciativa"].trim()
+          ) {
+            return item["Iniciativa"];
+          }
+          if (
+            typeof item["Ideia / Problema / Oportunidade"] === "string" &&
+            item["Ideia / Problema / Oportunidade"].trim()
+          ) {
+            return item["Ideia / Problema / Oportunidade"];
+          }
+          return undefined;
+        })
         .filter(Boolean);
     });
     return obj;
