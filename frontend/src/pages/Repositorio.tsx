@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { useRef } from "react";
 
 export type RepositorioItem = {
   _id: string;
@@ -24,13 +23,11 @@ export default function Repositorio() {
     fetch("http://localhost:3002/api/experimentos")
       .then((res) => res.json())
       .then((json) => {
-        // Busca os campos ignorando maiúsculas/minúsculas
         const mapped = (json as RepositorioItem[]).map((item) => {
           const keys = Object.keys(item);
           const iniciativaKey = keys.find(
             (k) => k.toLowerCase() === "iniciativa"
           );
-          // Aceita descricao, descrição, Descrição
           const descricaoKey = keys.find(
             (k) =>
               [
@@ -97,12 +94,10 @@ export default function Repositorio() {
                 )
                 .map((item) => (
                   <tr key={item._id} className="border-t">
-                    <td className="px-4 py-2 text-gray-900">
-                      {item.iniciativa}
-                    </td>
-                    <td className="px-4 py-2 text-gray-900">
-                      {item.descricao}
-                    </td>
+                    <td className="px-4 py-2 text-gray-900">{item.iniciativa}</td>
+                    <td className="px-4 py-2 text-gray-900">{item.descricao}</td>
+
+                    {/* Coluna Relatório */}
                     <td className="px-4 py-2">
                       {editingRelatorioId === item._id ? (
                         <form
@@ -128,13 +123,12 @@ export default function Repositorio() {
                               )
                             );
                           }}
+                          className="flex items-center"
                         >
                           <input
                             type="url"
                             value={urlRelatorioInput}
-                            onChange={(e) =>
-                              setUrlRelatorioInput(e.target.value)
-                            }
+                            onChange={(e) => setUrlRelatorioInput(e.target.value)}
                             placeholder="Informe a URL do relatório"
                             className="border rounded px-2 py-1 w-48 text-gray-900 mr-2"
                             required
@@ -161,9 +155,11 @@ export default function Repositorio() {
                           href={item.relatorio}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-blue-600 underline"
+                          className="px-2 py-1 bg-red-700 text-white rounded border border-red-700 hover:bg-red-800 transition-colors flex flex-col items-center justify-center h-12 text-sm leading-tight"
                         >
-                          Acessar Relatório
+                          Acessar
+                          <br />
+                          Relatório
                         </a>
                       ) : (
                         <button
@@ -177,6 +173,8 @@ export default function Repositorio() {
                         </button>
                       )}
                     </td>
+
+                    {/* Coluna Ficha */}
                     <td className="px-4 py-2">
                       {editingFichaId === item._id ? (
                         <form
@@ -200,6 +198,7 @@ export default function Repositorio() {
                               )
                             );
                           }}
+                          className="flex items-center"
                         >
                           <input
                             type="url"
@@ -231,9 +230,11 @@ export default function Repositorio() {
                           href={item.ficha}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-blue-600 underline"
+                          className="px-2 py-1 bg-red-700 text-white rounded border border-red-700 hover:bg-red-800 transition-colors flex flex-col items-center justify-center h-12 text-sm leading-tight"
                         >
-                          Acessar Ficha
+                          Acessar
+                          <br />
+                          Ficha
                         </a>
                       ) : (
                         <button
@@ -247,27 +248,9 @@ export default function Repositorio() {
                         </button>
                       )}
                     </td>
-                    <td className="px-4 py-2 flex gap-2 items-center">
-                      {item.relatorio && (
-                        <a
-                          href={item.relatorio}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="px-2 py-1 bg-[#7a0019] text-white rounded"
-                        >
-                          Acessar Relatório
-                        </a>
-                      )}
-                      {item.ficha && (
-                        <a
-                          href={item.ficha}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="px-2 py-1 bg-[#7a0019] text-white rounded"
-                        >
-                          Acessar Ficha
-                        </a>
-                      )}
+
+                    {/* Coluna Ações */}
+                    <td className="px-4 py-2">
                       <button
                         className="px-2 py-1 bg-[#7a0019] text-white rounded border border-[#7a0019] hover:bg-[#5a0011] transition-colors"
                         onClick={() => {
