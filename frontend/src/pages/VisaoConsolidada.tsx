@@ -9,6 +9,7 @@ import {
 import { useExperimentos } from "@/hooks/useExperimentos";
 import { ExperimentFunnelChart } from "@/components/charts/ExperimentFunnelChart";
 import { ExperimentTypeChart } from "@/components/charts/ExperimentTypeChart";
+import { InitiativesByTeamChart } from "@/components/charts/InitiativesByTeamChart";
 import { MonthlyExperimentsChart } from "@/components/charts/MonthlyExperimentsChart";
 import { IdeasPieChart } from "@/components/charts/IdeasPieChart";
 import { DollarSign, TrendingUp, Target, Lightbulb } from "lucide-react";
@@ -381,17 +382,61 @@ const VisaoConsolidada = () => {
           </Card>
 
           {/* Piloto/Projeto por Tipo */}
-          <Card className="shadow-card">
-            <CardHeader>
-              <CardTitle className="text-lg">
-                Piloto/Projeto por Tipo de experimento
-              </CardTitle>
-              <CardDescription>Categorização por tecnologia</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ExperimentTypeChart data={experimentosPorTipo} />
-            </CardContent>
-          </Card>
+          <div className="grid grid-cols-1 gap-6">
+            <Card
+              className="shadow-card"
+              style={{ minHeight: "320px", height: "320px" }}
+            >
+              <CardHeader>
+                <CardTitle className="text-lg">
+                  Piloto/Projeto por Tipo de experimento
+                </CardTitle>
+                <CardDescription>Categorização por tecnologia</CardDescription>
+              </CardHeader>
+              <CardContent className="h-72">
+                <ExperimentTypeChart data={experimentosPorTipo} />
+              </CardContent>
+            </Card>
+            <div className="h-8"></div>
+            <Card
+              className="shadow-card"
+              style={{ minHeight: "320px", height: "320px" }}
+            >
+              <CardHeader>
+                <CardTitle className="text-lg">
+                  Quantidade de Iniciativas por Time
+                </CardTitle>
+                <CardDescription>Distribuição por time</CardDescription>
+              </CardHeader>
+              <CardContent className="h-72">
+                <InitiativesByTeamChart
+                  data={(() => {
+                    if (!data) return [];
+                    // Agrupa por time, contando iniciativas únicas
+                    const teamCount: Record<string, number> = {};
+                    data.forEach((item) => {
+                      const team =
+                        typeof item["Times"] === "string"
+                          ? item["Times"]
+                          : "Outro";
+                      const idea =
+                        typeof item["Ideia / Problema / Oportunidade"] ===
+                        "string"
+                          ? item["Ideia / Problema / Oportunidade"]
+                          : "";
+                      if (team && idea) {
+                        teamCount[team] = (teamCount[team] || 0) + 1;
+                      }
+                    });
+                    return Object.entries(teamCount).map(([name, value]) => ({
+                      name,
+                      value,
+                    }));
+                  })()}
+                />
+              </CardContent>
+            </Card>
+          </div>
 
           {/* Experimentos por Mês */}
           <Card className="shadow-card">
