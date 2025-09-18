@@ -1,14 +1,42 @@
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  ResponsiveContainer,
+  Tooltip,
+  Legend,
+} from "recharts";
+import type { TooltipProps } from "recharts";
 
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip, Legend } from 'recharts';
-function CustomTooltip({ active, payload, label }: any) {
+function CustomTooltip({
+  active,
+  payload,
+  label,
+}: TooltipProps<"line", string>) {
   if (active && payload && payload.length) {
     return (
-      <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 8, padding: 12, boxShadow: '0 2px 8px #0001', minWidth: 220 }}>
+      <div
+        style={{
+          background: "#fff",
+          border: "1px solid #e2e8f0",
+          borderRadius: 8,
+          padding: 12,
+          boxShadow: "0 2px 8px #0001",
+          minWidth: 220,
+        }}
+      >
         <div style={{ fontWeight: 600, marginBottom: 4 }}>Mês: {label}</div>
-        {payload.map((entry: any) => {
-          const iniciativas = entry.payload[`${entry.dataKey}_iniciativas`] || [];
+        {payload.map((entry) => {
+          // entry type inferred from recharts TooltipProps
+          const iniciativas =
+            entry.payload?.[`${entry.dataKey}_iniciativas`] || [];
           return (
-            <div key={entry.dataKey} style={{ color: entry.stroke, marginBottom: 8 }}>
+            <div
+              key={entry.dataKey}
+              style={{ color: entry.stroke, marginBottom: 8 }}
+            >
               Ano: <b>{entry.dataKey}</b> — Qtd: <b>{entry.value}</b>
               {iniciativas.length > 0 && (
                 <div style={{ fontSize: 13, marginTop: 2 }}>
@@ -30,13 +58,28 @@ function CustomTooltip({ active, payload, label }: any) {
 }
 
 interface MonthlyExperimentsChartProps {
-  data: Array<{ month: string; [ano: string]: number | string }>
-  anoColors?: { [key: string]: string }
+  // Para mostrar os experimentos no tooltip, cada mês/ano deve conter também o array de iniciativas:
+  // Exemplo de item: { month: 'Jan', '2023': 2, '2023_iniciativas': ['Exp 1', 'Exp 2'], ... }
+  data: Array<
+    {
+      month: string;
+    } & {
+      [ano: string]: number | string;
+    } & {
+      [ano_iniciativas: `${string}_iniciativas`]: string[];
+    }
+  >;
+  anoColors?: { [key: string]: string };
 }
 
-export function MonthlyExperimentsChart({ data, anoColors }: MonthlyExperimentsChartProps) {
-  // Descobre os anos presentes nos dados
-  const anos = Object.keys(data?.[0] || {}).filter(key => key !== 'month');
+export function MonthlyExperimentsChart({
+  data,
+  anoColors,
+}: MonthlyExperimentsChartProps) {
+  // Descobre os anos presentes nos dados (ignora campos _iniciativas)
+  const anos = Object.keys(data?.[0] || {}).filter(
+    (key) => key !== "month" && !key.endsWith("_iniciativas")
+  );
   return (
     <div className="h-80">
       <ResponsiveContainer width="100%" height="100%">
@@ -49,7 +92,7 @@ export function MonthlyExperimentsChart({ data, anoColors }: MonthlyExperimentsC
           <YAxis stroke="#64748b" fontSize={12} />
           <Tooltip content={<CustomTooltip />} />
           <Legend />
-          {anos.map(ano => (
+          {anos.map((ano) =>
             anoColors && anoColors[ano] ? (
               <Line
                 key={ano}
@@ -63,7 +106,7 @@ export function MonthlyExperimentsChart({ data, anoColors }: MonthlyExperimentsC
                 legendType="line"
               />
             ) : null
-          ))}
+          )}
         </LineChart>
       </ResponsiveContainer>
     </div>
