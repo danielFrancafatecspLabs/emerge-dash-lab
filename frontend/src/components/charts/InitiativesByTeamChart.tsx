@@ -6,24 +6,14 @@ import {
   CartesianGrid,
   ResponsiveContainer,
   Tooltip,
-  Legend,
   LabelList,
 } from "recharts";
 
-const defaultData = [
-  { name: "WEB 3", value: 6, color: "hsl(var(--lab-primary))" },
-  { name: "Experimentos IA", value: 5, color: "hsl(var(--lab-primary-dark))" },
-  { name: "Future network", value: 2, color: "hsl(var(--lab-secondary))" },
-  { name: "Outras Tecnologias", value: 2, color: "hsl(var(--lab-accent))" },
-];
-
-interface ExperimentTypeChartProps {
-  data?: typeof defaultData;
+interface InitiativesByTeamChartProps {
+  data: { name: string; value: number; color?: string }[];
 }
 
-export function ExperimentTypeChart({
-  data = defaultData,
-}: ExperimentTypeChartProps) {
+export function InitiativesByTeamChart({ data }: InitiativesByTeamChartProps) {
   return (
     <div className="h-56">
       <ResponsiveContainer width="100%" height="100%">
