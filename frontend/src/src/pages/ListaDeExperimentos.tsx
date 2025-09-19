@@ -49,7 +49,7 @@ const ESCALA_OPTIONS = [
 
 export default function ListaDeExperimentos() {
   const [newExpOpen, setNewExpOpen] = useState(false);
-  const [newExpData, setNewExpData] = useState<Record<string, unknown>>({});
+  const [newExpData, setNewExpData] = useState<Record<string, string>>({});
 
   const [data, setData] = useState<Experiment[]>([]);
   const [filtered, setFiltered] = useState<Experiment[]>([]);

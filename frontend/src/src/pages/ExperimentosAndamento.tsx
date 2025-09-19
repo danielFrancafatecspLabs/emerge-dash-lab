@@ -126,12 +126,28 @@ const highlights = [
   },
 ];
 
+import type { Experiment as TableExperiment, ExperimentHistory } from "@/components/experimentos/ExperimentTable";
+
 const ExperimentosAndamento = () => {
   const [editIdx, setEditIdx] = useState<number | null>(null);
   const [editValue, setEditValue] = useState<string>("");
   // Estado para modal de histórico de situação
   const [historyModalOpen, setHistoryModalOpen] = useState(false);
-  const [historyModalData, setHistoryModalData] = useState<any>(null);
+
+  type Experiment = {
+    _id: string;
+    "Área"?: string;
+    "Iniciativa"?: string;
+    "Sponsor/BO"?: string;
+    "Experimentação"?: string;
+    "Situação Atual e Próximos passos"?: string;
+    "Situacao Atual e Proximos passos"?: string;
+    "Situacao Atual"?: string;
+    "Comentários/Pendências/Ações"?: ExperimentHistory[] | string;
+    [key: string]: string | number | boolean | ExperimentHistory[];
+  };
+
+  const [historyModalData, setHistoryModalData] = useState<Experiment | null>(null);
 
   // Função para salvar edição do campo, movendo texto atual para o histórico
   const handleSaveEdit = async (idx: number) => {
@@ -203,7 +219,7 @@ const ExperimentosAndamento = () => {
   }));
 
   // Função para determinar prioridade do sinal
-  function getSignalPriority(item: any) {
+  function getSignalPriority(item: Experiment) {
     // Exemplo: status crítico (vermelho), atenção (amarelo), ok (verde)
     const status = (
       typeof item["Situação Atual e Próximos passos"] === "string"
@@ -268,13 +284,13 @@ const ExperimentosAndamento = () => {
 
   // Modal para descrição
   const [modalOpen, setModalOpen] = useState(false);
-  const [modalExperiment, setModalExperiment] = useState<any>(null);
-  const handleOpenModal = (item: any) => {
+  const [modalExperiment, setModalExperiment] = useState<Experiment | null>(null);
+  const handleOpenModal = (item: Experiment) => {
     setModalExperiment(item);
     setModalOpen(true);
   };
   // Modal para histórico de situação
-  const handleOpenHistoryModal = (item: any) => {
+  const handleOpenHistoryModal = (item: Experiment) => {
     setHistoryModalData(item);
     setHistoryModalOpen(true);
   };
@@ -777,10 +793,7 @@ const ExperimentosAndamento = () => {
                                   : "Sem data"}
                               </div>
                               <div className="font-semibold">
-                                {coment.texto ||
-                                  coment.comentario ||
-                                  coment.acao ||
-                                  "Sem texto"}
+                                {coment.texto || "Sem texto"}
                               </div>
                             </div>
                           ))

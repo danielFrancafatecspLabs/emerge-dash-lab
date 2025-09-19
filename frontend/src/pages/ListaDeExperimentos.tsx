@@ -261,9 +261,14 @@ export default function ListaDeExperimentos() {
 
   const columns = useMemo(() => {
     if (!data || data.length === 0) return [];
-    return Object.keys(data[0]).filter(
+    const baseCols = Object.keys(data[0]).filter(
       (col) => col !== "_id" && col !== "id" && !hiddenColumns.includes(col)
     );
+    // Garante que 'Tamanho do Experimento' sempre aparece
+    if (!baseCols.includes("Tamanho do Experimento")) {
+      baseCols.push("Tamanho do Experimento");
+    }
+    return baseCols;
   }, [data, hiddenColumns]);
 
   const filteredData = useMemo(() => {
