@@ -41,7 +41,30 @@ export function ExperimentEditModal({
           </h2>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+          {/* Campo Desenvolvedor Resp. sempre visível */}
+          <div className="flex flex-col">
+            <label className="text-sm font-bold text-[#7a0019] mb-2 flex items-center gap-1">
+              Desenvolvedor Resp.
+            </label>
+            <select
+              className="border-2 border-[#7a0019]/30 rounded-lg px-3 py-2 text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#7a0019]/40 transition-all duration-300 ease-in-out"
+              value={editData["Desenvolvedor Resp."] || ""}
+              onChange={(e) => onChange("Desenvolvedor Resp.", e.target.value)}
+            >
+              <option value="">Não identificado</option>
+              <option value="Daniel França">Daniel França</option>
+              <option value="Daniel Frauches">Daniel Frauches</option>
+              <option value="Bruno">Bruno</option>
+              <option value="Hugo">Hugo</option>
+              <option value="Gui Raiol">Gui Raiol</option>
+              <option value="Gui Magalhães">Gui Magalhães</option>
+              <option value="Luis">Luis</option>
+              <option value="Rogério">Rogério</option>
+            </select>
+          </div>
+          {/* Renderiza os outros campos normalmente */}
           {columns.map((col) => {
+            if (/desenvolvedor resp\.?/i.test(col)) return null;
             let dropdownOptions: string[] | undefined = undefined;
             // Opções customizadas para colunas específicas
             if (/tamanho do experimento/i.test(col)) {
@@ -87,11 +110,7 @@ export function ExperimentEditModal({
                 {dropdownOptions ? (
                   <div className="transition-all duration-300 ease-in-out">
                     <InlineDropdown
-                      value={
-                        editData[col] && ["P", "M", "G"].includes(editData[col])
-                          ? editData[col]
-                          : "Selecionar tamanho"
-                      }
+                      value={editData[col] || dropdownOptions[0]}
                       options={dropdownOptions}
                       onChange={(v) => onChange(col, v)}
                     />
