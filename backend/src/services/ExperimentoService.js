@@ -20,6 +20,10 @@ class ExperimentoService {
     if (data.tamanho && ["P", "M", "G"].includes(data.tamanho)) {
       data.tamanho = data.tamanho;
     }
+    // Aceita campo desenvolvedorResp
+    if (data.desenvolvedorResp && typeof data.desenvolvedorResp === "string") {
+      data.desenvolvedorResp = data.desenvolvedorResp;
+    }
     const novo = new Experimento(data);
     return novo.save();
   }
@@ -28,6 +32,10 @@ class ExperimentoService {
     // Aceita campo tamanho (P, M, G)
     if (data.tamanho && ["P", "M", "G"].includes(data.tamanho)) {
       data.tamanho = data.tamanho;
+    }
+    // Aceita campo desenvolvedorResp
+    if (data.desenvolvedorResp && typeof data.desenvolvedorResp === "string") {
+      data.desenvolvedorResp = data.desenvolvedorResp;
     }
     return Experimento.findByIdAndUpdate(id, data, { new: true });
   }
