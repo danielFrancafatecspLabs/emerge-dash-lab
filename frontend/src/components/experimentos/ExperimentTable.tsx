@@ -454,25 +454,43 @@ export function ExperimentTable({
                   {columnsOrdered.map((col) => {
                     // Renderização especial para coluna 'Tamanho do Experimento'
                     if (col === "Tamanho do Experimento") {
-                      return (
-                        <TableCell key={col}>
-                          <select
-                            value={
-                              typeof row.tamanho === "string" ? row.tamanho : ""
-                            }
-                            onChange={async (e) => {
-                              const novo = { ...row, tamanho: e.target.value };
-                              await handleEdit(novo); // Atualiza no backend
-                            }}
-                            className="border rounded px-2 py-1 text-sm"
-                          >
-                            <option value="">Selecione</option>
-                            <option value="P">P</option>
-                            <option value="M">M</option>
-                            <option value="G">G</option>
-                          </select>
-                        </TableCell>
-                      );
+                      // Se estiver em modo edição, mostra select, senão mostra valor ou 'Não Estimado'
+                      const value =
+                        typeof row.tamanho === "string" ? row.tamanho : "";
+                      if (row._editMode) {
+                        return (
+                          <TableCell key={col}>
+                            <select
+                              value={value}
+                              onChange={async (e) => {
+                                const novo = {
+                                  ...row,
+                                  tamanho: e.target.value,
+                                };
+                                await handleEdit(novo); // Atualiza no backend
+                              }}
+                              className="border rounded px-2 py-1 text-sm"
+                            >
+                              <option value="">Não Estimado</option>
+                              <option value="P">P</option>
+                              <option value="M">M</option>
+                              <option value="G">G</option>
+                            </select>
+                          </TableCell>
+                        );
+                      } else {
+                        return (
+                          <TableCell key={col}>
+                            {value ? (
+                              <span>{value}</span>
+                            ) : (
+                              <span className="text-gray-400 italic">
+                                Não Estimado
+                              </span>
+                            )}
+                          </TableCell>
+                        );
+                      }
                     }
                     const isExperimentacaoCol = /experimenta/i.test(col);
                     const isIdeiaProblemaOportunidade =

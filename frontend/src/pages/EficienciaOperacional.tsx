@@ -1,8 +1,72 @@
 import React from "react";
+import ExperimentLeadtimeMonthlyChart, {
+  MonthlyLeadtimeData,
+} from "@/components/charts/ExperimentLeadtimeMonthlyChart";
 import { BarChart3 } from "lucide-react";
 import { useExperimentos } from "@/hooks/useExperimentos";
 
 export default function EficienciaOperacional() {
+  // Meta realista de leadtime (em dias)
+  const metaLeadtime = 45;
+  // Função para agrupar experimentos por mês e calcular tempo médio
+  function getMonthlyLeadtime(): MonthlyLeadtimeData[] {
+    // Agrupa por mês/ano de início
+    const meses = [
+      "Jan",
+      "Fev",
+      "Mar",
+      "Abr",
+      "Mai",
+      "Jun",
+      "Jul",
+      "Ago",
+      "Set",
+      "Out",
+      "Nov",
+      "Dez",
+    ];
+    const byMonth: { [key: string]: number[] } = {};
+    data.forEach((row) => {
+      if (typeof row["Início "] === "string" && row["Início "]) {
+        const startDate = new Date(row["Início "]);
+        if (!isNaN(startDate.getTime())) {
+          const month = meses[startDate.getMonth()];
+          const year = startDate.getFullYear();
+          const key = `${month}/${year}`;
+          const days = Math.max(
+            0,
+            Math.floor(
+              (today.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)
+            )
+          );
+          if (!byMonth[key]) byMonth[key] = [];
+          byMonth[key].push(days);
+        }
+      }
+    });
+    // Calcula média por mês (percentil 85%)
+    return Object.entries(byMonth)
+      .map(([month, arr]) => {
+        const sorted = arr.sort((a, b) => a - b);
+        const n = Math.floor(sorted.length * 0.85);
+        const diasParaMedia = sorted.slice(0, n > 0 ? n : 1);
+        const avgDays =
+          diasParaMedia.length > 0
+            ? Math.round(
+                diasParaMedia.reduce((acc, val) => acc + val, 0) /
+                  diasParaMedia.length
+              )
+            : 0;
+        return { month, avgDays };
+      })
+      .sort((a, b) => {
+        // Ordena por ano/mês
+        const [mA, yA] = a.month.split("/");
+        const [mB, yB] = b.month.split("/");
+        if (yA !== yB) return Number(yA) - Number(yB);
+        return meses.indexOf(mA) - meses.indexOf(mB);
+      });
+  }
   const { data, loading } = useExperimentos();
   const today = new Date();
   // Função para calcular tempo médio por tamanho usando percentil 85%
@@ -69,188 +133,250 @@ export default function EficienciaOperacional() {
   const mediaP = getMediaPorTamanho("P");
   const mediaM = getMediaPorTamanho("M");
   const mediaG = getMediaPorTamanho("G");
+  // Evolução do mês atual: diferença percentual entre média e meta
+  const evolucaoPercentual =
+    mediaGeral && metaLeadtime
+      ? Math.round(((mediaGeral - metaLeadtime) / metaLeadtime) * 100)
+      : 0;
   return (
-    <div className="p-8">
-      <div className="flex items-center gap-3 mb-6">
-        <BarChart3 className="w-8 h-8 text-[#d90429]" />
-        <h1 className="text-2xl font-bold text-gray-800">
+    <div className="p-8 bg-gradient-to-br from-gray-50 to-white min-h-screen">
+      <div className="flex items-center gap-4 mb-8">
+        <div className="bg-lab-primary/10 rounded-full p-3 flex items-center justify-center">
+          <BarChart3 className="w-10 h-10 text-lab-primary" />
+        </div>
+        <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">
           Eficiência Operacional
         </h1>
       </div>
-      {/* Card: Tempo Médio Experimento */}
-      <div className="bg-white rounded-2xl shadow-lg p-6 mb-8 flex flex-col md:flex-row gap-8">
-        <div className="flex-1">
-          <h2 className="text-lg font-semibold text-gray-700 mb-2">
-            Tempo Médio Experimento{" "}
-            <span className="text-xs text-gray-400">(Leadtime)</span>
-          </h2>
-          {/* Placeholder para gráfico */}
-          <div className="bg-gray-100 rounded-xl h-48 flex items-center justify-center text-gray-400">
-            Gráfico Evolução Mensal
-          </div>
-        </div>
-        <div className="flex flex-col items-center justify-center gap-4">
-          <div className="bg-[#d90429] text-white rounded-full shadow-lg w-32 h-32 flex flex-col items-center justify-center text-2xl font-bold border-4 border-[#ffbaba]">
-            Dias
-            <br />
-            {loading ? "..." : mediaGeral}
-          </div>
-          <div className="flex gap-2">
-            <div className="bg-[#ffbaba] text-[#d90429] rounded-full w-16 h-16 flex flex-col items-center justify-center text-sm font-bold border-2 border-[#d90429]">
-              P<br />
-              {loading ? "..." : `${mediaP} dias`}
+      {/* Cards em linhas separadas para melhor organização */}
+      <div className="flex flex-col gap-8">
+        {/* Linha 1: Tempo Médio Experimento */}
+        <div className="bg-white rounded-2xl shadow-xl p-6 flex flex-col md:flex-row gap-8 border border-gray-100">
+          <div className="flex-1 flex flex-col justify-between">
+            <div className="flex items-center gap-2 mb-4">
+              <BarChart3 className="w-6 h-6 text-lab-primary" />
+              <h2 className="text-lg font-bold text-gray-800">
+                Tempo Médio Experimento{" "}
+                <span className="text-xs text-gray-400 font-normal">
+                  (Leadtime)
+                </span>
+              </h2>
             </div>
-            <div className="bg-[#ffbaba] text-[#d90429] rounded-full w-16 h-16 flex flex-col items-center justify-center text-sm font-bold border-2 border-[#d90429]">
-              M<br />
-              {loading ? "..." : `${mediaM} dias`}
-            </div>
-            <div className="bg-[#ffbaba] text-[#d90429] rounded-full w-16 h-16 flex flex-col items-center justify-center text-sm font-bold border-2 border-[#d90429]">
-              G<br />
-              {loading ? "..." : `${mediaG} dias`}
-            </div>
-          </div>
-        </div>
-        <div className="flex-1">
-          <h3 className="text-md font-semibold text-gray-700 mb-2">
-            Acompanhamento Meta de Leadtime
-          </h3>
-          <div className="bg-gray-100 rounded-xl p-4 mb-2">
-            <span className="text-green-600 font-bold">-8%</span>{" "}
-            <span className="text-xs text-gray-500">Evolução do Mês Atual</span>
-            <br />
-            <span className="text-xs text-gray-500">
-              Atual = 25 Dias | Meta = 10 Dias
-            </span>
-          </div>
-          <table className="w-full text-xs">
-            <thead>
-              <tr className="text-gray-500">
-                <th className="text-left">Ranking</th>
-                <th className="text-left">Ofensor</th>
-                <th className="text-left">Dias</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td>1º</td>
-                <td>Aguardando Ambiente</td>
-                <td>20</td>
-              </tr>
-              <tr>
-                <td>2º</td>
-                <td>Aguardando Financeiro</td>
-                <td>20</td>
-              </tr>
-              <tr>
-                <td>3º</td>
-                <td>Ambiente</td>
-                <td>20</td>
-              </tr>
-              <tr>
-                <td>4º</td>
-                <td>Financeiro</td>
-                <td>20</td>
-              </tr>
-              <tr>
-                <td>5º</td>
-                <td>Aguardando qualquer Coisa</td>
-                <td>10</td>
-              </tr>
-              <tr>
-                <td>6º</td>
-                <td>qualquer Coisa</td>
-                <td>10</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-      {/* Card: Tempo Médio Piloto */}
-      <div className="bg-white rounded-2xl shadow-lg p-6 flex flex-col md:flex-row gap-8">
-        <div className="flex-1">
-          <h2 className="text-lg font-semibold text-gray-700 mb-2">
-            Tempo Médio Piloto{" "}
-            <span className="text-xs text-gray-400">(Leadtime)</span>
-          </h2>
-          {/* Placeholder para gráfico */}
-          <div className="bg-gray-100 rounded-xl h-48 flex items-center justify-center text-gray-400">
-            Gráfico Evolução Mensal
-          </div>
-        </div>
-        <div className="flex flex-col items-center justify-center gap-4">
-          <div className="bg-[#ffb800] text-white rounded-full shadow-lg w-32 h-32 flex flex-col items-center justify-center text-2xl font-bold border-4 border-[#ffe7a3]">
-            25
-            <br />
-            Dias
-          </div>
-          <div className="flex gap-2">
-            <div className="bg-[#ffe7a3] text-[#ffb800] rounded-full w-16 h-16 flex flex-col items-center justify-center text-sm font-bold border-2 border-[#ffb800]">
-              P<br />
-              10 dias
-            </div>
-            <div className="bg-[#ffe7a3] text-[#ffb800] rounded-full w-16 h-16 flex flex-col items-center justify-center text-sm font-bold border-2 border-[#ffb800]">
-              M<br />
-              20 dias
-            </div>
-            <div className="bg-[#ffe7a3] text-[#ffb800] rounded-full w-16 h-16 flex flex-col items-center justify-center text-sm font-bold border-2 border-[#ffb800]">
-              G<br />
-              25 dias
+            <div className="bg-gray-50 rounded-xl h-56 flex items-center justify-center">
+              {loading ? (
+                <span className="text-gray-400">Carregando...</span>
+              ) : (
+                <div className="w-full">
+                  <ExperimentLeadtimeMonthlyChart data={getMonthlyLeadtime()} />
+                  <div className="mt-2 text-xs text-gray-500 text-center flex items-center justify-center gap-1">
+                    <span className="inline-block bg-gray-200 rounded-full px-2 py-0.5 text-[10px] font-medium text-gray-700">
+                      Lógica
+                    </span>
+                    O tempo médio é calculado pelo percentil 85% dos
+                    experimentos iniciados em cada mês, excluindo os 15% mais
+                    demorados para evitar distorções.
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
-        <div className="flex-1">
-          <h3 className="text-md font-semibold text-gray-700 mb-2">
-            Acompanhamento Meta de Leadtime
-          </h3>
-          <div className="bg-gray-100 rounded-xl p-4 mb-2">
-            <span className="text-red-600 font-bold">+12%</span>{" "}
-            <span className="text-xs text-gray-500">Evolução do Mês Atual</span>
-            <br />
-            <span className="text-xs text-gray-500">
-              Atual = 25 Dias | Meta = 10 Dias
-            </span>
+        {/* Linha 2: Indicador Geral + Evolução do Mês Atual */}
+        <div className="flex flex-col md:flex-row gap-8">
+          {/* Indicador Geral */}
+          <div className="flex-1 bg-white rounded-2xl shadow-xl p-6 border border-gray-100 flex flex-col items-center justify-center">
+            <div className="relative mb-4">
+              <div className="bg-lab-primary text-white rounded-full shadow-lg w-32 h-32 flex flex-col items-center justify-center text-3xl font-extrabold border-4 border-lab-primary/30 animate-fade-in">
+                <span className="text-base font-semibold">Dias</span>
+                <span className="mt-2">{loading ? "..." : mediaGeral}</span>
+                {mediaGeral <= metaLeadtime ? (
+                  <span
+                    className="absolute top-2 right-2 text-green-500"
+                    title="Meta atingida"
+                  >
+                    ✔️
+                  </span>
+                ) : (
+                  <span
+                    className="absolute top-2 right-2 text-red-500"
+                    title="Meta não atingida"
+                  >
+                    ⚠️
+                  </span>
+                )}
+              </div>
+            </div>
+            <div className="flex gap-2 mt-2">
+              <div className="bg-lab-primary/10 text-lab-primary rounded-full w-16 h-16 flex flex-col items-center justify-center text-sm font-bold border-2 border-lab-primary">
+                P<br />
+                {loading ? "..." : `${mediaP} dias`}
+              </div>
+              <div className="bg-lab-primary/10 text-lab-primary rounded-full w-16 h-16 flex flex-col items-center justify-center text-sm font-bold border-2 border-lab-primary">
+                M<br />
+                {loading ? "..." : `${mediaM} dias`}
+              </div>
+              <div className="bg-lab-primary/10 text-lab-primary rounded-full w-16 h-16 flex flex-col items-center justify-center text-sm font-bold border-2 border-lab-primary">
+                G<br />
+                {loading ? "..." : `${mediaG} dias`}
+              </div>
+            </div>
           </div>
-          <table className="w-full text-xs">
-            <thead>
-              <tr className="text-gray-500">
-                <th className="text-left">Ranking</th>
-                <th className="text-left">Ofensor</th>
-                <th className="text-left">Dias</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td>1º</td>
-                <td>Aguardando Ambiente</td>
-                <td>20</td>
-              </tr>
-              <tr>
-                <td>2º</td>
-                <td>Aguardando Financeiro</td>
-                <td>20</td>
-              </tr>
-              <tr>
-                <td>3º</td>
-                <td>Ambiente</td>
-                <td>20</td>
-              </tr>
-              <tr>
-                <td>4º</td>
-                <td>Financeiro</td>
-                <td>20</td>
-              </tr>
-              <tr>
-                <td>5º</td>
-                <td>Aguardando qualquer Coisa</td>
-                <td>10</td>
-              </tr>
-              <tr>
-                <td>6º</td>
-                <td>qualquer Coisa</td>
-                <td>10</td>
-              </tr>
-            </tbody>
-          </table>
+          {/* Evolução do Mês Atual */}
+          <div className="flex-1 bg-white rounded-2xl shadow-xl p-6 border border-gray-100 flex flex-col justify-between">
+            <h3 className="text-md font-bold text-gray-800 mb-2 flex items-center gap-2">
+              <span
+                className={
+                  evolucaoPercentual <= 0
+                    ? "bg-green-100 text-green-700"
+                    : "bg-red-100 text-red-700"
+                }
+                style={{
+                  borderRadius: "6px",
+                  padding: "2px 8px",
+                  fontWeight: 600,
+                }}
+              >
+                {evolucaoPercentual > 0 ? "+" : ""}
+                {evolucaoPercentual}%
+              </span>
+              Evolução do Mês Atual
+            </h3>
+            <div className="text-xs text-gray-500 mb-2">
+              Atual = {loading ? "..." : `${mediaGeral} Dias`} | Meta ={" "}
+              {metaLeadtime} Dias
+            </div>
+            <table className="w-full text-xs mt-2">
+              <thead>
+                <tr className="text-gray-500">
+                  <th className="text-left">Ranking</th>
+                  <th className="text-left">Ofensor</th>
+                  <th className="text-left">Dias</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>1º</td>
+                  <td>Aguardando Ambiente</td>
+                  <td>20</td>
+                </tr>
+                <tr>
+                  <td>2º</td>
+                  <td>Aguardando Financeiro</td>
+                  <td>20</td>
+                </tr>
+                <tr>
+                  <td>3º</td>
+                  <td>Ambiente</td>
+                  <td>20</td>
+                </tr>
+                <tr>
+                  <td>4º</td>
+                  <td>Financeiro</td>
+                  <td>20</td>
+                </tr>
+                <tr>
+                  <td>5º</td>
+                  <td>Aguardando qualquer Coisa</td>
+                  <td>10</td>
+                </tr>
+                <tr>
+                  <td>6º</td>
+                  <td>qualquer Coisa</td>
+                  <td>10</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        {/* Linha 3: Tempo Médio Piloto */}
+        <div className="bg-white rounded-2xl shadow-lg p-6 flex flex-col md:flex-row gap-8">
+          <div className="flex-1">
+            <h2 className="text-lg font-semibold text-gray-700 mb-2">
+              Tempo Médio Piloto{" "}
+              <span className="text-xs text-gray-400">(Leadtime)</span>
+            </h2>
+            {/* Placeholder para gráfico */}
+            <div className="bg-gray-100 rounded-xl h-48 flex items-center justify-center text-gray-400">
+              Gráfico Evolução Mensal
+            </div>
+          </div>
+          <div className="flex flex-col items-center justify-center gap-4">
+            <div className="bg-[#ffb800] text-white rounded-full shadow-lg w-32 h-32 flex flex-col items-center justify-center text-2xl font-bold border-4 border-[#ffe7a3]">
+              25
+              <br />
+              Dias
+            </div>
+            <div className="flex gap-2">
+              <div className="bg-[#ffe7a3] text-[#ffb800] rounded-full w-16 h-16 flex flex-col items-center justify-center text-sm font-bold border-2 border-[#ffb800]">
+                P<br />
+                10 dias
+              </div>
+              <div className="bg-[#ffe7a3] text-[#ffb800] rounded-full w-16 h-16 flex flex-col items-center justify-center text-sm font-bold border-2 border-[#ffb800]">
+                M<br />
+                20 dias
+              </div>
+              <div className="bg-[#ffe7a3] text-[#ffb800] rounded-full w-16 h-16 flex flex-col items-center justify-center text-sm font-bold border-2 border-[#ffb800]">
+                G<br />
+                25 dias
+              </div>
+            </div>
+          </div>
+          <div className="flex-1">
+            <h3 className="text-md font-semibold text-gray-700 mb-2">
+              Acompanhamento Meta de Leadtime
+            </h3>
+            <div className="bg-gray-100 rounded-xl p-4 mb-2">
+              <span className="text-red-600 font-bold">+12%</span>{" "}
+              <span className="text-xs text-gray-500">
+                Evolução do Mês Atual
+              </span>
+              <br />
+              <span className="text-xs text-gray-500">
+                Atual = 25 Dias | Meta = 10 Dias
+              </span>
+            </div>
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="text-gray-500">
+                  <th className="text-left">Ranking</th>
+                  <th className="text-left">Ofensor</th>
+                  <th className="text-left">Dias</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>1º</td>
+                  <td>Aguardando Ambiente</td>
+                  <td>20</td>
+                </tr>
+                <tr>
+                  <td>2º</td>
+                  <td>Aguardando Financeiro</td>
+                  <td>20</td>
+                </tr>
+                <tr>
+                  <td>3º</td>
+                  <td>Ambiente</td>
+                  <td>20</td>
+                </tr>
+                <tr>
+                  <td>4º</td>
+                  <td>Financeiro</td>
+                  <td>20</td>
+                </tr>
+                <tr>
+                  <td>5º</td>
+                  <td>Aguardando qualquer Coisa</td>
+                  <td>10</td>
+                </tr>
+                <tr>
+                  <td>6º</td>
+                  <td>qualquer Coisa</td>
+                  <td>10</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>

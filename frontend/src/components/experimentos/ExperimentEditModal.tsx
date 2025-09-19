@@ -26,7 +26,7 @@ export function ExperimentEditModal({
   if (!open || !editData) return null;
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 transition-all duration-500 ease-in-out">
-      <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-3xl flex flex-col border-2 border-[#7a0019]/30 relative animate-modal-pop">
+      <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-4xl flex flex-col border-2 border-[#7a0019]/30 relative animate-modal-pop">
         <button
           onClick={onCancel}
           className="absolute top-4 right-4 text-[#7a0019] bg-white rounded-full p-2 shadow hover:bg-rose-50 transition"
@@ -44,7 +44,9 @@ export function ExperimentEditModal({
           {columns.map((col) => {
             let dropdownOptions: string[] | undefined = undefined;
             // Opções customizadas para colunas específicas
-            if (/ideia|problema|oportunidade/i.test(col)) {
+            if (/tamanho do experimento/i.test(col)) {
+              dropdownOptions = ["Selecionar tamanho", "P", "M", "G"];
+            } else if (/ideia|problema|oportunidade/i.test(col)) {
               dropdownOptions = [
                 "Backlog",
                 "Em Prospecção",
@@ -85,7 +87,11 @@ export function ExperimentEditModal({
                 {dropdownOptions ? (
                   <div className="transition-all duration-300 ease-in-out">
                     <InlineDropdown
-                      value={editData[col] || ""}
+                      value={
+                        editData[col] && ["P", "M", "G"].includes(editData[col])
+                          ? editData[col]
+                          : "Selecionar tamanho"
+                      }
                       options={dropdownOptions}
                       onChange={(v) => onChange(col, v)}
                     />
