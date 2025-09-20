@@ -268,6 +268,10 @@ export default function ListaDeExperimentos() {
     if (!baseCols.includes("Tamanho do Experimento")) {
       baseCols.push("Tamanho do Experimento");
     }
+    // Garante que 'Desenvolvedor Resp.' sempre aparece
+    if (!baseCols.includes("Desenvolvedor Resp.")) {
+      baseCols.push("Desenvolvedor Resp.");
+    }
     return baseCols;
   }, [data, hiddenColumns]);
 
