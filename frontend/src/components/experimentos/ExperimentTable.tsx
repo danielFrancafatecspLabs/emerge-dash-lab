@@ -493,6 +493,8 @@ export function ExperimentTable({
                       }
                     }
                     const isExperimentacaoCol = /experimenta/i.test(col);
+                    const isPilotoCol = /piloto/i.test(col);
+                    const isEscalaCol = /escala/i.test(col);
                     const isIdeiaProblemaOportunidade =
                       /(ideia|problema|oportunidade)/i.test(col);
                     const isIniciativaCol = /iniciativa/i.test(col);
@@ -541,61 +543,58 @@ export function ExperimentTable({
                         </span>
                       );
                     } else if (isExperimentacaoCol) {
+                      // Merge both blocks: show status pill for Experimentação
                       const status =
                         typeof value === "string"
                           ? value.trim().toLowerCase()
                           : "";
-                      let icon, badgeColor, textColor, displayValue;
-                      if (status.includes("concluido")) {
-                        icon = (
-                          <Lightbulb className="w-4 h-4 text-green-400 animate-pulse" />
-                        );
-                        badgeColor =
-                          "bg-gradient-to-r from-green-200/80 to-green-400/80 border-green-300";
-                        textColor = "text-green-900";
+                      let pillBg, textColor, displayValue;
+                      if (
+                        status === "concluído" ||
+                        status === "concluido" ||
+                        status.includes("concluido")
+                      ) {
+                        pillBg = "bg-green-100 border-green-300";
+                        textColor = "text-green-800";
                         displayValue = "Concluído";
+                      } else if (
+                        status === "" ||
+                        status === "não iniciado" ||
+                        status.includes("não iniciado")
+                      ) {
+                        pillBg = "bg-gray-50 border-gray-200";
+                        textColor = "text-gray-500";
+                        displayValue = "Não iniciado";
+                      } else if (status === "em prospecção") {
+                        pillBg = "bg-orange-100 border-orange-300";
+                        textColor = "text-orange-800";
+                        displayValue = "Em prospecção";
+                      } else if (status === "parado") {
+                        pillBg = "bg-red-100 border-red-300";
+                        textColor = "text-red-800";
+                        displayValue = "Parado";
                       } else if (status.includes("arquivado")) {
-                        icon = <Lightbulb className="w-4 h-4 text-gray-400" />;
-                        badgeColor =
-                          "bg-gradient-to-r from-gray-100/80 to-gray-400/80 border-gray-300";
+                        pillBg = "bg-gray-100 border-gray-300";
                         textColor = "text-gray-700";
                         displayValue = "Arquivado";
                       } else if (status.includes("andamento")) {
-                        icon = (
-                          <TestTube className="w-4 h-4 text-yellow-400 animate-pulse" />
-                        );
-                        badgeColor =
-                          "bg-gradient-to-r from-yellow-50/80 to-yellow-200/80 border-yellow-200";
-                        textColor = "text-yellow-700";
+                        pillBg = "bg-yellow-100 border-yellow-300";
+                        textColor = "text-yellow-800";
                         displayValue = "Em andamento";
-                      } else if (
-                        status === "" ||
-                        status.includes("não iniciado")
-                      ) {
-                        icon = <Lightbulb className="w-4 h-4 text-gray-400" />;
-                        badgeColor = "bg-gray-100/60 border-gray-300";
-                        textColor = "text-gray-700";
-                        displayValue = "Não iniciado";
                       } else if (status.includes("pivot")) {
-                        icon = (
-                          <Lightbulb className="w-4 h-4 text-purple-400 animate-pulse" />
-                        );
-                        badgeColor =
-                          "bg-gradient-to-r from-purple-200/80 to-purple-400/80 border-purple-300";
-                        textColor = "text-purple-900";
+                        pillBg = "bg-purple-100 border-purple-300";
+                        textColor = "text-purple-800";
                         displayValue = "Pivot";
+                      } else if (status.includes("validação")) {
+                        pillBg = "bg-blue-100 border-blue-300";
+                        textColor = "text-blue-800";
+                        displayValue = "Em validação";
                       } else if (status.includes("backlog")) {
-                        icon = (
-                          <Lightbulb className="w-4 h-4 text-orange-400 animate-pulse" />
-                        );
-                        badgeColor =
-                          "bg-gradient-to-r from-orange-200/80 to-orange-400/80 border-orange-300";
-                        textColor = "text-orange-900";
+                        pillBg = "bg-orange-100 border-orange-300";
+                        textColor = "text-orange-800";
                         displayValue = "Backlog";
                       } else {
-                        icon = <Lightbulb className="w-4 h-4 text-gray-400" />;
-                        badgeColor =
-                          "bg-gradient-to-r from-gray-100/80 to-gray-400/80 border-gray-300";
+                        pillBg = "bg-gray-100 border-gray-300";
                         textColor = "text-gray-700";
                         displayValue =
                           typeof value === "string" && value !== ""
@@ -604,7 +603,7 @@ export function ExperimentTable({
                       }
                       cellContent = (
                         <span
-                          className={`inline-flex items-center gap-2 px-4 py-1 rounded-full shadow border-2 font-bold text-sm ${badgeColor} ${textColor} transition-all duration-300`}
+                          className={`font-bold text-sm ${pillBg} ${textColor} border rounded-full px-4 py-1 shadow-sm transition-all duration-300`}
                           style={{
                             fontFamily: "Segoe UI, Arial, sans-serif",
                             minWidth: 140,
@@ -612,52 +611,55 @@ export function ExperimentTable({
                             display: "inline-flex",
                           }}
                         >
-                          {icon}
                           {displayValue}
                         </span>
                       );
-                    } else if (isIdeiaProblemaOportunidade) {
-                      const status =
+                    } else if (isPilotoCol || isEscalaCol) {
+                      const pilotoEscalaStatus =
                         typeof value === "string"
                           ? value.trim().toLowerCase()
                           : "";
-                      let icon, badgeColor, textColor, displayValue;
-                      if (status === "concluído" || status === "concluido") {
-                        icon = (
-                          <Lightbulb className="w-4 h-4 text-yellow-300 animate-pulse" />
-                        );
-                        badgeColor = "bg-yellow-100/60 border-yellow-300";
-                        textColor = "text-yellow-700";
-                        displayValue = "Concluído";
-                      } else if (status === "" || status === "não iniciado") {
-                        icon = <Lightbulb className="w-4 h-4 text-gray-400" />;
-                        badgeColor = "bg-gray-100/60 border-gray-300";
-                        textColor = "text-gray-700";
-                        displayValue = "Não iniciado";
-                      } else if (status === "em prospecção") {
-                        icon = (
-                          <Lightbulb className="w-4 h-4 text-orange-400 animate-pulse" />
-                        );
-                        badgeColor = "bg-orange-100/60 border-orange-300";
-                        textColor = "text-orange-700";
-                        displayValue = "Em prospecção";
-                      } else if (status === "parado") {
-                        icon = <Lightbulb className="w-4 h-4 text-red-500" />;
-                        badgeColor = "bg-red-100/60 border-red-300";
-                        textColor = "text-red-700";
-                        displayValue = "Parado";
+                      let pilotoEscalaPillBg,
+                        pilotoEscalaTextColor,
+                        pilotoEscalaDisplayValue;
+                      if (pilotoEscalaStatus.includes("concluido")) {
+                        pilotoEscalaPillBg = "bg-green-100 border-green-300";
+                        pilotoEscalaTextColor = "text-green-800";
+                        pilotoEscalaDisplayValue = "Concluído";
+                      } else if (pilotoEscalaStatus.includes("arquivado")) {
+                        pilotoEscalaPillBg = "bg-gray-100 border-gray-300";
+                        pilotoEscalaTextColor = "text-gray-700";
+                        pilotoEscalaDisplayValue = "Arquivado";
+                      } else if (pilotoEscalaStatus.includes("andamento")) {
+                        pilotoEscalaPillBg = "bg-yellow-100 border-yellow-300";
+                        pilotoEscalaTextColor = "text-yellow-800";
+                        pilotoEscalaDisplayValue = "Em andamento";
+                      } else if (
+                        pilotoEscalaStatus === "" ||
+                        pilotoEscalaStatus.includes("não iniciado")
+                      ) {
+                        pilotoEscalaPillBg = "bg-gray-50 border-gray-200";
+                        pilotoEscalaTextColor = "text-gray-500";
+                        pilotoEscalaDisplayValue = "Não iniciado";
+                      } else if (pilotoEscalaStatus.includes("pivot")) {
+                        pilotoEscalaPillBg = "bg-purple-100 border-purple-300";
+                        pilotoEscalaTextColor = "text-purple-800";
+                        pilotoEscalaDisplayValue = "Pivot";
+                      } else if (pilotoEscalaStatus.includes("backlog")) {
+                        pilotoEscalaPillBg = "bg-orange-100 border-orange-300";
+                        pilotoEscalaTextColor = "text-orange-800";
+                        pilotoEscalaDisplayValue = "Backlog";
                       } else {
-                        icon = <Lightbulb className="w-4 h-4 text-gray-400" />;
-                        badgeColor = "bg-gray-100/60 border-gray-300";
-                        textColor = "text-gray-700";
-                        displayValue =
+                        pilotoEscalaPillBg = "bg-gray-100 border-gray-300";
+                        pilotoEscalaTextColor = "text-gray-700";
+                        pilotoEscalaDisplayValue =
                           typeof value === "string" && value !== ""
                             ? value
                             : "Não iniciado";
                       }
                       cellContent = (
                         <span
-                          className={`inline-flex items-center gap-2 px-4 py-1 rounded-full shadow border ${badgeColor} font-bold text-sm ${textColor} transition-all duration-300`}
+                          className={`font-bold text-sm ${pilotoEscalaPillBg} ${pilotoEscalaTextColor} border rounded-full px-4 py-1 shadow-sm transition-all duration-300`}
                           style={{
                             fontFamily: "Segoe UI, Arial, sans-serif",
                             minWidth: 140,
@@ -665,10 +667,10 @@ export function ExperimentTable({
                             display: "inline-flex",
                           }}
                         >
-                          {icon}
-                          {displayValue}
+                          {pilotoEscalaDisplayValue}
                         </span>
                       );
+                      // Remove duplicated misplaced style and pill rendering block
                     } else {
                       cellContent =
                         typeof value === "string" || typeof value === "number"
