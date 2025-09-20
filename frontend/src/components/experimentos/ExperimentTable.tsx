@@ -85,8 +85,9 @@ export function ExperimentTable({
 
   // Opções fixas para filtros das colunas específicas
   const fixedOptions: Record<string, string[]> = {
-    Ideia: ["Backlog", "Em Prospecção", "Concluído"],
-    Oportunidade: ["Backlog", "Em Prospecção", "Concluído"],
+    Ideia: ["Backlog", "Em Prospecção", "Concluído", "Não Iniciado"],
+    Problema: ["Backlog", "Em Prospecção", "Concluído", "Não Iniciado"],
+    Oportunidade: ["Backlog", "Em Prospecção", "Concluído", "Não Iniciado"],
     Experimentação: [
       "Arquivado",
       "Concluido",
@@ -106,6 +107,18 @@ export function ExperimentTable({
   const mergedOptionsMap = { ...optionsMap };
   Object.entries(fixedOptions).forEach(([col, opts]) => {
     mergedOptionsMap[col] = opts;
+  });
+  // Garante que colunas compostas como 'Ideia / Problema / Oportunidade' também recebam as opções fixas
+  columns.forEach((col) => {
+    if (/ideia|problema|oportunidade/i.test(col) && !mergedOptionsMap[col]) {
+      mergedOptionsMap[col] = [
+        "Backlog",
+        "Em Prospecção",
+        "Concluído",
+        "Não Iniciado",
+      ];
+    }
+    // fim do forEach para colunas compostas
   });
 
   // Filtragem e ordenação das linhas
@@ -411,7 +424,7 @@ export function ExperimentTable({
                             onClick={() =>
                               setColFilters((prev) => ({
                                 ...prev,
-                                [col]: [...(optionsMap[col] || [])],
+                                [col]: [...(mergedOptionsMap[col] || [])],
                               }))
                             }
                           >

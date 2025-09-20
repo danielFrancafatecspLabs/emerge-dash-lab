@@ -7,7 +7,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { useExperimentos } from "@/hooks/useExperimentos";
-import { ExperimentFunnelChart } from "@/components/charts/ExperimentFunnelChart";
+// import { ExperimentFunnelChart } from "@/components/charts/ExperimentFunnelChart";
+import ExperimentFunnelCard from "../components/charts/ExperimentFunnelCard";
 import { ExperimentTypeChart } from "@/components/charts/ExperimentTypeChart";
 import { InitiativesByTeamChart } from "@/components/charts/InitiativesByTeamChart";
 import { MonthlyExperimentsChart } from "@/components/charts/MonthlyExperimentsChart";
@@ -326,58 +327,7 @@ const VisaoConsolidada = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <ExperimentFunnelChart
-                stages={[
-                  {
-                    name: "Ideias geradas",
-                    value: data.length,
-                    color: "#f43f5e",
-                  },
-                  {
-                    name: "Aprovados no critério de seleção",
-                    value: data.filter(
-                      (item) =>
-                        typeof item["Ideia / Problema / Oportunidade"] ===
-                          "string" &&
-                        ["concluído", "concluido"].includes(
-                          item["Ideia / Problema / Oportunidade"].toLowerCase()
-                        )
-                    ).length,
-                    color: "#fbbf24",
-                  },
-                  {
-                    name: "Experimentos Concluídos",
-                    value: data.filter(
-                      (item) =>
-                        typeof item["Experimentação"] === "string" &&
-                        item["Experimentação"]
-                          .toLowerCase()
-                          .includes("concluido")
-                    ).length,
-                    color: "#fde68a",
-                  },
-                  {
-                    name: "Piloto Concluídos",
-                    value: data.filter(
-                      (item) =>
-                        typeof item["Piloto"] === "string" &&
-                        ["concluido", "em andamento"].some((s) =>
-                          (item["Piloto"] as string).toLowerCase().includes(s)
-                        )
-                    ).length,
-                    color: "#4ade80",
-                  },
-                  {
-                    name: "Projeto / Produto",
-                    value: data.filter(
-                      (item) =>
-                        typeof item["Escala"] === "string" &&
-                        item["Escala"].toLowerCase().includes("produtização")
-                    ).length,
-                    color: "#2563eb",
-                  },
-                ]}
-              />
+              <ExperimentFunnelCard />
             </CardContent>
           </Card>
 
