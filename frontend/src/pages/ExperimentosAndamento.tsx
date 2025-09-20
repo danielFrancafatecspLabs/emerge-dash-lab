@@ -32,6 +32,7 @@ import {
 } from "recharts";
 import { Upload, Download, Filter, Search } from "lucide-react";
 import { toast } from "sonner";
+import { ExperimentEditModal } from "@/components/experimentos/ExperimentEditModal";
 
 const statusLabels = [
   {
@@ -729,9 +730,27 @@ const ExperimentosAndamento = () => {
                   <DialogContent className="max-w-3xl w-full">
                     {modalExperiment && (
                       <div className="w-full">
-                        <ExperimentDetailCard
-                          experiment={modalExperiment}
-                          onClose={() => setModalOpen(false)}
+                        <ExperimentEditModal
+                          open={modalOpen}
+                          columns={Object.keys(modalExperiment || {})}
+                          editData={modalExperiment as Record<string, string>}
+                          onChange={(key, value) => {
+                            if (!modalExperiment) return;
+                            setModalExperiment({
+                              ...modalExperiment,
+                              [key]: value,
+                            });
+                          }}
+                          onCancel={() => setModalOpen(false)}
+                          onSave={() => {
+                            // Salvar no backend se necessário
+                            setModalOpen(false);
+                          }}
+                          onDelete={() => {
+                            // Implementar lógica de exclusão se necessário
+                            setModalOpen(false);
+                          }}
+                          optionsMap={{}}
                         />
                       </div>
                     )}
