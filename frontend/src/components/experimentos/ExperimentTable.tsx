@@ -54,6 +54,13 @@ interface ExperimentTableProps {
   setFiltered: (data: Experiment[]) => void;
 }
 
+function getDesenvolvedorResp(row: Experiment): string {
+  // Retorna o valor da coluna 'Desenvolvedor Resp.' ou uma string padrão
+  return typeof row["Desenvolvedor Resp."] === "string"
+    ? row["Desenvolvedor Resp."] as string
+    : "Não definido";
+}
+
 export function ExperimentTable({
   columns,
   data,
@@ -465,62 +472,24 @@ export function ExperimentTable({
                     </button>
                   </TableCell>
                   {columnsOrdered.map((col) => {
-                    // Renderização especial para coluna 'Tamanho do Experimento'
-                    if (col === "Tamanho do Experimento") {
-                      // Se estiver em modo edição, mostra select, senão mostra valor ou 'Não Estimado'
-                      // Suporta tanto 'tamanho' quanto 'Tamanho do Experimento' vindos do backend
-                      let value = "";
-                      if (typeof row.tamanho === "string" && row.tamanho) {
-                        value = row.tamanho;
-                      } else if (
-                        typeof row["Tamanho do Experimento"] === "string" &&
-                        row["Tamanho do Experimento"]
-                      ) {
-                        value = row["Tamanho do Experimento"];
-                      }
-                      if (row._editMode) {
-                        return (
-                          <TableCell key={col}>
-                            <select
-                              value={value}
-                              onChange={async (e) => {
-                                const novo = {
-                                  ...row,
-                                  tamanho: e.target.value,
-                                };
-                                await handleEdit(novo); // Atualiza no backend
-                              }}
-                              className="border rounded px-2 py-1 text-sm"
-                            >
-                              <option value="">Não Estimado</option>
-                              <option value="P">P</option>
-                              <option value="M">M</option>
-                              <option value="G">G</option>
-                            </select>
-                          </TableCell>
-                        );
-                      } else {
-                        return (
-                          <TableCell key={col}>
-                            {value ? (
-                              <span>{value}</span>
-                            ) : (
-                              <span className="text-gray-400 italic">
-                                Não Estimado
-                              </span>
-                            )}
-                          </TableCell>
-                        );
-                      }
+                    // Cell rendering logic
+                    if (col === "Desenvolvedor Resp.") {
+                      return (
+                        <TableCell key={col}>
+                          {getDesenvolvedorResp(row)}
+                        </TableCell>
+                      );
                     }
+
+                    const value = row[col];
                     const isExperimentacaoCol = /experimenta/i.test(col);
                     const isPilotoCol = /piloto/i.test(col);
                     const isEscalaCol = /escala/i.test(col);
                     const isIdeiaProblemaOportunidade =
                       /(ideia|problema|oportunidade)/i.test(col);
                     const isIniciativaCol = /iniciativa/i.test(col);
-                    const value = row[col];
-                    let cellContent;
+
+                    let cellContent: React.ReactNode = null;
 
                     if (col === "Sinal") {
                       let val = value;
@@ -571,7 +540,6 @@ export function ExperimentTable({
                         </span>
                       );
                     } else if (isExperimentacaoCol) {
-                      // Merge both blocks: show status pill for Experimentação
                       const status =
                         typeof value === "string"
                           ? value.trim().toLowerCase()
@@ -698,13 +666,27 @@ export function ExperimentTable({
                           {pilotoEscalaDisplayValue}
                         </span>
                       );
-                      // Remove duplicated misplaced style and pill rendering block
+                    } else if (Array.isArray(value)) {
+                      cellContent = (
+                        <span>
+                          {value
+                            .map(
+                              (hist: ExperimentHistory) =>
+                                `${hist.texto} (${hist.data})`
+                            )
+                            .join(", ")}
+                        </span>
+                      );
+                    } else if (value) {
+                      cellContent = <span>{String(value)}</span>;
                     } else {
-                      cellContent =
-                        typeof value === "string" || typeof value === "number"
-                          ? value
-                          : "";
+                      cellContent = (
+                        <span className="text-gray-400 italic">
+                          Sem dados
+                        </span>
+                      );
                     }
+
                     return <TableCell key={col}>{cellContent}</TableCell>;
                   })}
                 </TableRow>
