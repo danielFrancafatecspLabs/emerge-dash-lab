@@ -26,7 +26,7 @@ export function ExperimentEditModal({
   if (!open || !editData) return null;
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 transition-all duration-500 ease-in-out">
-      <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-4xl flex flex-col border-2 border-[#7a0019]/30 relative animate-modal-pop">
+      <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-lg md:max-w-2xl lg:max-w-4xl xl:max-w-6xl flex flex-col border-2 border-[#7a0019]/30 relative animate-modal-pop">
         <button
           onClick={onCancel}
           className="absolute top-4 right-4 text-[#7a0019] bg-white rounded-full p-2 shadow hover:bg-rose-50 transition"
