@@ -528,6 +528,13 @@ export function ExperimentTable({
                           <Lightbulb className="w-4 h-4 text-[#eab308] animate-pulse" />
                         );
                       }
+                      const MAX_INICIATIVA_CHARS = 32;
+                      let iniciativaText =
+                        typeof value === "string" ? value : "Sem iniciativa";
+                      if (iniciativaText.length > MAX_INICIATIVA_CHARS) {
+                        iniciativaText =
+                          iniciativaText.slice(0, MAX_INICIATIVA_CHARS) + "...";
+                      }
                       cellContent = (
                         <span
                           className={`inline-flex items-center gap-2 px-4 py-1 rounded-full shadow-lg border-2 border-[#7a0019]/30 font-bold text-sm ${badgeColor} ${textColor} transition-all duration-300`}
@@ -539,7 +546,7 @@ export function ExperimentTable({
                           }}
                         >
                           {icon}
-                          {typeof value === "string" ? value : "Sem iniciativa"}
+                          {iniciativaText}
                         </span>
                       );
                     } else if (isExperimentacaoCol) {
