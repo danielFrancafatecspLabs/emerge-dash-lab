@@ -455,8 +455,16 @@ export function ExperimentTable({
                     // Renderização especial para coluna 'Tamanho do Experimento'
                     if (col === "Tamanho do Experimento") {
                       // Se estiver em modo edição, mostra select, senão mostra valor ou 'Não Estimado'
-                      const value =
-                        typeof row.tamanho === "string" ? row.tamanho : "";
+                      // Suporta tanto 'tamanho' quanto 'Tamanho do Experimento' vindos do backend
+                      let value = "";
+                      if (typeof row.tamanho === "string" && row.tamanho) {
+                        value = row.tamanho;
+                      } else if (
+                        typeof row["Tamanho do Experimento"] === "string" &&
+                        row["Tamanho do Experimento"]
+                      ) {
+                        value = row["Tamanho do Experimento"];
+                      }
                       if (row._editMode) {
                         return (
                           <TableCell key={col}>
