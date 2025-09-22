@@ -261,7 +261,7 @@ export default function ListaDeExperimentos() {
 
   const columns = useMemo(() => {
     if (!data || data.length === 0) return [];
-    const baseCols = Object.keys(data[0]).filter(
+    let baseCols = Object.keys(data[0]).filter(
       (col) => col !== "_id" && col !== "id" && !hiddenColumns.includes(col)
     );
     // Garante que 'Tamanho do Experimento' sempre aparece
@@ -271,6 +271,13 @@ export default function ListaDeExperimentos() {
     // Garante que 'Desenvolvedor Resp.' sempre aparece
     if (!baseCols.includes("Desenvolvedor Resp.")) {
       baseCols.push("Desenvolvedor Resp.");
+    }
+    // Adiciona a coluna statusPiloto se houver algum experimento em piloto
+    const hasPiloto = data.some(
+      (item) => typeof item["Piloto"] === "string" && item["Piloto"].trim() !== ""
+    );
+    if (hasPiloto && !baseCols.includes("statusPiloto")) {
+      baseCols.push("statusPiloto");
     }
     return baseCols;
   }, [data, hiddenColumns]);
@@ -431,7 +438,19 @@ export default function ListaDeExperimentos() {
           <>
             <ExperimentTable
               columns={columns}
-              data={filteredData}
+              data={filteredData.map((item) => {
+                // Adiciona o campo statusPiloto apenas para experimentos em piloto
+                if (
+                  typeof item["Piloto"] === "string" &&
+                  item["Piloto"].trim() !== ""
+                ) {
+                  return {
+                    ...item,
+                    statusPiloto: item["Piloto"],
+                  };
+                }
+                return item;
+              })}
               filtered={filteredData}
               hiddenColumns={hiddenColumns}
               toggleColumn={toggleColumn}

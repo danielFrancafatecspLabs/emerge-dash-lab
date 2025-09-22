@@ -317,7 +317,7 @@ const VisaoConsolidada = () => {
         </h3>
         {/* Filtro de ano para gráfico de experimentos por mês */}
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
           {/* Experimentos por Etapa */}
           <Card className="shadow-card">
             <CardHeader>
@@ -331,11 +331,11 @@ const VisaoConsolidada = () => {
             </CardContent>
           </Card>
 
-          {/* Piloto/Projeto por Tipo */}
-          <div className="grid grid-cols-1 gap-6">
+          {/* Piloto/Projeto por Tipo + Quantidade de Iniciativas por Time */}
+          <div className="flex flex-col gap-0 h-full justify-between" style={{height: '100%'}}>
             <Card
-              className="shadow-card"
-              style={{ minHeight: "320px", height: "320px" }}
+              className="shadow-card flex-1"
+              style={{ minHeight: "370px", height: "370px" }}
             >
               <CardHeader>
                 <CardTitle className="text-lg">
@@ -343,14 +343,13 @@ const VisaoConsolidada = () => {
                 </CardTitle>
                 <CardDescription>Categorização por tecnologia</CardDescription>
               </CardHeader>
-              <CardContent className="h-72">
+              <CardContent className="h-80 pt-8">
                 <ExperimentTypeChart data={experimentosPorTipo} />
               </CardContent>
             </Card>
-            <div className="h-8"></div>
             <Card
-              className="shadow-card"
-              style={{ minHeight: "320px", height: "320px" }}
+              className="shadow-card flex-1 mt-4"
+              style={{ minHeight: "370px", height: "370px" }}
             >
               <CardHeader>
                 <CardTitle className="text-lg">
@@ -358,7 +357,7 @@ const VisaoConsolidada = () => {
                 </CardTitle>
                 <CardDescription>Distribuição por time</CardDescription>
               </CardHeader>
-              <CardContent className="h-72">
+              <CardContent className="h-80 pt-8">
                 <InitiativesByTeamChart
                   data={(() => {
                     if (!data) return [];
