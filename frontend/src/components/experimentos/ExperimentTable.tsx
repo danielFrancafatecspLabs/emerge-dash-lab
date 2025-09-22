@@ -108,6 +108,7 @@ export function ExperimentTable({
       "Em Validação",
     ],
     Piloto: ["Não iniciado", "Em andamento", "Concluido"],
+    Escala: ["Não iniciado", "Em andamento", "Concluido", "Arquivado", "Pivot", "Backlog"],
   };
 
   // Sobrescreve optionsMap para as colunas fixas
@@ -477,6 +478,44 @@ export function ExperimentTable({
                       return (
                         <TableCell key={col}>
                           {getDesenvolvedorResp(row)}
+                        </TableCell>
+                      );
+                    }
+
+                    // Nova coluna statusPiloto
+                    if (col === "statusPiloto") {
+                      const value = row["statusPiloto"];
+                      let bg = "bg-gray-100 border-gray-300";
+                      let text = "text-gray-700";
+                      let label = typeof value === "string" ? value : "-";
+                      if (typeof value === "string") {
+                        const v = value.trim().toLowerCase();
+                        // Remove estilização especial para 'concluído', 'em andamento', 'em validação'
+                        if (v.includes("não iniciado")) {
+                          bg = "bg-gray-50 border-gray-200";
+                          text = "text-gray-500";
+                          label = "Não iniciado";
+                        } else if (v.includes("arquivado")) {
+                          bg = "bg-gray-100 border-gray-300";
+                          text = "text-gray-700";
+                          label = "Arquivado";
+                        }
+                        // Para os demais, mantém padrão neutro
+                        // label já é o valor original
+                      }
+                      return (
+                        <TableCell key={col}>
+                          <span
+                            className={`font-bold text-sm ${bg} ${text} border rounded-full px-4 py-1 shadow-sm transition-all duration-300`}
+                            style={{
+                              fontFamily: "Segoe UI, Arial, sans-serif",
+                              minWidth: 120,
+                              justifyContent: "center",
+                              display: "inline-flex",
+                            }}
+                          >
+                            {label}
+                          </span>
                         </TableCell>
                       );
                     }

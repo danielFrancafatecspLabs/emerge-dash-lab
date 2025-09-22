@@ -147,20 +147,36 @@ const PilotosEmAndamento = () => {
         </CardHeader>
         <CardContent>
           <div className="flex flex-wrap items-center gap-4 p-4">
-            {pilotoStages.map((stage, index) => (
-              <div key={stage.key} className="flex items-center">
-                <div
-                  className={`relative flex flex-col items-center p-4 rounded-lg border-2 min-w-[140px] transition ${stage.color}`}
-                >
-                  <div className="text-xs text-center font-medium text-foreground">
-                    {stage.key}
-                  </div>
+            {pilotoStages.map((stage, index) => {
+              // Conta quantos pilotos estão em cada etapa
+              const count = data.filter(
+                (item) =>
+                  typeof item["Piloto"] === "string" &&
+                  item["Piloto"].trim().toLowerCase() === stage.key.trim().toLowerCase()
+              ).length;
+              return (
+                <div key={stage.key} className="flex items-center">
+                  <button
+                    className={`relative flex flex-col items-center p-4 rounded-lg border-2 min-w-[140px] cursor-pointer transition hover:scale-105 ${stage.color}`}
+                    onClick={() => {
+                      setSelectedStatus(stage.key);
+                      setStatusModalOpen(true);
+                    }}
+                    aria-label={`Ver pilotos com status ${stage.key}`}
+                  >
+                    <div className="text-2xl font-bold mb-1">
+                      {count}
+                    </div>
+                    <div className="text-xs text-center font-medium text-foreground">
+                      {stage.key}
+                    </div>
+                  </button>
+                  {index < pilotoStages.length - 1 && (
+                    <div className="w-8 h-px bg-border mx-2" />
+                  )}
                 </div>
-                {index < pilotoStages.length - 1 && (
-                  <div className="w-8 h-px bg-border mx-2" />
-                )}
-              </div>
-            ))}
+              );
+            })}
           </div>
         </CardContent>
       </Card>
