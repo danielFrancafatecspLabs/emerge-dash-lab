@@ -24,6 +24,10 @@ class ExperimentoService {
     if (data.desenvolvedorResp && typeof data.desenvolvedorResp === "string") {
       data.desenvolvedorResp = data.desenvolvedorResp;
     }
+    // Aceita campo statusPiloto
+    if (typeof data.statusPiloto === "string") {
+      data.statusPiloto = data.statusPiloto;
+    }
     const novo = new Experimento(data);
     return novo.save();
   }
@@ -36,6 +40,10 @@ class ExperimentoService {
     // Aceita campo desenvolvedorResp
     if (data.desenvolvedorResp && typeof data.desenvolvedorResp === "string") {
       data.desenvolvedorResp = data.desenvolvedorResp;
+    }
+    // Aceita campo statusPiloto
+    if (typeof data.statusPiloto === "string") {
+      data.statusPiloto = data.statusPiloto;
     }
     return Experimento.findByIdAndUpdate(id, data, { new: true });
   }

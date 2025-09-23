@@ -287,60 +287,98 @@ const PilotosEmAndamento = () => {
                     Status
                   </th>
                   <th className="text-left p-3 font-medium text-muted-foreground">
+                    statusPiloto
+                  </th>
+                  <th className="text-left p-3 font-medium text-muted-foreground">
                     Situação Atual e Próximos passos
                   </th>
                 </tr>
               </thead>
               <tbody>
-                {andamento.map((item, idx) => (
-                  <tr
-                    key={
-                      typeof item["Iniciativa"] === "string"
-                        ? item["Iniciativa"]
-                        : idx
+                {andamento.map((item, idx) => {
+                  // statusPiloto: se Iniciativa === 'Busca Avançada (TV)' ou 'Busca Avançada(TV)' e Piloto === 'Em andamento', mostrar '2.0', senão 'Não definido'
+                  let statusPiloto = "Não definido";
+                  const isBuscaAvancada =
+                    typeof item["Iniciativa"] === "string" &&
+                    ["Busca Avançada(TV)", "Busca Avançada (TV)"].includes(item["Iniciativa"].trim());
+                  const isEmAndamento =
+                    typeof item["Piloto"] === "string" &&
+                    normalizeStatus(item["Piloto"]) === "em andamento";
+                  if (isBuscaAvancada && isEmAndamento) {
+                    statusPiloto = "2.0";
+                    // Atualiza o backend se necessário
+                    if (item["statusPiloto"] !== "2.0" && item._id) {
+                      fetch(`/api/experimentos/${item._id}`, {
+                        method: "PUT",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ statusPiloto: "2.0" }),
+                      });
+                      item["statusPiloto"] = "2.0";
                     }
-                    className="border-b hover:bg-muted/50 cursor-pointer"
-                    onClick={() => {
-                      setModalTitulo(typeof item["Iniciativa"] === "string" ? item["Iniciativa"] : "");
-                      setModalDescricao(typeof item["Descrição"] === "string" ? item["Descrição"] : "Sem descrição disponível.");
-                      setModalOpen(true);
-                    }}
-                  >
-                    <td className="p-3">
-                      <Badge variant="secondary">
-                        {typeof item["Área"] === "string" ? item["Área"] : ""}
-                      </Badge>
-                    </td>
-                    <td className="p-3 font-medium">
-                      {typeof item["Iniciativa"] === "string"
-                        ? item["Iniciativa"]
-                        : ""}
-                    </td>
-                    <td className="p-3">
-                      {typeof item["Sponsor/BO"] === "string"
-                        ? item["Sponsor/BO"]
-                        : ""}
-                    </td>
-                    <td className="p-3">
-                      <Badge className="bg-lab-success/10 text-lab-success border-lab-success">
-                        {typeof item["Piloto"] === "string"
-                          ? item["Piloto"]
+                  } else if (item["statusPiloto"] !== "Não definido" && item._id) {
+                    // Se não for busca avançada, zera o campo se necessário
+                    fetch(`/api/experimentos/${item._id}`, {
+                      method: "PUT",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ statusPiloto: "Não definido" }),
+                    });
+                    item["statusPiloto"] = "Não definido";
+                  }
+                  return (
+                    <tr
+                      key={
+                        typeof item["Iniciativa"] === "string"
+                          ? item["Iniciativa"]
+                          : idx
+                      }
+                      className="border-b hover:bg-muted/50 cursor-pointer"
+                      onClick={() => {
+                        setModalTitulo(typeof item["Iniciativa"] === "string" ? item["Iniciativa"] : "");
+                        setModalDescricao(typeof item["Descrição"] === "string" ? item["Descrição"] : "Sem descrição disponível.");
+                        setModalOpen(true);
+                      }}
+                    >
+                      <td className="p-3">
+                        <Badge variant="secondary">
+                          {typeof item["Área"] === "string" ? item["Área"] : ""}
+                        </Badge>
+                      </td>
+                      <td className="p-3 font-medium">
+                        {typeof item["Iniciativa"] === "string"
+                          ? item["Iniciativa"]
                           : ""}
-                      </Badge>
-                    </td>
-                    <td className="p-3 text-sm text-muted-foreground">
-                      {typeof item["Situação Atual e Próximos passos"] ===
-                      "string" ? (
-                        <span>{item["Situação Atual e Próximos passos"]}</span>
-                      ) : typeof item["Situacao Atual e Proximos passos"] ===
+                      </td>
+                      <td className="p-3">
+                        {typeof item["Sponsor/BO"] === "string"
+                          ? item["Sponsor/BO"]
+                          : ""}
+                      </td>
+                      <td className="p-3">
+                        <Badge className="bg-lab-success/10 text-lab-success border-lab-success">
+                          {typeof item["Piloto"] === "string"
+                            ? item["Piloto"]
+                            : ""}
+                        </Badge>
+                      </td>
+                      <td className="p-3">
+                        <Badge className="bg-gray-100 text-gray-700 border-gray-300">
+                          {statusPiloto}
+                        </Badge>
+                      </td>
+                      <td className="p-3 text-sm text-muted-foreground">
+                        {typeof item["Situação Atual e Próximos passos"] ===
                         "string" ? (
-                        <span>{item["Situacao Atual e Proximos passos"]}</span>
-                      ) : typeof item["Situacao Atual"] === "string" ? (
-                        <span>{item["Situacao Atual"]}</span>
-                      ) : null}
-                    </td>
-                  </tr>
-                ))}
+                          <span>{item["Situação Atual e Próximos passos"]}</span>
+                        ) : typeof item["Situacao Atual e Proximos passos"] ===
+                          "string" ? (
+                          <span>{item["Situacao Atual e Proximos passos"]}</span>
+                        ) : typeof item["Situacao Atual"] === "string" ? (
+                          <span>{item["Situacao Atual"]}</span>
+                        ) : null}
+                      </td>
+                    </tr>
+                  );
+                })}
                 {/* Modal de descrição do piloto */}
                 <Dialog open={modalOpen} onOpenChange={setModalOpen}>
                   <DialogContent>

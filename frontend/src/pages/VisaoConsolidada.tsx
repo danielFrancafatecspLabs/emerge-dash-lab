@@ -358,31 +358,38 @@ const VisaoConsolidada = () => {
                 <CardDescription>Distribuição por time</CardDescription>
               </CardHeader>
               <CardContent className="h-80 pt-8">
-                <InitiativesByTeamChart
-                  data={(() => {
-                    if (!data) return [];
-                    // Agrupa por time, contando iniciativas únicas
-                    const teamCount: Record<string, number> = {};
-                    data.forEach((item) => {
-                      const team =
-                        typeof item["Times"] === "string"
-                          ? item["Times"]
-                          : "Outro";
-                      const idea =
-                        typeof item["Ideia / Problema / Oportunidade"] ===
-                        "string"
-                          ? item["Ideia / Problema / Oportunidade"]
-                          : "";
-                      if (team && idea) {
-                        teamCount[team] = (teamCount[team] || 0) + 1;
-                      }
-                    });
-                    return Object.entries(teamCount).map(([name, value]) => ({
-                      name,
-                      value,
-                    }));
-                  })()}
-                />
+                {/* Scroll horizontal igual EficienciaOperacional */}
+                {(() => {
+                  if (!data) return null;
+                  // Agrupa por time, contando iniciativas únicas
+                  const teamCount: Record<string, number> = {};
+                  data.forEach((item) => {
+                    const team =
+                      typeof item["Times"] === "string"
+                        ? item["Times"]
+                        : "Outro";
+                    const idea =
+                      typeof item["Ideia / Problema / Oportunidade"] === "string"
+                        ? item["Ideia / Problema / Oportunidade"]
+                        : "";
+                    if (team && idea) {
+                      teamCount[team] = (teamCount[team] || 0) + 1;
+                    }
+                  });
+                  const chartData = Object.entries(teamCount).map(([name, value]) => ({
+                    name,
+                    value,
+                  }));
+                  // minWidth dinâmico: 120px por time, mínimo 600px
+                  const minWidth = Math.max(600, chartData.length * 120);
+                  return (
+                    <div style={{ width: "100%", overflowX: "auto" }}>
+                      <div style={{ minWidth }}>
+                        <InitiativesByTeamChart data={chartData} />
+                      </div>
+                    </div>
+                  );
+                })()}
               </CardContent>
             </Card>
           </div>
