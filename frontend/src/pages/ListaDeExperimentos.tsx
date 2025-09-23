@@ -32,7 +32,6 @@ const BOARD_ICONS = {
   "Em planejamento": <Hourglass className="w-6 h-6 text-yellow-500" />,
   "Em refinamento": <Rocket className="w-6 h-6 text-purple-500" />,
   "Em andamento": <Briefcase className="w-6 h-6 text-green-500" />,
-  "Em Testes": <Users className="w-6 h-6 text-cyan-500" />,
   "Em validação": <CheckCircle2 className="w-6 h-6 text-indigo-500" />,
   Bloqueado: <AlertTriangle className="w-6 h-6 text-orange-500" />,
   Cancelado: <XCircle className="w-6 h-6 text-red-500" />,
@@ -149,7 +148,6 @@ const BOARD_COLUMNS = [
   { key: "Em planejamento", label: "Em planejamento", color: "bg-white" },
   { key: "Em refinamento", label: "Em refinamento", color: "bg-white" },
   { key: "Em andamento", label: "Em andamento", color: "bg-white" },
-  { key: "Em Testes", label: "Em Testes", color: "bg-white" },
   { key: "Em validação", label: "Em validação", color: "bg-white" },
   { key: "Bloqueado", label: "Bloqueado", color: "bg-white" },
   { key: "Cancelado", label: "Cancelado", color: "bg-white" },
@@ -309,17 +307,42 @@ export default function ListaDeExperimentos() {
 
   // Função chamada ao clicar no lápis
   const handleEdit = (row) => {
-    setEditData(row);
+    // Garante que o campo Desenvolvedor Resp. sempre existe no objeto editData
+    setEditData({
+      ...row,
+      ["Desenvolvedor Resp."]: row["Desenvolvedor Resp."] || ""
+    });
     setEditModalOpen(true);
   };
 
   // Função para salvar edição (exemplo, pode ser ajustada conforme backend)
+  // Função utilitária para converter para camelCase
+  function toCamelCase(str) {
+    // Tratamento especial para 'Desenvolvedor Resp.'
+    if (/^desenvolvedor resp\.?$/i.test(str.trim())) return "desenvolvedorResp";
+    return str
+      .replace(/^[^a-zA-Z0-9]+|[^a-zA-Z0-9]+$/g, "")
+      .replace(/([A-Z])/g, " $1")
+      .replace(/[-_\s.]+(.)?/g, (_, c) => (c ? c.toUpperCase() : ""))
+      .replace(/^(.)/, (m) => m.toLowerCase());
+  }
+
   const handleEditSave = () => {
     if (editData && editData._id) {
-      fetch(`http://localhost:3002/api/experimentos/${editData._id}`, {
+      // Converte as chaves para camelCase
+      const dataCamel = Object.keys(editData).reduce((acc, key) => {
+        // Força sempre o campo desenvolvedorResp no payload
+        if (/^desenvolvedor resp\.?$/i.test(key.trim())) {
+          acc["desenvolvedorResp"] = editData[key] || "";
+        } else {
+          acc[toCamelCase(key)] = editData[key];
+        }
+        return acc;
+      }, {});
+  fetch(`http://localhost:3002/api/experimentos/${editData._id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(editData),
+        body: JSON.stringify(dataCamel),
       }).then(async (res) => {
         if (res.ok) {
           const atualizado = await res.json();
