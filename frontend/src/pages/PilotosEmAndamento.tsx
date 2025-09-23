@@ -31,6 +31,19 @@ import {
 import { Upload, Download } from "lucide-react";
 import { toast } from "sonner";
 
+
+// Mapeamento de iniciativa para statusPiloto (deve vir antes de qualquer uso)
+const statusPilotoMap: Record<string, string> = {
+  "Gen Ia Formulários  (Onboarding / Offboarding)": "2.3 GO / NOGO",
+  "Análise de chamadas de Call Center ( Speech do Futuro) ( Alarme Situcional )": "2.2.2 HLE",
+  "Busca Avançada (TV)": "2.0 - EXECUÇÃO PILOTO",
+  "Copilot Atendimento": "2.5 - ROLL-OUT",
+  "Copilot de Atendimento": "2.5 - ROLL-OUT",
+  "URA e Call Center Cognitivo": "2.5 - ROLL-OUT",
+  "Consulta de pareceres jurídicos (JurisQuery)": "2.0 - EXECUÇÃO PILOTO",
+  "M365 ( CoPilot)": "2.0 - EXECUÇÃO PILOTO",
+};
+
 const pilotoStages = [
   { key: "2.0 - EXECUÇÃO PILOTO", color: "border-lab-primary text-lab-primary bg-lab-primary/10" },
   { key: "2.1 - APURAÇÃO DE RESULTADOS", color: "border-orange-600 text-orange-700 bg-orange-100" },
@@ -61,6 +74,27 @@ const statusLabels = [
     color: "border-green-600 text-green-700 bg-green-100",
   },
 ];
+
+// Função utilitária para obter statusPiloto igual em ListaDeExperimentos
+function getStatusPiloto(item) {
+  let statusPiloto = "";
+  if (typeof item["Iniciativa"] === "string") {
+    statusPiloto = statusPilotoMap[item["Iniciativa"].trim()] || "";
+    if (!statusPiloto) {
+      const iniNorm = item["Iniciativa"].trim().toLowerCase();
+      for (const key in statusPilotoMap) {
+        if (iniNorm.includes(key.trim().toLowerCase())) {
+          statusPiloto = statusPilotoMap[key];
+          break;
+        }
+      }
+    }
+    if (!statusPiloto && typeof item["statusPiloto"] === "string") {
+      statusPiloto = item["statusPiloto"];
+    }
+  }
+  return statusPiloto;
+}
 
 function normalizeStatus(status: string) {
   if (!status) return "";
@@ -96,14 +130,19 @@ const PilotosEmAndamento = () => {
     ).length;
   });
 
-  // Modal: filtrar pilotos pelo campo correto, normalizando
-  const pilotosForStatus = selectedStatus
-    ? data.filter(
-        (item) =>
-          typeof item["Piloto"] === "string" &&
-          normalizeStatus(item["Piloto"]) === normalizeStatus(selectedStatus)
-      )
-    : [];
+  // Modal: filtrar pilotos pelo statusPiloto (usando função utilitária)
+        const pilotosForStatus = selectedStatus
+          ? data.filter((item) => {
+              const statusPiloto = getStatusPiloto(item);
+              if (
+                selectedStatus.trim().toLowerCase() === "2.0 - execução piloto" &&
+                (item["Iniciativa"] === "Consulta de pareceres jurídicos (JurisQuery)" || item["Iniciativa"] === "M365 ( CoPilot)")
+              ) {
+                return false;
+              }
+              return statusPiloto && statusPiloto.trim().toLowerCase() === selectedStatus.trim().toLowerCase();
+            })
+          : [];
 
   // Gerar dados de área a partir da lista de pilotos
   const areaCounts: { [key: string]: number } = {};
@@ -181,21 +220,12 @@ const PilotosEmAndamento = () => {
             {pilotoStages.map((stage, index) => {
               // Conta quantos pilotos estão em cada etapa do statusPiloto
               const count = data.filter((item) => {
-                let statusPiloto = "";
-                if (typeof item["Iniciativa"] === "string") {
-                  statusPiloto = statusPilotoMap[item["Iniciativa"].trim()] || "";
-                  if (!statusPiloto) {
-                    const iniNorm = item["Iniciativa"].trim().toLowerCase();
-                    for (const key in statusPilotoMap) {
-                      if (iniNorm.includes(key.trim().toLowerCase())) {
-                        statusPiloto = statusPilotoMap[key];
-                        break;
-                      }
-                    }
-                  }
-                  if (!statusPiloto && typeof item["statusPiloto"] === "string") {
-                    statusPiloto = item["statusPiloto"];
-                  }
+                const statusPiloto = getStatusPiloto(item);
+                if (
+                  stage.key.trim().toLowerCase() === "2.0 - execução piloto" &&
+                  (item["Iniciativa"] === "Consulta de pareceres jurídicos (JurisQuery)" || item["Iniciativa"] === "M365 ( CoPilot)")
+                ) {
+                  return false;
                 }
                 return statusPiloto && statusPiloto.trim().toLowerCase() === stage.key.trim().toLowerCase();
               }).length;
