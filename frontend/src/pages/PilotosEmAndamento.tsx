@@ -31,6 +31,19 @@ import {
 import { Upload, Download } from "lucide-react";
 import { toast } from "sonner";
 
+
+// Mapeamento de iniciativa para statusPiloto (deve vir antes de qualquer uso)
+const statusPilotoMap: Record<string, string> = {
+  "Gen Ia Formulários  (Onboarding / Offboarding)": "2.3 GO / NOGO",
+  "Análise de chamadas de Call Center ( Speech do Futuro) ( Alarme Situcional )": "2.2.2 HLE",
+  "Busca Avançada (TV)": "2.0 - EXECUÇÃO PILOTO",
+  "Copilot Atendimento": "2.5 - ROLL-OUT",
+  "Copilot de Atendimento": "2.5 - ROLL-OUT",
+  "URA e Call Center Cognitivo": "2.5 - ROLL-OUT",
+  "Consulta de pareceres jurídicos (JurisQuery)": "2.0 - EXECUÇÃO PILOTO",
+  "M365 ( CoPilot)": "2.0 - EXECUÇÃO PILOTO",
+};
+
 const pilotoStages = [
   { key: "2.0 - EXECUÇÃO PILOTO", color: "border-lab-primary text-lab-primary bg-lab-primary/10" },
   { key: "2.1 - APURAÇÃO DE RESULTADOS", color: "border-orange-600 text-orange-700 bg-orange-100" },
@@ -61,6 +74,27 @@ const statusLabels = [
     color: "border-green-600 text-green-700 bg-green-100",
   },
 ];
+
+// Função utilitária para obter statusPiloto igual em ListaDeExperimentos
+function getStatusPiloto(item) {
+  let statusPiloto = "";
+  if (typeof item["Iniciativa"] === "string") {
+    statusPiloto = statusPilotoMap[item["Iniciativa"].trim()] || "";
+    if (!statusPiloto) {
+      const iniNorm = item["Iniciativa"].trim().toLowerCase();
+      for (const key in statusPilotoMap) {
+        if (iniNorm.includes(key.trim().toLowerCase())) {
+          statusPiloto = statusPilotoMap[key];
+          break;
+        }
+      }
+    }
+    if (!statusPiloto && typeof item["statusPiloto"] === "string") {
+      statusPiloto = item["statusPiloto"];
+    }
+  }
+  return statusPiloto;
+}
 
 function normalizeStatus(status: string) {
   if (!status) return "";
@@ -96,14 +130,19 @@ const PilotosEmAndamento = () => {
     ).length;
   });
 
-  // Modal: filtrar pilotos pelo campo correto, normalizando
-  const pilotosForStatus = selectedStatus
-    ? data.filter(
-        (item) =>
-          typeof item["Piloto"] === "string" &&
-          normalizeStatus(item["Piloto"]) === normalizeStatus(selectedStatus)
-      )
-    : [];
+  // Modal: filtrar pilotos pelo statusPiloto (usando função utilitária)
+        const pilotosForStatus = selectedStatus
+          ? data.filter((item) => {
+              const statusPiloto = getStatusPiloto(item);
+              if (
+                selectedStatus.trim().toLowerCase() === "2.0 - execução piloto" &&
+                (item["Iniciativa"] === "Consulta de pareceres jurídicos (JurisQuery)" || item["Iniciativa"] === "M365 ( CoPilot)")
+              ) {
+                return false;
+              }
+              return statusPiloto && statusPiloto.trim().toLowerCase() === selectedStatus.trim().toLowerCase();
+            })
+          : [];
 
   // Gerar dados de área a partir da lista de pilotos
   const areaCounts: { [key: string]: number } = {};
@@ -118,6 +157,37 @@ const PilotosEmAndamento = () => {
     name,
     value,
   }));
+
+
+  // Mapeamento de iniciativa para statusPiloto
+  const statusPilotoMap: Record<string, string> = {
+    "Gen Ia Formulários  (Onboarding / Offboarding)": "2.3 GO / NOGO",
+    "Análise de chamadas de Call Center ( Speech do Futuro) ( Alarme Situcional )": "2.2.2 HLE",
+    "Busca Avançada (TV)": "2.0 - EXECUÇÃO PILOTO",
+    "Copilot Atendimento": "2.5 - ROLL-OUT",
+    "Copilot de Atendimento": "2.5 - ROLL-OUT",
+    "URA e Call Center Cognitivo": "2.5 - ROLL-OUT",
+    "Consulta de pareceres jurídicos (JurisQuery)": "2.0 - EXECUÇÃO PILOTO",
+    "M365 ( CoPilot)": "2.0 - EXECUÇÃO PILOTO",
+  };
+
+  // Função para atualizar statusPiloto no backend se necessário
+  const updateStatusPilotoIfNeeded = async (item: any, statusPiloto: string) => {
+    if (!item._id) return;
+    if (item["statusPiloto"] !== statusPiloto) {
+      try {
+        await fetch(`/api/experimentos/${item._id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ statusPiloto }),
+        });
+        item["statusPiloto"] = statusPiloto;
+        setData([...data]);
+      } catch (e) {
+        // erro silencioso
+      }
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -148,12 +218,17 @@ const PilotosEmAndamento = () => {
         <CardContent>
           <div className="flex flex-wrap items-center gap-4 p-4">
             {pilotoStages.map((stage, index) => {
-              // Conta quantos pilotos estão em cada etapa
-              const count = data.filter(
-                (item) =>
-                  typeof item["Piloto"] === "string" &&
-                  item["Piloto"].trim().toLowerCase() === stage.key.trim().toLowerCase()
-              ).length;
+              // Conta quantos pilotos estão em cada etapa do statusPiloto
+              const count = data.filter((item) => {
+                const statusPiloto = getStatusPiloto(item);
+                if (
+                  stage.key.trim().toLowerCase() === "2.0 - execução piloto" &&
+                  (item["Iniciativa"] === "Consulta de pareceres jurídicos (JurisQuery)" || item["Iniciativa"] === "M365 ( CoPilot)")
+                ) {
+                  return false;
+                }
+                return statusPiloto && statusPiloto.trim().toLowerCase() === stage.key.trim().toLowerCase();
+              }).length;
               return (
                 <div key={stage.key} className="flex items-center">
                   <button
@@ -287,60 +362,94 @@ const PilotosEmAndamento = () => {
                     Status
                   </th>
                   <th className="text-left p-3 font-medium text-muted-foreground">
+                    statusPiloto
+                  </th>
+                  <th className="text-left p-3 font-medium text-muted-foreground">
                     Situação Atual e Próximos passos
                   </th>
                 </tr>
               </thead>
               <tbody>
-                {andamento.map((item, idx) => (
-                  <tr
-                    key={
-                      typeof item["Iniciativa"] === "string"
-                        ? item["Iniciativa"]
-                        : idx
+                {andamento.map((item, idx) => {
+                  // statusPiloto: definido automaticamente conforme a iniciativa
+                  let statusPiloto = "";
+                  if (typeof item["Iniciativa"] === "string") {
+                    // Busca exata
+                    statusPiloto = statusPilotoMap[item["Iniciativa"].trim()] || "";
+                    // Fallback: busca por includes (case-insensitive)
+                    if (!statusPiloto) {
+                      const iniNorm = item["Iniciativa"].trim().toLowerCase();
+                      for (const key in statusPilotoMap) {
+                        if (iniNorm.includes(key.trim().toLowerCase())) {
+                          statusPiloto = statusPilotoMap[key];
+                          break;
+                        }
+                      }
                     }
-                    className="border-b hover:bg-muted/50 cursor-pointer"
-                    onClick={() => {
-                      setModalTitulo(typeof item["Iniciativa"] === "string" ? item["Iniciativa"] : "");
-                      setModalDescricao(typeof item["Descrição"] === "string" ? item["Descrição"] : "Sem descrição disponível.");
-                      setModalOpen(true);
-                    }}
-                  >
-                    <td className="p-3">
-                      <Badge variant="secondary">
-                        {typeof item["Área"] === "string" ? item["Área"] : ""}
-                      </Badge>
-                    </td>
-                    <td className="p-3 font-medium">
-                      {typeof item["Iniciativa"] === "string"
-                        ? item["Iniciativa"]
-                        : ""}
-                    </td>
-                    <td className="p-3">
-                      {typeof item["Sponsor/BO"] === "string"
-                        ? item["Sponsor/BO"]
-                        : ""}
-                    </td>
-                    <td className="p-3">
-                      <Badge className="bg-lab-success/10 text-lab-success border-lab-success">
-                        {typeof item["Piloto"] === "string"
-                          ? item["Piloto"]
+                    // Se ainda não achou, mostra o valor real do campo
+                    if (!statusPiloto && typeof item["statusPiloto"] === "string") {
+                      statusPiloto = item["statusPiloto"];
+                    }
+                    // Atualiza backend se necessário
+                    if (statusPiloto && item["statusPiloto"] !== statusPiloto) {
+                      updateStatusPilotoIfNeeded(item, statusPiloto);
+                    }
+                  }
+                  return (
+                    <tr
+                      key={
+                        typeof item["Iniciativa"] === "string"
+                          ? item["Iniciativa"]
+                          : idx
+                      }
+                      className="border-b hover:bg-muted/50 cursor-pointer"
+                      onClick={() => {
+                        setModalTitulo(typeof item["Iniciativa"] === "string" ? item["Iniciativa"] : "");
+                        setModalDescricao(typeof item["Descrição"] === "string" ? item["Descrição"] : "Sem descrição disponível.");
+                        setModalOpen(true);
+                      }}
+                    >
+                      <td className="p-3">
+                        <Badge variant="secondary">
+                          {typeof item["Área"] === "string" ? item["Área"] : ""}
+                        </Badge>
+                      </td>
+                      <td className="p-3 font-medium">
+                        {typeof item["Iniciativa"] === "string"
+                          ? item["Iniciativa"]
                           : ""}
-                      </Badge>
-                    </td>
-                    <td className="p-3 text-sm text-muted-foreground">
-                      {typeof item["Situação Atual e Próximos passos"] ===
-                      "string" ? (
-                        <span>{item["Situação Atual e Próximos passos"]}</span>
-                      ) : typeof item["Situacao Atual e Proximos passos"] ===
+                      </td>
+                      <td className="p-3">
+                        {typeof item["Sponsor/BO"] === "string"
+                          ? item["Sponsor/BO"]
+                          : ""}
+                      </td>
+                      <td className="p-3">
+                        <Badge className="bg-lab-success/10 text-lab-success border-lab-success">
+                          {typeof item["Piloto"] === "string"
+                            ? item["Piloto"]
+                            : ""}
+                        </Badge>
+                      </td>
+                      <td className="p-3 min-w-[220px] max-w-xs">
+                        <Badge className="bg-gray-100 text-gray-700 border-gray-300 whitespace-pre-line break-words px-3 py-2 text-sm w-full justify-start text-left" style={{width: '100%', display: 'block'}}>
+                          {statusPiloto}
+                        </Badge>
+                      </td>
+                      <td className="p-3 text-sm text-muted-foreground">
+                        {typeof item["Situação Atual e Próximos passos"] ===
                         "string" ? (
-                        <span>{item["Situacao Atual e Proximos passos"]}</span>
-                      ) : typeof item["Situacao Atual"] === "string" ? (
-                        <span>{item["Situacao Atual"]}</span>
-                      ) : null}
-                    </td>
-                  </tr>
-                ))}
+                          <span>{item["Situação Atual e Próximos passos"]}</span>
+                        ) : typeof item["Situacao Atual e Proximos passos"] ===
+                          "string" ? (
+                          <span>{item["Situacao Atual e Proximos passos"]}</span>
+                        ) : typeof item["Situacao Atual"] === "string" ? (
+                          <span>{item["Situacao Atual"]}</span>
+                        ) : null}
+                      </td>
+                    </tr>
+                  );
+                })}
                 {/* Modal de descrição do piloto */}
                 <Dialog open={modalOpen} onOpenChange={setModalOpen}>
                   <DialogContent>

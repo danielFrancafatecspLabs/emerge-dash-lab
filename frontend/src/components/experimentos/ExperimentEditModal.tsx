@@ -1,6 +1,7 @@
 import React from "react";
 import { InlineDropdown } from "./InlineDropdown";
 import { Pencil, XCircle, CheckCircle2, Trash2 } from "lucide-react";
+import { DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
 interface ExperimentEditModalProps {
   open: boolean;
@@ -26,7 +27,18 @@ export function ExperimentEditModal({
   if (!open || !editData) return null;
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 transition-all duration-500 ease-in-out">
-      <div className="bg-white rounded-2xl shadow-2xl p-8 w-full max-w-lg md:max-w-2xl lg:max-w-4xl xl:max-w-6xl flex flex-col border-2 border-[#7a0019]/30 relative animate-modal-pop">
+      <div className="bg-white rounded-2xl shadow-2xl p-2 sm:p-4 md:p-6 w-full max-w-none min-w-0 md:min-w-[80vw] lg:min-w-[1000px] xl:min-w-[1200px] 2xl:min-w-[1400px] flex flex-col border-2 border-[#7a0019]/30 relative animate-modal-pop" style={{width:'96vw', maxWidth:'1600px'}}>
+        <DialogTitle asChild>
+          <div className="flex items-center gap-3 mb-6">
+            <Pencil className="w-8 h-8 text-[#7a0019]" />
+            <h2 className="text-2xl font-extrabold text-[#7a0019] tracking-tight">
+              Editar Experimento
+            </h2>
+          </div>
+        </DialogTitle>
+        <DialogDescription asChild>
+          <p className="mb-2 text-sm text-gray-600">Preencha ou edite os campos do experimento. Todos os campos obrigatórios devem ser preenchidos para salvar.</p>
+        </DialogDescription>
         <button
           onClick={onCancel}
           className="absolute top-4 right-4 text-[#7a0019] bg-white rounded-full p-2 shadow hover:bg-rose-50 transition"
@@ -34,6 +46,7 @@ export function ExperimentEditModal({
         >
           <XCircle className="w-6 h-6" />
         </button>
+<<<<<<< HEAD
         {/* DialogTitle para acessibilidade */}
         <div
           role="heading"
@@ -58,6 +71,9 @@ export function ExperimentEditModal({
           className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6"
           aria-describedby="edit-modal-desc"
         >
+=======
+  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+>>>>>>> f5568269a188ebfc19f376f66f8944d60ba319d5
           {/* Campo Desenvolvedor Resp. sempre visível */}
           <div className="flex flex-col">
             <label className="text-sm font-bold text-[#7a0019] mb-2 flex items-center gap-1">
