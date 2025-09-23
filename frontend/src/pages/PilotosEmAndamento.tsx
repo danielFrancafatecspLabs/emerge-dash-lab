@@ -119,6 +119,37 @@ const PilotosEmAndamento = () => {
     value,
   }));
 
+
+  // Mapeamento de iniciativa para statusPiloto
+  const statusPilotoMap: Record<string, string> = {
+    "Gen Ia Formulários  (Onboarding / Offboarding)": "2.3 GO / NOGO",
+    "Análise de chamadas de Call Center ( Speech do Futuro) ( Alarme Situcional )": "2.2.2 HLE",
+    "Busca Avançada (TV)": "2.0 - EXECUÇÃO PILOTO",
+    "Copilot Atendimento": "2.5 - ROLL-OUT",
+    "Copilot de Atendimento": "2.5 - ROLL-OUT",
+    "URA e Call Center Cognitivo": "2.5 - ROLL-OUT",
+    "Consulta de pareceres jurídicos (JurisQuery)": "2.0 - EXECUÇÃO PILOTO",
+    "M365 ( CoPilot)": "2.0 - EXECUÇÃO PILOTO",
+  };
+
+  // Função para atualizar statusPiloto no backend se necessário
+  const updateStatusPilotoIfNeeded = async (item: any, statusPiloto: string) => {
+    if (!item._id) return;
+    if (item["statusPiloto"] !== statusPiloto) {
+      try {
+        await fetch(`/api/experimentos/${item._id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ statusPiloto }),
+        });
+        item["statusPiloto"] = statusPiloto;
+        setData([...data]);
+      } catch (e) {
+        // erro silencioso
+      }
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -148,12 +179,26 @@ const PilotosEmAndamento = () => {
         <CardContent>
           <div className="flex flex-wrap items-center gap-4 p-4">
             {pilotoStages.map((stage, index) => {
-              // Conta quantos pilotos estão em cada etapa
-              const count = data.filter(
-                (item) =>
-                  typeof item["Piloto"] === "string" &&
-                  item["Piloto"].trim().toLowerCase() === stage.key.trim().toLowerCase()
-              ).length;
+              // Conta quantos pilotos estão em cada etapa do statusPiloto
+              const count = data.filter((item) => {
+                let statusPiloto = "";
+                if (typeof item["Iniciativa"] === "string") {
+                  statusPiloto = statusPilotoMap[item["Iniciativa"].trim()] || "";
+                  if (!statusPiloto) {
+                    const iniNorm = item["Iniciativa"].trim().toLowerCase();
+                    for (const key in statusPilotoMap) {
+                      if (iniNorm.includes(key.trim().toLowerCase())) {
+                        statusPiloto = statusPilotoMap[key];
+                        break;
+                      }
+                    }
+                  }
+                  if (!statusPiloto && typeof item["statusPiloto"] === "string") {
+                    statusPiloto = item["statusPiloto"];
+                  }
+                }
+                return statusPiloto && statusPiloto.trim().toLowerCase() === stage.key.trim().toLowerCase();
+              }).length;
               return (
                 <div key={stage.key} className="flex items-center">
                   <button
@@ -296,33 +341,29 @@ const PilotosEmAndamento = () => {
               </thead>
               <tbody>
                 {andamento.map((item, idx) => {
-                  // statusPiloto: se Iniciativa === 'Busca Avançada (TV)' ou 'Busca Avançada(TV)' e Piloto === 'Em andamento', mostrar '2.0', senão 'Não definido'
-                  let statusPiloto = "Não definido";
-                  const isBuscaAvancada =
-                    typeof item["Iniciativa"] === "string" &&
-                    ["Busca Avançada(TV)", "Busca Avançada (TV)"].includes(item["Iniciativa"].trim());
-                  const isEmAndamento =
-                    typeof item["Piloto"] === "string" &&
-                    normalizeStatus(item["Piloto"]) === "em andamento";
-                  if (isBuscaAvancada && isEmAndamento) {
-                    statusPiloto = "2.0";
-                    // Atualiza o backend se necessário
-                    if (item["statusPiloto"] !== "2.0" && item._id) {
-                      fetch(`/api/experimentos/${item._id}`, {
-                        method: "PUT",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ statusPiloto: "2.0" }),
-                      });
-                      item["statusPiloto"] = "2.0";
+                  // statusPiloto: definido automaticamente conforme a iniciativa
+                  let statusPiloto = "";
+                  if (typeof item["Iniciativa"] === "string") {
+                    // Busca exata
+                    statusPiloto = statusPilotoMap[item["Iniciativa"].trim()] || "";
+                    // Fallback: busca por includes (case-insensitive)
+                    if (!statusPiloto) {
+                      const iniNorm = item["Iniciativa"].trim().toLowerCase();
+                      for (const key in statusPilotoMap) {
+                        if (iniNorm.includes(key.trim().toLowerCase())) {
+                          statusPiloto = statusPilotoMap[key];
+                          break;
+                        }
+                      }
                     }
-                  } else if (item["statusPiloto"] !== "Não definido" && item._id) {
-                    // Se não for busca avançada, zera o campo se necessário
-                    fetch(`/api/experimentos/${item._id}`, {
-                      method: "PUT",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ statusPiloto: "Não definido" }),
-                    });
-                    item["statusPiloto"] = "Não definido";
+                    // Se ainda não achou, mostra o valor real do campo
+                    if (!statusPiloto && typeof item["statusPiloto"] === "string") {
+                      statusPiloto = item["statusPiloto"];
+                    }
+                    // Atualiza backend se necessário
+                    if (statusPiloto && item["statusPiloto"] !== statusPiloto) {
+                      updateStatusPilotoIfNeeded(item, statusPiloto);
+                    }
                   }
                   return (
                     <tr
@@ -360,8 +401,8 @@ const PilotosEmAndamento = () => {
                             : ""}
                         </Badge>
                       </td>
-                      <td className="p-3">
-                        <Badge className="bg-gray-100 text-gray-700 border-gray-300">
+                      <td className="p-3 min-w-[220px] max-w-xs">
+                        <Badge className="bg-gray-100 text-gray-700 border-gray-300 whitespace-pre-line break-words px-3 py-2 text-sm w-full justify-start text-left" style={{width: '100%', display: 'block'}}>
                           {statusPiloto}
                         </Badge>
                       </td>
