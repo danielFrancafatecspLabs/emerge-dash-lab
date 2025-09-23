@@ -24,6 +24,29 @@ class ExperimentoService {
     if (data.desenvolvedorResp && typeof data.desenvolvedorResp === "string") {
       data.desenvolvedorResp = data.desenvolvedorResp;
     }
+    // Força statusPiloto para URA e Call Center Cognitivo
+    if (typeof data.iniciativa === "string") {
+      const iniNorm = data.iniciativa.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase();
+      // Fallback para nome exato (com ou sem acento, maiúsculas/minúsculas)
+      const exatos = [
+        "ura e call center cognitivo",
+        "ura e callcenter cognitivo",
+        "ura & call center cognitivo",
+        "copilot atendimento"
+      ];
+      if (
+        exatos.includes(iniNorm.trim()) ||
+        (iniNorm.includes("ura") && iniNorm.includes("call center") && iniNorm.includes("cognitivo")) ||
+        iniNorm.includes("copilot atendimento") ||
+        iniNorm.includes("copiloto atendimento")
+      ) {
+        data.statusPiloto = "2.5 - ROLL-OUT";
+      }
+    }
+    // Aceita campo statusPiloto
+    if (typeof data.statusPiloto === "string") {
+      data.statusPiloto = data.statusPiloto;
+    }
     const novo = new Experimento(data);
     return novo.save();
   }
@@ -36,6 +59,26 @@ class ExperimentoService {
     // Aceita campo desenvolvedorResp
     if (data.desenvolvedorResp && typeof data.desenvolvedorResp === "string") {
       data.desenvolvedorResp = data.desenvolvedorResp;
+    }
+    // Força statusPiloto para URA e Call Center Cognitivo
+    if (typeof data.iniciativa === "string") {
+      const iniNorm = data.iniciativa.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase();
+      // Fallback para nome exato (com ou sem acento, maiúsculas/minúsculas)
+      const exatos = [
+        "ura e call center cognitivo",
+        "ura e callcenter cognitivo",
+        "ura & call center cognitivo"
+      ];
+      if (
+        exatos.includes(iniNorm.trim()) ||
+        (iniNorm.includes("ura") && iniNorm.includes("call center") && iniNorm.includes("cognitivo"))
+      ) {
+        data.statusPiloto = "2.5 - ROLL-OUT";
+      }
+    }
+    // Aceita campo statusPiloto
+    if (typeof data.statusPiloto === "string") {
+      data.statusPiloto = data.statusPiloto;
     }
     return Experimento.findByIdAndUpdate(id, data, { new: true });
   }

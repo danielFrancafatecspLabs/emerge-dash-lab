@@ -51,11 +51,6 @@ const statusLabels = [
     color: "border-lab-primary text-lab-primary bg-lab-primary/10",
   },
   {
-    key: "Em Testes",
-    label: "Em Testes",
-    color: "border-pink-600 text-pink-700 bg-pink-100",
-  },
-  {
     key: "Em validação",
     label: "Em Validação",
     color: "border-orange-600 text-orange-700 bg-orange-100",
