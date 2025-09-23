@@ -48,7 +48,34 @@ export function ExperimentEditModal({
         >
           <XCircle className="w-6 h-6" />
         </button>
+<<<<<<< HEAD
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+=======
+        {/* DialogTitle para acessibilidade */}
+        <div
+          role="heading"
+          aria-level={1}
+          className="flex items-center gap-3 mb-6"
+        >
+          <Pencil className="w-8 h-8 text-[#7a0019]" />
+          <span
+            className="text-2xl font-extrabold text-[#7a0019] tracking-tight"
+            id="edit-modal-title"
+          >
+            Editar Experimento
+          </span>
+        </div>
+        {/* DialogDescription para acessibilidade */}
+        <div className="mb-4" id="edit-modal-desc">
+          <span className="text-muted-foreground">
+            Edite os campos do experimento e salve as alterações.
+          </span>
+        </div>
+        <div
+          className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6"
+          aria-describedby="edit-modal-desc"
+        >
+>>>>>>> ca28ff6 (feat: improve accessibility in ExperimentEditModal with ARIA roles and descriptions)
           {/* Campo Desenvolvedor Resp. sempre visível */}
           <div className="flex flex-col">
             <label className="text-sm font-bold text-[#7a0019] mb-2 flex items-center gap-1">
