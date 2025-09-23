@@ -32,8 +32,7 @@ class ExperimentoService {
         "ura e call center cognitivo",
         "ura e callcenter cognitivo",
         "ura & call center cognitivo",
-        "copilot atendimento",
-        "copiloto atendimento"
+        "copilot atendimento"
       ];
       if (
         exatos.includes(iniNorm.trim()) ||
