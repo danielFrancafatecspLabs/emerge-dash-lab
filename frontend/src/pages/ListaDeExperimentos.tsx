@@ -1,3 +1,40 @@
+// Mapeamento de iniciativa para statusPiloto (igual PilotosEmAndamento)
+const statusPilotoMap = {
+  "Gen Ia Formulários  (Onboarding / Offboarding)": "2.3 GO / NOGO",
+  "Análise de chamadas de Call Center ( Speech do Futuro) ( Alarme Situcional )": "2.2.2 HLE",
+  "Busca Avançada (TV)": "2.0 - EXECUÇÃO PILOTO",
+  "Ura Cognitiva": "2.5 - ROLL-OUT",
+  "Copiloto de Atendimento": "2.5 - ROLL-OUT",
+  "Copiloto Atendimento": "2.5 - ROLL-OUT",
+  "Copilot Atendimento": "2.5 - ROLL-OUT",
+  "Copilot de Atendimento": "2.5 - ROLL-OUT",
+  "URA e Call Center Cognitivo": "2.5 - ROLL-OUT",
+  "Consulta de pareceres jurídicos (JurisQuery)": "2.0 - EXECUÇÃO PILOTO",
+  "M365 ( CoPilot)": "2.0 - EXECUÇÃO PILOTO",
+};
+
+function getStatusPiloto(item) {
+  if (typeof item["Iniciativa"] === "string" && item["Iniciativa"].trim() === "Agente de IA para Colaboradores") {
+    return "-";
+  }
+  let statusPiloto = "";
+  if (typeof item["Iniciativa"] === "string") {
+    statusPiloto = statusPilotoMap[item["Iniciativa"].trim()] || "";
+    if (!statusPiloto) {
+      const iniNorm = item["Iniciativa"].trim().toLowerCase();
+      for (const key in statusPilotoMap) {
+        if (iniNorm.includes(key.trim().toLowerCase())) {
+          statusPiloto = statusPilotoMap[key];
+          break;
+        }
+      }
+    }
+    if (!statusPiloto && typeof item["statusPiloto"] === "string") {
+      statusPiloto = item["statusPiloto"];
+    }
+  }
+  return statusPiloto || "-";
+}
 import React, { useState, useMemo } from "react";
 import {
   Briefcase,
@@ -462,14 +499,14 @@ export default function ListaDeExperimentos() {
             <ExperimentTable
               columns={columns}
               data={filteredData.map((item) => {
-                // Adiciona o campo statusPiloto apenas para experimentos em piloto
+                // Adiciona o campo statusPiloto igual PilotosEmAndamento
                 if (
                   typeof item["Piloto"] === "string" &&
                   item["Piloto"].trim() !== ""
                 ) {
                   return {
                     ...item,
-                    statusPiloto: item["Piloto"],
+                    statusPiloto: getStatusPiloto(item),
                   };
                 }
                 return item;
