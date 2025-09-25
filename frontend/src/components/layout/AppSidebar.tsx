@@ -5,6 +5,7 @@ import claroLogo from "@/assets/logo_claro.png";
 
 const navigationItems = [
   { title: "Visão Consolidada", url: "/", icon: BarChart3 },
+  { title: "Capacity", url: "/capacity", icon: Activity },
   {
     title: "Eficiência Operacional",
     url: "/eficiencia-operacional",

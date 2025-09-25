@@ -723,6 +723,13 @@ const ExperimentosAndamento = () => {
                 {/* Modal de detalhes do experimento */}
                 <Dialog open={modalOpen} onOpenChange={setModalOpen}>
                   <DialogContent className="max-w-3xl w-full">
+                    <DialogHeader>
+                      <DialogTitle>Editar Experimento</DialogTitle>
+                      <DialogDescription>
+                        Preencha ou edite os campos do experimento. Todos os
+                        campos obrigatórios devem ser preenchidos para salvar.
+                      </DialogDescription>
+                    </DialogHeader>
                     {modalExperiment && (
                       <div className="w-full">
                         <ExperimentEditModal
@@ -737,9 +744,37 @@ const ExperimentosAndamento = () => {
                             });
                           }}
                           onCancel={() => setModalOpen(false)}
-                          onSave={() => {
-                            // Salvar no backend se necessário
-                            setModalOpen(false);
+                          onSave={async () => {
+                            if (!modalExperiment?._id) return;
+                            try {
+                              const res = await fetch(
+                                `/api/experimentos/${modalExperiment._id}`,
+                                {
+                                  method: "PUT",
+                                  headers: {
+                                    "Content-Type": "application/json",
+                                  },
+                                  body: JSON.stringify(modalExperiment),
+                                }
+                              );
+                              if (res.ok) {
+                                const atualizado = await res.json();
+                                // Atualiza o estado local com o retorno do backend
+                                setData((prev) =>
+                                  prev.map((exp) =>
+                                    exp._id === atualizado._id
+                                      ? atualizado
+                                      : exp
+                                  )
+                                );
+                                toast.success("Alterações salvas com sucesso!");
+                                setModalOpen(false);
+                              } else {
+                                toast.error("Erro ao salvar alterações!");
+                              }
+                            } catch {
+                              toast.error("Erro ao salvar alterações!");
+                            }
                           }}
                           onDelete={() => {
                             // Implementar lógica de exclusão se necessário
