@@ -1,7 +1,8 @@
 // Mapeamento de iniciativa para statusPiloto (igual PilotosEmAndamento)
 const statusPilotoMap = {
   "Gen Ia Formulários  (Onboarding / Offboarding)": "2.3 GO / NOGO",
-  "Análise de chamadas de Call Center ( Speech do Futuro) ( Alarme Situcional )": "2.2.2 HLE",
+  "Análise de chamadas de Call Center ( Speech do Futuro) ( Alarme Situcional )":
+    "2.2.2 HLE",
   "Busca Avançada (TV)": "2.0 - EXECUÇÃO PILOTO",
   "Ura Cognitiva": "2.5 - ROLL-OUT",
   "Copiloto de Atendimeto": "2.5 - ROLL-OUT",
@@ -14,7 +15,10 @@ const statusPilotoMap = {
 };
 
 function getStatusPiloto(item) {
-  if (typeof item["Iniciativa"] === "string" && item["Iniciativa"].trim() === "Agente de IA para Colaboradores") {
+  if (
+    typeof item["Iniciativa"] === "string" &&
+    item["Iniciativa"].trim() === "Agente de IA para Colaboradores"
+  ) {
     return "-";
   }
   let statusPiloto = "";
@@ -58,6 +62,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from "../components/ui/dialog";
 import { ExperimentNewModal } from "../components/experimentos/ExperimentNewModal";
 import { useExperimentos } from "@/hooks/useExperimentos";
@@ -298,7 +303,7 @@ export default function ListaDeExperimentos() {
 
   const columns = useMemo(() => {
     if (!data || data.length === 0) return [];
-    let baseCols = Object.keys(data[0]).filter(
+    const baseCols = Object.keys(data[0]).filter(
       (col) => col !== "_id" && col !== "id" && !hiddenColumns.includes(col)
     );
     // Garante que 'Tamanho do Experimento' sempre aparece
@@ -311,7 +316,8 @@ export default function ListaDeExperimentos() {
     }
     // Adiciona a coluna statusPiloto se houver algum experimento em piloto
     const hasPiloto = data.some(
-      (item) => typeof item["Piloto"] === "string" && item["Piloto"].trim() !== ""
+      (item) =>
+        typeof item["Piloto"] === "string" && item["Piloto"].trim() !== ""
     );
     if (hasPiloto && !baseCols.includes("statusPiloto")) {
       baseCols.push("statusPiloto");
@@ -349,7 +355,7 @@ export default function ListaDeExperimentos() {
     // Garante que o campo Desenvolvedor Resp. sempre existe no objeto editData
     setEditData({
       ...row,
-      ["Desenvolvedor Resp."]: row["Desenvolvedor Resp."] || ""
+      ["Desenvolvedor Resp."]: row["Desenvolvedor Resp."] || "",
     });
     setEditModalOpen(true);
   };
@@ -416,9 +422,7 @@ export default function ListaDeExperimentos() {
         return acc;
       }, {});
       
-
-      
-  fetch(`http://localhost:3002/api/experimentos/${editData._id}`, {
+      fetch(`http://localhost:3002/api/experimentos/${editData._id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(dataCamel),
@@ -582,18 +586,29 @@ export default function ListaDeExperimentos() {
             />
             {/* Modal de edição */}
             {editModalOpen && (
-              <ExperimentEditModal
-                open={editModalOpen}
-                columns={columns}
-                editData={editData}
-                onChange={(key, value) =>
-                  setEditData((prev) => ({ ...prev, [key]: value }))
-                }
-                onCancel={handleEditCancel}
-                onSave={handleEditSave}
-                onDelete={handleEditCancel}
-                optionsMap={{}}
-              />
+              <Dialog open={editModalOpen} onOpenChange={handleEditCancel}>
+                <DialogContent className="max-w-2xl">
+                  <DialogHeader>
+                    <DialogTitle>Editar Experimento</DialogTitle>
+                    <DialogDescription>
+                      Preencha ou edite os campos do experimento. Todos os
+                      campos obrigatórios devem ser preenchidos para salvar.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <ExperimentEditModal
+                    open={editModalOpen}
+                    columns={columns}
+                    editData={editData}
+                    onChange={(key, value) =>
+                      setEditData((prev) => ({ ...prev, [key]: value }))
+                    }
+                    onCancel={handleEditCancel}
+                    onSave={handleEditSave}
+                    onDelete={handleEditCancel}
+                    optionsMap={{}}
+                  />
+                </DialogContent>
+              </Dialog>
             )}
           </>
         )}

@@ -41,7 +41,8 @@ export function ExperimentEditModal({
         >
           <XCircle className="w-6 h-6" />
         </button>
-  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           {/* Campo Desenvolvedor Resp. sempre visível */}
           <div className="flex flex-col">
             <label className="text-sm font-bold text-[#7a0019] mb-2 flex items-center gap-1">
