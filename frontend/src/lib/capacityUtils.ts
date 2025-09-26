@@ -77,5 +77,6 @@ export function calculateMonthlyCapacity(dev, year, month, hoursPerDay = 8) {
     totalUsed,
     percentUsed,
     experimentsCapacity,
+    capacidadeTotalMes: monthCapacity,
   };
 }
