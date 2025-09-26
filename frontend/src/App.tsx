@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { DashboardLayout } from "./components/layout/DashboardLayout";
 import VisaoConsolidada from "./pages/VisaoConsolidada";
+import Capacity from "./pages/Capacity";
 import EficienciaOperacional from "./pages/EficienciaOperacional";
 import Repositorio from "./pages/Repositorio";
 import ExperimentosAndamento from "./pages/ExperimentosAndamento";
@@ -67,6 +68,7 @@ const App = () => (
                     />
                     <Route path="/repositorio" element={<Repositorio />} />
                     <Route path="/sobre-nos" element={<SobreNos />} />
+                    <Route path="/capacity" element={<Capacity />} />
                     <Route path="*" element={<NotFound />} />
                   </Routes>
                 </DashboardLayout>

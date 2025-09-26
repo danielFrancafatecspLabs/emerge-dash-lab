@@ -133,7 +133,7 @@ const VisaoConsolidada = () => {
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold text-lab-primary mb-1">
-                R$ 69.850.000
+                R$ 38.100.000
               </div>
               <p className="text-sm text-muted-foreground">
                 Projeção anual consolidada
