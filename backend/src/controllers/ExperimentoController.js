@@ -1,4 +1,5 @@
 import ExperimentoService from "../services/ExperimentoService.js";
+import mongoose from "mongoose";
 
 class ExperimentoController {
   static async listar(req, res) {
@@ -21,13 +22,29 @@ class ExperimentoController {
 
   static async atualizar(req, res) {
     try {
+
+      
+      // Validar se o ID é um ObjectId válido
+      if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+        console.error("ID inválido:", req.params.id);
+        return res.status(400).json({ error: "ID do experimento inválido" });
+      }
+      
       const atualizado = await ExperimentoService.atualizar(
         req.params.id,
         req.body
       );
+      
+      if (!atualizado) {
+        return res.status(404).json({ error: "Experimento não encontrado" });
+      }
+      
       res.json(atualizado);
     } catch (err) {
-      res.status(500).json({ error: "Erro ao atualizar experimento." });
+      console.error("=== ERRO AO ATUALIZAR ===");
+      console.error("Erro:", err.message);
+      console.error("Stack:", err.stack);
+      res.status(500).json({ error: "Erro ao atualizar experimento.", details: err.message });
     }
   }
 
