@@ -112,11 +112,12 @@ const PilotosEmAndamento = () => {
   const [modalDescricao, setModalDescricao] = useState("");
   const [modalTitulo, setModalTitulo] = useState("");
 
-  // Filtrar pilotos em andamento
+  // Filtrar pilotos ativos: "Em andamento", "Não iniciado" e "Concluído"
+  const statusAtivos = ["em andamento", "nao iniciado", "concluido"];
   const andamento = data.filter(
     (item) =>
       typeof item["Piloto"] === "string" &&
-      normalizeStatus(item["Piloto"]) === "em andamento"
+      statusAtivos.includes(normalizeStatus(item["Piloto"]))
   );
 
   // Calcular statusCounts para cada statusLabel
@@ -374,21 +375,29 @@ const PilotosEmAndamento = () => {
                   // statusPiloto: definido automaticamente conforme a iniciativa
                   let statusPiloto = "";
                   if (typeof item["Iniciativa"] === "string") {
-                    // Busca exata
-                    statusPiloto = statusPilotoMap[item["Iniciativa"].trim()] || "";
-                    // Fallback: busca por includes (case-insensitive)
-                    if (!statusPiloto) {
-                      const iniNorm = item["Iniciativa"].trim().toLowerCase();
-                      for (const key in statusPilotoMap) {
-                        if (iniNorm.includes(key.trim().toLowerCase())) {
-                          statusPiloto = statusPilotoMap[key];
-                          break;
+                    // Força statusPiloto para os pilotos especificados
+                    if (
+                      item["Iniciativa"].trim() === "Otimização de Baterias - Ciclo 2" ||
+                      item["Iniciativa"].trim() === "Otimização de Baterias - Ciclo 1"
+                    ) {
+                      statusPiloto = "2.0 - EXECUÇÃO PILOTO";
+                    } else {
+                      // Busca exata
+                      statusPiloto = statusPilotoMap[item["Iniciativa"].trim()] || "";
+                      // Fallback: busca por includes (case-insensitive)
+                      if (!statusPiloto) {
+                        const iniNorm = item["Iniciativa"].trim().toLowerCase();
+                        for (const key in statusPilotoMap) {
+                          if (iniNorm.includes(key.trim().toLowerCase())) {
+                            statusPiloto = statusPilotoMap[key];
+                            break;
+                          }
                         }
                       }
-                    }
-                    // Se ainda não achou, mostra o valor real do campo
-                    if (!statusPiloto && typeof item["statusPiloto"] === "string") {
-                      statusPiloto = item["statusPiloto"];
+                      // Se ainda não achou, mostra o valor real do campo
+                      if (!statusPiloto && typeof item["statusPiloto"] === "string") {
+                        statusPiloto = item["statusPiloto"];
+                      }
                     }
                     // Atualiza backend se necessário
                     if (statusPiloto && item["statusPiloto"] !== statusPiloto) {
