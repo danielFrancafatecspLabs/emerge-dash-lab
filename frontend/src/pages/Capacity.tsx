@@ -6,7 +6,6 @@ import { CapacityHeader } from "@/components/capacity/CapacityHeader";
 import { CapacityFilterBar } from "@/components/capacity/CapacityFilterBar";
 import { CapacityDevModal } from "@/components/capacity/CapacityDevModal";
 import { CapacityDevHistory } from "@/components/capacity/CapacityDevHistory";
-import { CapacityDevCard } from "@/components/capacity/CapacityDevCard";
 
 // Mock data for demonstration
 const experiments = {
@@ -115,24 +114,202 @@ export default function Capacity() {
           />
         </div>
         <div className="mt-8">
-          <div className="grid grid-cols-1 gap-6">
-            {filteredDevs.map((dev, idx) => {
-              const cap = calculateMonthlyCapacity(
-                dev,
-                selectedYear,
-                selectedMonth
-              );
-              return (
-                <CapacityDevCard
-                  key={dev.nome}
-                  dev={dev}
-                  cap={cap}
-                  currentMonthName={currentMonthName}
-                  onDetails={() => setModalDev(dev)}
-                  onChart={() => alert("Em breve: gráfico de capacidade!")}
-                />
-              );
-            })}
+          <div className="overflow-x-auto rounded-xl shadow border border-gray-200 bg-white">
+            <table className="min-w-full text-center">
+              <thead>
+                <tr className="bg-gradient-to-r from-[#f3f4f6] to-[#e5e7eb]">
+                  <th className="py-4 px-6 text-left font-bold text-[#7a0019] border-b">
+                    Dev
+                  </th>
+                  <th className="py-4 px-6 font-bold text-[#7a0019] border-b">
+                    Experimentos
+                  </th>
+                  <th className="py-4 px-6 font-bold text-[#7a0019] border-b">
+                    Tamanho
+                  </th>
+                  <th className="py-4 px-6 font-bold text-[#7a0019] border-b">
+                    Início
+                  </th>
+                  <th className="py-4 px-6 font-bold text-[#7a0019] border-b">
+                    Previsão
+                  </th>
+                  <th className="py-4 px-6 font-bold text-[#7a0019] border-b">
+                    Horas
+                  </th>
+                  <th className="py-4 px-6 font-bold text-[#7a0019] border-b">
+                    Capacity Total
+                    <br />
+                    <span className="text-xs text-gray-500">
+                      ({currentMonthName})
+                    </span>
+                  </th>
+                  <th className="py-4 px-6 font-bold text-[#7a0019] border-b">
+                    Capacity por Experimento
+                  </th>
+                  <th className="py-4 px-6 font-bold text-[#7a0019] border-b">
+                    Detalhes
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredDevs.map((dev) => {
+                  const cap = calculateMonthlyCapacity(
+                    dev,
+                    selectedYear,
+                    selectedMonth
+                  );
+                  function formatDate(dateStr) {
+                    if (!dateStr) return "-";
+                    const d = new Date(dateStr);
+                    if (isNaN(d.getTime())) return dateStr;
+                    const day = String(d.getDate()).padStart(2, "0");
+                    const month = String(d.getMonth() + 1).padStart(2, "0");
+                    const year = String(d.getFullYear()).slice(-2);
+                    return `${day}/${month}/${year}`;
+                  }
+                  return (
+                    <tr key={dev.nome} className="border-b">
+                      <td className="py-1 px-4 flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-full bg-gray-300 flex items-center justify-center border">
+                          <svg
+                            width="20"
+                            height="20"
+                            viewBox="0 0 20 20"
+                            fill="none"
+                          >
+                            <circle cx="10" cy="7" r="4" fill="#bbb" />
+                            <rect
+                              x="4"
+                              y="13"
+                              width="12"
+                              height="5"
+                              rx="2.5"
+                              fill="#bbb"
+                            />
+                          </svg>
+                        </div>
+                        <span className="font-semibold text-xs">
+                          {dev.nome}
+                        </span>
+                      </td>
+                      <td className="py-1 px-4">
+                        {dev.experiments.length === 0 ? (
+                          <span className="text-gray-400">Nenhum</span>
+                        ) : (
+                          <div className="flex flex-col gap-1 text-left">
+                            {dev.experiments.map((exp, i) => (
+                              <span
+                                key={i}
+                                className="text-xs font-bold text-[#7a0019] bg-[#f6f6fa] rounded px-2 py-1"
+                              >
+                                {exp.nome}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </td>
+                      <td className="py-1 px-4">
+                        {dev.experiments.length === 0 ? (
+                          <span className="text-gray-400">-</span>
+                        ) : (
+                          <ul className="ml-4 text-left">
+                            {dev.experiments.map((exp, i) => (
+                              <li key={i} className="text-sm text-gray-700">
+                                {exp.tamanho}
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </td>
+                      <td className="py-1 px-4">
+                        {dev.experiments.length === 0 ? (
+                          <span className="text-gray-400">-</span>
+                        ) : (
+                          <ul className="ml-4 text-left">
+                            {dev.experiments.map((exp, i) => (
+                              <li key={i} className="text-sm text-gray-700">
+                                {formatDate(exp.dataInicio)}
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </td>
+                      <td className="py-1 px-4">
+                        {dev.experiments.length === 0 ? (
+                          <span className="text-gray-400">-</span>
+                        ) : (
+                          <ul className="ml-4 text-left">
+                            {dev.experiments.map((exp, i) => (
+                              <li key={i} className="text-sm text-gray-700">
+                                {formatDate(exp.previsaoTermino)}
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </td>
+                      <td className="py-1 px-4">
+                        {dev.experiments.length === 0 ? (
+                          <span className="text-gray-400">-</span>
+                        ) : (
+                          <ul className="ml-4 text-left">
+                            {dev.experiments.map((exp, i) => (
+                              <li key={i} className="text-sm text-gray-700">
+                                {exp.horas}h
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </td>
+                      <td className="py-1 px-4 align-top">
+                        <div className="flex items-center gap-2 w-full mb-1">
+                          <div className="relative w-32 h-3 bg-gray-100 rounded-full overflow-hidden">
+                            <div
+                              className="absolute left-0 top-0 h-full bg-blue-500 rounded-full transition-all duration-500"
+                              style={{ width: `${cap.percentUsed}%` }}
+                            />
+                          </div>
+                          <span className="ml-2 text-xs font-bold text-[#7a0019]">
+                            {cap.totalUsed.toFixed(1)}h /{" "}
+                            {Math.round(cap.monthCapacity)}h
+                          </span>
+                          <span className="text-xs text-gray-500">
+                            ({cap.percentUsed.toFixed(1)}%)
+                          </span>
+                        </div>
+                      </td>
+                      <td className="py-1 px-4 align-top">
+                        {cap.experimentsCapacity.length > 0 ? (
+                          <div className="flex flex-col gap-1">
+                            {cap.experimentsCapacity.map((b) => (
+                              <span
+                                key={b.nome}
+                                className="text-xs text-gray-700"
+                              >
+                                <span className="font-bold text-[#7a0019]">
+                                  {b.nome}
+                                </span>{" "}
+                                — {b.horas.toFixed(1)}h ({b.percent.toFixed(1)}
+                                %)
+                              </span>
+                            ))}
+                          </div>
+                        ) : (
+                          <span className="text-gray-400 text-xs">-</span>
+                        )}
+                      </td>
+                      <td className="py-1 px-4">
+                        <button
+                          className="px-3 py-1 rounded bg-[#7a0019] text-white text-xs font-bold hover:bg-[#5a0011] transition"
+                          onClick={() => setModalDev(dev)}
+                        >
+                          Ver detalhes
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         </div>
         {modalDev && (
