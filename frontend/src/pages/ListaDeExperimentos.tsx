@@ -4,7 +4,7 @@ const statusPilotoMap = {
   "Análise de chamadas de Call Center ( Speech do Futuro) ( Alarme Situcional )": "2.2.2 HLE",
   "Busca Avançada (TV)": "2.0 - EXECUÇÃO PILOTO",
   "Ura Cognitiva": "2.5 - ROLL-OUT",
-  "Copiloto de Atendimento": "2.5 - ROLL-OUT",
+  "Copiloto de Atendimeto": "2.5 - ROLL-OUT",
   "Copiloto Atendimento": "2.5 - ROLL-OUT",
   "Copilot Atendimento": "2.5 - ROLL-OUT",
   "Copilot de Atendimento": "2.5 - ROLL-OUT",
@@ -279,9 +279,11 @@ export default function ListaDeExperimentos() {
   // Atualiza os dados quando originalData muda
   React.useEffect(() => {
     if (originalData && Array.isArray(originalData)) {
-      setData(originalData);
-      setFiltered(originalData);
-      console.log("Dados carregados:", originalData);
+      // Mapear todos os dados para o formato de exibição
+      const mappedData = originalData.map(item => mapServerDataToDisplay(item));
+      setData(mappedData);
+      setFiltered(mappedData);
+      console.log("Dados carregados e mapeados:", mappedData);
     }
   }, [originalData]);
   const [boardView, setBoardView] = useState(false);
@@ -355,27 +357,67 @@ export default function ListaDeExperimentos() {
   // Função para salvar edição (exemplo, pode ser ajustada conforme backend)
   // Função utilitária para converter para camelCase
   function toCamelCase(str) {
+    if (!str || typeof str !== 'string') return '';
+    
     // Tratamento especial para 'Desenvolvedor Resp.'
     if (/^desenvolvedor resp\.?$/i.test(str.trim())) return "desenvolvedorResp";
-    return str
+    // Tratamento especial para 'Área' - manter o nome original
+    if (/^área$/i.test(str.trim())) return "Área";
+    
+    const result = str
+      // Normaliza caracteres acentuados
+      .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+      // Remove caracteres especiais do início e fim
       .replace(/^[^a-zA-Z0-9]+|[^a-zA-Z0-9]+$/g, "")
+      // Adiciona espaço antes de maiúsculas
       .replace(/([A-Z])/g, " $1")
+      // Converte espaços, hífens, underscores para camelCase
       .replace(/[-_\s.]+(.)?/g, (_, c) => (c ? c.toUpperCase() : ""))
-      .replace(/^(.)/, (m) => m.toLowerCase());
+      // Primeira letra minúscula
+      .replace(/^(.)/, (m) => m.toLowerCase())
+      .trim();
+    
+    console.log(`toCamelCase: "${str}" -> "${result}"`);
+    return result;
+  }
+
+  // Função para mapear campos do servidor de volta para o formato de exibição
+  function mapServerDataToDisplay(serverData) {
+    if (!serverData) return serverData;
+    
+    const mapped = { ...serverData };
+    
+    // Para o campo Área, não precisamos mapear pois agora mantemos o nome original
+    // Mapear apenas desenvolvedorResp de volta para o formato original
+    if (mapped.desenvolvedorResp !== undefined) {
+      mapped["Desenvolvedor Resp."] = mapped.desenvolvedorResp;
+    }
+    
+    return mapped;
   }
 
   const handleEditSave = () => {
     if (editData && editData._id) {
       // Converte as chaves para camelCase
       const dataCamel = Object.keys(editData).reduce((acc, key) => {
+        // Pula campos que não devem ser enviados
+        if (key === '_id' || key === '__v') return acc;
+        
         // Força sempre o campo desenvolvedorResp no payload
         if (/^desenvolvedor resp\.?$/i.test(key.trim())) {
           acc["desenvolvedorResp"] = editData[key] || "";
         } else {
-          acc[toCamelCase(key)] = editData[key];
+          const camelKey = toCamelCase(key);
+          // Só adiciona se a chave não estiver vazia
+          if (camelKey && camelKey.trim()) {
+            acc[camelKey] = editData[key];
+          }
         }
         return acc;
       }, {});
+      
+
+      
   fetch(`http://localhost:3002/api/experimentos/${editData._id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -383,14 +425,31 @@ export default function ListaDeExperimentos() {
       }).then(async (res) => {
         if (res.ok) {
           const atualizado = await res.json();
+          console.log("=== RESPOSTA DO SERVIDOR ===");
+          console.log("Documento atualizado:", atualizado);
+          
+          // Mapear os dados do servidor de volta para o formato de exibição
+          const atualizadoMapeado = mapServerDataToDisplay(atualizado);
+          console.log("Documento mapeado:", atualizadoMapeado);
+          
           const updated = data.map((item) =>
-            item._id === atualizado._id ? atualizado : item
+            item._id === atualizadoMapeado._id ? atualizadoMapeado : item
           );
+          
+          console.log("Lista atualizada:", updated.find(item => item._id === atualizadoMapeado._id));
+          
           setData(updated);
           setFiltered(updated);
           setEditModalOpen(false);
           setEditData(null);
+        } else {
+          const errorData = await res.json();
+          console.error("Erro do servidor:", errorData);
+          alert(`Erro ao atualizar: ${errorData.details || errorData.error}`);
         }
+      }).catch(error => {
+        console.error("Erro na requisição:", error);
+        alert("Erro de conexão com o servidor");
       });
     }
   };

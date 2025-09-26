@@ -1,7 +1,6 @@
 import React from "react";
 import { InlineDropdown } from "./InlineDropdown";
 import { Pencil, XCircle, CheckCircle2, Trash2 } from "lucide-react";
-import { DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
 interface ExperimentEditModalProps {
   open: boolean;
@@ -28,17 +27,13 @@ export function ExperimentEditModal({
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 transition-all duration-500 ease-in-out">
       <div className="bg-white rounded-2xl shadow-2xl p-2 sm:p-4 md:p-6 w-full max-w-none min-w-0 md:min-w-[80vw] lg:min-w-[1000px] xl:min-w-[1200px] 2xl:min-w-[1400px] flex flex-col border-2 border-[#7a0019]/30 relative animate-modal-pop" style={{width:'96vw', maxWidth:'1600px'}}>
-        <DialogTitle asChild>
-          <div className="flex items-center gap-3 mb-6">
-            <Pencil className="w-8 h-8 text-[#7a0019]" />
-            <h2 className="text-2xl font-extrabold text-[#7a0019] tracking-tight">
-              Editar Experimento
-            </h2>
-          </div>
-        </DialogTitle>
-        <DialogDescription asChild>
-          <p className="mb-2 text-sm text-gray-600">Preencha ou edite os campos do experimento. Todos os campos obrigatórios devem ser preenchidos para salvar.</p>
-        </DialogDescription>
+        <div className="flex items-center gap-3 mb-6">
+          <Pencil className="w-8 h-8 text-[#7a0019]" />
+          <h2 className="text-2xl font-extrabold text-[#7a0019] tracking-tight">
+            Editar Experimento
+          </h2>
+        </div>
+        <p className="mb-2 text-sm text-gray-600">Preencha ou edite os campos do experimento. Todos os campos obrigatórios devem ser preenchidos para salvar.</p>
         <button
           onClick={onCancel}
           className="absolute top-4 right-4 text-[#7a0019] bg-white rounded-full p-2 shadow hover:bg-rose-50 transition"

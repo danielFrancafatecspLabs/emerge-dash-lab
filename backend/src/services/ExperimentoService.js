@@ -52,6 +52,7 @@ class ExperimentoService {
   }
 
   static async atualizar(id, data) {
+
     // Aceita campo tamanho (P, M, G)
     if (data.tamanho && ["P", "M", "G"].includes(data.tamanho)) {
       data.tamanho = data.tamanho;
@@ -80,6 +81,7 @@ class ExperimentoService {
     if (typeof data.statusPiloto === "string") {
       data.statusPiloto = data.statusPiloto;
     }
+    
     return Experimento.findByIdAndUpdate(id, data, { new: true });
   }
 
