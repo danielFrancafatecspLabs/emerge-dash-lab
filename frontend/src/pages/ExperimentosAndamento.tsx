@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { Experiment } from "@/components/experimentos/ExperimentTable";
 import { BlinkingDot } from "@/components/experimentos/BlinkingDot";
 import { Pencil } from "lucide-react";
@@ -33,6 +33,31 @@ import {
 import { Upload, Download, Filter, Search } from "lucide-react";
 import { toast } from "sonner";
 import { ExperimentEditModal } from "@/components/experimentos/ExperimentEditModal";
+
+function toCamelCase(str: string) {
+  if (!str || typeof str !== 'string') return '';
+  
+  // Tratamento especial para 'Desenvolvedor Resp.'
+  if (/^desenvolvedor resp\.?$/i.test(str.trim())) return "desenvolvedorResp";
+  // Tratamento especial para 'Área' - manter o nome original
+  if (/^área$/i.test(str.trim())) return "Área";
+  
+  const result = str
+    // Normaliza caracteres acentuados
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    // Remove caracteres especiais do início e fim
+    .replace(/^[^a-zA-Z0-9]+|[^a-zA-Z0-9]+$/g, "")
+    // Adiciona espaço antes de maiúsculas
+    .replace(/([A-Z])/g, " $1")
+    // Converte espaços, hífens, underscores para camelCase
+    .replace(/[-_\s.]+(.)?/g, (_, c) => (c ? c.toUpperCase() : ""))
+    // Primeira letra minúscula
+    .replace(/^(.)/, (m) => m.toLowerCase())
+    .trim();
+  
+  console.log(`toCamelCase: "${str}" -> "${result}"`);
+  return result;
+}
 
 const statusLabels = [
   {
@@ -124,6 +149,56 @@ const highlights = [
 ];
 
 const ExperimentosAndamento = () => {
+  // ===== mapeamento & sanitização =====
+  const mapServerDataToDisplay = (data: any) => {
+    if (!data || typeof data !== 'object') return data;
+    const cloned: Record<string, any> = { ...data };
+    const mapping: Record<string, string> = {
+      desenvolvedorResp: "Desenvolvedor Resp.",
+      descricao: "Descrição",
+      ganhos: "Ganhos",
+      escala: "Escala",
+      piloto: "Piloto",
+      sinal: "Sinal",
+      inicio: "Início ",
+      previsaoDeTermino: "Previsão de Término",
+      mesConclusao: "Mês Conclusão",
+      anoConclusao: "Ano Conclusão",
+      dataDeAtualizacao: "Data de Atualização",
+      ordem: "Ordem",
+      tamanhoDoExperimento: "Tamanho do Experimento",
+      tecnologia: "Tecnologia",
+      historicoEAprendizados: "Histórico e Apredizados",
+      situacaoAtualEProximosPassos: "Situação Atual e Próximos passos",
+      iniciativa: "Iniciativa",
+      ideiaProblemaOportunidade: "Ideia / Problema / Oportunidade",
+      times: "Times",
+      sponsorBO: "Sponsor/BO",
+      area: "Área",
+      comentariosPendenciasAcoes: "Comentários/Pendências/Ações",
+    };
+    Object.entries(mapping).forEach(([camel, display]) => {
+      if (camel in cloned) {
+        if (!(display in cloned)) cloned[display] = cloned[camel];
+        delete cloned[camel];
+      }
+    });
+    return cloned;
+  };
+
+  // estado principal vindo do hook
+  const { data, loading, setData, experimentosPorTipo } = useExperimentos();
+
+  // Sanitiza lista inteira sempre que receber dados novos (evita duplicação ao abrir modal)
+  useEffect(() => {
+    if (Array.isArray(data) && data.length) {
+      const needsClean = data.some(it => Object.keys(it).some(k => /^(descricao|ganhos|escala|piloto|sinal|inicio|previsaoDeTermino|mesConclusao|anoConclusao|dataDeAtualizacao|tamanhoDoExperimento|tecnologia|historicoEAprendizados|situacaoAtualEProximosPassos|comentariosPendenciasAcoes|desenvolvedorResp)$/.test(k)));
+      if (needsClean) {
+        setData(data.map(d => mapServerDataToDisplay(d)));
+      }
+    }
+  }, [data, setData]);
+
   const [editIdx, setEditIdx] = useState<number | null>(null);
   const [editValue, setEditValue] = useState<string>("");
   // Estado para modal de histórico de situação
@@ -185,7 +260,6 @@ const ExperimentosAndamento = () => {
   };
 
   const [searchTerm, setSearchTerm] = useState("");
-  const { data, loading, setData, experimentosPorTipo } = useExperimentos();
 
   // Gerar dados de área a partir da lista de experimentos
   const areaCounts: { [key: string]: number } = {};
@@ -271,7 +345,8 @@ const ExperimentosAndamento = () => {
     null
   );
   const handleOpenModal = (item: unknown) => {
-    setModalExperiment(item as Experiment);
+    const mapped = mapServerDataToDisplay(item);
+    setModalExperiment(mapped as Experiment);
     setModalOpen(true);
   };
   // Modal para histórico de situação
@@ -747,6 +822,21 @@ const ExperimentosAndamento = () => {
                           onSave={async () => {
                             if (!modalExperiment?._id) return;
                             try {
+                              // Monta o payload apenas com campos válidos (camelCase)
+                              const dataCamel = {};
+                              Object.keys(modalExperiment).forEach((key) => {
+                                if (key === '_id' || key === '__v') return;
+                                // Campo especial para desenvolvedorResp
+                                if (/^desenvolvedor resp\.?$/i.test(key.trim())) {
+                                  dataCamel['desenvolvedorResp'] = modalExperiment[key] || "";
+                                  return;
+                                }
+                                const camelKey = toCamelCase(key);
+                                if (camelKey && camelKey.trim()) {
+                                  dataCamel[camelKey] = modalExperiment[key];
+                                }
+                              });
+
                               const res = await fetch(
                                 `/api/experimentos/${modalExperiment._id}`,
                                 {
@@ -754,16 +844,16 @@ const ExperimentosAndamento = () => {
                                   headers: {
                                     "Content-Type": "application/json",
                                   },
-                                  body: JSON.stringify(modalExperiment),
+                                  body: JSON.stringify(dataCamel),
                                 }
                               );
                               if (res.ok) {
                                 const atualizado = await res.json();
-                                // Atualiza o estado local com o retorno do backend
+                                const atualizadoMapeado = mapServerDataToDisplay(atualizado);
                                 setData((prev) =>
                                   prev.map((exp) =>
-                                    exp._id === atualizado._id
-                                      ? atualizado
+                                    exp._id === atualizadoMapeado._id
+                                      ? atualizadoMapeado
                                       : exp
                                   )
                                 );

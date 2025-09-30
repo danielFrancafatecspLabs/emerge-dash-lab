@@ -7,15 +7,11 @@ interface InlineDropdownProps {
 }
 
 export function InlineDropdown({ value, options, onChange }: InlineDropdownProps) {
-  const [editing, setEditing] = useState(false);
-  return editing ? (
+  return (
     <select
-      className="border rounded px-2 py-1 text-gray-800"
+      className="border-2 border-[#7a0019]/30 rounded-lg px-3 py-2 text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#7a0019]/40 transition-all duration-300 ease-in-out w-full"
       value={value}
-      autoFocus
-      onBlur={() => setEditing(false)}
       onChange={e => {
-        setEditing(false);
         onChange(e.target.value);
       }}
     >
@@ -24,13 +20,5 @@ export function InlineDropdown({ value, options, onChange }: InlineDropdownProps
         <option key={opt} value={opt}>{opt}</option>
       ))}
     </select>
-  ) : (
-    <span
-      className="cursor-pointer hover:underline"
-      onClick={() => setEditing(true)}
-      title="Clique para editar"
-    >
-      {value || <span className="text-gray-400">(vazio)</span>}
-    </span>
   );
 }

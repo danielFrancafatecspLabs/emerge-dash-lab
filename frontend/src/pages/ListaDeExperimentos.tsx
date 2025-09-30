@@ -404,24 +404,22 @@ export default function ListaDeExperimentos() {
 
   const handleEditSave = () => {
     if (editData && editData._id) {
-      // Converte as chaves para camelCase
-      const dataCamel = Object.keys(editData).reduce((acc, key) => {
-        // Pula campos que não devem ser enviados
-        if (key === '_id' || key === '__v') return acc;
-        
-        // Força sempre o campo desenvolvedorResp no payload
+      // Monta o payload apenas com campos válidos (camelCase)
+      const dataCamel = {};
+      Object.keys(editData).forEach((key) => {
+        if (key === '_id' || key === '__v') return;
+        // Campo especial para desenvolvedorResp
         if (/^desenvolvedor resp\.?$/i.test(key.trim())) {
-          acc["desenvolvedorResp"] = editData[key] || "";
-        } else {
-          const camelKey = toCamelCase(key);
-          // Só adiciona se a chave não estiver vazia
-          if (camelKey && camelKey.trim()) {
-            acc[camelKey] = editData[key];
-          }
+          dataCamel['desenvolvedorResp'] = editData[key] || "";
+          return;
         }
-        return acc;
-      }, {});
-      
+        // Ignora campos com espaço, acento ou caracteres especiais
+        if (/[^a-zA-Z0-9]/.test(key) && !/^área$/i.test(key.trim())) return;
+        const camelKey = toCamelCase(key);
+        if (camelKey && camelKey.trim()) {
+          dataCamel[camelKey] = editData[key];
+        }
+      });
       fetch(`http://localhost:3002/api/experimentos/${editData._id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -431,17 +429,13 @@ export default function ListaDeExperimentos() {
           const atualizado = await res.json();
           console.log("=== RESPOSTA DO SERVIDOR ===");
           console.log("Documento atualizado:", atualizado);
-          
           // Mapear os dados do servidor de volta para o formato de exibição
           const atualizadoMapeado = mapServerDataToDisplay(atualizado);
           console.log("Documento mapeado:", atualizadoMapeado);
-          
           const updated = data.map((item) =>
             item._id === atualizadoMapeado._id ? atualizadoMapeado : item
           );
-          
           console.log("Lista atualizada:", updated.find(item => item._id === atualizadoMapeado._id));
-          
           setData(updated);
           setFiltered(updated);
           setEditModalOpen(false);

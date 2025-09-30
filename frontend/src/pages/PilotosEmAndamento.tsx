@@ -42,6 +42,7 @@ const statusPilotoMap: Record<string, string> = {
   "URA e Call Center Cognitivo": "2.5 - ROLL-OUT",
   "Consulta de pareceres jurídicos (JurisQuery)": "2.0 - EXECUÇÃO PILOTO",
   "M365 ( CoPilot)": "2.0 - EXECUÇÃO PILOTO",
+  "Compartilhamento Claro Box": "2.0 - EXECUÇÃO PILOTO",
 };
 
 const pilotoStages = [
@@ -170,6 +171,7 @@ const PilotosEmAndamento = () => {
     "URA e Call Center Cognitivo": "2.5 - ROLL-OUT",
     "Consulta de pareceres jurídicos (JurisQuery)": "2.0 - EXECUÇÃO PILOTO",
     "M365 ( CoPilot)": "2.0 - EXECUÇÃO PILOTO",
+    "Compartilhamento Claro Box": "2.0 - EXECUÇÃO PILOTO",
   };
 
   // Função para atualizar statusPiloto no backend se necessário
@@ -397,6 +399,13 @@ const PilotosEmAndamento = () => {
                       // Se ainda não achou, mostra o valor real do campo
                       if (!statusPiloto && typeof item["statusPiloto"] === "string") {
                         statusPiloto = item["statusPiloto"];
+                      }
+                      
+                      // Se o statusPiloto ainda estiver vazio e o piloto estiver ativo, define como "2.0 - EXECUÇÃO PILOTO"
+                      if (!statusPiloto && 
+                          typeof item["Piloto"] === "string" && 
+                          statusAtivos.includes(normalizeStatus(item["Piloto"]))) {
+                        statusPiloto = "2.0 - EXECUÇÃO PILOTO";
                       }
                     }
                     // Atualiza backend se necessário
