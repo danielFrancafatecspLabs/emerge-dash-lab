@@ -49,7 +49,7 @@ export function ExperimentEditModal({
               Desenvolvedor Resp.
             </label>
             <select
-              className="border-2 border-[#7a0019]/30 rounded-lg px-3 py-2 text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#7a0019]/40 transition-all duration-300 ease-in-out"
+              className="border-2 border-[#7a0019]/30 rounded-lg px-3 py-2 text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#7a0019]/40 transition-all duration-300 ease-in-out w-full"
               value={editData["Desenvolvedor Resp."] || ""}
               onChange={(e) => onChange("Desenvolvedor Resp.", e.target.value)}
             >
@@ -92,7 +92,24 @@ export function ExperimentEditModal({
                 "Em Testes",
                 "Em Validação",
               ];
-            } else if (/piloto/i.test(col)) {
+            } else if (/status\s*piloto|statuspiloto/i.test(col)) {
+              // Campo de status detalhado do piloto
+              dropdownOptions = [
+                "Não iniciado",
+                "2.0 - EXECUÇÃO PILOTO",
+                "2.1 - APURAÇÃO DE RESULTADOS",
+                "2.2 - DEFINIÇÃO DOS CUSTOS",
+                "2.2.1 CANVAS",
+                "2.2.2 HLE",
+                "2.2.3 APROVAÇÃO HLE TI",
+                "2.2.4 APROVAÇÃO HLE NEGOCIOS",
+                "2.3 GO / NOGO",
+                "2.4 - APROVAÇÃO COMITE DE INVESTIMENTO",
+                "2.5 - ROLL-OUT",
+                "2.6 - CANCELADO",
+              ];
+            } else if (/^piloto$/i.test(col)) {
+              // Campo simples de estágio do piloto (curto)
               dropdownOptions = ["Não iniciado", "Em andamento", "Concluido"];
             } else if (/escala/i.test(col)) {
               dropdownOptions = ["Não iniciado", "Em andamento", "Concluido"];
@@ -110,24 +127,20 @@ export function ExperimentEditModal({
                   {col}
                 </label>
                 {dropdownOptions ? (
-                  <div className="transition-all duration-300 ease-in-out">
-                    <InlineDropdown
-                      value={editData[col] || dropdownOptions[0]}
-                      options={dropdownOptions}
-                      onChange={(v) => onChange(col, v)}
-                    />
-                  </div>
+                  <InlineDropdown
+                    value={editData[col] || dropdownOptions[0]}
+                    options={dropdownOptions}
+                    onChange={(v) => onChange(col, v)}
+                  />
                 ) : optionsMap[col] ? (
-                  <div className="transition-all duration-300 ease-in-out">
-                    <InlineDropdown
-                      value={editData[col] || ""}
-                      options={optionsMap[col]}
-                      onChange={(v) => onChange(col, v)}
-                    />
-                  </div>
+                  <InlineDropdown
+                    value={editData[col] || ""}
+                    options={optionsMap[col]}
+                    onChange={(v) => onChange(col, v)}
+                  />
                 ) : (
                   <input
-                    className="border-2 border-[#7a0019]/30 rounded-lg px-3 py-2 text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#7a0019]/40 transition-all duration-300 ease-in-out"
+                    className="border-2 border-[#7a0019]/30 rounded-lg px-3 py-2 text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#7a0019]/40 transition-all duration-300 ease-in-out w-full"
                     value={editData[col] || ""}
                     onChange={(e) => onChange(col, e.target.value)}
                     disabled={col === "#"}
