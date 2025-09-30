@@ -352,11 +352,14 @@ export default function ListaDeExperimentos() {
 
   // Função chamada ao clicar no lápis
   const handleEdit = (row) => {
-    // Garante que o campo Desenvolvedor Resp. sempre existe no objeto editData
-    setEditData({
-      ...row,
-      ["Desenvolvedor Resp."]: row["Desenvolvedor Resp."] || "",
-    });
+    const escalaAllowed = ["Não iniciado", "Em andamento", "Concluido"];
+    let escalaValor = row["Escala"] || row.escala || "";
+    escalaValor = escalaAllowed.includes(escalaValor) ? escalaValor : "Não iniciado";
+    const updated = { ...row };
+    delete updated.escala; // mantemos somente 'Escala' durante a edição
+    updated["Desenvolvedor Resp."] = row["Desenvolvedor Resp."] || row.desenvolvedorResp || "";
+    updated["Escala"] = escalaValor;
+    setEditData(updated);
     setEditModalOpen(true);
   };
 
@@ -398,6 +401,23 @@ export default function ListaDeExperimentos() {
     if (mapped.desenvolvedorResp !== undefined) {
       mapped["Desenvolvedor Resp."] = mapped.desenvolvedorResp;
     }
+    // Sincronizar e normalizar campo Escala
+    const escalaAllowed = ["Não iniciado", "Em andamento", "Concluido"];
+    if (mapped.escala !== undefined && (mapped["Escala"] === undefined || mapped["Escala"] === "")) {
+      mapped["Escala"] = mapped.escala;
+    } else if (mapped["Escala"] !== undefined && (mapped.escala === undefined || mapped.escala === "")) {
+      mapped.escala = mapped["Escala"];
+    } else if (mapped.escala !== undefined && mapped["Escala"] !== undefined && mapped.escala !== mapped["Escala"]) {
+      // Caso ambos existam e estejam diferentes, prioriza valor camelCase mais novo
+      mapped["Escala"] = mapped.escala;
+    }
+    if (mapped["Escala"]) {
+      const v = (mapped["Escala"] + "").trim();
+      if (!escalaAllowed.includes(v)) {
+        mapped["Escala"] = "Não iniciado";
+        mapped.escala = "Não iniciado";
+      }
+    }
     
     return mapped;
   }
@@ -413,6 +433,14 @@ export default function ListaDeExperimentos() {
           dataCamel['desenvolvedorResp'] = editData[key] || "";
           return;
         }
+        // Campo especial Escala: garantir atualização tanto em 'escala' (camel) quanto no original 'Escala'
+    if (/^escala$/i.test(key.trim())) {
+      const escalaAllowed = ["Não iniciado", "Em andamento", "Concluido"];
+      const val = escalaAllowed.includes(editData[key]) ? editData[key] : "Não iniciado";
+      dataCamel['escala'] = val; // backend (camel)
+      dataCamel['Escala'] = val; // mantém documento consistente caso exista com E maiúsculo
+      return;
+    }
         // Ignora campos com espaço, acento ou caracteres especiais
         if (/[^a-zA-Z0-9]/.test(key) && !/^área$/i.test(key.trim())) return;
         const camelKey = toCamelCase(key);
@@ -420,6 +448,15 @@ export default function ListaDeExperimentos() {
           dataCamel[camelKey] = editData[key];
         }
       });
+      // Força sincronização final de escala caso campo só exista em 'Escala'
+      if (editData['Escala']) {
+        const escalaAllowed = ["Não iniciado", "Em andamento", "Concluido"];
+        const val = escalaAllowed.includes(editData['Escala']) ? editData['Escala'] : "Não iniciado";
+        dataCamel['escala'] = val;
+        dataCamel['Escala'] = val;
+      }
+      console.log('=== PAYLOAD PUT (experimento) ===');
+      console.log(dataCamel);
       fetch(`http://localhost:3002/api/experimentos/${editData._id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -581,26 +618,27 @@ export default function ListaDeExperimentos() {
             {/* Modal de edição */}
             {editModalOpen && (
               <Dialog open={editModalOpen} onOpenChange={handleEditCancel}>
-                <DialogContent className="max-w-2xl">
-                  <DialogHeader>
-                    <DialogTitle>Editar Experimento</DialogTitle>
-                    <DialogDescription>
-                      Preencha ou edite os campos do experimento. Todos os
-                      campos obrigatórios devem ser preenchidos para salvar.
+                <DialogContent className="w-[90vw] max-w-[1400px] h-[85vh] flex flex-col overflow-hidden">
+                  <DialogHeader className="shrink-0">
+                    <DialogTitle className="text-[#7a0019] text-2xl font-extrabold">Editar Experimento</DialogTitle>
+                    <DialogDescription className="text-sm">
+                      Ajuste os campos necessários. Role para ver todos os campos.
                     </DialogDescription>
                   </DialogHeader>
-                  <ExperimentEditModal
-                    open={editModalOpen}
-                    columns={columns}
-                    editData={editData}
-                    onChange={(key, value) =>
-                      setEditData((prev) => ({ ...prev, [key]: value }))
-                    }
-                    onCancel={handleEditCancel}
-                    onSave={handleEditSave}
-                    onDelete={handleEditCancel}
-                    optionsMap={{}}
-                  />
+                  <div className="flex-1 min-h-0">
+                    <ExperimentEditModal
+                      open={editModalOpen}
+                      columns={columns}
+                      editData={editData}
+                      onChange={(key, value) =>
+                        setEditData((prev) => ({ ...prev, [key]: value }))
+                      }
+                      onCancel={handleEditCancel}
+                      onSave={handleEditSave}
+                      onDelete={handleEditCancel}
+                      optionsMap={{}}
+                    />
+                  </div>
                 </DialogContent>
               </Dialog>
             )}

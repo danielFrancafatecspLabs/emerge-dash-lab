@@ -1,6 +1,6 @@
 import React from "react";
 import { InlineDropdown } from "./InlineDropdown";
-import { Pencil, XCircle, CheckCircle2, Trash2 } from "lucide-react";
+import { XCircle, CheckCircle2, Trash2 } from "lucide-react";
 
 interface ExperimentEditModalProps {
   open: boolean;
@@ -23,26 +23,47 @@ export function ExperimentEditModal({
   onDelete,
   optionsMap,
 }: ExperimentEditModalProps) {
+  // Remove campos duplicados (ex: "Escala" e "escala", "Sinal" e "sinal", etc.)
+  const filteredColumns = React.useMemo(() => {
+    if (!columns) return [];
+    const normalize = (k: string) =>
+      k
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-zA-Z0-9]/g, "")
+        .toLowerCase();
+
+    interface Entry { original: string; score: number; }
+    const map: Record<string, Entry> = {};
+
+    const score = (k: string) => {
+      let s = 0;
+      if (/[^a-z0-9]/.test(k)) s += 3; // tem espaço, acento ou símbolo -> mais legível
+      if (/[A-Z]/.test(k.slice(1))) s += 2; // camelCase/Upper inside
+      if (/^[A-ZÁ-Ú]/.test(k)) s += 1; // começa maiúscula
+      if (k.length <= 3) s -= 1; // curtas demais (provável duplicata técnica)
+      return s;
+    };
+
+    for (const col of columns) {
+      const isDevRespLabel = /desenvolvedor resp\.?/i.test(col);
+      const isDevRespCamel = /^desenvolvedorresp$/i.test(col.replace(/[^a-zA-Z0-9]/g, ""));
+      if (isDevRespLabel || isDevRespCamel) continue; // campo tratado separadamente
+      const key = normalize(col);
+      const colScore = score(col);
+      if (!map[key] || colScore > map[key].score) {
+        map[key] = { original: col, score: colScore };
+      }
+    }
+    return Object.values(map).map((e) => e.original);
+  }, [columns]);
+
   if (!open || !editData) return null;
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 transition-all duration-500 ease-in-out">
-      <div className="bg-white rounded-2xl shadow-2xl p-2 sm:p-4 md:p-6 w-full max-w-none min-w-0 md:min-w-[80vw] lg:min-w-[1000px] xl:min-w-[1200px] 2xl:min-w-[1400px] flex flex-col border-2 border-[#7a0019]/30 relative animate-modal-pop" style={{width:'96vw', maxWidth:'1600px'}}>
-        <div className="flex items-center gap-3 mb-6">
-          <Pencil className="w-8 h-8 text-[#7a0019]" />
-          <h2 className="text-2xl font-extrabold text-[#7a0019] tracking-tight">
-            Editar Experimento
-          </h2>
-        </div>
-        <p className="mb-2 text-sm text-gray-600">Preencha ou edite os campos do experimento. Todos os campos obrigatórios devem ser preenchidos para salvar.</p>
-        <button
-          onClick={onCancel}
-          className="absolute top-4 right-4 text-[#7a0019] bg-white rounded-full p-2 shadow hover:bg-rose-50 transition"
-          title="Fechar"
-        >
-          <XCircle className="w-6 h-6" />
-        </button>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+    <div className="h-full flex flex-col">
+      {/* Área de scroll dos campos */}
+      <div className="flex-1 overflow-y-auto px-1 sm:px-2 md:px-3 lg:px-4 py-2 custom-scroll">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
           {/* Campo Desenvolvedor Resp. sempre visível */}
           <div className="flex flex-col">
             <label className="text-sm font-bold text-[#7a0019] mb-2 flex items-center gap-1">
@@ -64,9 +85,9 @@ export function ExperimentEditModal({
               <option value="Rogério">Rogério</option>
             </select>
           </div>
-          {/* Renderiza os outros campos normalmente */}
-          {columns.map((col) => {
-            if (/desenvolvedor resp\.?/i.test(col)) return null;
+          {/* Renderiza os outros campos (sem duplicados) */}
+          {filteredColumns.map((col) => {
+            if (/desenvolvedor resp\.?/i.test(col) || /^desenvolvedorresp$/i.test(col.replace(/[^a-zA-Z0-9]/g, ""))) return null;
             let dropdownOptions: string[] | undefined = undefined;
             // Opções customizadas para colunas específicas
             if (/tamanho do experimento/i.test(col)) {
@@ -151,34 +172,35 @@ export function ExperimentEditModal({
             );
           })}
         </div>
-        <div className="flex gap-4 justify-end mt-2">
-          <button
-            onClick={onCancel}
-            className="px-5 py-2 rounded-full bg-gray-100 text-gray-700 font-semibold hover:bg-gray-200 transition flex items-center gap-2 shadow"
-          >
-            <XCircle className="w-5 h-5" /> Cancelar
-          </button>
-          <button
-            onClick={onSave}
-            className="px-5 py-2 rounded-full bg-[#7a0019] text-white font-bold shadow hover:bg-[#5a0011] transition flex items-center gap-2"
-          >
-            <CheckCircle2 className="w-5 h-5" /> Salvar
-          </button>
-          <button
-            onClick={onDelete}
-            className="px-5 py-2 rounded-full bg-red-600 text-white font-bold shadow hover:bg-red-700 transition flex items-center gap-2"
-          >
-            <Trash2 className="w-5 h-5" /> Excluir
-          </button>
-        </div>
-        <style>{`
-          @keyframes modal-pop {
-            0% { opacity: 0; transform: scale(0.95) translateY(30px); }
-            100% { opacity: 1; transform: scale(1) translateY(0); }
-          }
-          .animate-modal-pop { animation: modal-pop 0.5s cubic-bezier(.4,0,.2,1); }
-        `}</style>
       </div>
+      {/* Footer / Botões */}
+      <div className="shrink-0 mt-2 px-2 md:px-4 pb-2 pt-3 border-t border-rose-100 flex flex-wrap gap-2 justify-end bg-white">
+        <button
+          onClick={onCancel}
+          className="px-4 py-2 rounded-full bg-gray-100 text-gray-700 font-semibold hover:bg-gray-200 transition flex items-center gap-2 shadow"
+        >
+          <XCircle className="w-5 h-5" /> Cancelar
+        </button>
+        <button
+          onClick={onSave}
+          className="px-4 py-2 rounded-full bg-[#7a0019] text-white font-bold shadow hover:bg-[#5a0011] transition flex items-center gap-2"
+        >
+          <CheckCircle2 className="w-5 h-5" /> Salvar
+        </button>
+        <button
+          onClick={onDelete}
+          className="px-4 py-2 rounded-full bg-red-600 text-white font-bold shadow hover:bg-red-700 transition flex items-center gap-2"
+        >
+          <Trash2 className="w-5 h-5" /> Excluir
+        </button>
+      </div>
+      <style>{`
+        .custom-scroll { scrollbar-width: thin; scrollbar-color: #7a0019 #f1f1f1; }
+        .custom-scroll::-webkit-scrollbar { width: 10px; }
+        .custom-scroll::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 8px; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #b31b38; border-radius: 8px; border:2px solid #f1f1f1; }
+        .custom-scroll::-webkit-scrollbar-thumb:hover { background: #7a0019; }
+      `}</style>
     </div>
   );
 }

@@ -797,16 +797,16 @@ const ExperimentosAndamento = () => {
                 })}
                 {/* Modal de detalhes do experimento */}
                 <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-                  <DialogContent className="max-w-3xl w-full">
-                    <DialogHeader>
-                      <DialogTitle>Editar Experimento</DialogTitle>
-                      <DialogDescription>
-                        Preencha ou edite os campos do experimento. Todos os
-                        campos obrigatórios devem ser preenchidos para salvar.
+                  {/* Ajustado para mesmo layout/dimensões do modal em ListaDeExperimentos */}
+                  <DialogContent className="w-[90vw] max-w-[1400px] h-[85vh] flex flex-col overflow-hidden">
+                    <DialogHeader className="shrink-0">
+                      <DialogTitle className="text-[#7a0019] text-2xl font-extrabold">Editar Experimento</DialogTitle>
+                      <DialogDescription className="text-sm">
+                        Preencha ou edite os campos do experimento. Todos os campos obrigatórios devem ser preenchidos para salvar.
                       </DialogDescription>
                     </DialogHeader>
                     {modalExperiment && (
-                      <div className="w-full">
+                      <div className="flex-1 min-h-0">
                         <ExperimentEditModal
                           open={modalOpen}
                           columns={Object.keys(modalExperiment || {})}
@@ -823,7 +823,7 @@ const ExperimentosAndamento = () => {
                             if (!modalExperiment?._id) return;
                             try {
                               // Monta o payload apenas com campos válidos (camelCase)
-                              const dataCamel = {};
+                              const dataCamel = {} as Record<string, any>;
                               Object.keys(modalExperiment).forEach((key) => {
                                 if (key === '_id' || key === '__v') return;
                                 // Campo especial para desenvolvedorResp
@@ -837,24 +837,17 @@ const ExperimentosAndamento = () => {
                                 }
                               });
 
-                              const res = await fetch(
-                                `/api/experimentos/${modalExperiment._id}`,
-                                {
-                                  method: "PUT",
-                                  headers: {
-                                    "Content-Type": "application/json",
-                                  },
-                                  body: JSON.stringify(dataCamel),
-                                }
-                              );
+                              const res = await fetch(`/api/experimentos/${modalExperiment._id}`, {
+                                method: "PUT",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify(dataCamel),
+                              });
                               if (res.ok) {
                                 const atualizado = await res.json();
                                 const atualizadoMapeado = mapServerDataToDisplay(atualizado);
                                 setData((prev) =>
                                   prev.map((exp) =>
-                                    exp._id === atualizadoMapeado._id
-                                      ? atualizadoMapeado
-                                      : exp
+                                    exp._id === atualizadoMapeado._id ? atualizadoMapeado : exp
                                   )
                                 );
                                 toast.success("Alterações salvas com sucesso!");
@@ -867,7 +860,6 @@ const ExperimentosAndamento = () => {
                             }
                           }}
                           onDelete={() => {
-                            // Implementar lógica de exclusão se necessário
                             setModalOpen(false);
                           }}
                           optionsMap={{}}
