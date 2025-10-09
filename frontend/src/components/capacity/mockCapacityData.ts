@@ -90,7 +90,7 @@ export const DEVELOPERS = [
     ],
   },
   {
-    nome: "Pedro Porfírio",
+    nome: "Pedro Porfirio",
     avatar: "https://randomuser.me/api/portraits/men/37.jpg",
     atividadesExtras: ["Pesquisa FutureNet"],
     experiments: [
@@ -136,7 +136,7 @@ export const WORKLOAD = [
   [0, 10, 9, 10], // Guilherme Magalhães
   [13, 0, 9, 7], // Hugo
   [13, 0, 9, 7], // Luis
-  [0, 10, 9, 10], // Pedro Porfírio
+  [0, 10, 9, 10], // Pedro Porfirio
   [13, 0, 9, 7], // Rogério Januário
 ];
 

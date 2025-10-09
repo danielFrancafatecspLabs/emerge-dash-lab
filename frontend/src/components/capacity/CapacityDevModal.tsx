@@ -33,25 +33,25 @@ export function CapacityDevModal({ dev, onClose }: CapacityDevModalProps) {
 
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-      <div className="bg-white rounded-xl shadow-lg p-8 w-full max-w-lg relative">
+      <div className="bg-card text-card-foreground rounded-xl shadow-elevated p-6 w-full max-w-lg relative border">
         <button
-          className="absolute top-4 right-4 text-gray-500 hover:text-[#7a0019]"
+          className="absolute top-4 right-4 text-muted-foreground hover:text-foreground"
           onClick={onClose}
         >
           &times;
         </button>
-        <h2 className="text-2xl font-bold text-[#7a0019] mb-2">{dev.nome}</h2>
+        <h2 className="text-2xl font-bold text-foreground mb-2">{dev.nome}</h2>
         <div className="mb-4">
           <CapacityPieChart percent={percentExp} />
         </div>
-        <div className="mb-4 p-3 rounded bg-gray-50 border border-gray-200 flex flex-col items-center">
-          <span className="font-semibold text-[#7a0019]">
+        <div className="mb-4 p-3 rounded bg-muted border flex flex-col items-center">
+          <span className="font-semibold text-foreground">
             Capacity disponível este mês:
           </span>
-          <span className="text-2xl font-bold text-green-600">
+          <span className="text-2xl font-bold text-lab-success">
             {capacityDisponivel}h
           </span>
-          <span className="text-xs text-gray-500">
+          <span className="text-xs text-muted-foreground">
             ({((capacityDisponivel / totalHoras) * 100).toFixed(1)}% livre)
           </span>
         </div>
@@ -60,8 +60,8 @@ export function CapacityDevModal({ dev, onClose }: CapacityDevModalProps) {
           <ul className="list-disc ml-6 mt-1">
             {dev.experiments.map((exp, i) => (
               <li key={i} className="flex flex-col text-sm mb-1">
-                <span className="font-bold text-[#7a0019]">{exp.nome}</span>
-                <span className="text-xs text-gray-500">
+                <span className="font-semibold text-foreground">{exp.nome}</span>
+                <span className="text-xs text-muted-foreground">
                   Tamanho: {exp.tamanho} | Início: {exp.dataInicio} | Previsão:{" "}
                   {exp.previsaoTermino} | {exp.horas}h
                 </span>
@@ -79,11 +79,11 @@ export function CapacityDevModal({ dev, onClose }: CapacityDevModalProps) {
                 </li>
               ))
             ) : (
-              <li className="text-gray-400">Nenhuma atividade extra</li>
+              <li className="text-muted-foreground">Nenhuma atividade extra</li>
             )}
           </ul>
         </div>
-        <div className="mt-4 text-xs text-gray-500">
+        <div className="mt-4 text-xs text-muted-foreground">
           * Capacity calculado considerando 70% para experimentos e 30% para
           atividades gerais.
         </div>
