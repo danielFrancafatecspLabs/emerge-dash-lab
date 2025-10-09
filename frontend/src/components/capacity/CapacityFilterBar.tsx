@@ -8,10 +8,10 @@ export function CapacityFilterBar({
 }) {
   const [selected, setSelected] = useState("");
   return (
-    <div className="flex flex-wrap gap-4 justify-center items-center mb-6">
-      <label className="font-semibold text-gray-700">Filtrar por Dev:</label>
+    <div className="flex flex-wrap gap-3 items-center">
+      <label className="text-sm text-muted-foreground">Filtrar por Dev</label>
       <select
-        className="border rounded px-3 py-2 text-gray-700"
+        className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
         value={selected}
         onChange={(e) => {
           setSelected(e.target.value);
