@@ -1,4 +1,4 @@
-# Logs
+<<<<<<< HEAD
 logs
 *.log
 npm-debug.log*
@@ -32,5 +32,10 @@ backend/.env
 **/.env.development.local
 **/.env.production.local
 .next/
+.next/
 out/
 build/
+.env*.local
+.portfolio-cache.json
+.DS_Store
+>>>>>>> 77ecf24 (Primeiro commit oficial - corrigido)
