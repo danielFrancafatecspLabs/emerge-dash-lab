@@ -31,3 +31,6 @@ backend/.env
 **/.env.local
 **/.env.development.local
 **/.env.production.local
+.next/
+out/
+build/
