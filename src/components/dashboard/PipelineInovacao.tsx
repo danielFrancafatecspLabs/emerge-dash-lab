@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { DashboardData, PipelineCount, EpicDetail } from '@/lib/types'
-import { formatBRL, STATUS_PIPELINE } from '@/lib/mappers'
+import { formatBRL, STATUS_PIPELINE, getPipelineConversionRate, getPipelineStage } from '@/lib/mappers'
 import { Settings, X } from 'lucide-react'
 import EpicModal from './EpicModal'
 
@@ -12,9 +12,10 @@ const COLUNAS: { key: keyof PipelineCount; label?: string; sub: string }[] = [
   { key: 'BACKLOG',           sub: 'Ideias registradas'    },
   { key: 'EM REFINAMENTO',    sub: 'Refinamento'           },
   { key: 'EM EXPERIMENTAÇÃO', sub: 'Em execução'           },
+  { key: 'FINALIZADO',        label: 'CONCLUÍDO', sub: 'Entregue'              },
   { key: 'AGUARDANDO PILOTO', sub: 'Aguardando escala'     },
   { key: 'EM PILOTO',         sub: 'Teste em ambiente real'},
-  { key: 'FINALIZADO',        label: 'CONCLUÍDO', sub: 'Entregue'              },
+  { key: 'EM ESCALA',         sub: 'Em escala / industrialização' },
   { key: 'CANCELADO',         label: 'DESCONTINUADO', sub: 'Interrompido' },
 ]
 
@@ -52,15 +53,32 @@ function defaultColunas(): ColunasConfig {
 
 export default function PipelineInovacao({ data }: Props) {
   const p = data.pipeline
-  const total = Object.values(p).reduce((a, b) => a + b, 0) || 1
-  const concluidos = p['FINALIZADO']
-  const taxaConversao = total > 0 ? `${((concluidos / total) * 100).toFixed(0)}%` : '0%'
+  const totalIdeas = data.iniciativas.length
+  const totalPipelineCount = totalIdeas
+
+  const countExperimentacao = data.iniciativas.filter(i => getPipelineStage(i.status) === 'EM EXPERIMENTAÇÃO').length
+  const countEmPiloto = data.iniciativas.filter(i => getPipelineStage(i.status) === 'EM PILOTO').length
+  const countEmEscala = data.iniciativas.filter(i => getPipelineStage(i.status) === 'EM ESCALA').length
+  const countFinalizado = data.iniciativas.filter(i => getPipelineStage(i.status) === 'FINALIZADO').length
+  const countRefinamento = data.iniciativas.filter(i => getPipelineStage(i.status) === 'EM REFINAMENTO').length
+
+  const totalExperimentosRealizados = (
+    countExperimentacao + countEmPiloto + countRefinamento + countEmEscala + countFinalizado
+  )
+
+  const concludedCount = countEmPiloto + countFinalizado + countEmEscala
+
+  const percentOfTotal = (value: number) =>
+    totalPipelineCount > 0 ? Math.round((value / totalPipelineCount) * 100) : 0
+  const taxaConversao = getPipelineConversionRate(p)
+  const conversionEscala = '6%'
+  const conversionPiloto = '11.54%'
 
   const kpiDefaults: PipelineKpis = {
     taxaConversaoTotal: taxaConversao,
     leadtimeTotal:      '147 dias',
-    blockedTime:        '12 dias',
-    workingTime:        '92%',
+    blockedTime:        '-',
+    workingTime:        '-',
   }
 
   const [kpis, setKpis] = useState<PipelineKpis>(kpiDefaults)
@@ -119,9 +137,15 @@ export default function PipelineInovacao({ data }: Props) {
               <p className="text-white font-semibold text-xs uppercase tracking-widest leading-none">
                 Pipeline de Experimentação
               </p>
-              <div className="flex items-center gap-1.5 mt-1">
-                <span className="text-white/50" style={{ fontSize: 9 }}>Taxa de conversão</span>
-                <span className="text-white font-bold" style={{ fontSize: 13 }}>{kpis.taxaConversaoTotal}</span>
+              <div className="flex items-center gap-3 mt-1">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-white/50" style={{ fontSize: 9 }}>Escala</span>
+                  <span className="text-white font-bold" style={{ fontSize: 13 }}>{conversionEscala}</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-white/50" style={{ fontSize: 9 }}>Piloto</span>
+                  <span className="text-white font-bold" style={{ fontSize: 13 }}>{conversionPiloto}</span>
+                </div>
               </div>
             </div>
           </div>
@@ -143,6 +167,7 @@ export default function PipelineInovacao({ data }: Props) {
           </div>
         </div>
 
+        {/* Fluxo de conversão removido conforme pedido */}
         {/* Colunas do pipeline */}
         <div className="grid gap-1 mb-4" style={{ gridTemplateColumns: `repeat(${COLUNAS.length}, 1fr)` }}>
           {COLUNAS.map(c => {
@@ -313,13 +338,23 @@ export default function PipelineInovacao({ data }: Props) {
                   {FUNIL_FIELDS.map(f => (
                     <div key={f.key} className="flex items-center gap-3 rounded-lg border border-gray-200 p-3">
                       <label className="text-sm text-gray-700 flex-1">{f.label}</label>
-                      <input
-                        type="text"
-                        value={draftKpis[f.key]}
-                        onChange={e => setDraftKpis(d => ({ ...d, [f.key]: e.target.value }))}
-                        className="border border-gray-300 rounded px-2 py-1 text-sm text-gray-800 focus:outline-none focus:border-red-400"
-                        style={{ width: 130 }}
-                      />
+                      {(f.key === 'blockedTime' || f.key === 'workingTime') ? (
+                        <input
+                          type="text"
+                          value={'-'}
+                          disabled
+                          className="border border-gray-200 rounded px-2 py-1 text-sm text-gray-400 bg-gray-50 cursor-not-allowed"
+                          style={{ width: 130 }}
+                        />
+                      ) : (
+                        <input
+                          type="text"
+                          value={draftKpis[f.key]}
+                          onChange={e => setDraftKpis(d => ({ ...d, [f.key]: e.target.value }))}
+                          className="border border-gray-300 rounded px-2 py-1 text-sm text-gray-800 focus:outline-none focus:border-red-400"
+                          style={{ width: 130 }}
+                        />
+                      )}
                     </div>
                   ))}
                 </div>

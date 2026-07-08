@@ -36,6 +36,27 @@ export interface JiraIssue {
   fields: JiraIssueFields
 }
 
+export interface JiraBoardStatus {
+  id: string
+  name: string
+  description?: string
+}
+
+export interface JiraBoardColumn {
+  name: string
+  statuses: JiraBoardStatus[]
+}
+
+export interface JiraBoardConfiguration {
+  id: number
+  name: string
+  type: string
+  columnConfig: {
+    columns: JiraBoardColumn[]
+    constraintType?: string
+  }
+}
+
 export interface EpicDetail {
   key: string
   nome: string
@@ -80,6 +101,7 @@ export interface PipelineCount {
   'EM EXPERIMENTAÇÃO': number
   'AGUARDANDO PILOTO': number
   'EM PILOTO': number
+  'EM ESCALA': number
   FINALIZADO: number
   CANCELADO: number
 }
