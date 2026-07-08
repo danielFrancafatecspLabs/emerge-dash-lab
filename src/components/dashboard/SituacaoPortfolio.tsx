@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts'
 import { DashboardData, EpicDetail, PipelineCount } from '@/lib/types'
-import { STATUS_PIPELINE } from '@/lib/mappers'
+import { STATUS_PIPELINE, getPipelineStage } from '@/lib/mappers'
 import EpicModal from './EpicModal'
 
 // Mapeamento do nome exibido → chave do pipeline (para aplicar overrides do localStorage)
@@ -13,6 +13,7 @@ const NAME_TO_KEY: Record<string, keyof PipelineCount> = {
   'DESCONTINUADO':        'CANCELADO',
   'CANCELADO':            'CANCELADO',
   'EM PILOTO':            'EM PILOTO',
+  'EM ESCALA':            'EM ESCALA',
   'AGUARDANDO PILOTO':    'AGUARDANDO PILOTO',
   'EM EXPERIMENTAÇÃO':    'EM EXPERIMENTAÇÃO',
   'EM REFINAMENTO':       'EM REFINAMENTO',
@@ -22,7 +23,7 @@ const NAME_TO_KEY: Record<string, keyof PipelineCount> = {
 
 function getEpicsForStage(data: DashboardData, stage: string): EpicDetail[] {
   return data.iniciativas
-    .filter(ini => STATUS_PIPELINE[ini.status.id] === stage)
+    .filter(ini => getPipelineStage(ini.status) === stage)
     .flatMap(ini => ini.epics)
 }
 
@@ -60,6 +61,12 @@ export default function SituacaoPortfolio({ data }: Props) {
 
   const total = distribuicao.reduce((s, d) => s + d.value, 0)
 
+  const displayRows = distribuicao.map(d => ({
+    ...d,
+    displayName: d.name === 'EM ESCALA' ? 'Em Escala' : d.name,
+    stage: d.name,
+  }))
+
   return (
     <>
       <div className="bg-white rounded-lg p-4 border border-gray-200 h-full flex flex-col">
@@ -94,26 +101,21 @@ export default function SituacaoPortfolio({ data }: Props) {
               <span className="font-bold text-gray-900" style={{ fontSize: 22, lineHeight: 1 }}>
                 {total}
               </span>
-              <span className="text-gray-500" style={{ fontSize: 9 }}>Ativos</span>
+              <span className="text-gray-500" style={{ fontSize: 9 }}>Experimentos</span>
             </div>
           </div>
 
           <div className="mt-3 w-full space-y-1">
-            {distribuicao.map(d => (
+            {displayRows.map(d => (
               <button
                 key={d.name}
-                onClick={() => !d.isFixed && setModal(d.name)}
-                className={`flex items-center justify-between w-full rounded px-1 py-0.5 transition-colors group ${d.isFixed ? 'cursor-default' : 'hover:bg-gray-50'}`}
+                onClick={() => setModal(d.stage)}
+                className="flex items-center justify-between w-full rounded px-1 py-0.5 transition-colors hover:bg-gray-50"
                 style={{ fontSize: 10 }}
               >
                 <div className="flex items-center gap-1.5">
                   <div className="rounded-sm flex-shrink-0" style={{ width: 8, height: 8, background: d.color }} />
-                  <span className="text-gray-700 group-hover:text-gray-900">{d.name}</span>
-                  {d.isFixed && (
-                    <span className="px-1 rounded" style={{ fontSize: 8, background: '#F3F4F6', color: '#9CA3AF' }}>
-                      fixo
-                    </span>
-                  )}
+                  <span className="text-gray-700 group-hover:text-gray-900">{d.displayName}</span>
                 </div>
                 <span className="text-gray-500 font-medium">
                   {d.value} ({Math.round((d.value / total) * 100)}%)

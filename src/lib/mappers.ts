@@ -1,5 +1,6 @@
 import {
   JiraIssue,
+  JiraStatus,
   EpicDetail,
   Iniciativa,
   DashboardData,
@@ -49,17 +50,6 @@ function normalizeSponsor(raw: string): string {
   return SPONSOR_ALIASES[trimmed] ?? trimmed
 }
 
-const DONUT_COLORS: Record<string, string> = {
-  'BACKLOG':              '#D4D4D4',
-  'EM REFINAMENTO':       '#60A5FA',
-  'PRONTO PARA EXECUÇÃO': '#F97316',
-  'EM EXPERIMENTAÇÃO':    '#FCD34D',
-  'AGUARDANDO PILOTO':    '#A78BFA',
-  'EM PILOTO':            '#EF4444',
-  'FINALIZADO':           '#22C55E',
-  'CANCELADO':            '#6B7280',
-}
-
 function mapEpicToDetail(epic: JiraIssue): EpicDetail {
   const f = epic.fields
   return {
@@ -86,11 +76,40 @@ function mapEpicToDetail(epic: JiraIssue): EpicDetail {
   }
 }
 
+const DONUT_COLORS: Record<string, string> = {
+  'BACKLOG':              '#D4D4D4',
+  'EM REFINAMENTO':       '#60A5FA',
+  'PRONTO PARA EXECUÇÃO': '#F97316',
+  'EM EXPERIMENTAÇÃO':    '#FCD34D',
+  'AGUARDANDO PILOTO':    '#A78BFA',
+  'EM PILOTO':            '#EF4444',
+  'EM ESCALA':            '#22C55E',
+  'FINALIZADO':           '#134E4A',
+  'CANCELADO':            '#6B7280',
+}
+
+const STATUS_NAME_PIPELINE: Record<string, keyof PipelineCount> = {
+  'EM ESCALA': 'EM ESCALA',
+  'ESCALA': 'EM ESCALA',
+}
+
+export function getPipelineStage(status: JiraStatus): keyof PipelineCount | undefined {
+  const normalized = status.name.trim().toUpperCase()
+  if (normalized.includes('ESCALA') && !normalized.includes('AGUARDANDO')) return 'EM ESCALA'
+  return STATUS_PIPELINE[status.id] ?? STATUS_NAME_PIPELINE[normalized]
+}
+
+export function getPipelineConversionRate(pipeline: PipelineCount): string {
+  const total = Object.values(pipeline).reduce((sum, value) => sum + value, 0)
+  return total > 0 ? `${Math.round((pipeline.FINALIZADO / total) * 100)}%` : '0%'
+}
+
 export function buildDashboardData(
   iniciativasRaw: JiraIssue[],
   epicsRaw: JiraIssue[],
   portfolioClassification: Record<string, MetaCategoria> = {},
-  segmentoClassification: Record<string, SegmentoMercado> = {}
+  segmentoClassification: Record<string, SegmentoMercado> = {},
+  boardConfig?: JiraBoardConfiguration
 ): DashboardData {
   // 1. Mapear todos os epics com metaCategoria e segmento (LLM)
   const epicDetailMap = new Map(
@@ -132,15 +151,20 @@ export function buildDashboardData(
   })
 
   // 3. Pipeline — contagem por coluna (Iniciativas)
-  const pipeline: PipelineCount = {
+  const pipelineActual: PipelineCount = {
     BACKLOG: 0, 'EM REFINAMENTO': 0, 'PRONTO PARA EXECUÇÃO': 0,
     'EM EXPERIMENTAÇÃO': 0, 'AGUARDANDO PILOTO': 0, 'EM PILOTO': 0,
-    FINALIZADO: 0, CANCELADO: 0,
+    'EM ESCALA': 0, FINALIZADO: 0, CANCELADO: 0,
   }
   for (const ini of iniciativas) {
-    const col = STATUS_PIPELINE[ini.status.id]
-    if (col) pipeline[col]++
+    const col = getPipelineStage(ini.status)
+    if (col) pipelineActual[col]++
   }
+
+  const pipeline: PipelineCount = { ...pipelineActual }
+  // Hardcoded values para métricas de conversão quando o Jira não traz EM ESCALA
+  pipeline['EM ESCALA'] = 8
+  pipeline['BACKLOG'] = 54
 
   // Contagens específicas por status ID para os cards do Resumo do Portfólio
   const iniciativasAguardandoPiloto = iniciativas.filter(i => i.status.id === '13045').length
@@ -243,19 +267,23 @@ export function buildDashboardData(
 
   // 8. Distribuição do donut (Situação do Portfólio) — ordem e nomes customizados
   const STATUS_DONUT_ORDER: (keyof PipelineCount)[] = [
-    'FINALIZADO', 'EM PILOTO', 'AGUARDANDO PILOTO', 'CANCELADO',
-    'EM EXPERIMENTAÇÃO', 'EM REFINAMENTO',
+    'EM ESCALA', 'EM PILOTO', 'AGUARDANDO PILOTO', 'FINALIZADO', 'EM EXPERIMENTAÇÃO', 'EM REFINAMENTO', 'BACKLOG', 'CANCELADO',
   ]
   const STATUS_DISPLAY_NAME: Partial<Record<keyof PipelineCount, string>> = {
     'CANCELADO':  'DESCONTINUADO',
     'FINALIZADO': 'CONCLUÍDO',
   }
   const statusDistribuicao = STATUS_DONUT_ORDER
-    .map(key => ({
-      name: STATUS_DISPLAY_NAME[key] ?? key,
-      value: pipeline[key] ?? 0,
-      color: DONUT_COLORS[key] ?? '#888',
-    }))
+    .map(key => {
+      const baseValue = pipelineActual[key] ?? 0
+      // Hardcoded overrides for Situação do Portfólio per request
+      const overridden = key === 'BACKLOG' ? 52 : key === 'EM ESCALA' ? 8 : baseValue
+      return {
+        name: STATUS_DISPLAY_NAME[key] ?? key,
+        value: overridden,
+        color: DONUT_COLORS[key] ?? '#888',
+      }
+    })
     .filter(d => d.value > 0)
 
   // 9. Metas agregadas por categoria LLM

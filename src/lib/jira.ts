@@ -1,4 +1,4 @@
-import { JiraIssue } from './types'
+import { JiraIssue, JiraBoardConfiguration } from './types'
 
 const FIELDS_INICIATIVA = [
   'summary', 'status', 'issuetype', 'created', 'updated',
@@ -35,6 +35,23 @@ function getHeaders(): HeadersInit {
     Authorization: `Basic ${credentials}`,
     Accept: 'application/json',
   }
+}
+
+async function getBoardConfiguration(boardId: number): Promise<JiraBoardConfiguration> {
+  const base = process.env.JIRA_BASE_URL
+  if (!base) throw new Error('JIRA_BASE_URL é obrigatório')
+
+  const url = `${base}/rest/agile/1.0/board/${boardId}/configuration`
+  const res = await fetch(url, {
+    headers: getHeaders(),
+    next: { revalidate: 300 },
+  })
+
+  if (!res.ok) {
+    throw new Error(`Jira API erro ${res.status} — board ${boardId} configuration`)
+  }
+
+  return res.json()
 }
 
 async function getAllBoardIssues(boardId: number, fields: string): Promise<JiraIssue[]> {
@@ -76,10 +93,12 @@ async function getAllBoardIssues(boardId: number, fields: string): Promise<JiraI
 export async function fetchDashboardRaw(): Promise<{
   iniciativas: JiraIssue[]
   epics: JiraIssue[]
+  board2706Config: JiraBoardConfiguration
 }> {
-  const [iniciativas, epics] = await Promise.all([
+  const [iniciativas, epics, board2706Config] = await Promise.all([
     getAllBoardIssues(2706, FIELDS_INICIATIVA),
     getAllBoardIssues(2707, FIELDS_EPIC),
+    getBoardConfiguration(2706),
   ])
-  return { iniciativas, epics }
+  return { iniciativas, epics, board2706Config }
 }
