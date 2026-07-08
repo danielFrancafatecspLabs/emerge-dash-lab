@@ -1,6 +1,7 @@
 import { fetchDashboardRaw } from '@/lib/jira'
 import { buildDashboardData } from '@/lib/mappers'
 import { classifyPortfolios } from '@/lib/portfolio-classifier'
+import { classifySegmentos } from '@/lib/segmento-classifier'
 import Sidebar from '@/components/layout/Sidebar'
 import Header from '@/components/layout/Header'
 import MetasEstrategicas from '@/components/dashboard/MetasEstrategicas'
@@ -25,8 +26,16 @@ export default async function PortfolioPage() {
       summary: e.fields.summary,
       dominio: e.fields.customfield_16400?.value ?? null,
     }))
-    const classification = await classifyPortfolios(epicInputs)
-    data = buildDashboardData(raw.iniciativas, raw.epics, classification)
+    const segmentoInputs = raw.epics.map(e => ({
+      key: e.key,
+      summary: e.fields.summary,
+      dominio: e.fields.customfield_11661 ?? null,
+    }))
+    const [classification, segmentoClassification] = await Promise.all([
+      classifyPortfolios(epicInputs),
+      classifySegmentos(segmentoInputs),
+    ])
+    data = buildDashboardData(raw.iniciativas, raw.epics, classification, segmentoClassification)
   } catch (e) {
     error = String(e)
   }

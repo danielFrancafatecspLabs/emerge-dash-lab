@@ -1,9 +1,10 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { DashboardData } from '@/lib/types'
+import { DashboardData, EpicDetail } from '@/lib/types'
 import { formatBRL, META_LABELS } from '@/lib/mappers'
 import { Filter, X, Search } from 'lucide-react'
+import ExperimentoModal from '@/components/dashboard/ExperimentoModal'
 
 interface Props { data: DashboardData }
 
@@ -47,12 +48,13 @@ export default function PortfolioList({ data }: Props) {
     [data.allEpics]
   )
 
-  const [search,   setSearch]   = useState('')
-  const [mercado,  setMercado]  = useState('')
-  const [sponsor,  setSponsor]  = useState('')
-  const [lab,      setLab]      = useState('')
-  const [status,   setStatus]   = useState('')
-  const [impactos, setImpactos] = useState<string[]>([])
+  const [search,       setSearch]       = useState('')
+  const [mercado,      setMercado]      = useState('')
+  const [sponsor,      setSponsor]      = useState('')
+  const [lab,          setLab]          = useState('')
+  const [status,       setStatus]       = useState('')
+  const [impactos,     setImpactos]     = useState<string[]>([])
+  const [selectedEpic, setSelectedEpic] = useState<EpicDetail | null>(null)
 
   const mercadoOptions = useMemo(() =>
     Array.from(new Set(epics.map(e => e.mercado))).sort(), [epics])
@@ -103,6 +105,7 @@ export default function PortfolioList({ data }: Props) {
   }
 
   return (
+    <>
     <div className="flex flex-col gap-3">
       {/* Row 1: Resumo + Filtros */}
       <div className="grid gap-3 grid-cols-1 lg:grid-cols-[300px_1fr]">
@@ -237,8 +240,9 @@ export default function PortfolioList({ data }: Props) {
               {filtered.map((e, i) => (
                 <tr
                   key={e.key}
-                  className="border-b border-gray-50 hover:bg-gray-50 transition-colors"
+                  className="border-b border-gray-50 hover:bg-red-50 transition-colors cursor-pointer"
                   style={{ background: i % 2 === 1 ? 'rgba(249,250,251,0.5)' : undefined }}
+                  onClick={() => setSelectedEpic(e)}
                 >
                   <td className="px-3 py-2">
                     <p className="font-medium text-gray-900" style={{ fontSize: 12 }}>{e.nome}</p>
@@ -286,5 +290,10 @@ export default function PortfolioList({ data }: Props) {
         </div>
       </div>
     </div>
+
+    {selectedEpic && (
+      <ExperimentoModal epic={selectedEpic} onClose={() => setSelectedEpic(null)} />
+    )}
+  </>
   )
 }

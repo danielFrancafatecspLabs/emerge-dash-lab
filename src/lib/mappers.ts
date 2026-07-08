@@ -81,6 +81,8 @@ function mapEpicToDetail(epic: JiraIssue): EpicDetail {
     metaCategoria: null,
     tipo: f.issuetype?.name ?? null,
     mercado: getSegmento(f.customfield_11661),
+    descricao: f.description ?? null,
+    motivoBloqueio: f.customfield_13406?.value ?? null,
   }
 }
 
@@ -90,9 +92,14 @@ export function buildDashboardData(
   portfolioClassification: Record<string, MetaCategoria> = {},
   segmentoClassification: Record<string, SegmentoMercado> = {}
 ): DashboardData {
-  // 1. Mapear todos os epics com metaCategoria
+  // 1. Mapear todos os epics com metaCategoria e segmento (LLM)
   const epicDetailMap = new Map(
-    epicsRaw.map(e => [e.key, { ...mapEpicToDetail(e), metaCategoria: portfolioClassification[e.key] ?? null }])
+    epicsRaw.map(e => {
+      const detail = mapEpicToDetail(e)
+      const seg = segmentoClassification[e.key]
+      if (seg) detail.mercado = seg
+      return [e.key, { ...detail, metaCategoria: portfolioClassification[e.key] ?? null }]
+    })
   )
 
   // 2. Agrupar Epics por Iniciativa-mãe (via parent.key)
@@ -176,6 +183,11 @@ export function buildDashboardData(
       valorPotencial: epics.reduce((s, e) => s + (e.beneficioQuantitativo ?? 0), 0),
       dominios,
       epics,
+      alertas: {
+        bloqueadosIA:       epics.filter(e => !!e.motivoBloqueio).length,
+        aguardandoDelivery: epics.filter(e => e.status.id === '10067').length,
+        semSponsor:         epics.filter(e => !e.sponsor).length,
+      },
     }
   }).sort((a, b) => b.qtdExperimentos - a.qtdExperimentos)
 
@@ -207,6 +219,11 @@ export function buildDashboardData(
       valorPotencial: epics.reduce((s, e) => s + (e.beneficioQuantitativo ?? 0), 0),
       dominios,
       epics,
+      alertas: {
+        bloqueadosIA:       epics.filter(e => !!e.motivoBloqueio).length,
+        aguardandoDelivery: epics.filter(e => e.status.id === '10067').length,
+        semSponsor:         epics.filter(e => !e.sponsor).length,
+      },
     }
   })
 
@@ -234,6 +251,8 @@ export function buildDashboardData(
       metaCategoria: ini.epics[0]?.metaCategoria ?? null,
       tipo: 'Iniciativa',
       mercado: ini.epics[0]?.mercado ?? 'Consumo',
+      descricao: null,
+      motivoBloqueio: null,
     }))
 
   // 7. Top Sponsors
