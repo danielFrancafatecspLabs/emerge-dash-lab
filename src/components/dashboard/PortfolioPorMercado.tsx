@@ -14,33 +14,6 @@ const SEGMENTO_ICONS: Record<string, string> = {
   'PME/GE/GOV':  '🏢',
 }
 
-const ALERTAS_CONFIG = [
-  {
-    key: 'bloqueadosIA' as const,
-    label: 'Bloqueados em IA',
-    icon: '🚧',
-    dotColor: '#EF4444',
-    bg: '#FEF2F2',
-    text: '#991B1B',
-  },
-  {
-    key: 'aguardandoDelivery' as const,
-    label: 'Ag. Delivery',
-    icon: '⏳',
-    dotColor: '#F59E0B',
-    bg: '#FFFBEB',
-    text: '#92400E',
-  },
-  {
-    key: 'semSponsor' as const,
-    label: 'Sem Sponsor',
-    icon: '👤',
-    dotColor: '#9CA3AF',
-    bg: '#F9FAFB',
-    text: '#4B5563',
-  },
-]
-
 export default function PortfolioPorMercado({ data }: Props) {
   const [selected, setSelected] = useState<MercadoAgregado | null>(null)
   const top3 = data.mercadosSegmento
@@ -90,47 +63,24 @@ export default function PortfolioPorMercado({ data }: Props) {
                   </div>
                 </div>
 
-                {/* Alertas */}
-                <div className="flex flex-col gap-1">
-                  {ALERTAS_CONFIG.map(cfg => {
-                    const count = m.alertas[cfg.key]
-                    return (
-                      <div
-                        key={cfg.key}
-                        className="flex items-center justify-between rounded px-2 py-1"
-                        style={{ background: count > 0 ? cfg.bg : '#F9FAFB' }}
-                      >
-                        <div className="flex items-center gap-1.5">
-                          <span
-                            className="rounded-full flex-shrink-0"
-                            style={{
-                              width: 6, height: 6,
-                              background: count > 0 ? cfg.dotColor : '#D1D5DB',
-                              display: 'inline-block',
-                            }}
-                          />
-                          <span
-                            style={{
-                              fontSize: 10,
-                              color: count > 0 ? cfg.text : '#9CA3AF',
-                              fontWeight: count > 0 ? 600 : 400,
-                            }}
-                          >
-                            {cfg.label}
-                          </span>
-                        </div>
-                        <span
-                          className="font-bold tabular-nums"
-                          style={{
-                            fontSize: 11,
-                            color: count > 0 ? cfg.dotColor : '#D1D5DB',
-                          }}
-                        >
-                          {count}
-                        </span>
+                {/* Principais Domínios */}
+                <div className="flex flex-col gap-1.5">
+                  <p className="text-gray-400 uppercase font-semibold tracking-widest" style={{ fontSize: 9 }}>
+                    Principais Domínios
+                  </p>
+                  {m.dominios.length > 0 ? m.dominios.map(d => (
+                    <div key={d.nome}>
+                      <div className="flex justify-between items-center mb-0.5">
+                        <span className="text-gray-600 truncate" style={{ fontSize: 9 }}>{d.nome}</span>
+                        <span className="font-bold text-gray-700 ml-1 tabular-nums" style={{ fontSize: 10 }}>{d.count}</span>
                       </div>
-                    )
-                  })}
+                      <div className="h-1 bg-gray-200 rounded-full">
+                        <div className="h-1 rounded-full" style={{ width: `${d.pct}%`, background: '#CC0000' }} />
+                      </div>
+                    </div>
+                  )) : (
+                    <p className="text-gray-400" style={{ fontSize: 9 }}>—</p>
+                  )}
                 </div>
               </div>
             )

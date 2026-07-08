@@ -152,12 +152,10 @@ export function buildDashboardData(
   )
   const allEpicDetails = Array.from(epicDetailMap.values())
 
-  // Benefício vem das Iniciativas (customfield_13242 preenchido lá, não nos Epics)
-  const iniBeneficios = iniciativas
-    .map(i => i.beneficioQuantitativo)
-    .filter((v): v is number => v !== null && v > 0)
-  const beneficioTotal = iniBeneficios.reduce((s, v) => s + v, 0)
-  const beneficioMedio = iniBeneficios.length ? beneficioTotal / iniBeneficios.length : 0
+  // Benefício vem dos Epics (customfield_13242 preenchido no board 2707)
+  const epicsComBeneficio = allEpicDetails.filter(e => (e.beneficioQuantitativo ?? 0) > 0)
+  const beneficioTotal = epicsComBeneficio.reduce((s, e) => s + (e.beneficioQuantitativo ?? 0), 0)
+  const beneficioMedio = epicsComBeneficio.length ? beneficioTotal / epicsComBeneficio.length : 0
 
   // 5. Portfólio por mercado (via classificação LLM: EBITDA / NPS / Receita, por epic.key)
   const mercadoMap = new Map<string, EpicDetail[]>()
@@ -227,33 +225,11 @@ export function buildDashboardData(
     }
   })
 
-  // 7. Top 5 Iniciativas por benefício (benefício real está na Iniciativa, não no Epic)
-  const top5Epics: EpicDetail[] = [...iniciativas]
-    .filter(i => (i.beneficioQuantitativo ?? 0) > 0)
+  // 7. Top 5 Epics por benefício quantitativo
+  const top5Epics: EpicDetail[] = [...allEpicDetails]
+    .filter(e => (e.beneficioQuantitativo ?? 0) > 0)
     .sort((a, b) => (b.beneficioQuantitativo ?? 0) - (a.beneficioQuantitativo ?? 0))
     .slice(0, 5)
-    .map(ini => ({
-      key: ini.key,
-      nome: ini.nome,
-      status: ini.status,
-      sponsor: ini.sponsor,
-      bo: null,
-      complexidade: null,
-      timeResponsavel: ini.timeResponsavel ?? ini.epics[0]?.timeResponsavel ?? null,
-      beneficioQuantitativo: ini.beneficioQuantitativo,
-      beneficioQualitativo: null,
-      dominio: ini.dominios[0] ?? null,
-      custoEstimado: null,
-      custoRealizado: null,
-      segmento: ini.segmentos[0] ?? null,
-      portfolio: null,
-      diretoria: null,
-      metaCategoria: ini.epics[0]?.metaCategoria ?? null,
-      tipo: 'Iniciativa',
-      mercado: ini.epics[0]?.mercado ?? 'Consumo',
-      descricao: null,
-      motivoBloqueio: null,
-    }))
 
   // 7. Top Sponsors
   const sponsorCount = new Map<string, number>()
@@ -271,7 +247,8 @@ export function buildDashboardData(
     'EM EXPERIMENTAÇÃO', 'EM REFINAMENTO',
   ]
   const STATUS_DISPLAY_NAME: Partial<Record<keyof PipelineCount, string>> = {
-    'CANCELADO': 'DESCONTINUADO',
+    'CANCELADO':  'DESCONTINUADO',
+    'FINALIZADO': 'CONCLUÍDO',
   }
   const statusDistribuicao = STATUS_DONUT_ORDER
     .map(key => ({
@@ -293,20 +270,11 @@ export function buildDashboardData(
     if (!meta) continue
     metasAgregadas[meta].count++
   }
-  // Valor: propaga benefício da Iniciativa proporcionalmente aos seus epics classificados
-  for (const ini of iniciativas) {
-    const ben = ini.beneficioQuantitativo ?? 0
-    if (!ben) continue
-    const catCounts: Partial<Record<MetaCategoria, number>> = {}
-    for (const e of ini.epics) {
-      const meta = portfolioClassification[e.key] as MetaCategoria | undefined
-      if (meta) catCounts[meta] = (catCounts[meta] ?? 0) + 1
-    }
-    const total = Object.values(catCounts).reduce((s, v) => s + (v ?? 0), 0)
-    if (!total) continue
-    for (const [meta, count] of Object.entries(catCounts) as [MetaCategoria, number][]) {
-      metasAgregadas[meta].valor += ben * (count / total)
-    }
+  // Valor: soma direta do benefício de cada epic por categoria
+  for (const e of allEpicDetails) {
+    const meta = portfolioClassification[e.key] as MetaCategoria | undefined
+    if (!meta) continue
+    metasAgregadas[meta].valor += e.beneficioQuantitativo ?? 0
   }
 
   return {
