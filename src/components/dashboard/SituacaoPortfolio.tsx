@@ -1,10 +1,24 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts'
-import { DashboardData, EpicDetail } from '@/lib/types'
+import { DashboardData, EpicDetail, PipelineCount } from '@/lib/types'
 import { STATUS_PIPELINE } from '@/lib/mappers'
 import EpicModal from './EpicModal'
+
+// Mapeamento do nome exibido → chave do pipeline (para aplicar overrides do localStorage)
+const NAME_TO_KEY: Record<string, keyof PipelineCount> = {
+  'CONCLUÍDO':            'FINALIZADO',
+  'FINALIZADO':           'FINALIZADO',
+  'DESCONTINUADO':        'CANCELADO',
+  'CANCELADO':            'CANCELADO',
+  'EM PILOTO':            'EM PILOTO',
+  'AGUARDANDO PILOTO':    'AGUARDANDO PILOTO',
+  'EM EXPERIMENTAÇÃO':    'EM EXPERIMENTAÇÃO',
+  'EM REFINAMENTO':       'EM REFINAMENTO',
+  'BACKLOG':              'BACKLOG',
+  'PRONTO PARA EXECUÇÃO': 'PRONTO PARA EXECUÇÃO',
+}
 
 function getEpicsForStage(data: DashboardData, stage: string): EpicDetail[] {
   return data.iniciativas
@@ -16,7 +30,35 @@ interface Props { data: DashboardData }
 
 export default function SituacaoPortfolio({ data }: Props) {
   const [modal, setModal] = useState<string | null>(null)
-  const total = data.statusDistribuicao.reduce((s, d) => s + d.value, 0)
+  // key do pipeline → valor fixo
+  const [fixos, setFixos] = useState<Partial<Record<keyof PipelineCount, number>>>({})
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('pipeline-colunas-v1')
+      if (!saved) return
+      const cfg = JSON.parse(saved) as Record<string, { mode: string; value: string }>
+      const map: Partial<Record<keyof PipelineCount, number>> = {}
+      for (const [key, field] of Object.entries(cfg)) {
+        if (field.mode === 'fixo') {
+          const n = parseInt(field.value, 10)
+          if (!isNaN(n)) map[key as keyof PipelineCount] = n
+        }
+      }
+      setFixos(map)
+    } catch {}
+  }, [])
+
+  // Aplica overrides: se a coluna está em modo fixo no pipeline, usa esse número
+  const distribuicao = data.statusDistribuicao
+    .map(d => {
+      const pKey = NAME_TO_KEY[d.name]
+      const override = pKey !== undefined ? fixos[pKey] : undefined
+      return { ...d, value: override !== undefined ? override : d.value, isFixed: override !== undefined }
+    })
+    .filter(d => d.value > 0)
+
+  const total = distribuicao.reduce((s, d) => s + d.value, 0)
 
   return (
     <>
@@ -29,7 +71,7 @@ export default function SituacaoPortfolio({ data }: Props) {
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
-                  data={data.statusDistribuicao}
+                  data={distribuicao}
                   cx="50%"
                   cy="50%"
                   innerRadius={42}
@@ -38,7 +80,7 @@ export default function SituacaoPortfolio({ data }: Props) {
                   dataKey="value"
                   stroke="none"
                 >
-                  {data.statusDistribuicao.map((entry, i) => (
+                  {distribuicao.map((entry, i) => (
                     <Cell key={i} fill={entry.color} />
                   ))}
                 </Pie>
@@ -57,16 +99,21 @@ export default function SituacaoPortfolio({ data }: Props) {
           </div>
 
           <div className="mt-3 w-full space-y-1">
-            {data.statusDistribuicao.map(d => (
+            {distribuicao.map(d => (
               <button
                 key={d.name}
-                onClick={() => setModal(d.name)}
-                className="flex items-center justify-between w-full rounded px-1 py-0.5 hover:bg-gray-50 transition-colors group"
+                onClick={() => !d.isFixed && setModal(d.name)}
+                className={`flex items-center justify-between w-full rounded px-1 py-0.5 transition-colors group ${d.isFixed ? 'cursor-default' : 'hover:bg-gray-50'}`}
                 style={{ fontSize: 10 }}
               >
                 <div className="flex items-center gap-1.5">
                   <div className="rounded-sm flex-shrink-0" style={{ width: 8, height: 8, background: d.color }} />
                   <span className="text-gray-700 group-hover:text-gray-900">{d.name}</span>
+                  {d.isFixed && (
+                    <span className="px-1 rounded" style={{ fontSize: 8, background: '#F3F4F6', color: '#9CA3AF' }}>
+                      fixo
+                    </span>
+                  )}
                 </div>
                 <span className="text-gray-500 font-medium">
                   {d.value} ({Math.round((d.value / total) * 100)}%)

@@ -1,5 +1,6 @@
 import { Radio } from 'lucide-react'
 import LogoutButton from './LogoutButton'
+import RefreshButton from './RefreshButton'
 
 export default function Header() {
   return (
@@ -21,6 +22,7 @@ export default function Header() {
         >
           Semestre Atual ▾
         </button>
+        <RefreshButton />
         <LogoutButton />
       </div>
     </header>

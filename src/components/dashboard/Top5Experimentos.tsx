@@ -20,7 +20,7 @@ export default function Top5Experimentos({ data }: Props) {
         <table className="w-full" style={{ fontSize: 11 }}>
           <thead>
             <tr className="border-b border-gray-200">
-              {['Experimento', 'Lab Responsável', 'Domínio', 'Meta', 'Valor Potencial', ''].map(h => (
+              {['Experimento', 'Lab Responsável', 'Domínio', 'Valor Potencial', ''].map(h => (
                 <th key={h} className="text-left pb-2 text-gray-500 font-semibold pr-2" style={{ fontSize: 9 }}>
                   {h.toUpperCase()}
                 </th>
@@ -45,7 +45,6 @@ export default function Top5Experimentos({ data }: Props) {
                 </td>
                 <td className="py-2 pr-2 text-gray-600">{e.timeResponsavel ?? '—'}</td>
                 <td className="py-2 pr-2 text-gray-600">{e.dominio ?? '—'}</td>
-                <td className="py-2 pr-2 text-gray-600">{e.metaCategoria ?? '—'}</td>
                 <td className="py-2 font-semibold" style={{ color: '#CC0000' }}>
                   {e.beneficioQuantitativo ? formatBRL(e.beneficioQuantitativo) : '—'}
                 </td>
@@ -62,7 +61,7 @@ export default function Top5Experimentos({ data }: Props) {
             ))}
             {data.top5Epics.length === 0 && (
               <tr>
-                <td colSpan={6} className="py-4 text-center text-gray-400 text-xs">
+                <td colSpan={5} className="py-4 text-center text-gray-400 text-xs">
                   Nenhum experimento com valor potencial informado
                 </td>
               </tr>
