@@ -9,8 +9,9 @@ const FIELDS_INICIATIVA = [
 ].join(',')
 
 const FIELDS_EPIC = [
-  'summary', 'status', 'issuetype', 'parent',
+  'summary', 'status', 'issuetype', 'parent', 'description',
   'customfield_11661', // Domínio (Empresarial / PME / outros)
+  'customfield_13406', // Motivo de Bloqueio
   'customfield_11662', // Sponsor
   'customfield_11663', // BO
   'customfield_11664', // Complexidade

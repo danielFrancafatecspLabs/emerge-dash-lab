@@ -13,8 +13,10 @@ export interface JiraIssueFields {
   }
   created?: string
   updated?: string
+  description?: string                                // Descrição (texto livre)
   // Epics — board 2707
   customfield_11661?: string                          // Domínio (Empresarial / PME / outros)
+  customfield_13406?: { value: string }               // Motivo de Bloqueio
   customfield_11662?: string                          // Sponsor
   customfield_11663?: string                          // BO (Business Owner)
   customfield_11664?: string                          // Complexidade
@@ -53,6 +55,8 @@ export interface EpicDetail {
   metaCategoria: string | null
   tipo: string | null
   mercado: string
+  descricao: string | null
+  motivoBloqueio: string | null
 }
 
 export interface Iniciativa {
@@ -86,6 +90,11 @@ export interface MercadoAgregado {
   valorPotencial: number
   dominios: { nome: string; count: number; pct: number }[]
   epics: EpicDetail[]
+  alertas: {
+    bloqueadosIA: number        // têm Motivo de Bloqueio preenchido
+    aguardandoDelivery: number  // status PRONTO PARA EXECUÇÃO (10067)
+    semSponsor: number          // sem sponsor indicado
+  }
 }
 
 export interface DashboardData {
