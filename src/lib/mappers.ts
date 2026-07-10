@@ -133,10 +133,26 @@ export function buildDashboardData(
   // 3. Montar Iniciativas com Epics agregados
   const iniciativas: Iniciativa[] = iniciativasRaw.map(ini => {
     const myEpics = (epicsByParent.get(ini.key) ?? []).map(e => epicDetailMap.get(e.key)!)
+    const metaCounts = new Map<MetaCategoria, { count: number; valor: number }>()
+    for (const epic of myEpics) {
+      const meta = epic.metaCategoria
+      if (!meta) continue
+      const existing = metaCounts.get(meta) ?? { count: 0, valor: 0 }
+      existing.count += 1
+      existing.valor += epic.beneficioQuantitativo ?? 0
+      metaCounts.set(meta, existing)
+    }
+    const metaCategoria = Array.from(metaCounts.entries())
+      .sort((a, b) => {
+        if (b[1].count !== a[1].count) return b[1].count - a[1].count
+        return b[1].valor - a[1].valor
+      })[0]?.[0] ?? null
+
     return {
       key: ini.key,
       nome: ini.fields.summary,
       status: ini.fields.status,
+      metaCategoria,
       epics: myEpics,
       beneficioQuantitativo: ini.fields.customfield_13242 ?? null,
       beneficioQuantitativoTotal: myEpics.reduce(
@@ -292,17 +308,24 @@ export function buildDashboardData(
     NPS:     { count: 0, valor: 0 },
     Receita: { count: 0, valor: 0 },
   }
-  // Contagem por epic classificado
-  for (const e of allEpicDetails) {
-    const meta = portfolioClassification[e.key]
-    if (!meta) continue
-    metasAgregadas[meta].count++
+
+  const iniciativasPorMeta: Record<MetaCategoria, Iniciativa[]> = {
+    EBITDA: [],
+    NPS: [],
+    Receita: [],
   }
-  // Valor: soma direta do benefício de cada epic por categoria
-  for (const e of allEpicDetails) {
-    const meta = portfolioClassification[e.key] as MetaCategoria | undefined
-    if (!meta) continue
-    metasAgregadas[meta].valor += e.beneficioQuantitativo ?? 0
+
+  // Distribuir iniciativas para cada meta com base nos epics que carregam essa meta
+  for (const iniciativa of iniciativas) {
+    const seenMetas = new Set<MetaCategoria>()
+    for (const epic of iniciativa.epics) {
+      const meta = epic.metaCategoria
+      if (!meta || seenMetas.has(meta)) continue
+      seenMetas.add(meta)
+      metasAgregadas[meta].count++
+      metasAgregadas[meta].valor += iniciativa.beneficioQuantitativoTotal
+      iniciativasPorMeta[meta].push(iniciativa)
+    }
   }
 
   return {
@@ -320,6 +343,7 @@ export function buildDashboardData(
     topSponsors,
     statusDistribuicao,
     metasAgregadas,
+    iniciativasPorMeta,
   }
 }
 
