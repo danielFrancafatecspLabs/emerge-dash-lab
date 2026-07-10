@@ -1,3 +1,5 @@
+import type { MetaCategoria } from './portfolio-classifier'
+
 export interface JiraStatus {
   id: string
   name: string
@@ -84,6 +86,7 @@ export interface Iniciativa {
   key: string
   nome: string
   status: JiraStatus
+  metaCategoria: MetaCategoria | null
   epics: EpicDetail[]
   beneficioQuantitativo: number | null     // da própria Iniciativa (customfield_13242)
   beneficioQuantitativoTotal: number       // soma dos Epics filhos
@@ -134,4 +137,5 @@ export interface DashboardData {
   topSponsors: { nome: string; count: number }[]
   statusDistribuicao: { name: string; value: number; color: string }[]
   metasAgregadas: Record<'EBITDA' | 'NPS' | 'Receita', { count: number; valor: number }>
+  iniciativasPorMeta: Record<'EBITDA' | 'NPS' | 'Receita', Iniciativa[]>
 }
