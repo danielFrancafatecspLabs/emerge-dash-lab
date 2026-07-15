@@ -73,6 +73,9 @@ function mapEpicToDetail(epic: JiraIssue): EpicDetail {
     mercado: getSegmento(f.customfield_11661),
     descricao: f.description ?? null,
     motivoBloqueio: f.customfield_13406?.value ?? null,
+    statusDetalhado: f.lastComment ?? null,
+    prioridade: f.priority?.name ?? null,
+    criadoEm: f.created ?? null,
   }
 }
 
@@ -163,6 +166,7 @@ export function buildDashboardData(
       segmentos: Array.from(new Set(myEpics.map(e => e.segmento).filter(Boolean) as string[])),
       timeResponsavel: ini.fields.customfield_11665 ?? null,
       sponsor: ini.fields.customfield_11662 ? normalizeSponsor(ini.fields.customfield_11662) : null,
+      criadoEm: ini.fields.created ?? null,
     }
   })
 
@@ -191,6 +195,19 @@ export function buildDashboardData(
     e.fields.status.id !== '10015' && e.fields.status.id !== '10003'
   )
   const allEpicDetails = Array.from(epicDetailMap.values())
+
+  // Ordenar por prioridade: itens com prioridade mais alta aparecem primeiro.
+  // Definimos uma ordem de prioridade conhecida (Ex: Blocker > Critical > High > Medium > Low)
+  const PRIORITY_ORDER = ['High', 'Medium', 'Low']
+  allEpicDetails.sort((a, b) => {
+    const ai = PRIORITY_ORDER.indexOf((a.prioridade ?? '').toString())
+    const bi = PRIORITY_ORDER.indexOf((b.prioridade ?? '').toString())
+    const aIndex = ai === -1 ? PRIORITY_ORDER.length : ai
+    const bIndex = bi === -1 ? PRIORITY_ORDER.length : bi
+    if (aIndex !== bIndex) return aIndex - bIndex
+    // Fallback para ordenar por beneficio quantitativo decrescente
+    return (b.beneficioQuantitativo ?? 0) - (a.beneficioQuantitativo ?? 0)
+  })
 
   // Benefício vem dos Epics (customfield_13242 preenchido no board 2707)
   const epicsComBeneficio = allEpicDetails.filter(e => (e.beneficioQuantitativo ?? 0) > 0)

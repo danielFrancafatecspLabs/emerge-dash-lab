@@ -31,6 +31,10 @@ export interface JiraIssueFields {
   customfield_11378?: { value: string }               // Segmento
   customfield_15919?: { value: string }               // Portfólio
   customfield_10904?: string                          // Diretoria
+  // Preenchido pelo backend com o último comentário (texto plano)
+  lastComment?: string | null
+  // Prioridade padrão do Jira
+  priority?: { id?: string; name?: string } | null
 }
 
 export interface JiraIssue {
@@ -80,6 +84,9 @@ export interface EpicDetail {
   mercado: string
   descricao: string | null
   motivoBloqueio: string | null
+  statusDetalhado?: string | null
+  prioridade?: string | null
+  criadoEm?: string | null
 }
 
 export interface Iniciativa {
@@ -95,6 +102,7 @@ export interface Iniciativa {
   segmentos: string[]
   timeResponsavel: string | null
   sponsor: string | null
+  criadoEm: string | null
 }
 
 export interface PipelineCount {

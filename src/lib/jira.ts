@@ -9,7 +9,7 @@ const FIELDS_INICIATIVA = [
 ].join(',')
 
 const FIELDS_EPIC = [
-  'summary', 'status', 'issuetype', 'parent', 'description',
+  'summary', 'status', 'issuetype', 'parent', 'description', 'priority', 'created',
   'customfield_11661', // Domínio (Empresarial / PME / outros)
   'customfield_13406', // Motivo de Bloqueio
   'customfield_11662', // Sponsor
@@ -100,5 +100,55 @@ export async function fetchDashboardRaw(): Promise<{
     getAllBoardIssues(2707, FIELDS_EPIC),
     getBoardConfiguration(2706),
   ])
-  return { iniciativas, epics, board2706Config }
+
+  // Buscar último comentário (texto plano) apenas para Epics em andamento (status.id === '3')
+  async function getIssueLastComment(issueKey: string): Promise<string | null> {
+    const base = process.env.JIRA_BASE_URL
+    if (!base) throw new Error('JIRA_BASE_URL é obrigatório')
+    const url = `${base}/rest/api/3/issue/${issueKey}/comment?maxResults=200`
+    const res = await fetch(url, { headers: getHeaders(), next: { revalidate: 300 } })
+    if (!res.ok) {
+      // não aborta toda a construção do dashboard por causa de um comentário
+      return null
+    }
+    const data = await res.json()
+    const comments = data.comments ?? []
+    if (comments.length === 0) return null
+
+    const last = comments[comments.length - 1]
+    const body = last.body
+    if (!body) return null
+
+    // body pode vir em ADF (objeto) ou string — extrair texto plano
+    function adfToText(node: any): string {
+      if (!node) return ''
+      if (typeof node === 'string') return node
+      if (Array.isArray(node)) return node.map(adfToText).join('')
+      if (node.type === 'text') return node.text ?? ''
+      if (node.content) return adfToText(node.content)
+      return ''
+    }
+
+    // Alguns comentários vêm como array/ADF, outros como objeto com content
+    if (typeof body === 'string') return body.trim()
+    if (Array.isArray(body)) return adfToText(body).trim() || null
+    if (body.content) return adfToText(body.content).trim() || null
+    return String(body).trim()
+  }
+
+  const epicsWithComments: JiraIssue[] = []
+  for (const e of epics) {
+    const copy = { ...e }
+    try {
+      if (copy.fields?.status?.id === '3') {
+        copy.fields = { ...copy.fields, lastComment: await getIssueLastComment(copy.key) }
+      }
+    } catch (err) {
+      // silencioso — preferimos continuar mesmo se um fetch falhar
+      copy.fields = { ...copy.fields, lastComment: null }
+    }
+    epicsWithComments.push(copy)
+  }
+
+  return { iniciativas, epics: epicsWithComments, board2706Config }
 }
