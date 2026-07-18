@@ -7,7 +7,7 @@ const NAV = [
   { label: 'Estratégia', icon: Target,   href: '/estrategia',    inactive: false },
   { label: 'Portfólio',  icon: BarChart2, href: '/portfolio',     inactive: false },
   { label: 'Report',     icon: FileText, href: '/report',         inactive: false },
-  { label: 'Monitoram.', icon: Activity,  href: '/monitoramento', inactive: true  },
+  { label: 'Monitoram.', icon: Activity,  href: '/monitoramento', inactive: false },
   { label: 'Governança', icon: Users,     href: '/governanca',    inactive: true  },
 ]
 
