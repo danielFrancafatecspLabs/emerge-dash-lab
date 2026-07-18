@@ -5,6 +5,7 @@ import { classifySegmentos } from '@/lib/segmento-classifier'
 import Sidebar from '@/components/layout/Sidebar'
 import LogoutButton from '@/components/layout/LogoutButton'
 import EvolucaoAnual from '@/components/monitoramento/EvolucaoAnual'
+import CycleTimeIdeacao from '@/components/monitoramento/CycleTimeIdeacao'
 
 export const dynamic = 'force-dynamic'
 
@@ -28,7 +29,7 @@ export default async function MonitoramentoPage() {
       classifyPortfolios(epicInputs),
       classifySegmentos(segmentoInputs),
     ])
-    data = buildDashboardData(raw.iniciativas, raw.epics, classification, segmentoClassification)
+    data = buildDashboardData(raw.iniciativas, raw.epics, classification, segmentoClassification, raw.board2706Config, raw.epicChangelogs, raw.iniciativaChangelogs)
   } catch (e) {
     error = String(e)
   }
@@ -62,8 +63,9 @@ export default async function MonitoramentoPage() {
         </header>
 
         {/* Content */}
-        <div className="flex-1 overflow-auto p-6">
+        <div className="flex-1 overflow-auto p-6 space-y-6">
           <EvolucaoAnual epics={data.allEpics} />
+          <CycleTimeIdeacao data={data.cycleTimeIdeacao} />
         </div>
       </main>
     </div>

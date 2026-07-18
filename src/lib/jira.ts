@@ -94,6 +94,8 @@ export async function fetchDashboardRaw(): Promise<{
   iniciativas: JiraIssue[]
   epics: JiraIssue[]
   board2706Config: JiraBoardConfiguration
+  epicChangelogs: Record<string, ChangelogEntry[]>
+  iniciativaChangelogs: Record<string, ChangelogEntry[]>
 }> {
   const [iniciativas, epics, board2706Config] = await Promise.all([
     getAllBoardIssues(2706, FIELDS_INICIATIVA),
@@ -150,5 +152,70 @@ export async function fetchDashboardRaw(): Promise<{
     epicsWithComments.push(copy)
   }
 
-  return { iniciativas, epics: epicsWithComments, board2706Config }
+  // Buscar changelogs para TODOS os Epics (board 2707) — necessário para calcular cycle time de experimentação
+  const epicChangelogs: Record<string, ChangelogEntry[]> = {}
+
+  // Buscar em lotes de 5 para não sobrecarregar a API
+  const BATCH_SIZE = 5
+  for (let i = 0; i < epics.length; i += BATCH_SIZE) {
+    const batch = epics.slice(i, i + BATCH_SIZE)
+    const results = await Promise.allSettled(
+      batch.map(e => getIssueChangelog(e.key))
+    )
+    results.forEach((r, idx) => {
+      if (r.status === 'fulfilled') {
+        epicChangelogs[batch[idx].key] = r.value
+      }
+    })
+  }
+
+  // Buscar changelogs para TODAS as Iniciativas (board 2706) — necessário para cycle time por etapa
+  const iniciativaChangelogs: Record<string, ChangelogEntry[]> = {}
+  for (let i = 0; i < iniciativas.length; i += BATCH_SIZE) {
+    const batch = iniciativas.slice(i, i + BATCH_SIZE)
+    const results = await Promise.allSettled(
+      batch.map(ini => getIssueChangelog(ini.key))
+    )
+    results.forEach((r, idx) => {
+      if (r.status === 'fulfilled') {
+        iniciativaChangelogs[batch[idx].key] = r.value
+      }
+    })
+  }
+
+  return { iniciativas, epics: epicsWithComments, board2706Config, epicChangelogs, iniciativaChangelogs }
+}
+
+export interface ChangelogEntry {
+  created: string
+  items: { field: string; fieldId: string; fromString: string | null; toString: string | null }[]
+}
+
+export async function getIssueChangelog(issueKey: string): Promise<ChangelogEntry[]> {
+  const base = process.env.JIRA_BASE_URL
+  if (!base) throw new Error('JIRA_BASE_URL é obrigatório')
+
+  const all: ChangelogEntry[] = []
+  const maxResults = 100
+  let startAt = 0
+  let total = Infinity
+
+  while (startAt < total) {
+    const url = `${base}/rest/api/3/issue/${issueKey}/changelog?maxResults=${maxResults}&startAt=${startAt}`
+    const res = await fetch(url, {
+      headers: getHeaders(),
+      next: { revalidate: 300 },
+    })
+
+    if (!res.ok) return all // silencioso — retorna o que conseguiu
+
+    const data = await res.json()
+    total = data.total ?? 0
+    const values: ChangelogEntry[] = data.values ?? []
+    all.push(...values)
+    startAt += values.length
+    if (values.length === 0) break
+  }
+
+  return all
 }

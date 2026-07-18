@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic'
 
 export async function GET() {
   try {
-    const { iniciativas, epics } = await fetchDashboardRaw()
+    const { iniciativas, epics, board2706Config, epicChangelogs, iniciativaChangelogs } = await fetchDashboardRaw()
 
     // Inputs para classificação de portfólio (usa customfield_16400 — Domínio estruturado)
     const epicInputs = epics.map(e => ({
@@ -29,7 +29,10 @@ export async function GET() {
       classifySegmentos(segmentoInputs),
     ])
 
-    const data = buildDashboardData(iniciativas, epics, portfolioClassification, segmentoClassification)
+    const data = buildDashboardData(
+      iniciativas, epics, portfolioClassification, segmentoClassification,
+      board2706Config, epicChangelogs, iniciativaChangelogs
+    )
     return NextResponse.json(data)
   } catch (err) {
     console.error('[dashboard API]', err)

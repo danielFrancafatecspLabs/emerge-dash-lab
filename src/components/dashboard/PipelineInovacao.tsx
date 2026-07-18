@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { DashboardData, PipelineCount, EpicDetail } from '@/lib/types'
 import { formatBRL, STATUS_PIPELINE, getPipelineConversionRate, getPipelineStage } from '@/lib/mappers'
-import { Settings, X } from 'lucide-react'
+import { Settings, X, Info } from 'lucide-react'
 import EpicModal from './EpicModal'
 
 interface Props { data: DashboardData }
@@ -29,14 +29,14 @@ type ColunasConfig = Partial<Record<keyof PipelineCount, FieldConfig>>
 interface PipelineKpis {
   taxaConversaoTotal: string
   leadtimeTotal: string
+  cycleTimeExp: string
   blockedTime: string
-  workingTime: string
 }
 
-const FUNIL_FIELDS: { key: keyof PipelineKpis; label: string }[] = [
-  { key: 'leadtimeTotal', label: 'Leadtime total'  },
-  { key: 'blockedTime',   label: 'Blocked time'    },
-  { key: 'workingTime',   label: 'Working time'    },
+const FUNIL_FIELDS: { key: keyof PipelineKpis; label: string; desc: string }[] = [
+  { key: 'leadtimeTotal', label: 'Leadtime total', desc: 'Média de dias desde a criação da iniciativa até hoje, considerando apenas iniciativas ativas (não canceladas nem concluídas).' },
+  { key: 'cycleTimeExp',  label: 'Cycle time exp.', desc: 'Média de dias que os Epics (experimentos) permanecem nos status "Em andamento" ou "EM VALIDAÇÃO" no board 2707. Calculado via changelog do Jira.' },
+  { key: 'blockedTime',   label: 'Blocked time',   desc: 'Média de dias em que os experimentos ativos ficaram com o campo "Motivo de Bloqueio" preenchido. Calculado via changelog do Jira (entrada e saída do bloqueio).' },
 ]
 
 function getEpicsForStage(data: DashboardData, stage: keyof PipelineCount): EpicDetail[] {
@@ -76,10 +76,21 @@ export default function PipelineInovacao({ data }: Props) {
 
   const kpiDefaults: PipelineKpis = {
     taxaConversaoTotal: taxaConversao,
-    leadtimeTotal:      '147 dias',
-    blockedTime:        '-',
-    workingTime:        '-',
+    leadtimeTotal:      data.leadTime.leadtimeTotalDias > 0 ? `${data.leadTime.leadtimeTotalDias} dias` : '-',
+    cycleTimeExp:       data.leadTime.cycleTimeExperimentacaoDias > 0 ? `${data.leadTime.cycleTimeExperimentacaoDias} dias` : '-',
+    blockedTime:        data.leadTime.blockedTimeDias > 0 ? `${data.leadTime.blockedTimeDias} dias` : '-',
   }
+
+  // ── Bloqueios: contar epics bloqueados e agrupar por motivo ──
+  const epicsBloqueados = data.allEpics.filter(e => !!e.motivoBloqueio)
+  const motivosBloqueio = epicsBloqueados.reduce((acc, e) => {
+    const motivo = e.motivoBloqueio!
+    acc[motivo] = (acc[motivo] ?? 0) + 1
+    return acc
+  }, {} as Record<string, number>)
+  const topMotivos = Object.entries(motivosBloqueio)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3)
 
   const [kpis, setKpis] = useState<PipelineKpis>(kpiDefaults)
   const [colunasConfig, setColunasConfig] = useState<ColunasConfig>(defaultColunas)
@@ -211,12 +222,35 @@ export default function PipelineInovacao({ data }: Props) {
               Desempenho do Funil
             </p>
             <div className="grid grid-cols-3 gap-2">
-              {FUNIL_FIELDS.map(f => (
-                <div key={f.key} className="text-center">
-                  <p className="text-white/50" style={{ fontSize: 8 }}>{f.label}</p>
-                  <p className="text-white font-bold text-sm">{kpis[f.key]}</p>
-                </div>
-              ))}
+              {FUNIL_FIELDS.map(f => {
+                const isBlocked = f.key === 'blockedTime'
+                return (
+                  <div key={f.key} className="text-center relative group">
+                    <div className="flex items-center justify-center gap-1">
+                      <p className="text-white/50" style={{ fontSize: 8 }}>{f.label}</p>
+                      <div className="relative">
+                        <Info size={9} className="text-white/30 cursor-help" />
+                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 w-48 p-2 rounded-lg bg-gray-900 text-white text-[9px] leading-relaxed opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 shadow-xl pointer-events-none">
+                          {f.desc}
+                          <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-px border-4 border-transparent border-t-gray-900" />
+                        </div>
+                      </div>
+                    </div>
+                    <p className="text-white font-bold text-sm">{kpis[f.key]}</p>
+                    {/* Motivos de bloqueio */}
+                    {isBlocked && topMotivos.length > 0 && (
+                      <div className="mt-1 space-y-0.5">
+                        {topMotivos.map(([motivo, count]) => (
+                          <div key={motivo} className="flex items-center justify-between gap-1 text-white/40" style={{ fontSize: 7 }}>
+                            <span className="truncate max-w-[70px] text-left">{motivo}</span>
+                            <span className="font-semibold text-white/50">{count}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
             </div>
           </div>
           <div className="rounded-lg p-3" style={{ background: 'rgba(255,255,255,0.08)' }}>
@@ -338,23 +372,13 @@ export default function PipelineInovacao({ data }: Props) {
                   {FUNIL_FIELDS.map(f => (
                     <div key={f.key} className="flex items-center gap-3 rounded-lg border border-gray-200 p-3">
                       <label className="text-sm text-gray-700 flex-1">{f.label}</label>
-                      {(f.key === 'blockedTime' || f.key === 'workingTime') ? (
-                        <input
-                          type="text"
-                          value={'-'}
-                          disabled
-                          className="border border-gray-200 rounded px-2 py-1 text-sm text-gray-400 bg-gray-50 cursor-not-allowed"
-                          style={{ width: 130 }}
-                        />
-                      ) : (
-                        <input
-                          type="text"
-                          value={draftKpis[f.key]}
-                          onChange={e => setDraftKpis(d => ({ ...d, [f.key]: e.target.value }))}
-                          className="border border-gray-300 rounded px-2 py-1 text-sm text-gray-800 focus:outline-none focus:border-red-400"
-                          style={{ width: 130 }}
-                        />
-                      )}
+                      <input
+                        type="text"
+                        value={draftKpis[f.key]}
+                        onChange={e => setDraftKpis(d => ({ ...d, [f.key]: e.target.value }))}
+                        className="border border-gray-300 rounded px-2 py-1 text-sm text-gray-800 focus:outline-none focus:border-red-400"
+                        style={{ width: 130 }}
+                      />
                     </div>
                   ))}
                 </div>
