@@ -4,8 +4,7 @@ import { classifyPortfolios } from '@/lib/portfolio-classifier'
 import { classifySegmentos } from '@/lib/segmento-classifier'
 import Sidebar from '@/components/layout/Sidebar'
 import Header from '@/components/layout/Header'
-import MetasEstrategicas from '@/components/dashboard/MetasEstrategicas'
-import ResumoPortfolio from '@/components/dashboard/ResumoPortfolio'
+import ResumoExecutivo from '@/components/dashboard/ResumoExecutivo'
 import PortfolioPorMercado from '@/components/dashboard/PortfolioPorMercado'
 import Top5Experimentos from '@/components/dashboard/Top5Experimentos'
 import SituacaoPortfolio from '@/components/dashboard/SituacaoPortfolio'
@@ -35,7 +34,7 @@ export default async function PortfolioPage() {
       classifyPortfolios(epicInputs),
       classifySegmentos(segmentoInputs),
     ])
-    data = buildDashboardData(raw.iniciativas, raw.epics, classification, segmentoClassification, raw.board2706Config)
+    data = buildDashboardData(raw.iniciativas, raw.epics, classification, segmentoClassification, raw.board2706Config, raw.epicChangelogs, raw.iniciativaChangelogs)
   } catch (e) {
     error = String(e)
   }
@@ -75,11 +74,8 @@ export default async function PortfolioPage() {
         {/* Content */}
         <main className="flex-1 p-3 gap-3 flex flex-col" style={{ marginTop: 52 }}>
 
-          {/* Row 1: Metas (60%) + Resumo (40%) */}
-          <div className="grid gap-3 grid-cols-1 lg:grid-cols-[60fr_40fr]">
-            <MetasEstrategicas data={data} />
-            <ResumoPortfolio data={data} />
-          </div>
+          {/* Row 1: Resumo Executivo (Metas + Pipeline) */}
+          <ResumoExecutivo data={data} />
 
           {/* Row 2: Portfólio Mercado (45%) + Top 5 (35%) + Situação (20%) */}
           <div className="grid gap-3 grid-cols-1 md:grid-cols-2 lg:grid-cols-[45fr_35fr_20fr]">

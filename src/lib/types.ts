@@ -130,6 +130,22 @@ export interface MercadoAgregado {
   }
 }
 
+export interface LeadTimeStats {
+  leadtimeTotalDias: number       // média de dias desde criação até hoje (iniciativas ativas)
+  leadtimeConcluidasDias: number  // média de dias desde criação até updated (iniciativas FINALIZADO)
+  leadtimePorEstagio: Partial<Record<keyof PipelineCount, number>>  // lead time médio até cada estágio
+  cycleTimeExperimentacaoDias: number  // média de dias que os Epics ficam em "EM EXPERIMENTAÇÃO"
+  blockedTimeDias: number         // média de dias no status atual para Epics com motivoBloqueio preenchido
+}
+
+export interface CycleTimeEstagio {
+  estagio: string           // nome do estágio (ex.: "BACKLOG", "EM REFINAMENTO")
+  label: string             // label curto para exibição
+  mediaDias: number         // média de dias que as iniciativas ficam nesse estágio
+  medianaDias: number       // mediana de dias
+  qtdIniciativas: number    // quantas iniciativas passaram por esse estágio
+}
+
 export interface DashboardData {
   iniciativas: Iniciativa[]
   allEpics: EpicDetail[]
@@ -146,4 +162,6 @@ export interface DashboardData {
   statusDistribuicao: { name: string; value: number; color: string }[]
   metasAgregadas: Record<'EBITDA' | 'NPS' | 'Receita', { count: number; valor: number }>
   iniciativasPorMeta: Record<'EBITDA' | 'NPS' | 'Receita', Iniciativa[]>
+  leadTime: LeadTimeStats
+  cycleTimeIdeacao: CycleTimeEstagio[]
 }

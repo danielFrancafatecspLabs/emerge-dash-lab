@@ -6,7 +6,10 @@ import {
   DashboardData,
   PipelineCount,
   MercadoAgregado,
+  LeadTimeStats,
+  CycleTimeEstagio,
 } from './types'
+import type { ChangelogEntry } from './jira'
 import type { MetaCategoria } from './portfolio-classifier'
 import type { SegmentoMercado } from './segmento-classifier'
 
@@ -112,7 +115,9 @@ export function buildDashboardData(
   epicsRaw: JiraIssue[],
   portfolioClassification: Record<string, MetaCategoria> = {},
   segmentoClassification: Record<string, SegmentoMercado> = {},
-  boardConfig?: JiraBoardConfiguration
+  boardConfig?: JiraBoardConfiguration,
+  epicChangelogs: Record<string, ChangelogEntry[]> = {},
+  iniciativaChangelogs: Record<string, ChangelogEntry[]> = {}
 ): DashboardData {
   // 1. Mapear todos os epics com metaCategoria e segmento (LLM)
   const epicDetailMap = new Map(
@@ -361,7 +366,356 @@ export function buildDashboardData(
     statusDistribuicao,
     metasAgregadas,
     iniciativasPorMeta,
+    leadTime: calculateLeadTime(iniciativas, epicChangelogs, epicsRaw),
+    cycleTimeIdeacao: calculateCycleTimeIdeacao(iniciativasRaw, iniciativaChangelogs),
   }
+}
+
+function calculateLeadTime(iniciativas: Iniciativa[], epicChangelogs: Record<string, ChangelogEntry[]>, epicsRaw: JiraIssue[]): LeadTimeStats {
+  const agora = Date.now()
+  const MS_POR_DIA = 1000 * 60 * 60 * 24
+
+  // Lead time por estágio: média de dias desde created até agora para cada estágio
+  const leadtimePorEstagio: Partial<Record<keyof PipelineCount, number>> = {}
+  const estagioDias: Record<string, number[]> = {}
+
+  for (const ini of iniciativas) {
+    if (!ini.criadoEm) continue
+    const criado = new Date(ini.criadoEm).getTime()
+    if (isNaN(criado)) continue
+    const dias = Math.round((agora - criado) / MS_POR_DIA)
+
+    const estagio = getPipelineStage(ini.status)
+    if (estagio) {
+      if (!estagioDias[estagio]) estagioDias[estagio] = []
+      estagioDias[estagio].push(dias)
+    }
+  }
+
+  for (const [estagio, diasArr] of Object.entries(estagioDias)) {
+    if (diasArr.length > 0) {
+      const avg = Math.round(diasArr.reduce((s, d) => s + d, 0) / diasArr.length)
+      leadtimePorEstagio[estagio as keyof PipelineCount] = avg
+    }
+  }
+
+  // Lead time total: média para todas as iniciativas ativas (não CANCELADO, não FINALIZADO)
+  const ativas = iniciativas.filter(i => {
+    const stage = getPipelineStage(i.status)
+    return stage && stage !== 'CANCELADO' && stage !== 'FINALIZADO' && i.criadoEm
+  })
+  const diasAtivas = ativas.map(i => {
+    const criado = new Date(i.criadoEm!).getTime()
+    return Math.round((agora - criado) / MS_POR_DIA)
+  }).filter(d => !isNaN(d))
+
+  const leadtimeTotalDias = diasAtivas.length > 0
+    ? Math.round(diasAtivas.reduce((s, d) => s + d, 0) / diasAtivas.length)
+    : 0
+
+  // Lead time concluídas: média de dias desde created até agora para FINALIZADO
+  const concluidas = iniciativas.filter(i => {
+    const stage = getPipelineStage(i.status)
+    return stage === 'FINALIZADO' && i.criadoEm
+  })
+  const diasConcluidas = concluidas.map(i => {
+    const criado = new Date(i.criadoEm!).getTime()
+    return Math.round((agora - criado) / MS_POR_DIA)
+  }).filter(d => !isNaN(d))
+
+  const leadtimeConcluidasDias = diasConcluidas.length > 0
+    ? Math.round(diasConcluidas.reduce((s, d) => s + d, 0) / diasConcluidas.length)
+    : 0
+
+  // Cycle time de experimentação: analisa changelogs para calcular dias no status "EM EXPERIMENTAÇÃO"
+  const cycleTimeExperimentacaoDias = calculateCycleTimeExperimentacao(epicChangelogs, epicsRaw)
+
+  // Blocked time: média de dias no status atual para Epics com motivoBloqueio preenchido
+  const blockedTimeDias = calculateBlockedTime(epicChangelogs, epicsRaw)
+
+  return { leadtimeTotalDias, leadtimeConcluidasDias, leadtimePorEstagio, cycleTimeExperimentacaoDias, blockedTimeDias }
+}
+
+/**
+ * Calcula o cycle time médio de experimentação (board 2707).
+ * Para cada Epic, analisa o changelog e encontra períodos em que o status era
+ * "Em andamento" (id=3) ou "EM VALIDAÇÃO" (id=10204).
+ * Calcula a diferença entre a data de entrada e saída desse status.
+ */
+function calculateCycleTimeExperimentacao(
+  epicChangelogs: Record<string, ChangelogEntry[]>,
+  epicsRaw: JiraIssue[]
+): number {
+  const MS_POR_DIA = 1000 * 60 * 60 * 24
+  const EXPERIMENTACAO_NAMES = new Set(['Em andamento', 'In Progress', 'EM VALIDAÇÃO'])
+  const todosCycleTimes: number[] = []
+
+  for (const epic of epicsRaw) {
+    const changelog = epicChangelogs[epic.key]
+    if (!changelog || changelog.length === 0) continue
+
+    // Ordenar changelog por data (mais antigo primeiro)
+    const sorted = [...changelog].sort(
+      (a, b) => new Date(a.created).getTime() - new Date(b.created).getTime()
+    )
+
+    let entrouEm: number | null = null
+    let epicCycleTime = 0
+
+    for (const entry of sorted) {
+      for (const item of entry.items) {
+        if (item.field !== 'status') continue
+
+        const entrou = EXPERIMENTACAO_NAMES.has(item.toString ?? '')
+        const saiu = EXPERIMENTACAO_NAMES.has(item.fromString ?? '')
+
+        if (entrou && !saiu) {
+          // Entrou em experimentação
+          entrouEm = new Date(entry.created).getTime()
+        } else if (saiu && !entrou) {
+          // Saiu de experimentação
+          if (entrouEm !== null) {
+            const saiuEm = new Date(entry.created).getTime()
+            const dias = Math.round((saiuEm - entrouEm) / MS_POR_DIA)
+            if (dias > 0) {
+              epicCycleTime += dias
+            }
+            entrouEm = null
+          }
+        }
+      }
+    }
+
+    // Se ainda está em experimentação (entrouEm não foi fechado), conta até hoje
+    if (entrouEm !== null && EXPERIMENTACAO_NAMES.has(epic.fields.status.name)) {
+      const dias = Math.round((Date.now() - entrouEm) / MS_POR_DIA)
+      if (dias > 0) epicCycleTime += dias
+    }
+
+    if (epicCycleTime > 0) {
+      todosCycleTimes.push(epicCycleTime)
+    }
+  }
+
+  if (todosCycleTimes.length === 0) return 0
+  return Math.round(todosCycleTimes.reduce((s, d) => s + d, 0) / todosCycleTimes.length)
+}
+
+/**
+ * Calcula o blocked time médio dos Epics ATIVOS (não cancelados, não concluídos).
+ * Analisa o changelog do campo customfield_13406 (Motivo de Bloqueio):
+ * - [None/null] -> [qualquer valor] = bloqueio ATIVADO
+ * - [qualquer valor] -> [None/vazio] = bloqueio REMOVIDO
+ * - [motivo1] -> [motivo2] = troca de motivo (mantém bloqueado)
+ *
+ * Soma todos os períodos em que o Epic ficou bloqueado.
+ * Se está bloqueado agora, conta do último bloqueio até hoje.
+ * Retorna a MÉDIA de dias bloqueados entre os Epics ativos.
+ */
+function calculateBlockedTime(
+  epicChangelogs: Record<string, ChangelogEntry[]>,
+  epicsRaw: JiraIssue[]
+): number {
+  const MS_POR_DIA = 1000 * 60 * 60 * 24
+  const agora = Date.now()
+
+  // Status finais: não considerar cancelados nem concluídos
+  const STATUS_FINAIS = new Set(['10015', '10003'])
+
+  const diasPorEpic: number[] = []
+
+  for (const epic of epicsRaw) {
+    // Só considerar epics ativos
+    if (STATUS_FINAIS.has(epic.fields.status.id)) continue
+
+    const changelog = epicChangelogs[epic.key]
+    if (!changelog || changelog.length === 0) continue
+
+    // Ordenar changelog por data (mais antigo primeiro)
+    const sorted = [...changelog].sort(
+      (a, b) => new Date(a.created).getTime() - new Date(b.created).getTime()
+    )
+
+    // Extrair todas as mudanças do customfield_13406
+    const bloqueios: { data: number; ativou: boolean }[] = []
+
+    for (const entry of sorted) {
+      for (const item of entry.items) {
+        if (item.fieldId !== 'customfield_13406') continue
+
+        const from = item.fromString // null, None, ou string vazia = não bloqueado
+        const to = item.toString     // null, None, ou string vazia = não bloqueado
+
+        const estavaBloqueado = !!from && from !== 'None' && from !== 'null'
+        const ficouBloqueado = !!to && to !== 'None' && to !== 'null'
+
+        const data = new Date(entry.created).getTime()
+
+        if (!estavaBloqueado && ficouBloqueado) {
+          // Bloqueio ativado
+          bloqueios.push({ data, ativou: true })
+        } else if (estavaBloqueado && !ficouBloqueado) {
+          // Bloqueio removido
+          bloqueios.push({ data, ativou: false })
+        } else if (estavaBloqueado && ficouBloqueado) {
+          // Troca de motivo — mantém bloqueado, não gera evento
+        }
+        // !estavaBloqueado && !ficouBloqueado = ambos vazios, ignorar
+      }
+    }
+
+    if (bloqueios.length === 0) continue
+
+    // Calcular períodos bloqueados
+    let totalBloqueado = 0
+    let bloqueioAtual: number | null = null
+
+    for (const evento of bloqueios) {
+      if (evento.ativou) {
+        bloqueioAtual = evento.data
+      } else {
+        // Bloqueio removido: fecha o período
+        if (bloqueioAtual !== null) {
+          const dias = Math.round((evento.data - bloqueioAtual) / MS_POR_DIA)
+          if (dias > 0) totalBloqueado += dias
+          bloqueioAtual = null
+        }
+      }
+    }
+
+    // Se ainda está bloqueado (bloqueioAtual não foi fechado), conta até hoje
+    if (bloqueioAtual !== null) {
+      const dias = Math.round((agora - bloqueioAtual) / MS_POR_DIA)
+      if (dias > 0) totalBloqueado += dias
+    }
+
+    if (totalBloqueado > 0) {
+      diasPorEpic.push(totalBloqueado)
+    }
+  }
+
+  if (diasPorEpic.length === 0) return 0
+  return Math.round(diasPorEpic.reduce((s, d) => s + d, 0) / diasPorEpic.length)
+}
+
+/**
+ * Calcula o cycle time por etapa do board de ideação (2706).
+ * Para cada Iniciativa, analisa o changelog e mede quanto tempo ficou em cada status.
+ * Retorna um array ordenado pela ordem do pipeline.
+ */
+function calculateCycleTimeIdeacao(
+  iniciativasRaw: JiraIssue[],
+  iniciativaChangelogs: Record<string, ChangelogEntry[]>
+): CycleTimeEstagio[] {
+  const MS_POR_DIA = 1000 * 60 * 60 * 24
+
+  // Mapeia nome do status (do changelog) → nome do estágio no pipeline
+  const STATUS_NOME_PIPELINE: Record<string, string> = {
+    'Backlog': 'BACKLOG',
+    'Em refinamento': 'EM REFINAMENTO',
+    'Pronto para Execução': 'PRONTO PARA EXECUÇÃO',
+    'Aguardando Piloto': 'AGUARDANDO PILOTO',
+    'Em experimentação': 'EM EXPERIMENTAÇÃO',
+    'Em piloto': 'EM PILOTO',
+    'Finalizado': 'FINALIZADO',
+    'Cancelado': 'CANCELADO',
+  }
+
+  // Ordem de exibição (pipeline order)
+  const ESTAGIOS_ORDEM = [
+    'BACKLOG', 'EM REFINAMENTO', 'PRONTO PARA EXECUÇÃO',
+    'EM EXPERIMENTAÇÃO', 'AGUARDANDO PILOTO', 'EM PILOTO',
+    'FINALIZADO',
+  ]
+
+  // Labels curtos
+  const LABELS: Record<string, string> = {
+    'BACKLOG': 'Backlog',
+    'EM REFINAMENTO': 'Refinamento',
+    'PRONTO PARA EXECUÇÃO': 'Pronto p/ Execução',
+    'EM EXPERIMENTAÇÃO': 'Experimentação',
+    'AGUARDANDO PILOTO': 'Ag. Piloto',
+    'EM PILOTO': 'Piloto',
+    'FINALIZADO': 'Concluído',
+  }
+
+  // Acumulador: para cada estágio, array de dias que as iniciativas ficaram nele
+  const estagioDias: Record<string, number[]> = {}
+  for (const estagio of ESTAGIOS_ORDEM) {
+    estagioDias[estagio] = []
+  }
+
+  for (const ini of iniciativasRaw) {
+    const changelog = iniciativaChangelogs[ini.key]
+    if (!changelog || changelog.length === 0) continue
+
+    // Ordenar changelog por data (mais antigo primeiro)
+    const sorted = [...changelog].sort(
+      (a, b) => new Date(a.created).getTime() - new Date(b.created).getTime()
+    )
+
+    // Rastreia: para cada nome de status, quando a iniciativa entrou nele
+    const entradas: Record<string, number> = {} // nomeStatus → timestamp de entrada
+
+    for (const entry of sorted) {
+      for (const item of entry.items) {
+        if (item.field !== 'status') continue
+
+        const fromNome = item.fromString ?? ''
+        const toNome = item.toString ?? ''
+        const ts = new Date(entry.created).getTime()
+
+        // Saiu de um status
+        if (fromNome && entradas[fromNome] !== undefined) {
+          const dias = Math.round((ts - entradas[fromNome]) / MS_POR_DIA)
+          if (dias > 0) {
+            const estagio = STATUS_NOME_PIPELINE[fromNome]
+            if (estagio && estagioDias[estagio]) {
+              estagioDias[estagio].push(dias)
+            }
+          }
+          delete entradas[fromNome]
+        }
+
+        // Entrou em um status
+        if (toNome) {
+          entradas[toNome] = ts
+        }
+      }
+    }
+
+    // Para status onde a iniciativa ainda está (não saiu), conta até hoje
+    const agora = Date.now()
+    for (const [nomeStatus, entradaTs] of Object.entries(entradas)) {
+      if (nomeStatus === ini.fields.status.name) {
+        const dias = Math.round((agora - entradaTs) / MS_POR_DIA)
+        if (dias > 0) {
+          const estagio = STATUS_NOME_PIPELINE[nomeStatus]
+          if (estagio && estagioDias[estagio]) {
+            estagioDias[estagio].push(dias)
+          }
+        }
+      }
+    }
+  }
+
+  // Monta resultado
+  return ESTAGIOS_ORDEM
+    .filter(estagio => estagioDias[estagio].length > 0)
+    .map(estagio => {
+      const dias = estagioDias[estagio].sort((a, b) => a - b)
+      const media = Math.round(dias.reduce((s, d) => s + d, 0) / dias.length)
+      const mediana = dias.length % 2 === 0
+        ? Math.round((dias[dias.length / 2 - 1] + dias[dias.length / 2]) / 2)
+        : dias[Math.floor(dias.length / 2)]
+      return {
+        estagio,
+        label: LABELS[estagio] ?? estagio,
+        mediaDias: media,
+        medianaDias: mediana,
+        qtdIniciativas: dias.length,
+      }
+    })
 }
 
 export const META_LABELS: Record<string, string> = {
