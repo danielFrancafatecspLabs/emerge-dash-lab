@@ -164,4 +164,8 @@ export interface DashboardData {
   iniciativasPorMeta: Record<'EBITDA' | 'NPS' | 'Receita', Iniciativa[]>
   leadTime: LeadTimeStats
   cycleTimeIdeacao: CycleTimeEstagio[]
+  /** Status IDs da coluna "EM PILOTO" no board 2706 */
+  pilotoStatusIds: string[]
+  /** Status IDs da coluna "EM ESCALA" no board 2706 */
+  escalaStatusIds: string[]
 }
