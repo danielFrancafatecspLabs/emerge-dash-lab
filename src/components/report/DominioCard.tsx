@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { ChevronDown, ChevronUp } from 'lucide-react'
+import { ChevronDown, ChevronUp, TrendingUp, FlaskConical, Rocket, CheckCircle2 } from 'lucide-react'
 import type { EpicDetail } from '@/lib/types'
 
 interface DominioCardProps {
@@ -34,61 +34,111 @@ export default function DominioCard({
   const [expanded, setExpanded] = useState(false)
   const remainingEpics = allEpics.filter(e => !topEpics.some(t => t.key === e.key))
 
-  const stats = [
-    { label: 'Total', value: total, color: 'text-gray-800' },
-    { label: 'Andamento', value: emAndamento, color: 'text-blue-600' },
-    { label: 'Piloto', value: emPiloto, color: 'text-red-600' },
-    { label: 'Concluídos', value: concluidos, color: 'text-green-700' },
-  ]
+  const pctAndamento = total > 0 ? (emAndamento / total) * 100 : 0
+  const pctPiloto = total > 0 ? (emPiloto / total) * 100 : 0
+  const pctConcluidos = total > 0 ? (concluidos / total) * 100 : 0
 
   return (
-    <div className="border border-gray-100 rounded-lg overflow-hidden">
-      {/* Cabeçalho compacto */}
+    <div className="rounded-xl border border-gray-200 bg-white overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-300">
+      {/* Cabeçalho */}
       <div
-        className="flex items-center justify-between px-3 py-1.5"
-        style={{ backgroundColor: `${accent}0D`, borderLeft: `3px solid ${accent}` }}
+        className="px-4 py-3 flex items-center justify-between"
+        style={{ background: `linear-gradient(135deg, ${accent}0F 0%, ${accent}08 100%)`, borderBottom: `1px solid ${accent}20` }}
       >
-        <span className="text-xs font-bold text-gray-800">{nome}</span>
-        <span className="text-xs text-gray-400">{total} iniciativas</span>
-      </div>
-
-      {/* Stats inline + Benefício */}
-      <div className="flex items-center gap-3 px-3 py-2 border-b border-gray-50">
-        {stats.map(s => (
-          <div key={s.label} className="text-center flex-1">
-            <p className={`text-base font-bold ${s.color}`}>{s.value}</p>
-            <p className="text-[10px] text-gray-400">{s.label}</p>
+        <div className="flex items-center gap-3">
+          <div
+            className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-sm font-bold"
+            style={{ backgroundColor: accent }}
+          >
+            {nome.charAt(0).toUpperCase()}
           </div>
-        ))}
-        <div className="text-center flex-1 border-l border-gray-100 pl-3">
-          <p className="text-sm font-bold text-gray-800 truncate">{formatCurrency(beneficioTotal)}</p>
-          <p className="text-[10px] text-gray-400">Benefício</p>
+          <div>
+            <p className="text-sm font-bold text-gray-800">{nome}</p>
+            <p className="text-[10px] text-gray-400">{total} iniciativas</p>
+          </div>
+        </div>
+        <div className="text-right">
+          <p className="text-sm font-bold text-gray-800">{formatCurrency(beneficioTotal)}</p>
+          <p className="text-[10px] text-gray-400">benefício potencial</p>
         </div>
       </div>
 
-      {/* Top experimentos compacto */}
+      {/* Barra de progresso segmentada */}
+      <div className="px-4 pt-3 pb-1">
+        <div className="w-full h-2.5 bg-gray-100 rounded-full overflow-hidden flex">
+          {emAndamento > 0 && (
+            <div
+              className="h-full transition-all duration-700"
+              style={{ width: `${Math.max(pctAndamento, 2)}%`, backgroundColor: '#3B82F6' }}
+              title={`Em andamento: ${emAndamento}`}
+            />
+          )}
+          {emPiloto > 0 && (
+            <div
+              className="h-full transition-all duration-700"
+              style={{ width: `${Math.max(pctPiloto, 2)}%`, backgroundColor: '#EF4444' }}
+              title={`Em piloto: ${emPiloto}`}
+            />
+          )}
+          {concluidos > 0 && (
+            <div
+              className="h-full transition-all duration-700"
+              style={{ width: `${Math.max(pctConcluidos, 2)}%`, backgroundColor: '#22C55E' }}
+              title={`Concluídos: ${concluidos}`}
+            />
+          )}
+        </div>
+      </div>
+
+      {/* Legendas inline */}
+      <div className="px-4 pb-3 flex items-center gap-4 text-[10px] text-gray-500">
+        <div className="flex items-center gap-1">
+          <span className="w-2 h-2 rounded-full bg-blue-500" />
+          <span className="font-medium text-gray-700">{emAndamento}</span>
+          <span>Andamento</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <span className="w-2 h-2 rounded-full bg-red-500" />
+          <span className="font-medium text-gray-700">{emPiloto}</span>
+          <span>Piloto</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <span className="w-2 h-2 rounded-full bg-green-500" />
+          <span className="font-medium text-gray-700">{concluidos}</span>
+          <span>Concluídos</span>
+        </div>
+      </div>
+
+      {/* Top experimentos */}
       {topEpics.length > 0 && (
-        <table className="w-full">
-          <thead>
-            <tr className="border-b border-gray-50">
-              <th className="px-3 py-1 text-left text-gray-400 font-medium" style={{ fontSize: 9, textTransform: 'uppercase' }}>Experimento</th>
-              <th className="px-3 py-1 text-right text-gray-400 font-medium" style={{ fontSize: 9, textTransform: 'uppercase' }}>Benefício</th>
-            </tr>
-          </thead>
-          <tbody>
-            {topEpics.map(epic => (
-              <tr key={epic.key} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
-                <td className="px-3 py-1" style={{ fontSize: 11 }}>
-                  <span className="text-gray-800">{epic.nome}</span>
-                  <span className="text-gray-400 ml-1" style={{ fontSize: 9 }}>#{epic.key}</span>
-                </td>
-                <td className="px-3 py-1 text-right font-medium text-gray-800" style={{ fontSize: 11 }}>
+        <div className="border-t border-gray-100">
+          {topEpics.map((epic, idx) => (
+            <div
+              key={epic.key}
+              className="flex items-center justify-between px-4 py-2 hover:bg-gray-50 transition-colors"
+              style={{ borderBottom: idx < topEpics.length - 1 ? '1px solid #F3F4F6' : 'none' }}
+            >
+              <div className="flex-1 min-w-0 mr-3">
+                <p className="text-xs font-medium text-gray-800 truncate">{epic.nome}</p>
+                <p className="text-[10px] text-gray-400">#{epic.key}</p>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                {epic.status.name === 'Em andamento' && (
+                  <span className="text-[10px] px-1.5 py-0.5 rounded font-medium bg-blue-50 text-blue-600">Ativo</span>
+                )}
+                {epic.status.name.toUpperCase().includes('PILOTO') && (
+                  <span className="text-[10px] px-1.5 py-0.5 rounded font-medium bg-red-50 text-red-600">Piloto</span>
+                )}
+                {epic.status.name === 'Concluído' && (
+                  <span className="text-[10px] px-1.5 py-0.5 rounded font-medium bg-green-50 text-green-600">Concluído</span>
+                )}
+                <span className="text-xs font-semibold text-gray-700 min-w-[80px] text-right">
                   {epic.beneficioQuantitativo != null ? formatCurrency(epic.beneficioQuantitativo) : '—'}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
       )}
 
       {/* Expand / collapse */}
@@ -96,33 +146,35 @@ export default function DominioCard({
         <>
           <button
             onClick={() => setExpanded(!expanded)}
-            className="w-full px-3 py-1.5 flex items-center justify-center gap-1 text-xs font-medium text-gray-500 hover:text-gray-700 hover:bg-gray-50 transition-colors border-t border-gray-100"
+            className="w-full px-4 py-2 flex items-center justify-center gap-1.5 text-xs font-medium text-gray-500 hover:text-gray-700 hover:bg-gray-50 transition-colors border-t border-gray-100"
           >
             {expanded ? (
               <><ChevronUp size={12} /> Recolher</>
             ) : (
-              <><ChevronDown size={12} /> Ver todos os {total} experimentos</>
+              <><ChevronDown size={12} /> Ver mais {remainingEpics.length} experimentos</>
             )}
           </button>
 
           {expanded && (
-            <table className="w-full border-t border-gray-100">
-              <tbody>
-                {remainingEpics
-                  .sort((a, b) => (b.beneficioQuantitativo ?? 0) - (a.beneficioQuantitativo ?? 0))
-                  .map(epic => (
-                    <tr key={epic.key} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
-                      <td className="px-3 py-1" style={{ fontSize: 11 }}>
-                        <span className="text-gray-800">{epic.nome}</span>
-                        <span className="text-gray-400 ml-1" style={{ fontSize: 9 }}>#{epic.key}</span>
-                      </td>
-                      <td className="px-3 py-1 text-right font-medium text-gray-800" style={{ fontSize: 11 }}>
-                        {epic.beneficioQuantitativo != null ? formatCurrency(epic.beneficioQuantitativo) : '—'}
-                      </td>
-                    </tr>
-                  ))}
-              </tbody>
-            </table>
+            <div className="border-t border-gray-100">
+              {remainingEpics
+                .sort((a, b) => (b.beneficioQuantitativo ?? 0) - (a.beneficioQuantitativo ?? 0))
+                .map((epic, idx) => (
+                  <div
+                    key={epic.key}
+                    className="flex items-center justify-between px-4 py-2 hover:bg-gray-50 transition-colors"
+                    style={{ borderBottom: idx < remainingEpics.length - 1 ? '1px solid #F3F4F6' : 'none' }}
+                  >
+                    <div className="flex-1 min-w-0 mr-3">
+                      <p className="text-xs font-medium text-gray-800 truncate">{epic.nome}</p>
+                      <p className="text-[10px] text-gray-400">#{epic.key}</p>
+                    </div>
+                    <span className="text-xs font-semibold text-gray-700 text-right">
+                      {epic.beneficioQuantitativo != null ? formatCurrency(epic.beneficioQuantitativo) : '—'}
+                    </span>
+                  </div>
+                ))}
+            </div>
           )}
         </>
       )}

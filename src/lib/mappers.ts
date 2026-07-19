@@ -176,20 +176,62 @@ export function buildDashboardData(
   })
 
   // 3. Pipeline — contagem por coluna (Iniciativas)
+  // Extrai os status IDs de cada coluna do board 2706 a partir do boardConfig
+  const colunaStatusIds = new Map<string, string[]>()
+  const colunaNomeNormalizado = new Map<string, string>()
+  if (boardConfig?.columnConfig?.columns) {
+    for (const col of boardConfig.columnConfig.columns) {
+      const nomeUpper = col.name.trim().toUpperCase()
+      colunaNomeNormalizado.set(nomeUpper, col.name.trim())
+      colunaStatusIds.set(nomeUpper, col.statuses.map(s => s.id))
+    }
+  }
+
+  // Função auxiliar: dado um status, descobre a qual coluna pertence
+  function getColunaPeloStatus(status: JiraStatus): string | undefined {
+    for (const [colNome, ids] of colunaStatusIds.entries()) {
+      if (ids.includes(status.id)) return colNome
+    }
+    return undefined
+  }
+
+  // Mapeia nome da coluna → chave do PipelineCount
+  function colunaParaPipelineKey(colNome: string): keyof PipelineCount | undefined {
+    const n = colNome.toUpperCase()
+    if (n.includes('BACKLOG')) return 'BACKLOG'
+    if (n.includes('REFINAMENTO')) return 'EM REFINAMENTO'
+    if (n.includes('PRONTO')) return 'PRONTO PARA EXECUÇÃO'
+    if (n.includes('EXPERIMENTA')) return 'EM EXPERIMENTAÇÃO'
+    if (n.includes('AGUARDANDO PILOTO')) return 'AGUARDANDO PILOTO'
+    if (n === 'EM PILOTO' || n.includes('PILOTO')) return 'EM PILOTO'
+    if (n.includes('ESCALA')) return 'EM ESCALA'
+    if (n.includes('FINALIZADO') || n.includes('CONCLUÍDO')) return 'FINALIZADO'
+    if (n.includes('CANCELADO')) return 'CANCELADO'
+    return undefined
+  }
+
+  // IDs das colunas EM PILOTO e EM ESCALA (para exportar no DashboardData)
+  const pilotoStatusIds: string[] = colunaStatusIds.get('EM PILOTO') ?? ['12847']
+  const escalaStatusIds: string[] = colunaStatusIds.get('EM ESCALA') ?? []
+
   const pipelineActual: PipelineCount = {
     BACKLOG: 0, 'EM REFINAMENTO': 0, 'PRONTO PARA EXECUÇÃO': 0,
     'EM EXPERIMENTAÇÃO': 0, 'AGUARDANDO PILOTO': 0, 'EM PILOTO': 0,
     'EM ESCALA': 0, FINALIZADO: 0, CANCELADO: 0,
   }
   for (const ini of iniciativas) {
+    // Tenta primeiro pelo boardConfig (mais preciso)
+    const colNome = getColunaPeloStatus(ini.status)
+    if (colNome) {
+      const key = colunaParaPipelineKey(colNome)
+      if (key) { pipelineActual[key]++; continue }
+    }
+    // Fallback: usa o mapeamento antigo por status ID/nome
     const col = getPipelineStage(ini.status)
     if (col) pipelineActual[col]++
   }
 
   const pipeline: PipelineCount = { ...pipelineActual }
-  // Hardcoded values para métricas de conversão quando o Jira não traz EM ESCALA
-  pipeline['EM ESCALA'] = 8
-  pipeline['BACKLOG'] = 54
 
   // Contagens específicas por status ID para os cards do Resumo do Portfólio
   const iniciativasAguardandoPiloto = iniciativas.filter(i => i.status.id === '13045').length
@@ -314,11 +356,9 @@ export function buildDashboardData(
   const statusDistribuicao = STATUS_DONUT_ORDER
     .map(key => {
       const baseValue = pipelineActual[key] ?? 0
-      // Hardcoded overrides for Situação do Portfólio per request
-      const overridden = key === 'BACKLOG' ? 52 : key === 'EM ESCALA' ? 8 : baseValue
       return {
         name: STATUS_DISPLAY_NAME[key] ?? key,
-        value: overridden,
+        value: baseValue,
         color: DONUT_COLORS[key] ?? '#888',
       }
     })
@@ -368,6 +408,8 @@ export function buildDashboardData(
     iniciativasPorMeta,
     leadTime: calculateLeadTime(iniciativas, epicChangelogs, epicsRaw),
     cycleTimeIdeacao: calculateCycleTimeIdeacao(iniciativasRaw, iniciativaChangelogs),
+    pilotoStatusIds,
+    escalaStatusIds,
   }
 }
 

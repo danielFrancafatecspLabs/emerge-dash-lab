@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useState } from 'react'
-import { FileDown, Pencil, Check, X, ChevronDown, ChevronUp, TrendingUp, AlertTriangle, Target, Zap } from 'lucide-react'
+import { FileDown, Pencil, Check, X, ChevronDown, ChevronUp, TrendingUp, AlertTriangle, Target, Zap, Loader2 } from 'lucide-react'
 import type { EpicDetail } from '@/lib/types'
 import DominioCard from './DominioCard'
 
@@ -82,10 +82,61 @@ export default function ReportContent({
   const [showAndamento, setShowAndamento] = useState(false)
   const [showNovos, setShowNovos] = useState(false)
   const [showDelivery, setShowDelivery] = useState(false)
+  const [isExporting, setIsExporting] = useState(false)
 
-  const handleExport = useCallback(() => {
-    window.print()
-  }, [])
+  const handleExport = useCallback(async () => {
+    if (isExporting) return
+    setIsExporting(true)
+    try {
+      const html2canvas = (await import('html2canvas')).default
+      const jsPDF = (await import('jspdf')).default
+
+      // Expand all collapsible sections before capturing
+      setShowAndamento(true)
+      setShowNovos(true)
+      setShowDelivery(true)
+
+      // Wait for DOM to update
+      await new Promise(r => setTimeout(r, 300))
+
+      const reportEl = document.getElementById('report-content')
+      if (!reportEl) throw new Error('Elemento report-content não encontrado')
+
+      const canvas = await html2canvas(reportEl, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: '#f0f0f0',
+        logging: false,
+      })
+
+      const imgData = canvas.toDataURL('image/png')
+      const pdf = new jsPDF('p', 'mm', 'a4')
+      const pageWidth = pdf.internal.pageSize.getWidth()
+      const pageHeight = pdf.internal.pageSize.getHeight()
+      const imgWidth = pageWidth - 10
+      const imgHeight = (canvas.height * imgWidth) / canvas.width
+
+      let heightLeft = imgHeight
+      let position = 5
+
+      pdf.addImage(imgData, 'PNG', 5, position, imgWidth, imgHeight)
+      heightLeft -= (pageHeight - 10)
+
+      while (heightLeft > 0) {
+        position = -(pageHeight - 10) + 5
+        pdf.addPage()
+        pdf.addImage(imgData, 'PNG', 5, position, imgWidth, imgHeight)
+        heightLeft -= (pageHeight - 10)
+      }
+
+      pdf.save(`report-beon-lab-${new Date().toISOString().slice(0, 10)}.pdf`)
+    } catch (err) {
+      console.error('Erro ao exportar PDF:', err)
+      alert('Erro ao gerar PDF. Tente novamente.')
+    } finally {
+      setIsExporting(false)
+    }
+  }, [isExporting])
 
   const startEdit = (nome: string, field: 'situacaoAtual' | 'proximosPassos', currentValue: string) => {
     setEditingCell({ nome, field })
@@ -130,16 +181,17 @@ export default function ReportContent({
           </div>
           <button
             onClick={handleExport}
-            className="no-print flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium bg-white/15 text-white hover:bg-white/25 transition-colors border border-white/20"
+            disabled={isExporting}
+            className="no-print flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-medium bg-white/15 text-white hover:bg-white/25 transition-colors border border-white/20 disabled:opacity-50"
           >
-            <FileDown size={14} />
-            Exportar
+            {isExporting ? <Loader2 size={14} className="animate-spin" /> : <FileDown size={14} />}
+            {isExporting ? 'Gerando...' : 'Exportar'}
           </button>
         </div>
         <p className="text-sm text-slate-300 leading-relaxed mt-3 max-w-3xl">
           O pipeline de inovação conta atualmente com <strong className="text-white">{totalIniciativasPipeline} iniciativas</strong> no funil,
           das quais <strong className="text-white">{qtdExperimentos} já evoluíram para experimentos</strong> ativos.
-          A taxa de conversão da experimentação para piloto é de <strong className="text-white">{conversaoExperimentacaoParaPiloto}</strong>,
+          A taxa de conversão de experimentos para piloto é de <strong className="text-white">{conversaoExperimentacaoParaPiloto}</strong> (iniciativas com experimentos que evoluíram para a fase de piloto),
           com um benefício potencial estimado em <strong className="text-white">{formatCurrency(beneficioPotencialEstimado)}</strong>.
         </p>
       </div>
@@ -221,8 +273,8 @@ export default function ReportContent({
           </div>
 
           {/* Domínios — cards completos */}
-          <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-5">
-            <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-3">
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-4">
               Portfólio por Domínio
             </p>
             <div className="space-y-3">
@@ -248,43 +300,58 @@ export default function ReportContent({
         <div className="space-y-5">
 
           {/* Destaques de Domínio — mini cards com barras */}
-          <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-5">
-            <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-3">
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-4">
               Destaques por Domínio
             </p>
-            <div className="grid grid-cols-1 gap-2.5">
+            <div className="grid grid-cols-1 gap-3">
               {dominiosComAtividade.length > 0 ? dominiosComAtividade.map((d, i) => {
                 const totalAtivo = d.emAndamento + d.emPiloto
                 const barraPct = d.total > 0 ? (totalAtivo / d.total) * 100 : 0
+                const cor = accentColors[i % accentColors.length]
                 return (
                   <div
                     key={d.nome}
-                    className="flex items-center gap-3 p-2.5 rounded-lg border border-gray-100 hover:border-gray-200 transition-colors"
+                    className="flex items-center gap-3 p-3 rounded-xl border border-gray-100 hover:border-gray-200 hover:shadow-sm transition-all duration-200"
                   >
                     <div
-                      className="w-2 h-10 rounded-full shrink-0"
-                      style={{ backgroundColor: accentColors[i % accentColors.length] }}
-                    />
+                      className="w-10 h-10 rounded-xl flex items-center justify-center text-white text-sm font-bold shrink-0"
+                      style={{ backgroundColor: cor }}
+                    >
+                      {d.nome.charAt(0).toUpperCase()}
+                    </div>
                     <div className="flex-1 min-w-0">
-                      <div className="flex justify-between items-baseline mb-1">
+                      <div className="flex justify-between items-baseline mb-1.5">
                         <p className="text-sm font-semibold text-gray-800 truncate">{d.nome}</p>
-                        <p className="text-xs text-gray-500 ml-2 shrink-0">
-                          {totalAtivo} de {d.total} ativos
+                        <p className="text-[11px] text-gray-500 ml-2 shrink-0 font-medium">
+                          {totalAtivo}/{d.total} ativos
                         </p>
                       </div>
-                      <div className="w-full bg-gray-100 rounded-full h-1.5">
+                      <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
                         <div
-                          className="h-full rounded-full"
+                          className="h-full rounded-full transition-all duration-700"
                           style={{
-                            width: `${Math.max(barraPct, 3)}%`,
-                            backgroundColor: accentColors[i % accentColors.length],
+                            width: `${Math.max(barraPct, 4)}%`,
+                            background: `linear-gradient(90deg, ${cor}CC, ${cor})`,
                           }}
                         />
                       </div>
+                      <div className="flex justify-between mt-1.5">
+                        <div className="flex items-center gap-2 text-[10px] text-gray-400">
+                          <span className="flex items-center gap-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+                            {d.emAndamento} and.
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
+                            {d.emPiloto} pil.
+                          </span>
+                        </div>
+                        <p className="text-[11px] font-semibold text-gray-700">
+                          {formatCurrency(d.beneficioTotal)}
+                        </p>
+                      </div>
                     </div>
-                    <p className="text-xs font-semibold text-gray-700 shrink-0 text-right">
-                      {formatCurrency(d.beneficioTotal)}
-                    </p>
                   </div>
                 )
               }) : (
@@ -292,7 +359,7 @@ export default function ReportContent({
               )}
             </div>
             {dominiosComAtividade.length > 0 && (
-              <p className="text-xs text-gray-400 mt-3 italic leading-relaxed">
+              <p className="text-[11px] text-gray-400 mt-4 italic leading-relaxed">
                 {dominiosComAtividade.length} domínios com experimentos em andamento ou em piloto.
                 {dominiosComAtividade[0] && ` O domínio "${dominiosComAtividade[0].nome}" lidera com ${dominiosComAtividade[0].emAndamento + dominiosComAtividade[0].emPiloto} experimentos ativos e benefício potencial de ${formatCurrency(dominiosComAtividade[0].beneficioTotal)}.`}
               </p>

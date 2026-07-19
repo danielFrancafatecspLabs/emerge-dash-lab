@@ -105,7 +105,7 @@ export default async function ReportPage() {
       classifyPortfolios(epicInputs),
       classifySegmentos(segmentoInputs),
     ])
-    data = buildDashboardData(raw.iniciativas, raw.epics, classification, segmentoClassification)
+    data = buildDashboardData(raw.iniciativas, raw.epics, classification, segmentoClassification, raw.board2706Config)
   } catch (e) {
     error = String(e)
   }
@@ -276,16 +276,16 @@ export default async function ReportPage() {
   // ── Big Numbers ──
   const qtdExperimentos = data.allEpics.length
 
-  // Conversão de Experimentação para Piloto: % de epics em piloto dentre os que estão em experimentação
-  const emExperimentacao = data.allEpics.filter(e =>
-    e.status.name === 'Em andamento' || e.status.name === 'EM VALIDAÇÃO' ||
-    e.status.name === 'EM EXPERIMENTAÇÃO' || e.status.name === 'PRONTO PARA EXECUÇÃO'
-  ).length
-  const emPilotoCount = data.allEpics.filter(e =>
-    e.status.name === 'EM PILOTO' || e.status.name === 'Em Piloto'
-  ).length
-  const conversaoExperimentacaoParaPiloto = emExperimentacao > 0
-    ? `${Math.round((emPilotoCount / emExperimentacao) * 100)}%`
+  // Conversão de Experimentos para Piloto:
+  // % do total de iniciativas que estão em piloto ou em escala.
+  // Usa os status IDs extraídos do boardConfig do board 2706.
+  const pilotoOuEscalaIds = new Set([...data.pilotoStatusIds, ...data.escalaStatusIds])
+  const totalIniciativas = data.iniciativas.length
+  const iniciativasEmPilotoOuEscala = data.iniciativas.filter(ini =>
+    pilotoOuEscalaIds.has(ini.status.id)
+  )
+  const conversaoExperimentacaoParaPiloto = totalIniciativas > 0
+    ? `${Math.round((iniciativasEmPilotoOuEscala.length / totalIniciativas) * 100)}%`
     : '0%'
 
   // Benefício Potencial Estimado: soma de todos os benefícios quantitativos dos epics

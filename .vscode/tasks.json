@@ -1,0 +1,15 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "install-pdf-deps",
+			"type": "shell",
+			"command": "npm install html2canvas jspdf"
+		},
+		{
+			"label": "install-pdf-deps-cmd",
+			"type": "shell",
+			"command": "cmd /c npm install html2canvas jspdf"
+		}
+	]
+}
