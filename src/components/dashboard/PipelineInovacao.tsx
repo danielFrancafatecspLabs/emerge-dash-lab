@@ -12,11 +12,9 @@ const COLUNAS: { key: keyof PipelineCount; label?: string; sub: string }[] = [
   { key: 'BACKLOG',           sub: 'Ideias registradas'    },
   { key: 'EM REFINAMENTO',    sub: 'Refinamento'           },
   { key: 'EM EXPERIMENTAÇÃO', sub: 'Em execução'           },
-  { key: 'FINALIZADO',        label: 'CONCLUÍDO', sub: 'Entregue'              },
   { key: 'AGUARDANDO PILOTO', sub: 'Aguardando escala'     },
   { key: 'EM PILOTO',         sub: 'Teste em ambiente real'},
   { key: 'EM ESCALA',         sub: 'Em escala / industrialização' },
-  { key: 'CANCELADO',         label: 'DESCONTINUADO', sub: 'Interrompido' },
 ]
 
 const LS_KEY_KPIS    = 'pipeline-kpis-v3'
@@ -29,12 +27,14 @@ type ColunasConfig = Partial<Record<keyof PipelineCount, FieldConfig>>
 interface PipelineKpis {
   taxaConversaoTotal: string
   leadtimeTotal: string
+  leadtimeEscala: string
   cycleTimeExp: string
   blockedTime: string
 }
 
 const FUNIL_FIELDS: { key: keyof PipelineKpis; label: string; desc: string }[] = [
   { key: 'leadtimeTotal', label: 'Leadtime total', desc: 'Média de dias desde a criação da iniciativa até hoje, considerando apenas iniciativas ativas (não canceladas nem concluídas).' },
+  { key: 'leadtimeEscala', label: 'Leadtime → Escala', desc: 'Média de dias desde a criação até chegar ao estágio EM ESCALA. Mede o tempo necessário para uma iniciativa atingir escala.' },
   { key: 'cycleTimeExp',  label: 'Cycle time exp.', desc: 'Média de dias que os Epics (experimentos) permanecem nos status "Em andamento" ou "EM VALIDAÇÃO" no board 2707. Calculado via changelog do Jira.' },
   { key: 'blockedTime',   label: 'Blocked time',   desc: 'Média de dias em que os experimentos ativos ficaram com o campo "Motivo de Bloqueio" preenchido. Calculado via changelog do Jira (entrada e saída do bloqueio).' },
 ]
@@ -77,6 +77,7 @@ export default function PipelineInovacao({ data }: Props) {
   const kpiDefaults: PipelineKpis = {
     taxaConversaoTotal: taxaConversao,
     leadtimeTotal:      data.leadTime.leadtimeTotalDias > 0 ? `${data.leadTime.leadtimeTotalDias} dias` : '-',
+    leadtimeEscala:     data.leadTime.leadtimePorEstagio?.['EM ESCALA'] ? `${data.leadTime.leadtimePorEstagio['EM ESCALA']} dias` : '-',
     cycleTimeExp:       data.leadTime.cycleTimeExperimentacaoDias > 0 ? `${data.leadTime.cycleTimeExperimentacaoDias} dias` : '-',
     blockedTime:        data.leadTime.blockedTimeDias > 0 ? `${data.leadTime.blockedTimeDias} dias` : '-',
   }
@@ -146,7 +147,7 @@ export default function PipelineInovacao({ data }: Props) {
             <span className="text-white/70" style={{ fontSize: 11 }}>⚡</span>
             <div>
               <p className="text-white font-semibold text-xs uppercase tracking-widest leading-none">
-                Pipeline de Experimentação
+                Pipeline de Iniciativas
               </p>
               <div className="flex items-center gap-3 mt-1">
                 <div className="flex items-center gap-1.5">
@@ -221,7 +222,7 @@ export default function PipelineInovacao({ data }: Props) {
             <p className="text-white/60 uppercase mb-2" style={{ fontSize: 9, letterSpacing: '0.08em' }}>
               Desempenho do Funil
             </p>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-4 gap-2">
               {FUNIL_FIELDS.map(f => {
                 const isBlocked = f.key === 'blockedTime'
                 return (
@@ -279,7 +280,7 @@ export default function PipelineInovacao({ data }: Props) {
           >
             {/* Modal header */}
             <div className="flex items-center justify-between px-5 py-3 border-b border-gray-200">
-              <p className="font-bold text-gray-800 text-sm">Configurar — Pipeline de Experimentação</p>
+              <p className="font-bold text-gray-800 text-sm">Configurar — Pipeline de Iniciativas</p>
               <button
                 onClick={() => setEditModal(false)}
                 className="rounded-full p-1 hover:bg-gray-100 transition-colors text-gray-500"

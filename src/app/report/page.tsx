@@ -131,76 +131,49 @@ export default async function ReportPage() {
     })
 
   // New entries in the pipeline — last 30 days
-  // Two sources: (1) Initiatives created in last 30d → their epics
-  //              (2) Epics created in last 30d (even if initiative is older)
+  // Lists INITIATIVES (not experiments) that entered the pipeline recently
   const agora = new Date()
   const corte = new Date(agora.getTime() - 30 * 24 * 60 * 60 * 1000)
 
   interface NovoNaEsteira {
-    iniciativaKey: string
-    iniciativaNome: string
-    iniciativaCriadoEm: string | null
-    epic: typeof data.allEpics[0]
-    origem: 'iniciativa' | 'epic'  // which gate triggered this entry
+    key: string
+    nome: string
+    status: string
+    sponsors: string[]
+    dominios: string[]
+    criadoEm: string | null
+    qtdExperimentos: number
   }
 
-  const seen = new Set<string>() // epic key or iniciativa key for dedup
+  const seen = new Set<string>()
   const novosNaEsteira: NovoNaEsteira[] = []
 
-  // Source 1: Initiatives created in the last 30 days
+  // Initiatives created in the last 30 days
   for (const ini of data.iniciativas) {
     if (!ini.criadoEm) continue
     const d = new Date(ini.criadoEm)
     if (d < corte) continue
-    for (const epic of ini.epics) {
-      if (seen.has(epic.key)) continue
-      seen.add(epic.key)
-      novosNaEsteira.push({
-        iniciativaKey: ini.key,
-        iniciativaNome: ini.nome,
-        iniciativaCriadoEm: ini.criadoEm,
-        epic,
-        origem: 'iniciativa',
-      })
-    }
-    if (ini.epics.length === 0 && !seen.has(ini.key)) {
-      seen.add(ini.key)
-      novosNaEsteira.push({
-        iniciativaKey: ini.key,
-        iniciativaNome: ini.nome,
-        iniciativaCriadoEm: ini.criadoEm,
-        epic: null as any,
-        origem: 'iniciativa',
-      })
-    }
-  }
-
-  // Source 2: Epics created in the last 30 days (regardless of initiative age)
-  for (const epic of data.allEpics) {
-    if (seen.has(epic.key)) continue
-    if (!epic.criadoEm) continue
-    const d = new Date(epic.criadoEm)
-    if (d < corte) continue
-    seen.add(epic.key)
-    // Find parent initiative
-    const parentIni = data.iniciativas.find(ini => ini.epics.some(e => e.key === epic.key))
+    if (seen.has(ini.key)) continue
+    seen.add(ini.key)
+    // Use initiative-level sponsor as fallback when no experiment sponsors exist
+    const sponsors = ini.sponsors.length > 0
+      ? ini.sponsors
+      : (ini.sponsor ? [ini.sponsor] : [])
     novosNaEsteira.push({
-      iniciativaKey: parentIni?.key ?? '—',
-      iniciativaNome: parentIni?.nome ?? '—',
-      iniciativaCriadoEm: parentIni?.criadoEm ?? null,
-      epic,
-      origem: 'epic',
+      key: ini.key,
+      nome: ini.nome,
+      status: ini.status.name,
+      sponsors,
+      dominios: ini.dominios,
+      criadoEm: ini.criadoEm,
+      qtdExperimentos: ini.epics.length,
     })
   }
 
-  // Sort by the most relevant date: epic created if from source 2, initiative created if from source 1
+  // Sort by creation date (newest first)
   novosNaEsteira.sort((a, b) => {
-    const da = a.origem === 'epic' && a.epic?.criadoEm
-      ? new Date(a.epic.criadoEm).getTime()
-      : a.iniciativaCriadoEm ? new Date(a.iniciativaCriadoEm).getTime() : 0
-    const db = b.origem === 'epic' && b.epic?.criadoEm
-      ? new Date(b.epic.criadoEm).getTime()
-      : b.iniciativaCriadoEm ? new Date(b.iniciativaCriadoEm).getTime() : 0
+    const da = a.criadoEm ? new Date(a.criadoEm).getTime() : 0
+    const db = b.criadoEm ? new Date(b.criadoEm).getTime() : 0
     return db - da
   })
 
@@ -245,7 +218,7 @@ export default async function ReportPage() {
         if (!s.epics.some(x => x.key === epic.key)) {
           s.epics.push(epic)
           s.beneficioTotal += epic.beneficioQuantitativo ?? 0
-          const statusName = epic.status.name
+          const statusName = epic.status?.name ?? ''
           if (statusName === 'Em andamento') s.emAndamento++
           if (statusName === 'EM PILOTO' || statusName === 'Em Piloto') s.emPiloto++
           if (statusName === 'Concluído' || statusName === 'FINALIZADO') s.concluidos++
@@ -275,6 +248,9 @@ export default async function ReportPage() {
 
   // ── Big Numbers ──
   const qtdExperimentos = data.allEpics.length
+  const qtdExperimentosAtivos = data.allEpics.filter(
+    e => e.status.name !== 'Concluído' && e.status.name !== 'Cancelado'
+  ).length
 
   // Conversão de Experimentos para Piloto:
   // % do total de iniciativas que estão em piloto ou em escala.
@@ -320,7 +296,7 @@ export default async function ReportPage() {
           funilStages={funilStages}
           funilMax={funilMax}
           top5Dominios={top5Dominios}
-          qtdExperimentos={qtdExperimentos}
+          qtdExperimentosAtivos={qtdExperimentosAtivos}
           conversaoExperimentacaoParaPiloto={conversaoExperimentacaoParaPiloto}
           beneficioPotencialEstimado={beneficioPotencialEstimado}
         />

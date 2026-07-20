@@ -39,9 +39,9 @@ export default function CycleTimeIdeacao({ data }: Props) {
   return (
     <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
       <div className="px-5 py-3 border-b border-gray-100">
-        <h3 className="text-sm font-bold text-gray-800">Cycle Time por Etapa — Board de Ideação</h3>
+        <h3 className="text-sm font-bold text-gray-800">Cycle Time — Board de Experimentação</h3>
         <p className="text-xs text-gray-400 mt-0.5">
-          Tempo médio (dias) que as iniciativas permanecem em cada estágio do pipeline
+          Tempo médio (dias) que os Epics (experimentos) permanecem em execução (status "Em andamento" / "EM VALIDAÇÃO")
         </p>
       </div>
 
@@ -111,7 +111,7 @@ export default function CycleTimeIdeacao({ data }: Props) {
               <th className="text-left py-1.5 font-medium">Etapa</th>
               <th className="text-right py-1.5 font-medium">Média (dias)</th>
               <th className="text-right py-1.5 font-medium">Mediana (dias)</th>
-              <th className="text-right py-1.5 font-medium">Qtd. Iniciativas</th>
+              <th className="text-right py-1.5 font-medium">Qtd. Experimentos</th>
             </tr>
           </thead>
           <tbody>

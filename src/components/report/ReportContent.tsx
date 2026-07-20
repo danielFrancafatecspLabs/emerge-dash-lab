@@ -6,11 +6,13 @@ import type { EpicDetail } from '@/lib/types'
 import DominioCard from './DominioCard'
 
 interface NovoNaEsteira {
-  iniciativaKey: string
-  iniciativaNome: string
-  iniciativaCriadoEm: string | null
-  epic: EpicDetail
-  origem: 'iniciativa' | 'epic'
+  key: string
+  nome: string
+  status: string
+  sponsors: string[]
+  dominios: string[]
+  criadoEm: string | null
+  qtdExperimentos: number
 }
 
 interface IniciativaDelivery {
@@ -46,7 +48,7 @@ interface ReportContentProps {
   funilStages: FunilStage[]
   funilMax: number
   top5Dominios: DominioSummary[]
-  qtdExperimentos: number
+  qtdExperimentosAtivos: number
   conversaoExperimentacaoParaPiloto: string
   beneficioPotencialEstimado: number
 }
@@ -71,7 +73,7 @@ export default function ReportContent({
   funilStages,
   funilMax,
   top5Dominios,
-  qtdExperimentos,
+  qtdExperimentosAtivos,
   conversaoExperimentacaoParaPiloto,
   beneficioPotencialEstimado,
 }: ReportContentProps) {
@@ -168,6 +170,17 @@ export default function ReportContent({
     'Highest': '#7F1D1D', 'High': '#CC0000', 'Medium': '#D97706',
     'Low': '#6B7280', 'Lowest': '#9CA3AF',
   }
+  const statusColors: Record<string, { bg: string; text: string }> = {
+    'BACKLOG': { bg: '#F3F4F6', text: '#6B7280' },
+    'EM REFINAMENTO': { bg: '#DBEAFE', text: '#1D4ED8' },
+    'PRONTO PARA EXECUÇÃO': { bg: '#FED7AA', text: '#C2410C' },
+    'EM EXPERIMENTAÇÃO': { bg: '#FEF3C7', text: '#B45309' },
+    'AGUARDANDO PILOTO': { bg: '#EDE9FE', text: '#6D28D9' },
+    'EM PILOTO': { bg: '#FEE2E2', text: '#B91C1C' },
+    'EM ESCALA': { bg: '#D1FAE5', text: '#047857' },
+    'FINALIZADO': { bg: '#CCFBF1', text: '#0F766E' },
+    'CANCELADO': { bg: '#F3F4F6', text: '#9CA3AF' },
+  }
 
   return (
     <div id="report-content" className="flex-1 overflow-auto p-6 space-y-5">
@@ -190,7 +203,7 @@ export default function ReportContent({
         </div>
         <p className="text-sm text-slate-300 leading-relaxed mt-3 max-w-3xl">
           O pipeline de inovação conta atualmente com <strong className="text-white">{totalIniciativasPipeline} iniciativas</strong> no funil,
-          das quais <strong className="text-white">{qtdExperimentos} já evoluíram para experimentos</strong> ativos.
+          das quais <strong className="text-white">{qtdExperimentosAtivos} já evoluíram para experimentos</strong> ativos.
           A taxa de conversão de experimentos para piloto é de <strong className="text-white">{conversaoExperimentacaoParaPiloto}</strong> (iniciativas com experimentos que evoluíram para a fase de piloto),
           com um benefício potencial estimado em <strong className="text-white">{formatCurrency(beneficioPotencialEstimado)}</strong>.
         </p>
@@ -211,7 +224,7 @@ export default function ReportContent({
             <TrendingUp size={16} className="text-blue-500" />
             <p className="text-xs text-gray-400 uppercase tracking-wider">Em Experimentação</p>
           </div>
-          <p className="text-3xl font-bold text-blue-600">{qtdExperimentos}</p>
+          <p className="text-3xl font-bold text-blue-600">{qtdExperimentosAtivos}</p>
           <p className="text-xs text-gray-400 mt-1">experimentos ativos</p>
         </div>
         <div className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
@@ -416,7 +429,7 @@ export default function ReportContent({
                             </span>
                           </td>
                           <td className="px-3 py-2">
-                            <span className="text-gray-700" style={{ fontSize: 11 }}>{e.status.name}</span>
+                            <span className="text-gray-700" style={{ fontSize: 11 }}>{e.status?.name ?? '—'}</span>
                           </td>
                           <td className="px-3 py-2 text-gray-600" style={{ fontSize: 11 }}>{e.sponsor ?? '—'}</td>
                           <td className="px-3 py-2 text-gray-600" style={{ fontSize: 11 }}>{e.dominio ?? '—'}</td>
@@ -462,64 +475,43 @@ export default function ReportContent({
             <table className="w-full">
               <thead className="sticky top-0 bg-gray-50">
                 <tr>
-                  <th className="px-3 py-2 text-left text-gray-400 font-semibold uppercase" style={{ fontSize: 9, letterSpacing: '0.06em', minWidth: 220 }}>Experimento</th>
-                  <th className="px-3 py-2 text-left text-gray-400 font-semibold uppercase" style={{ fontSize: 9 }}>Prioridade</th>
-                  <th className="px-3 py-2 text-left text-gray-400 font-semibold uppercase" style={{ fontSize: 9 }}>Status</th>
+                  <th className="px-3 py-2 text-left text-gray-400 font-semibold uppercase" style={{ fontSize: 9, letterSpacing: '0.06em', minWidth: 220 }}>Iniciativa</th>
+                  <th className="px-3 py-2 text-center text-gray-400 font-semibold uppercase" style={{ fontSize: 9 }}>Status</th>
                   <th className="px-3 py-2 text-left text-gray-400 font-semibold uppercase" style={{ fontSize: 9 }}>Sponsor</th>
                   <th className="px-3 py-2 text-left text-gray-400 font-semibold uppercase" style={{ fontSize: 9 }}>Domínio</th>
+                  <th className="px-3 py-2 text-center text-gray-400 font-semibold uppercase" style={{ fontSize: 9 }}>Exp.</th>
                   <th className="px-3 py-2 text-left text-gray-400 font-semibold uppercase" style={{ fontSize: 9 }}>Criado em</th>
                 </tr>
               </thead>
               <tbody>
-                {novosNaEsteira.map((item, i) => {
-                  const e = item.epic
-                  const hasEpic = e && e.key
-                  const prioridade = hasEpic ? (e.prioridade ?? '—') : '—'
+                {novosNaEsteira.map((ini, i) => {
+                  const statusColor = statusColors[ini.status] ?? { bg: '#F3F4F6', text: '#374151' }
                   return (
                     <tr
-                      key={hasEpic ? e.key : item.iniciativaKey}
+                      key={ini.key}
                       className="border-b border-gray-50 hover:bg-green-50/50 transition-colors"
                       style={{ background: i % 2 === 1 ? 'rgba(249,250,251,0.5)' : undefined }}
                     >
                       <td className="px-3 py-2">
-                        {hasEpic ? (
-                          <>
-                            <p className="font-medium text-gray-900" style={{ fontSize: 11 }}>{e.nome}</p>
-                            <p className="text-gray-400" style={{ fontSize: 9 }}>#{e.key}</p>
-                          </>
-                        ) : (
-                          <span className="text-gray-400 italic" style={{ fontSize: 11 }}>Sem experimento</span>
-                        )}
+                        <p className="font-medium text-gray-900" style={{ fontSize: 11 }}>{ini.nome}</p>
+                        <p className="text-gray-400" style={{ fontSize: 9 }}>#{ini.key}</p>
                       </td>
-                      <td className="px-3 py-2">
-                        {hasEpic ? (
-                          <span className="px-1.5 py-0.5 rounded font-semibold"
-                            style={{
-                              fontSize: 10,
-                              color: priorityColors[prioridade] ?? '#374151',
-                              background: prioridade === 'High' || prioridade === 'Highest' ? '#FEE2E2' : prioridade === 'Medium' ? '#FEF3C7' : '#F3F4F6'
-                            }}>
-                            {prioridade}
-                          </span>
-                        ) : (
-                          <span className="text-gray-300" style={{ fontSize: 11 }}>—</span>
-                        )}
-                      </td>
-                      <td className="px-3 py-2">
-                        <span className="text-gray-700" style={{ fontSize: 11 }}>{hasEpic ? e.status.name : '—'}</span>
+                      <td className="px-3 py-2 text-center">
+                        <span className="px-1.5 py-0.5 rounded font-semibold" style={{ fontSize: 10, color: statusColor.text, background: statusColor.bg }}>
+                          {ini.status}
+                        </span>
                       </td>
                       <td className="px-3 py-2 text-gray-600" style={{ fontSize: 11 }}>
-                        {hasEpic ? (e.sponsor ?? '—') : '—'}
+                        {ini.sponsors.length > 0 ? ini.sponsors.join(', ') : '—'}
                       </td>
                       <td className="px-3 py-2 text-gray-600" style={{ fontSize: 11 }}>
-                        {hasEpic ? (e.dominio ?? '—') : '—'}
+                        {ini.dominios.length > 0 ? ini.dominios.join(', ') : '—'}
+                      </td>
+                      <td className="px-3 py-2 text-center text-gray-600" style={{ fontSize: 11 }}>
+                        {ini.qtdExperimentos}
                       </td>
                       <td className="px-3 py-2 text-gray-500" style={{ fontSize: 10 }}>
-                        {formatDate(
-                          item.origem === 'epic' && item.epic?.criadoEm
-                            ? item.epic.criadoEm
-                            : item.iniciativaCriadoEm
-                        )}
+                        {formatDate(ini.criadoEm)}
                       </td>
                     </tr>
                   )

@@ -78,7 +78,7 @@ export async function GET() {
           if (!s.epics.some(x => x.key === epic.key)) {
             s.epics.push(epic)
             s.beneficioTotal += epic.beneficioQuantitativo ?? 0
-            const statusName = epic.status.name
+            const statusName = epic.status?.name ?? ''
             if (statusName === 'Em andamento') s.emAndamento++
             if (statusName === 'EM PILOTO' || statusName === 'Em Piloto') s.emPiloto++
             if (statusName === 'Concluído' || statusName === 'FINALIZADO') s.concluidos++

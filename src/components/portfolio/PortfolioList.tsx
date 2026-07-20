@@ -106,10 +106,17 @@ export default function PortfolioList({ data }: Props) {
   }
 
   const filteredBeneficio = filtered.reduce((s, e) => s + (e.beneficioQuantitativo ?? 0), 0)
+
+  // Distribuição por impacto baseada em INICIATIVAS (não experimentos)
+  // Filtra as iniciativas que têm pelo menos um epic passando pelos filtros atuais
+  const filteredIniciativaKeys = new Set(filtered.map(e => e.key))
+  const iniciativasFiltradas = data.iniciativas.filter(ini =>
+    ini.epics.some(epic => filteredIniciativaKeys.has(epic.key))
+  )
   const filteredMetas = {
-    EBITDA:  filtered.filter(e => e.metaCategoria === 'EBITDA').length,
-    Receita: filtered.filter(e => e.metaCategoria === 'Receita').length,
-    NPS:     filtered.filter(e => e.metaCategoria === 'NPS').length,
+    EBITDA:  iniciativasFiltradas.filter(i => i.metaCategoria === 'EBITDA').length,
+    Receita: iniciativasFiltradas.filter(i => i.metaCategoria === 'Receita').length,
+    NPS:     iniciativasFiltradas.filter(i => i.metaCategoria === 'NPS').length,
   }
   const totalMetas = filteredMetas.EBITDA + filteredMetas.Receita + filteredMetas.NPS
   const pctEBITDA  = totalMetas > 0 ? (filteredMetas.EBITDA  / totalMetas * 100).toFixed(0) : '0'
@@ -137,7 +144,7 @@ export default function PortfolioList({ data }: Props) {
             </div>
           </div>
           <div className="flex items-center gap-3 text-xs text-gray-400">
-            <span>Total: <strong className="text-gray-700">{epics.length}</strong></span>
+            <span>Total experimentos: <strong className="text-gray-700">{epics.length}</strong></span>
             <span className="w-px h-4 bg-gray-200" />
             <span>Ativos: <strong className="text-green-600">{activeCount}</strong></span>
             <span className="w-px h-4 bg-gray-200" />
@@ -153,7 +160,7 @@ export default function PortfolioList({ data }: Props) {
               <Layers size={22} className="text-blue-700" />
             </div>
             <div className="min-w-0">
-              <p className="text-xs text-blue-500 font-semibold uppercase tracking-wider">Experimentos</p>
+              <p className="text-xs text-blue-500 font-semibold uppercase tracking-wider">Experimentos (board 2707)</p>
               <p className="text-2xl font-extrabold text-gray-900">{epics.length}</p>
               {hasFilter && (
                 <p className="text-xs text-amber-600 mt-0.5">{filtered.length} exibidos com filtros</p>

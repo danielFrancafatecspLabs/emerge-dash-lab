@@ -51,7 +51,7 @@ export default function ResumoExecutivo({ data }: Props) {
             <div>
               <h2 className="text-sm font-bold text-gray-900">Resumo Executivo</h2>
               <p className="text-xs text-gray-400">
-                Metas estratégicas & pipeline • {totalIniciativas} iniciativas
+                Metas estratégicas & pipeline • {totalIniciativas} iniciativas (board 2706)
               </p>
             </div>
           </div>

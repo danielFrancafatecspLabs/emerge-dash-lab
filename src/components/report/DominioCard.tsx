@@ -123,13 +123,13 @@ export default function DominioCard({
                 <p className="text-[10px] text-gray-400">#{epic.key}</p>
               </div>
               <div className="flex items-center gap-2 shrink-0">
-                {epic.status.name === 'Em andamento' && (
+                {epic.status?.name === 'Em andamento' && (
                   <span className="text-[10px] px-1.5 py-0.5 rounded font-medium bg-blue-50 text-blue-600">Ativo</span>
                 )}
-                {epic.status.name.toUpperCase().includes('PILOTO') && (
+                {(epic.status?.name ?? '').toUpperCase().includes('PILOTO') && (
                   <span className="text-[10px] px-1.5 py-0.5 rounded font-medium bg-red-50 text-red-600">Piloto</span>
                 )}
-                {epic.status.name === 'Concluído' && (
+                {epic.status?.name === 'Concluído' && (
                   <span className="text-[10px] px-1.5 py-0.5 rounded font-medium bg-green-50 text-green-600">Concluído</span>
                 )}
                 <span className="text-xs font-semibold text-gray-700 min-w-[80px] text-right">
