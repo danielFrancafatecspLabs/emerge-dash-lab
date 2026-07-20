@@ -12,22 +12,10 @@ export default function MetasEstrategicas({ data }: Props) {
   const [modal, setModal] = useState<string | null>(null)
   const { metasAgregadas } = data
 
-  const hardcodedCounts: Record<'EBITDA' | 'NPS' | 'Receita', number> = {
-    EBITDA: 91,
-    Receita: 24,
-    NPS: 88,
-  }
-
-  const hardcodedValues: Record<'EBITDA' | 'NPS' | 'Receita', string> = {
-    EBITDA: 'R$ 273M',
-    Receita: 'R$ 14M',
-    NPS: '—',
-  }
-
   const cards = [
-    { icon: TrendingUp, cor: '#CC0000', key: 'EBITDA',  label: META_LABELS['EBITDA'],  stats: metasAgregadas.EBITDA, hardcodedCount: hardcodedCounts.EBITDA, hardcodedValue: hardcodedValues.EBITDA },
-    { icon: DollarSign, cor: '#E05000', key: 'Receita', label: META_LABELS['Receita'], stats: metasAgregadas.Receita, hardcodedCount: hardcodedCounts.Receita, hardcodedValue: hardcodedValues.Receita },
-    { icon: Heart,      cor: '#C0007B', key: 'NPS',     label: META_LABELS['NPS'],     stats: metasAgregadas.NPS,     hardcodedCount: hardcodedCounts.NPS,     hardcodedValue: hardcodedValues.NPS },
+    { icon: TrendingUp, cor: '#CC0000', key: 'EBITDA',  label: META_LABELS['EBITDA'],  stats: metasAgregadas.EBITDA },
+    { icon: DollarSign, cor: '#E05000', key: 'Receita', label: META_LABELS['Receita'], stats: metasAgregadas.Receita },
+    { icon: Heart,      cor: '#C0007B', key: 'NPS',     label: META_LABELS['NPS'],     stats: metasAgregadas.NPS },
   ]
 
   return (
@@ -58,10 +46,10 @@ export default function MetasEstrategicas({ data }: Props) {
                 </button>
               </div>
               <p className="text-gray-500 mt-2" style={{ fontSize: 10 }}>Iniciativas</p>
-              <p className="font-bold text-gray-900 text-xl">{c.hardcodedCount ?? c.stats.count}</p>
+              <p className="font-bold text-gray-900 text-xl">{c.stats.count}</p>
               <p className="text-gray-500 mt-1" style={{ fontSize: 10 }}>Benefício potencial estimado</p>
               <p className="font-semibold" style={{ fontSize: 12, color: c.cor }}>
-                {c.hardcodedValue ?? (c.stats.valor > 0 ? formatBRL(c.stats.valor) : '—')}
+                {c.stats.valor > 0 ? formatBRL(c.stats.valor) : '—'}
               </p>
             </div>
           ))}

@@ -347,7 +347,7 @@ export function buildDashboardData(
 
   // 8. Distribuição do donut (Situação do Portfólio) — ordem e nomes customizados
   const STATUS_DONUT_ORDER: (keyof PipelineCount)[] = [
-    'EM ESCALA', 'EM PILOTO', 'AGUARDANDO PILOTO', 'FINALIZADO', 'EM EXPERIMENTAÇÃO', 'EM REFINAMENTO', 'BACKLOG', 'CANCELADO',
+    'EM ESCALA', 'EM PILOTO', 'AGUARDANDO PILOTO', 'FINALIZADO', 'EM EXPERIMENTAÇÃO', 'PRONTO PARA EXECUÇÃO', 'EM REFINAMENTO', 'BACKLOG', 'CANCELADO',
   ]
   const STATUS_DISPLAY_NAME: Partial<Record<keyof PipelineCount, string>> = {
     'CANCELADO':  'DESCONTINUADO',
@@ -408,6 +408,7 @@ export function buildDashboardData(
     iniciativasPorMeta,
     leadTime: calculateLeadTime(iniciativas, epicChangelogs, epicsRaw),
     cycleTimeIdeacao: calculateCycleTimeIdeacao(iniciativasRaw, iniciativaChangelogs),
+    cycleTimeExperimentacao: calculateCycleTimeExperimentacaoDetalhado(epicChangelogs, epicsRaw),
     pilotoStatusIds,
     escalaStatusIds,
   }
@@ -541,6 +542,80 @@ function calculateCycleTimeExperimentacao(
 
   if (todosCycleTimes.length === 0) return 0
   return Math.round(todosCycleTimes.reduce((s, d) => s + d, 0) / todosCycleTimes.length)
+}
+
+/**
+ * Versão detalhada do cycle time de experimentação.
+ * Retorna um CycleTimeEstagio[] com média, mediana e quantidade de Epics
+ * que passaram pelo status "Em andamento" / "EM VALIDAÇÃO" (board 2707).
+ * Agrupa os dois status em um único estágio "EM EXPERIMENTAÇÃO".
+ */
+function calculateCycleTimeExperimentacaoDetalhado(
+  epicChangelogs: Record<string, ChangelogEntry[]>,
+  epicsRaw: JiraIssue[]
+): CycleTimeEstagio[] {
+  const MS_POR_DIA = 1000 * 60 * 60 * 24
+  const EXPERIMENTACAO_NAMES = new Set(['Em andamento', 'In Progress', 'EM VALIDAÇÃO'])
+  const todosCycleTimes: number[] = []
+
+  for (const epic of epicsRaw) {
+    const changelog = epicChangelogs[epic.key]
+    if (!changelog || changelog.length === 0) continue
+
+    const sorted = [...changelog].sort(
+      (a, b) => new Date(a.created).getTime() - new Date(b.created).getTime()
+    )
+
+    let entrouEm: number | null = null
+    let epicCycleTime = 0
+
+    for (const entry of sorted) {
+      for (const item of entry.items) {
+        if (item.field !== 'status') continue
+
+        const entrou = EXPERIMENTACAO_NAMES.has(item.toString ?? '')
+        const saiu = EXPERIMENTACAO_NAMES.has(item.fromString ?? '')
+
+        if (entrou && !saiu) {
+          entrouEm = new Date(entry.created).getTime()
+        } else if (saiu && !entrou) {
+          if (entrouEm !== null) {
+            const saiuEm = new Date(entry.created).getTime()
+            const dias = Math.round((saiuEm - entrouEm) / MS_POR_DIA)
+            if (dias > 0) {
+              epicCycleTime += dias
+            }
+            entrouEm = null
+          }
+        }
+      }
+    }
+
+    if (entrouEm !== null && EXPERIMENTACAO_NAMES.has(epic.fields.status.name)) {
+      const dias = Math.round((Date.now() - entrouEm) / MS_POR_DIA)
+      if (dias > 0) epicCycleTime += dias
+    }
+
+    if (epicCycleTime > 0) {
+      todosCycleTimes.push(epicCycleTime)
+    }
+  }
+
+  if (todosCycleTimes.length === 0) return []
+
+  const sorted = [...todosCycleTimes].sort((a, b) => a - b)
+  const media = Math.round(sorted.reduce((s, d) => s + d, 0) / sorted.length)
+  const mediana = sorted.length % 2 === 0
+    ? Math.round((sorted[sorted.length / 2 - 1] + sorted[sorted.length / 2]) / 2)
+    : sorted[Math.floor(sorted.length / 2)]
+
+  return [{
+    estagio: 'EM EXPERIMENTAÇÃO',
+    label: 'Experimentação',
+    mediaDias: media,
+    medianaDias: mediana,
+    qtdIniciativas: sorted.length,
+  }]
 }
 
 /**

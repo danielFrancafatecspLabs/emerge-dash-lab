@@ -73,7 +73,7 @@ export default function ResumoPortfolio({ data }: Props) {
                 Resumo do Portfólio
               </p>
               <p className="text-[10px] text-gray-400 mt-0.5">
-                Pipeline de inovação • {totalIniciativas} iniciativas
+                Pipeline de inovação • {totalIniciativas} iniciativas (board 2706)
               </p>
             </div>
           </div>

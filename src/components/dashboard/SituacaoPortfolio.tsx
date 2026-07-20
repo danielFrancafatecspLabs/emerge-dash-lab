@@ -71,7 +71,7 @@ export default function SituacaoPortfolio({ data }: Props) {
     <>
       <div className="bg-white rounded-lg p-4 border border-gray-200 h-full flex flex-col">
         <p className="text-xs font-semibold text-gray-500 uppercase tracking-widest mb-2">
-          Situação do Portfólio
+          Situação do Portfólio (iniciativas)
         </p>
         <div className="flex-1 flex flex-col items-center justify-center">
           <div className="relative" style={{ width: 130, height: 130 }}>

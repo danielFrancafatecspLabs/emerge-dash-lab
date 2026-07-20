@@ -341,7 +341,7 @@ export default function ReportPDF({
                   <Text style={[styles.tableCell, styles.colPrioridade, { color: getPriorityColor(epic.prioridade ?? '') }]}>
                     {epic.prioridade ?? '—'}
                   </Text>
-                  <Text style={[styles.tableCell, styles.colStatus]}>{epic.status.name}</Text>
+                  <Text style={[styles.tableCell, styles.colStatus]}>{epic.status?.name ?? '—'}</Text>
                   <Text style={[styles.tableCell, styles.colSponsor]}>{epic.sponsor ?? '—'}</Text>
                   <Text style={[styles.tableCell, styles.colDominio]}>{epic.dominio ?? '—'}</Text>
                 </View>
