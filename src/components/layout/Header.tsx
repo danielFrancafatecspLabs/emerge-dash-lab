@@ -7,11 +7,11 @@ import RefreshButton from './RefreshButton'
 import { PeriodoFiltro, getPeriodoOpcoes, getPeriodoLabel } from '@/lib/periodo-filter'
 
 interface HeaderProps {
-  periodoSelecionado: PeriodoFiltro
-  onPeriodoChange: (periodo: PeriodoFiltro) => void
+  periodoSelecionado?: PeriodoFiltro
+  onPeriodoChange?: (periodo: PeriodoFiltro) => void
 }
 
-export default function Header({ periodoSelecionado, onPeriodoChange }: HeaderProps) {
+export default function Header({ periodoSelecionado = { tipo: 'ultimos12' }, onPeriodoChange = () => {} }: HeaderProps) {
   const [aberto, setAberto] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
