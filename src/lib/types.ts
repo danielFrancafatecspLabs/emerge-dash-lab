@@ -1,4 +1,4 @@
-import type { MetaCategoria } from './portfolio-classifier'
+export type { MetaCategoria } from './portfolio-classifier'
 
 export interface JiraStatus {
   id: string
