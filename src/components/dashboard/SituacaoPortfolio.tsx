@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts'
 import { DashboardData, EpicDetail, PipelineCount } from '@/lib/types'
-import { STATUS_PIPELINE, getPipelineStage } from '@/lib/mappers'
+import { getPipelineStage } from '@/lib/mappers'
 import EpicModal from './EpicModal'
 
 // Mapeamento do nome exibido → chave do pipeline (para aplicar overrides do localStorage)
@@ -21,10 +21,21 @@ const NAME_TO_KEY: Record<string, keyof PipelineCount> = {
   'PRONTO PARA EXECUÇÃO': 'PRONTO PARA EXECUÇÃO',
 }
 
+// Retorna os Epics filtrados pelo estágio de pipeline (board 2707)
 function getEpicsForStage(data: DashboardData, stage: string): EpicDetail[] {
-  return data.iniciativas
-    .filter(ini => getPipelineStage(ini.status) === stage)
-    .flatMap(ini => ini.epics)
+  // Mapeia o nome de exibição de volta para a chave do pipeline
+  const DISPLAY_TO_KEY: Record<string, string> = {
+    'CONCLUÍDO': 'FINALIZADO', 'FINALIZADO': 'FINALIZADO',
+    'DESCONTINUADO': 'CANCELADO', 'CANCELADO': 'CANCELADO',
+    'EM PILOTO': 'EM PILOTO', 'EM ESCALA': 'EM ESCALA',
+    'AGUARDANDO PILOTO': 'AGUARDANDO PILOTO',
+    'EM EXPERIMENTAÇÃO': 'EM EXPERIMENTAÇÃO',
+    'EM REFINAMENTO': 'EM REFINAMENTO',
+    'BACKLOG': 'BACKLOG', 'PRONTO PARA EXECUÇÃO': 'PRONTO PARA EXECUÇÃO',
+  }
+  const pipelineKey = DISPLAY_TO_KEY[stage] ?? stage
+
+  return data.allEpics.filter(e => getPipelineStage(e.status) === pipelineKey)
 }
 
 interface Props { data: DashboardData }
@@ -61,6 +72,9 @@ export default function SituacaoPortfolio({ data }: Props) {
 
   const total = distribuicao.reduce((s, d) => s + d.value, 0)
 
+  // Total de experimentos (Epics) para o número central do gráfico
+  const totalEpicsCount = data.allEpics.length
+
   const displayRows = distribuicao.map(d => ({
     ...d,
     displayName: d.name === 'EM ESCALA' ? 'Em Escala' : d.name,
@@ -71,7 +85,7 @@ export default function SituacaoPortfolio({ data }: Props) {
     <>
       <div className="bg-white rounded-lg p-4 border border-gray-200 h-full flex flex-col">
         <p className="text-xs font-semibold text-gray-500 uppercase tracking-widest mb-2">
-          Situação do Portfólio (iniciativas)
+          Situação do Portfólio (experimentos)
         </p>
         <div className="flex-1 flex flex-col items-center justify-center">
           <div className="relative" style={{ width: 130, height: 130 }}>
@@ -99,7 +113,7 @@ export default function SituacaoPortfolio({ data }: Props) {
             </ResponsiveContainer>
             <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
               <span className="font-bold text-gray-900" style={{ fontSize: 22, lineHeight: 1 }}>
-                {total}
+                {totalEpicsCount}
               </span>
               <span className="text-gray-500" style={{ fontSize: 9 }}>Experimentos</span>
             </div>

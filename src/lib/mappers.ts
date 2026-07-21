@@ -25,7 +25,7 @@ function getSegmento(dominio: string | null | undefined): SegmentoMercado {
   return 'Consumo'
 }
 
-// Status IDs confirmados via API (board 2706 — Iniciativas)
+// Status IDs confirmados via API (board 2706 — Iniciativas, board 2707 — Experimentos)
 export const STATUS_PIPELINE: Record<string, keyof PipelineCount> = {
   '10004': 'BACKLOG',
   '10139': 'EM REFINAMENTO',
@@ -36,6 +36,9 @@ export const STATUS_PIPELINE: Record<string, keyof PipelineCount> = {
   '10504': 'EM ESCALA',
   '10003': 'FINALIZADO',
   '10015': 'CANCELADO',
+  // Board 2707 (Experimentos/Epics) — status específicos
+  '3': 'EM EXPERIMENTAÇÃO',     // "Em andamento"
+  '10204': 'EM EXPERIMENTAÇÃO', // "EM VALIDAÇÃO"
 }
 
 // Aliases de sponsors — nomes parciais ou com typo mapeados para o nome canônico
