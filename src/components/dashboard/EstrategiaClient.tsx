@@ -11,6 +11,7 @@ import PipelineInovacao from '@/components/dashboard/PipelineInovacao'
 import GovernancaAlinhamento from '@/components/dashboard/GovernancaAlinhamento'
 import { PeriodoFiltro, isDataNoPeriodo } from '@/lib/periodo-filter'
 import { DashboardData, Iniciativa, EpicDetail, PipelineCount, MercadoAgregado, MetaCategoria } from '@/lib/types'
+import { getPipelineStage } from '@/lib/mappers'
 
 /**
  * Recalcula o DashboardData completo filtrando apenas iniciativas e epics
@@ -48,21 +49,9 @@ function filtrarDashboardData(data: DashboardData, periodo: PeriodoFiltro): Dash
     'EM ESCALA': 0, FINALIZADO: 0, CANCELADO: 0,
   }
 
-  // Usa a mesma lógica do buildDashboardData para mapear status → pipeline
-  const STATUS_PIPELINE: Record<string, keyof PipelineCount> = {
-    '10004': 'BACKLOG',
-    '10139': 'EM REFINAMENTO',
-    '10067': 'PRONTO PARA EXECUÇÃO',
-    '13045': 'AGUARDANDO PILOTO',
-    '12848': 'EM EXPERIMENTAÇÃO',
-    '12847': 'EM PILOTO',
-    '10504': 'EM ESCALA',
-    '10003': 'FINALIZADO',
-    '10015': 'CANCELADO',
-  }
-
+  // Usa getPipelineStage do mappers.ts (funciona com status de Iniciativa E de Epic)
   for (const ini of iniciativasFiltradas) {
-    const stage = STATUS_PIPELINE[ini.status.id] ?? 'BACKLOG'
+    const stage = getPipelineStage(ini.status) ?? 'BACKLOG'
     pipeline[stage]++
   }
 
@@ -105,10 +94,11 @@ function filtrarDashboardData(data: DashboardData, periodo: PeriodoFiltro): Dash
   const STATUS_DISPLAY_NAME: Partial<Record<keyof PipelineCount, string>> = {
     'CANCELADO': 'DESCONTINUADO', 'FINALIZADO': 'CONCLUÍDO',
   }
+  // ── Status distribuição (donut) — baseado nos Epics do board 2707 ──
   const statusDistribuicao = STATUS_DONUT_ORDER
     .map(key => ({
       name: STATUS_DISPLAY_NAME[key] ?? key,
-      value: pipeline[key] ?? 0,
+      value: allEpicsFiltrados.filter(e => getPipelineStage(e.status) === key).length,
       color: DONUT_COLORS[key] ?? '#888',
     }))
     .filter(d => d.value > 0)
