@@ -179,11 +179,14 @@ export default async function ReportPage() {
 
   // ── Funil de Iniciativas (board 2706 — Ideação) ──
   const funilStages = [
+    { label: 'Backlog', value: data.pipeline['BACKLOG'], color: '#9CA3AF' },
     { label: 'Em Refinamento', value: data.pipeline['EM REFINAMENTO'], color: '#3B82F6' },
+    { label: 'Pronto p/ Execução', value: data.pipeline['PRONTO PARA EXECUÇÃO'], color: '#06B6D4' },
     { label: 'Em Experimentação', value: data.pipeline['EM EXPERIMENTAÇÃO'], color: '#FCD34D' },
-    { label: 'Concluído', value: data.pipeline['FINALIZADO'], color: '#134E4A' },
     { label: 'Aguardando Piloto', value: data.pipeline['AGUARDANDO PILOTO'], color: '#A78BFA' },
     { label: 'Em Piloto', value: data.pipeline['EM PILOTO'], color: '#EF4444' },
+    { label: 'Em Escala', value: data.pipeline['EM ESCALA'], color: '#22C55E' },
+    { label: 'Concluído', value: data.pipeline['FINALIZADO'], color: '#134E4A' },
     { label: 'Cancelado', value: data.pipeline['CANCELADO'], color: '#6B7280' },
   ]
   const funilMax = Math.max(...funilStages.map(s => s.value), 1)
@@ -252,17 +255,23 @@ export default async function ReportPage() {
     e => e.status.name !== 'Concluído' && e.status.name !== 'Cancelado'
   ).length
 
-  // Conversão de Experimentos para Piloto:
-  // % do total de iniciativas que estão em piloto ou em escala.
-  // Usa os status IDs extraídos do boardConfig do board 2706.
+  // Conversões (mesma lógica do PipelineInovacao):
+  // % de iniciativas que chegaram a Piloto (EM PILOTO + EM ESCALA / total)
+  // % de iniciativas que chegaram a Escala (EM ESCALA / total)
   const pilotoOuEscalaIds = new Set([...data.pilotoStatusIds, ...data.escalaStatusIds])
   const totalIniciativas = data.iniciativas.length
-  const iniciativasEmPilotoOuEscala = data.iniciativas.filter(ini =>
-    pilotoOuEscalaIds.has(ini.status.id)
-  )
-  const conversaoExperimentacaoParaPiloto = totalIniciativas > 0
-    ? `${Math.round((iniciativasEmPilotoOuEscala.length / totalIniciativas) * 100)}%`
+
+  const countEmPiloto = data.iniciativas.filter(i => data.pilotoStatusIds.includes(i.status.id)).length
+  const countEmEscala = data.iniciativas.filter(i => data.escalaStatusIds.includes(i.status.id)).length
+
+  const conversaoPiloto = totalIniciativas > 0
+    ? `${Math.round(((countEmPiloto + countEmEscala) / totalIniciativas) * 100)}%`
     : '0%'
+  const conversaoEscala = totalIniciativas > 0
+    ? `${Math.round((countEmEscala / totalIniciativas) * 100)}%`
+    : '0%'
+
+  const iniciativasEmPilotoOuEscala = countEmPiloto + countEmEscala
 
   // Benefício Potencial Estimado: soma de todos os benefícios quantitativos dos epics
   const beneficioPotencialEstimado = data.allEpics.reduce((sum, e) => sum + (e.beneficioQuantitativo ?? 0), 0)
@@ -297,7 +306,9 @@ export default async function ReportPage() {
           funilMax={funilMax}
           top5Dominios={top5Dominios}
           qtdExperimentosAtivos={qtdExperimentosAtivos}
-          conversaoExperimentacaoParaPiloto={conversaoExperimentacaoParaPiloto}
+          iniciativasEmPilotoOuEscala={iniciativasEmPilotoOuEscala}
+          conversaoPiloto={conversaoPiloto}
+          conversaoEscala={conversaoEscala}
           beneficioPotencialEstimado={beneficioPotencialEstimado}
         />
       </main>

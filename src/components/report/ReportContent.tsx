@@ -49,7 +49,9 @@ interface ReportContentProps {
   funilMax: number
   top5Dominios: DominioSummary[]
   qtdExperimentosAtivos: number
-  conversaoExperimentacaoParaPiloto: string
+  iniciativasEmPilotoOuEscala: number
+  conversaoPiloto: string
+  conversaoEscala: string
   beneficioPotencialEstimado: number
 }
 
@@ -74,7 +76,9 @@ export default function ReportContent({
   funilMax,
   top5Dominios,
   qtdExperimentosAtivos,
-  conversaoExperimentacaoParaPiloto,
+  iniciativasEmPilotoOuEscala,
+  conversaoPiloto,
+  conversaoEscala,
   beneficioPotencialEstimado,
 }: ReportContentProps) {
 
@@ -202,10 +206,10 @@ export default function ReportContent({
           </button>
         </div>
         <p className="text-sm text-slate-300 leading-relaxed mt-3 max-w-3xl">
-          O pipeline de inovação conta atualmente com <strong className="text-white">{totalIniciativasPipeline} iniciativas</strong> no funil,
-          das quais <strong className="text-white">{qtdExperimentosAtivos} já evoluíram para experimentos</strong> ativos.
-          A taxa de conversão de experimentos para piloto é de <strong className="text-white">{conversaoExperimentacaoParaPiloto}</strong> (iniciativas com experimentos que evoluíram para a fase de piloto),
-          com um benefício potencial estimado em <strong className="text-white">{formatCurrency(beneficioPotencialEstimado)}</strong>.
+          O pipeline de inovação conta atualmente com <strong className="text-white">{totalIniciativasPipeline} iniciativas</strong> no funil.
+          A taxa de conversão para Piloto é de <strong className="text-white">{conversaoPiloto}</strong> ({iniciativasEmPilotoOuEscala} iniciativas alcançaram os estágios de Piloto ou Escala)
+          e a conversão para Escala é de <strong className="text-white">{conversaoEscala}</strong>.
+          O benefício potencial estimado é de <strong className="text-white">{formatCurrency(beneficioPotencialEstimado)}</strong>.
         </p>
       </div>
 
@@ -222,18 +226,18 @@ export default function ReportContent({
         <div className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
           <div className="flex items-center gap-2 mb-1">
             <TrendingUp size={16} className="text-blue-500" />
-            <p className="text-xs text-gray-400 uppercase tracking-wider">Em Experimentação</p>
+            <p className="text-xs text-gray-400 uppercase tracking-wider">Em Piloto/Escala</p>
           </div>
-          <p className="text-3xl font-bold text-blue-600">{qtdExperimentosAtivos}</p>
-          <p className="text-xs text-gray-400 mt-1">experimentos ativos</p>
+          <p className="text-3xl font-bold text-blue-600">{iniciativasEmPilotoOuEscala}</p>
+          <p className="text-xs text-gray-400 mt-1">iniciativas (Piloto + Escala)</p>
         </div>
         <div className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
           <div className="flex items-center gap-2 mb-1">
             <Target size={16} className="text-green-500" />
             <p className="text-xs text-gray-400 uppercase tracking-wider">Conversão → Piloto</p>
           </div>
-          <p className="text-3xl font-bold text-green-600">{conversaoExperimentacaoParaPiloto}</p>
-          <p className="text-xs text-gray-400 mt-1">da experimentação ao piloto</p>
+          <p className="text-3xl font-bold text-green-600">{conversaoPiloto}</p>
+          <p className="text-xs text-gray-400 mt-1">iniciativas → Piloto/Escala</p>
         </div>
         <div className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
           <div className="flex items-center gap-2 mb-1">

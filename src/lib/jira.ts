@@ -153,35 +153,31 @@ export async function fetchDashboardRaw(): Promise<{
   }
 
   // Buscar changelogs para TODOS os Epics (board 2707) — necessário para calcular cycle time de experimentação
-  const epicChangelogs: Record<string, ChangelogEntry[]> = {}
+  // e para TODAS as Iniciativas (board 2706) — necessário para cycle time por etapa.
+  // Rodamos ambos em paralelo com timeout individual de 8s por chamada.
+  const BATCH_SIZE = 8
+  const CHANGELOG_TIMEOUT_MS = 8000
 
-  // Buscar em lotes de 5 para não sobrecarregar a API
-  const BATCH_SIZE = 5
-  for (let i = 0; i < epics.length; i += BATCH_SIZE) {
-    const batch = epics.slice(i, i + BATCH_SIZE)
-    const results = await Promise.allSettled(
-      batch.map(e => getIssueChangelog(e.key))
-    )
-    results.forEach((r, idx) => {
-      if (r.status === 'fulfilled') {
-        epicChangelogs[batch[idx].key] = r.value
-      }
-    })
+  async function fetchChangelogsBatch(issues: JiraIssue[]): Promise<Record<string, ChangelogEntry[]>> {
+    const result: Record<string, ChangelogEntry[]> = {}
+    for (let i = 0; i < issues.length; i += BATCH_SIZE) {
+      const batch = issues.slice(i, i + BATCH_SIZE)
+      const results = await Promise.allSettled(
+        batch.map(e => getIssueChangelog(e.key, CHANGELOG_TIMEOUT_MS))
+      )
+      results.forEach((r, idx) => {
+        if (r.status === 'fulfilled') {
+          result[batch[idx].key] = r.value
+        }
+      })
+    }
+    return result
   }
 
-  // Buscar changelogs para TODAS as Iniciativas (board 2706) — necessário para cycle time por etapa
-  const iniciativaChangelogs: Record<string, ChangelogEntry[]> = {}
-  for (let i = 0; i < iniciativas.length; i += BATCH_SIZE) {
-    const batch = iniciativas.slice(i, i + BATCH_SIZE)
-    const results = await Promise.allSettled(
-      batch.map(ini => getIssueChangelog(ini.key))
-    )
-    results.forEach((r, idx) => {
-      if (r.status === 'fulfilled') {
-        iniciativaChangelogs[batch[idx].key] = r.value
-      }
-    })
-  }
+  const [epicChangelogs, iniciativaChangelogs] = await Promise.all([
+    fetchChangelogsBatch(epics),
+    fetchChangelogsBatch(iniciativas),
+  ])
 
   return { iniciativas, epics: epicsWithComments, board2706Config, epicChangelogs, iniciativaChangelogs }
 }
@@ -191,7 +187,7 @@ export interface ChangelogEntry {
   items: { field: string; fieldId: string; fromString: string | null; toString: string | null }[]
 }
 
-export async function getIssueChangelog(issueKey: string): Promise<ChangelogEntry[]> {
+export async function getIssueChangelog(issueKey: string, timeoutMs = 8000): Promise<ChangelogEntry[]> {
   const base = process.env.JIRA_BASE_URL
   if (!base) throw new Error('JIRA_BASE_URL é obrigatório')
 
@@ -202,19 +198,28 @@ export async function getIssueChangelog(issueKey: string): Promise<ChangelogEntr
 
   while (startAt < total) {
     const url = `${base}/rest/api/3/issue/${issueKey}/changelog?maxResults=${maxResults}&startAt=${startAt}`
-    const res = await fetch(url, {
-      headers: getHeaders(),
-      next: { revalidate: 300 },
-    })
+    const controller = new AbortController()
+    const timer = setTimeout(() => controller.abort(), timeoutMs)
+    try {
+      const res = await fetch(url, {
+        headers: getHeaders(),
+        signal: controller.signal,
+        next: { revalidate: 300 },
+      })
 
-    if (!res.ok) return all // silencioso — retorna o que conseguiu
+      if (!res.ok) return all // silencioso — retorna o que conseguiu
 
-    const data = await res.json()
-    total = data.total ?? 0
-    const values: ChangelogEntry[] = data.values ?? []
-    all.push(...values)
-    startAt += values.length
-    if (values.length === 0) break
+      const data = await res.json()
+      total = data.total ?? 0
+      const values: ChangelogEntry[] = data.values ?? []
+      all.push(...values)
+      startAt += values.length
+      if (values.length === 0) break
+    } catch {
+      return all // timeout ou erro de rede — retorna o que conseguiu
+    } finally {
+      clearTimeout(timer)
+    }
   }
 
   return all
