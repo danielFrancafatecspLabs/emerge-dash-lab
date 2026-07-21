@@ -258,7 +258,7 @@ export default function EstrategiaClient({ data }: EstrategiaClientProps) {
 
           {/* Row 2: Portfólio Mercado (45%) + Top 5 (35%) + Situação (20%) */}
           <div className="grid gap-3 grid-cols-1 md:grid-cols-2 lg:grid-cols-[45fr_35fr_20fr]">
-            <PortfolioPorMercado data={dadosFiltrados} />
+            <PortfolioPorMercado />
             <Top5Experimentos data={dadosFiltrados} />
             <SituacaoPortfolio data={dadosFiltrados} />
           </div>
