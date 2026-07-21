@@ -88,14 +88,14 @@ function mapEpicToDetail(epic: JiraIssue): EpicDetail {
 
 const DONUT_COLORS: Record<string, string> = {
   'BACKLOG':              '#D4D4D4',
-  'EM REFINAMENTO':       '#60A5FA',
-  'PRONTO PARA EXECUÇÃO': '#F97316',
-  'EM EXPERIMENTAÇÃO':    '#FCD34D',
-  'AGUARDANDO PILOTO':    '#A78BFA',
-  'EM PILOTO':            '#EF4444',
+  'EM REFINAMENTO':       '#a8a29e',
+  'PRONTO PARA EXECUÇÃO': '#d4d4d4',
+  'EM EXPERIMENTAÇÃO':    '#ea580c',
+  'AGUARDANDO PILOTO':    '#84cc16',
+  'EM PILOTO':            '#16a34a',
   'EM ESCALA':            '#22C55E',
-  'FINALIZADO':           '#134E4A',
-  'CANCELADO':            '#6B7280',
+  'FINALIZADO':           '#6b7280',
+  'CANCELADO':            '#ef4444',
 }
 
 const STATUS_NAME_PIPELINE: Record<string, keyof PipelineCount> = {

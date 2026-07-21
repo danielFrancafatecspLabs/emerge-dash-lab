@@ -192,15 +192,15 @@ export default function CientistaChat() {
   return (
     <div className="flex flex-col h-full">
       {/* Cabeçalho do chat */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 bg-gradient-to-r from-purple-50 to-white">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 bg-gradient-to-r from-red-50 to-white">
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-purple-100 rounded-xl">
-            <Bot size={22} className="text-purple-700" />
+          <div className="p-2 bg-red-100 rounded-xl">
+            <Bot size={22} className="text-red-700" />
           </div>
           <div>
             <h2 className="text-sm font-bold text-gray-900">Cientista BeOn Labs</h2>
             <p className="text-xs text-gray-400 flex items-center gap-1">
-              <Sparkles size={10} className="text-purple-400" />
+              <Sparkles size={10} className="text-red-400" />
               Assistente de análise de portfólio
             </p>
           </div>
@@ -220,8 +220,8 @@ export default function CientistaChat() {
           <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
             {msg.role === 'bot' && (
               <div className="flex-shrink-0 mr-2 mt-1">
-                <div className="p-1.5 bg-purple-100 rounded-full">
-                  <Lightbulb size={14} className="text-purple-600" />
+                <div className="p-1.5 bg-red-100 rounded-full">
+                  <Lightbulb size={14} className="text-red-600" />
                 </div>
               </div>
             )}
@@ -250,12 +250,12 @@ export default function CientistaChat() {
             onChange={e => setInputValue(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter') handleSend() }}
             placeholder="Digite sua pergunta... (ex: quantos experimentos ativos?)"
-            className="flex-1 text-sm px-4 py-2.5 rounded-xl border border-gray-200 bg-white focus:outline-none focus:border-purple-400 focus:ring-1 focus:ring-purple-200 transition-colors placeholder:text-gray-400"
+            className="flex-1 text-sm px-4 py-2.5 rounded-xl border border-gray-200 bg-white focus:outline-none focus:border-red-400 focus:ring-1 focus:ring-red-200 transition-colors placeholder:text-gray-400"
           />
           <button
             onClick={handleSend}
             disabled={!inputValue.trim()}
-            className="px-4 py-2.5 bg-purple-600 text-white rounded-xl hover:bg-purple-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center gap-1.5"
+            className="px-4 py-2.5 bg-red-600 text-white rounded-xl hover:bg-red-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center gap-1.5"
           >
             <Send size={15} />
           </button>
@@ -277,7 +277,7 @@ export default function CientistaChat() {
                   className={`text-xs font-medium px-3.5 py-2 rounded-xl transition-all border hover:shadow-sm ${
                     opt.label.includes('Voltar') || opt.label.includes('Menu Principal')
                       ? 'border-gray-200 text-gray-500 hover:bg-gray-100 bg-white'
-                      : 'border-purple-200 text-purple-700 hover:bg-purple-50 bg-white'
+                      : 'border-red-200 text-red-700 hover:bg-red-50 bg-white'
                   }`}
                 >
                   {opt.label}

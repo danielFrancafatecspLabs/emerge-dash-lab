@@ -39,9 +39,9 @@ export default function ResumoPortfolio({ data }: Props) {
     },
     {
       icon: Rocket,
-      gradient: 'from-violet-500 to-purple-600',
-      bgLight: 'bg-violet-50',
-      borderLight: 'border-violet-100',
+      gradient: 'from-red-500 to-red-700',
+      bgLight: 'bg-red-50',
+      borderLight: 'border-red-100',
       value: taxaEscala,
       label: 'Conversão p/ Escala',
       subtitle: `${escaladoIniciativas.length} de ${totalIniciativas} iniciativas`,
@@ -131,14 +131,14 @@ export default function ResumoPortfolio({ data }: Props) {
 
               {/* Mini progress bar */}
               {card.label === 'Conversão p/ Escala' && (
-                <div className="mt-3 pt-3 border-t border-violet-100/60">
+                <div className="mt-3 pt-3 border-t border-red-100/60">
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-[9px] text-gray-400">Progresso para escala</span>
-                    <span className="text-[9px] font-semibold text-violet-600">{card.value}</span>
+                    <span className="text-[9px] font-semibold text-red-600">{card.value}</span>
                   </div>
-                  <div className="w-full h-1.5 bg-violet-100 rounded-full overflow-hidden">
+                  <div className="w-full h-1.5 bg-red-100 rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-gradient-to-r from-violet-500 to-purple-500 rounded-full transition-all duration-500"
+                      className="h-full bg-gradient-to-r from-red-500 to-red-600 rounded-full transition-all duration-500"
                       style={{
                         width: totalIniciativas > 0
                           ? `${Math.round((escaladoIniciativas.length / totalIniciativas) * 100)}%`
@@ -181,7 +181,7 @@ export default function ResumoPortfolio({ data }: Props) {
                     </div>
                     <div>
                       <span className="text-[9px] text-gray-400">Em escala</span>
-                      <p className="text-xs font-bold text-violet-700">{escaladoIniciativas.length}</p>
+                      <p className="text-xs font-bold text-red-700">{escaladoIniciativas.length}</p>
                     </div>
                   </div>
                 </div>

@@ -31,7 +31,7 @@ type PeriodoFiltro =
 const STATUS_CONCLUIDO = new Set(['Concluído', 'FINALIZADO', 'CANCELADO'])
 
 // Cores por ano (cíclicas)
-const CORES_ANO = ['#3B82F6', '#EF4444', '#10B981', '#F59E0B', '#8B5CF6', '#EC4899', '#06B6D4', '#84CC16']
+const CORES_ANO = ['#3B82F6', '#EF4444', '#10B981', '#F59E0B', '#F97316', '#EC4899', '#06B6D4', '#84CC16']
 
 function formatCurrency(v: number): string {
   return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })
@@ -293,7 +293,7 @@ export default function EvolucaoAnual({ epics }: EvolucaoAnualProps) {
               <p className="text-[10px] text-gray-400 mt-0.5 uppercase tracking-wider">Concluídos</p>
             </div>
             <div className="text-center">
-              <p className="text-xl font-bold text-purple-700">{formatCurrency(beneficioTotal)}</p>
+              <p className="text-xl font-bold text-red-700">{formatCurrency(beneficioTotal)}</p>
               <p className="text-[10px] text-gray-400 mt-0.5 uppercase tracking-wider">Benefício</p>
             </div>
           </div>
@@ -309,7 +309,7 @@ export default function EvolucaoAnual({ epics }: EvolucaoAnualProps) {
               <p className="text-[10px] text-gray-400 mt-0.5 uppercase tracking-wider">Criados</p>
             </div>
             <div className="text-center">
-              <p className="text-xl font-bold text-purple-700">{formatCurrency(ultimos12Meses.benef)}</p>
+              <p className="text-xl font-bold text-red-700">{formatCurrency(ultimos12Meses.benef)}</p>
               <p className="text-[10px] text-gray-400 mt-0.5 uppercase tracking-wider">Benefício</p>
             </div>
           </div>
