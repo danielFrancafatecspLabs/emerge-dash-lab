@@ -493,7 +493,6 @@ function calculateCycleTimeExperimentacao(
   epicChangelogs: Record<string, ChangelogEntry[]>,
   epicsRaw: JiraIssue[]
 ): number {
-  const MS_POR_DIA = 1000 * 60 * 60 * 24
   const EXPERIMENTACAO_NAMES = new Set(['Em andamento', 'In Progress', 'EM VALIDAÇÃO'])
   const todosCycleTimes: number[] = []
 
@@ -501,13 +500,13 @@ function calculateCycleTimeExperimentacao(
     const changelog = epicChangelogs[epic.key]
     if (!changelog || changelog.length === 0) continue
 
-    // Ordenar changelog por data (mais antigo primeiro)
     const sorted = [...changelog].sort(
       (a, b) => new Date(a.created).getTime() - new Date(b.created).getTime()
     )
 
+    // Coletar períodos em experimentação como intervalos { inicio, fim }
+    const periodos: { inicio: number; fim: number }[] = []
     let entrouEm: number | null = null
-    let epicCycleTime = 0
 
     for (const entry of sorted) {
       for (const item of entry.items) {
@@ -517,27 +516,26 @@ function calculateCycleTimeExperimentacao(
         const saiu = EXPERIMENTACAO_NAMES.has(item.fromString ?? '')
 
         if (entrou && !saiu) {
-          // Entrou em experimentação
           entrouEm = new Date(entry.created).getTime()
         } else if (saiu && !entrou) {
-          // Saiu de experimentação
           if (entrouEm !== null) {
-            const saiuEm = new Date(entry.created).getTime()
-            const dias = Math.round((saiuEm - entrouEm) / MS_POR_DIA)
-            if (dias > 0) {
-              epicCycleTime += dias
-            }
+            periodos.push({ inicio: entrouEm, fim: new Date(entry.created).getTime() })
             entrouEm = null
           }
         }
       }
     }
 
-    // Se ainda está em experimentação (entrouEm não foi fechado), conta até hoje
+    // Se ainda está em experimentação, período aberto até agora
     if (entrouEm !== null && EXPERIMENTACAO_NAMES.has(epic.fields.status.name)) {
-      const dias = Math.round((Date.now() - entrouEm) / MS_POR_DIA)
-      if (dias > 0) epicCycleTime += dias
+      periodos.push({ inicio: entrouEm, fim: Date.now() })
     }
+
+    if (periodos.length === 0) continue
+
+    // Subtrair dias bloqueados que caem dentro dos períodos de experimentação
+    const bloqueios = getPeriodosBloqueio(epic.key, epicChangelogs)
+    const epicCycleTime = subtrairBloqueios(periodos, bloqueios)
 
     if (epicCycleTime > 0) {
       todosCycleTimes.push(epicCycleTime)
@@ -558,7 +556,6 @@ function calculateCycleTimeExperimentacaoDetalhado(
   epicChangelogs: Record<string, ChangelogEntry[]>,
   epicsRaw: JiraIssue[]
 ): CycleTimeEstagio[] {
-  const MS_POR_DIA = 1000 * 60 * 60 * 24
   const EXPERIMENTACAO_NAMES = new Set(['Em andamento', 'In Progress', 'EM VALIDAÇÃO'])
   const todosCycleTimes: number[] = []
 
@@ -570,8 +567,9 @@ function calculateCycleTimeExperimentacaoDetalhado(
       (a, b) => new Date(a.created).getTime() - new Date(b.created).getTime()
     )
 
+    // Coletar períodos em experimentação como intervalos
+    const periodos: { inicio: number; fim: number }[] = []
     let entrouEm: number | null = null
-    let epicCycleTime = 0
 
     for (const entry of sorted) {
       for (const item of entry.items) {
@@ -584,21 +582,23 @@ function calculateCycleTimeExperimentacaoDetalhado(
           entrouEm = new Date(entry.created).getTime()
         } else if (saiu && !entrou) {
           if (entrouEm !== null) {
-            const saiuEm = new Date(entry.created).getTime()
-            const dias = Math.round((saiuEm - entrouEm) / MS_POR_DIA)
-            if (dias > 0) {
-              epicCycleTime += dias
-            }
+            periodos.push({ inicio: entrouEm, fim: new Date(entry.created).getTime() })
             entrouEm = null
           }
         }
       }
     }
 
+    // Período aberto (ainda em experimentação)
     if (entrouEm !== null && EXPERIMENTACAO_NAMES.has(epic.fields.status.name)) {
-      const dias = Math.round((Date.now() - entrouEm) / MS_POR_DIA)
-      if (dias > 0) epicCycleTime += dias
+      periodos.push({ inicio: entrouEm, fim: Date.now() })
     }
+
+    if (periodos.length === 0) continue
+
+    // Subtrair dias bloqueados
+    const bloqueios = getPeriodosBloqueio(epic.key, epicChangelogs)
+    const epicCycleTime = subtrairBloqueios(periodos, bloqueios)
 
     if (epicCycleTime > 0) {
       todosCycleTimes.push(epicCycleTime)
@@ -623,6 +623,109 @@ function calculateCycleTimeExperimentacaoDetalhado(
 }
 
 /**
+ * Extrai os períodos de bloqueio de UM Epic a partir do changelog.
+ * Retorna array de intervalos { inicio, fim } em timestamps (ms).
+ * Se o Epic ainda está bloqueado, o último intervalo vai até Date.now().
+ */
+function getPeriodosBloqueio(
+  epicKey: string,
+  epicChangelogs: Record<string, ChangelogEntry[]>
+): { inicio: number; fim: number }[] {
+  const changelog = epicChangelogs[epicKey]
+  if (!changelog || changelog.length === 0) return []
+
+  const sorted = [...changelog].sort(
+    (a, b) => new Date(a.created).getTime() - new Date(b.created).getTime()
+  )
+
+  const eventos: { data: number; ativou: boolean }[] = []
+
+  for (const entry of sorted) {
+    for (const item of entry.items) {
+      if (item.fieldId !== 'customfield_13406') continue
+
+      const from = item.fromString
+      const to = item.toString
+
+      const estavaBloqueado = !!from && from !== 'None' && from !== 'null'
+      const ficouBloqueado = !!to && to !== 'None' && to !== 'null'
+
+      const data = new Date(entry.created).getTime()
+
+      if (!estavaBloqueado && ficouBloqueado) {
+        eventos.push({ data, ativou: true })
+      } else if (estavaBloqueado && !ficouBloqueado) {
+        eventos.push({ data, ativou: false })
+      }
+      // troca de motivo ou ambos vazios: ignorar
+    }
+  }
+
+  const periodos: { inicio: number; fim: number }[] = []
+  let bloqueioAtual: number | null = null
+
+  for (const ev of eventos) {
+    if (ev.ativou) {
+      bloqueioAtual = ev.data
+    } else {
+      if (bloqueioAtual !== null) {
+        periodos.push({ inicio: bloqueioAtual, fim: ev.data })
+        bloqueioAtual = null
+      }
+    }
+  }
+
+  // Se ainda está bloqueado, conta até agora
+  if (bloqueioAtual !== null) {
+    periodos.push({ inicio: bloqueioAtual, fim: Date.now() })
+  }
+
+  return periodos
+}
+
+/**
+ * Dado um array de períodos (ex.: períodos em experimentação) e um array de
+ * períodos de bloqueio, retorna o total de dias dos períodos subtraindo
+ * a sobreposição com os bloqueios.
+ */
+function subtrairBloqueios(
+  periodos: { inicio: number; fim: number }[],
+  bloqueios: { inicio: number; fim: number }[]
+): number {
+  const MS_POR_DIA = 1000 * 60 * 60 * 24
+  let totalDias = 0
+
+  for (const p of periodos) {
+    let inicio = p.inicio
+    const fim = p.fim
+
+    // Para cada bloqueio que intersecta este período, "pular" o trecho bloqueado
+    // Ordenar bloqueios por inicio para processar em ordem
+    const relevantes = bloqueios
+      .filter(b => b.inicio < fim && b.fim > inicio)
+      .sort((a, b) => a.inicio - b.inicio)
+
+    for (const b of relevantes) {
+      // Parte não-bloqueada antes deste bloqueio
+      if (inicio < b.inicio) {
+        totalDias += (b.inicio - inicio) / MS_POR_DIA
+      }
+      // Avançar inicio para depois do bloqueio
+      if (b.fim > inicio) {
+        inicio = b.fim
+      }
+    }
+
+    // Parte restante depois do último bloqueio
+    if (inicio < fim) {
+      totalDias += (fim - inicio) / MS_POR_DIA
+    }
+  }
+
+  return Math.round(totalDias)
+}
+
+/**
  * Calcula o blocked time médio dos Epics ATIVOS (não cancelados, não concluídos).
  * Analisa o changelog do campo customfield_13406 (Motivo de Bloqueio):
  * - [None/null] -> [qualquer valor] = bloqueio ATIVADO
@@ -637,82 +740,17 @@ function calculateBlockedTime(
   epicChangelogs: Record<string, ChangelogEntry[]>,
   epicsRaw: JiraIssue[]
 ): number {
-  const MS_POR_DIA = 1000 * 60 * 60 * 24
-  const agora = Date.now()
-
-  // Status finais: não considerar cancelados nem concluídos
   const STATUS_FINAIS = new Set(['10015', '10003'])
-
   const diasPorEpic: number[] = []
 
   for (const epic of epicsRaw) {
-    // Só considerar epics ativos
     if (STATUS_FINAIS.has(epic.fields.status.id)) continue
 
-    const changelog = epicChangelogs[epic.key]
-    if (!changelog || changelog.length === 0) continue
+    const periodos = getPeriodosBloqueio(epic.key, epicChangelogs)
+    if (periodos.length === 0) continue
 
-    // Ordenar changelog por data (mais antigo primeiro)
-    const sorted = [...changelog].sort(
-      (a, b) => new Date(a.created).getTime() - new Date(b.created).getTime()
-    )
-
-    // Extrair todas as mudanças do customfield_13406
-    const bloqueios: { data: number; ativou: boolean }[] = []
-
-    for (const entry of sorted) {
-      for (const item of entry.items) {
-        if (item.fieldId !== 'customfield_13406') continue
-
-        const from = item.fromString // null, None, ou string vazia = não bloqueado
-        const to = item.toString     // null, None, ou string vazia = não bloqueado
-
-        const estavaBloqueado = !!from && from !== 'None' && from !== 'null'
-        const ficouBloqueado = !!to && to !== 'None' && to !== 'null'
-
-        const data = new Date(entry.created).getTime()
-
-        if (!estavaBloqueado && ficouBloqueado) {
-          // Bloqueio ativado
-          bloqueios.push({ data, ativou: true })
-        } else if (estavaBloqueado && !ficouBloqueado) {
-          // Bloqueio removido
-          bloqueios.push({ data, ativou: false })
-        } else if (estavaBloqueado && ficouBloqueado) {
-          // Troca de motivo — mantém bloqueado, não gera evento
-        }
-        // !estavaBloqueado && !ficouBloqueado = ambos vazios, ignorar
-      }
-    }
-
-    if (bloqueios.length === 0) continue
-
-    // Calcular períodos bloqueados
-    let totalBloqueado = 0
-    let bloqueioAtual: number | null = null
-
-    for (const evento of bloqueios) {
-      if (evento.ativou) {
-        bloqueioAtual = evento.data
-      } else {
-        // Bloqueio removido: fecha o período
-        if (bloqueioAtual !== null) {
-          const dias = Math.round((evento.data - bloqueioAtual) / MS_POR_DIA)
-          if (dias > 0) totalBloqueado += dias
-          bloqueioAtual = null
-        }
-      }
-    }
-
-    // Se ainda está bloqueado (bloqueioAtual não foi fechado), conta até hoje
-    if (bloqueioAtual !== null) {
-      const dias = Math.round((agora - bloqueioAtual) / MS_POR_DIA)
-      if (dias > 0) totalBloqueado += dias
-    }
-
-    if (totalBloqueado > 0) {
-      diasPorEpic.push(totalBloqueado)
-    }
+    const total = subtrairBloqueios(periodos, []) // sem subtração, só soma
+    if (total > 0) diasPorEpic.push(total)
   }
 
   if (diasPorEpic.length === 0) return 0
