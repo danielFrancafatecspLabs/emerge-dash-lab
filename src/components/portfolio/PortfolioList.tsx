@@ -181,10 +181,10 @@ export default function PortfolioList({ data }: Props) {
           </div>
 
           {/* Card: Distribuição por Impacto */}
-          <div className="bg-gradient-to-br from-purple-50 to-white rounded-xl p-4 border border-purple-100 hover:shadow-md transition-shadow sm:col-span-2">
+          <div className="bg-gradient-to-br from-red-50 to-white rounded-xl p-4 border border-red-100 hover:shadow-md transition-shadow sm:col-span-2">
             <div className="flex items-center gap-2 mb-3">
-              <Target size={16} className="text-purple-600" />
-              <p className="text-xs text-purple-500 font-semibold uppercase tracking-wider">Distribuição por Impacto</p>
+              <Target size={16} className="text-red-600" />
+              <p className="text-xs text-red-500 font-semibold uppercase tracking-wider">Distribuição por Impacto</p>
             </div>
             <div className="space-y-2.5">
               {/* EBITDA */}
@@ -338,7 +338,7 @@ export default function PortfolioList({ data }: Props) {
                     </span>
                   )}
                   {lab && (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-purple-50 text-purple-700 text-xs">
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-50 text-red-700 text-xs">
                       Lab: {lab}
                       <button onClick={() => setLab('')} className="hover:text-red-600"><X size={10} /></button>
                     </span>

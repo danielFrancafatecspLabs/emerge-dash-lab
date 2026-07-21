@@ -183,7 +183,7 @@ export default async function ReportPage() {
     { label: 'Em Refinamento', value: data.pipeline['EM REFINAMENTO'], color: '#3B82F6' },
     { label: 'Pronto p/ Execução', value: data.pipeline['PRONTO PARA EXECUÇÃO'], color: '#06B6D4' },
     { label: 'Em Experimentação', value: data.pipeline['EM EXPERIMENTAÇÃO'], color: '#FCD34D' },
-    { label: 'Aguardando Piloto', value: data.pipeline['AGUARDANDO PILOTO'], color: '#A78BFA' },
+    { label: 'Aguardando Piloto', value: data.pipeline['AGUARDANDO PILOTO'], color: '#F97316' },
     { label: 'Em Piloto', value: data.pipeline['EM PILOTO'], color: '#EF4444' },
     { label: 'Em Escala', value: data.pipeline['EM ESCALA'], color: '#22C55E' },
     { label: 'Concluído', value: data.pipeline['FINALIZADO'], color: '#134E4A' },

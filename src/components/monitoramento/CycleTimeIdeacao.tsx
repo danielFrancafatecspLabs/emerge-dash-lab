@@ -18,7 +18,7 @@ const CORES: Record<string, string> = {
   'EM REFINAMENTO':       '#60A5FA',
   'PRONTO PARA EXECUÇÃO': '#F97316',
   'EM EXPERIMENTAÇÃO':    '#FCD34D',
-  'AGUARDANDO PILOTO':    '#A78BFA',
+  'AGUARDANDO PILOTO':    '#F97316',
   'EM PILOTO':            '#EF4444',
   'FINALIZADO':           '#134E4A',
 }

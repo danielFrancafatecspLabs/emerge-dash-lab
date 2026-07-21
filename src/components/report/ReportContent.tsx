@@ -65,7 +65,7 @@ function formatDate(d: string | null): string {
 }
 
 const accentColors = [
-  '#6366F1', '#F59E0B', '#10B981', '#EC4899', '#3B82F6', '#8B5CF6', '#14B8A6',
+  '#0EA5E9', '#F59E0B', '#10B981', '#EC4899', '#3B82F6', '#14B8A6', '#F97316',
 ]
 
 export default function ReportContent({
@@ -179,7 +179,7 @@ export default function ReportContent({
     'EM REFINAMENTO': { bg: '#DBEAFE', text: '#1D4ED8' },
     'PRONTO PARA EXECUÇÃO': { bg: '#FED7AA', text: '#C2410C' },
     'EM EXPERIMENTAÇÃO': { bg: '#FEF3C7', text: '#B45309' },
-    'AGUARDANDO PILOTO': { bg: '#EDE9FE', text: '#6D28D9' },
+    'AGUARDANDO PILOTO': { bg: '#F3F4F6', text: '#374151' },
     'EM PILOTO': { bg: '#FEE2E2', text: '#B91C1C' },
     'EM ESCALA': { bg: '#D1FAE5', text: '#047857' },
     'FINALIZADO': { bg: '#CCFBF1', text: '#0F766E' },
@@ -241,10 +241,10 @@ export default function ReportContent({
         </div>
         <div className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
           <div className="flex items-center gap-2 mb-1">
-            <AlertTriangle size={16} className="text-purple-500" />
+            <AlertTriangle size={16} className="text-red-500" />
             <p className="text-xs text-gray-400 uppercase tracking-wider">Benefício Potencial</p>
           </div>
-          <p className="text-2xl font-bold text-purple-600">{formatCurrency(beneficioPotencialEstimado)}</p>
+          <p className="text-2xl font-bold text-red-600">{formatCurrency(beneficioPotencialEstimado)}</p>
           <p className="text-xs text-gray-400 mt-1">estimado do portfólio</p>
         </div>
       </div>
@@ -544,7 +544,7 @@ export default function ReportContent({
             <span className="text-xs font-semibold text-gray-400 uppercase tracking-widest">
               Iniciativas Direcionadas para beOn Delivery
             </span>
-            <span className="bg-purple-100 text-purple-700 text-xs font-bold px-2 py-0.5 rounded-full">
+            <span className="bg-red-100 text-red-700 text-xs font-bold px-2 py-0.5 rounded-full">
               {deliveryData.length}
             </span>
           </div>
@@ -567,7 +567,7 @@ export default function ReportContent({
                 {deliveryData.map((ini, i) => (
                   <tr
                     key={`${ini.nome}-${i}`}
-                    className="border-b border-gray-50 hover:bg-purple-50/50 transition-colors"
+                    className="border-b border-gray-50 hover:bg-red-50/50 transition-colors"
                     style={{ background: i % 2 === 1 ? 'rgba(249,250,251,0.5)' : undefined }}
                   >
                     <td className="px-3 py-2">

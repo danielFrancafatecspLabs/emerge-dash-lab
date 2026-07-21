@@ -83,9 +83,9 @@ function filtrarDashboardData(data: DashboardData, periodo: PeriodoFiltro): Dash
 
   // ── Status distribuição (donut) ──
   const DONUT_COLORS: Record<string, string> = {
-    'EM ESCALA': '#22c55e', 'EM PILOTO': '#3b82f6', 'AGUARDANDO PILOTO': '#a78bfa',
-    'FINALIZADO': '#6b7280', 'EM EXPERIMENTAÇÃO': '#f59e0b', 'PRONTO PARA EXECUÇÃO': '#06b6d4',
-    'EM REFINAMENTO': '#8b5cf6', 'BACKLOG': '#9ca3af', 'CANCELADO': '#ef4444',
+    'EM ESCALA': '#22c55e', 'EM PILOTO': '#16a34a', 'AGUARDANDO PILOTO': '#84cc16',
+    'FINALIZADO': '#6b7280', 'EM EXPERIMENTAÇÃO': '#ea580c', 'PRONTO PARA EXECUÇÃO': '#d4d4d4',
+    'EM REFINAMENTO': '#a8a29e', 'BACKLOG': '#9ca3af', 'CANCELADO': '#ef4444',
   }
   const STATUS_DONUT_ORDER: (keyof PipelineCount)[] = [
     'EM ESCALA', 'EM PILOTO', 'AGUARDANDO PILOTO', 'FINALIZADO',

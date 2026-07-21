@@ -158,7 +158,7 @@ export default function ResumoExecutivo({ data }: Props) {
                   {[
                     { label: 'Exp.', count: emExperimentacao.length, color: 'text-emerald-700' },
                     { label: 'Piloto', count: emPiloto.length, color: 'text-amber-700' },
-                    { label: 'Escala', count: escalado.length, color: 'text-violet-700' },
+                    { label: 'Escala', count: escalado.length, color: 'text-red-700' },
                   ].map(s => (
                     <div key={s.label} className="flex items-center gap-1">
                       <span className="text-[9px] text-gray-400">{s.label}</span>
@@ -170,13 +170,13 @@ export default function ResumoExecutivo({ data }: Props) {
 
               {/* Card: Conversão p/ Escala */}
               <div
-                className="rounded-lg border border-violet-100 bg-gradient-to-br from-violet-50 to-white p-2.5 cursor-pointer hover:shadow-sm transition-all duration-200 group"
+                className="rounded-lg border border-red-100 bg-gradient-to-br from-red-50 to-white p-2.5 cursor-pointer hover:shadow-sm transition-all duration-200 group"
                 onClick={() => {
                   if (escalado.length > 0) setModal({ title: 'Iniciativas em escala', items: escalado })
                 }}
               >
                 <div className="flex items-center gap-2.5">
-                  <div className="rounded-md p-1.5 bg-gradient-to-br from-violet-500 to-purple-600 shadow-sm">
+                  <div className="rounded-md p-1.5 bg-gradient-to-br from-red-500 to-red-700 shadow-sm">
                     <Rocket size={12} color="white" />
                   </div>
                   <div className="flex-1 min-w-0">
@@ -186,9 +186,9 @@ export default function ResumoExecutivo({ data }: Props) {
                     </div>
                     <div className="flex items-center justify-between mt-0.5">
                       <span className="text-[9px] text-gray-400">{escalado.length} de {totalIniciativas}</span>
-                      <div className="w-20 h-1.5 bg-violet-100 rounded-full overflow-hidden">
+                      <div className="w-20 h-1.5 bg-red-100 rounded-full overflow-hidden">
                         <div
-                          className="h-full bg-gradient-to-r from-violet-500 to-purple-500 rounded-full transition-all duration-700"
+                          className="h-full bg-gradient-to-r from-red-500 to-red-600 rounded-full transition-all duration-700"
                           style={{ width: `${Math.max(taxaEscala, 2)}%` }}
                         />
                       </div>

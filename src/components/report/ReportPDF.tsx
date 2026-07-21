@@ -56,13 +56,12 @@ const COLORS = {
   blue: '#3B82F6',
   green: '#10B981',
   red: '#EF4444',
-  purple: '#8B5CF6',
   amber: '#F59E0B',
   slate: '#334155',
 }
 
 const accentColors = [
-  '#6366F1', '#F59E0B', '#10B981', '#EC4899', '#3B82F6', '#8B5CF6', '#14B8A6',
+  '#0EA5E9', '#F59E0B', '#10B981', '#EC4899', '#3B82F6', '#14B8A6', '#F97316',
 ]
 
 // ── Helpers ──
@@ -196,7 +195,7 @@ export default function ReportPDF({
           </View>
           <View style={styles.bigNumberCard}>
             <Text style={styles.bigNumberLabel}>Benefício Potencial</Text>
-            <Text style={[styles.bigNumberValue, { color: COLORS.purple, fontSize: 14 }]}>{formatCurrency(beneficioPotencial)}</Text>
+            <Text style={[styles.bigNumberValue, { color: COLORS.red, fontSize: 14 }]}>{formatCurrency(beneficioPotencial)}</Text>
             <Text style={styles.bigNumberSub}>estimado do portfólio</Text>
           </View>
         </View>
