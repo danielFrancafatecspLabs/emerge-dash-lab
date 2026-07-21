@@ -71,8 +71,12 @@ export default function PipelineInovacao({ data }: Props) {
   const percentOfTotal = (value: number) =>
     totalPipelineCount > 0 ? Math.round((value / totalPipelineCount) * 100) : 0
   const taxaConversao = getPipelineConversionRate(p)
-  const conversionEscala = '6%'
-  const conversionPiloto = '11.54%'
+  const conversionEscala = totalPipelineCount > 0
+    ? `${Math.round((countEmEscala / totalPipelineCount) * 100)}%`
+    : '0%'
+  const conversionPiloto = totalPipelineCount > 0
+    ? `${Math.round(((countEmPiloto + countEmEscala) / totalPipelineCount) * 100)}%`
+    : '0%'
 
   const kpiDefaults: PipelineKpis = {
     taxaConversaoTotal: taxaConversao,

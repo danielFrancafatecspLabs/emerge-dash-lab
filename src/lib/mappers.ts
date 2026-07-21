@@ -33,6 +33,7 @@ export const STATUS_PIPELINE: Record<string, keyof PipelineCount> = {
   '13045': 'AGUARDANDO PILOTO',
   '12848': 'EM EXPERIMENTAÇÃO',
   '12847': 'EM PILOTO',
+  '10504': 'EM ESCALA',
   '10003': 'FINALIZADO',
   '10015': 'CANCELADO',
 }

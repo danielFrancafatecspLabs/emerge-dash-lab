@@ -5,6 +5,7 @@ import { classifyPortfolios } from '@/lib/portfolio-classifier'
 import { classifySegmentos } from '@/lib/segmento-classifier'
 
 export const dynamic = 'force-dynamic'
+export const maxDuration = 60 // 60 segundos para acomodar fetch de changelogs
 
 export async function GET() {
   try {
