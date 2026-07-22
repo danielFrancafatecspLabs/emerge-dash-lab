@@ -1,5 +1,5 @@
 'use client'
-import { Target, BarChart2, Activity, Users, FileText, Bot, Flag } from 'lucide-react'
+import { Target, BarChart2, Activity, Users, FileText, Bot, Flag, Settings } from 'lucide-react'
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 
@@ -11,6 +11,7 @@ const NAV = [
   { label: 'Monitoram.', icon: Activity,  href: '/monitoramento', inactive: false },
   { label: 'Cientista',  icon: Bot,       href: '/cientista',     inactive: false },
   { label: 'Governança', icon: Users,     href: '/governanca',    inactive: true  },
+  { label: 'Admin',      icon: Settings,  href: '/admin/users',   inactive: false },
 ]
 
 export default function Sidebar() {
