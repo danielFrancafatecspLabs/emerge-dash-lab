@@ -1,3 +1,4 @@
+import React from 'react'
 import { NextResponse } from 'next/server'
 import { renderToStream } from '@react-pdf/renderer'
 import { fetchDashboardRaw } from '@/lib/jira'
@@ -89,7 +90,7 @@ export async function GET() {
     if (!dominioData.has('Operações Técnicas')) {
       dominioData.set('Operações Técnicas', { iniciativas: [], epics: [], totalIniciativas: 0, emAndamento: 0, emPiloto: 0, concluidos: 0, beneficioTotal: 0 })
     }
-    const top5Dominios = [...dominioData.entries()]
+    const top5Dominios = Array.from(dominioData.entries())
       .sort((a, b) => b[1].totalIniciativas - a[1].totalIniciativas)
       .slice(0, 7)
       .map(([nome, stats]) => ({
