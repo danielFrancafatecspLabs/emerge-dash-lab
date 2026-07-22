@@ -65,6 +65,7 @@ export default function CientistaChat() {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [history, setHistory] = useState<NodeId[]>(['root'])
   const [inputValue, setInputValue] = useState('')
+  const [llmLoading, setLlmLoading] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   // Carrega dados do dashboard
@@ -129,20 +130,19 @@ export default function CientistaChat() {
   }, [])
 
   // Enviar pergunta livre
-  const handleSend = useCallback(() => {
+  const handleSend = useCallback(async () => {
     const text = inputValue.trim()
-    if (!text || !data) return
+    if (!text || !data || llmLoading) return
 
     const targetId = findNodeByKeywords(text)
-    const newMessages: ChatMessage[] = [{ role: 'user', text, nodeId: undefined }]
+    const userMsg: ChatMessage = { role: 'user', text, nodeId: undefined }
 
     if (targetId) {
       const node = DECISION_TREE[targetId]
       if (node) {
-        // Se for leaf, computa resposta
+        const newMessages: ChatMessage[] = [userMsg]
         if (node.isLeaf && node.computeAnswer) {
-          const answer = node.computeAnswer(data)
-          newMessages.push({ role: 'bot', text: answer, nodeId: targetId })
+          newMessages.push({ role: 'bot', text: node.computeAnswer(data), nodeId: targetId })
         } else if (node.message) {
           newMessages.push({ role: 'bot', text: node.message, nodeId: targetId })
         }
@@ -151,20 +151,28 @@ export default function CientistaChat() {
         setHistory(prev => [...prev, targetId])
       }
     } else {
-      // Não encontrou — mostra ajuda
-      const suggestions = currentNode?.options
-        ? currentNode.options.filter(o => !o.label.includes('Voltar') && !o.label.includes('Menu Principal'))
-        : DECISION_TREE.root.options
-      const suggestionText = suggestions.map(o => `• ${o.label}`).join('\n')
-      newMessages.push({
-        role: 'bot',
-        text: `🤔 Não entendi sua pergunta. Tente usar uma das opções abaixo ou reformule:\n\n${suggestionText}\n\n💡 Dica: você pode perguntar coisas como "quantos experimentos ativos?", "qual o potencial total?", "top 5 sponsors", etc.`,
-        nodeId: undefined,
-      })
-      setMessages(prev => [...prev, ...newMessages])
+      // Fallback: consulta LLM com dados reais do Jira
+      setMessages(prev => [...prev, userMsg])
+      setInputValue('')
+      setLlmLoading(true)
+      try {
+        const res = await fetch('/jira/api/cientista/llm', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ question: text }),
+        })
+        const json = await res.json()
+        const answer = json.answer ?? json.error ?? 'Não consegui gerar uma resposta.'
+        setMessages(prev => [...prev, { role: 'bot', text: answer, nodeId: undefined }])
+      } catch {
+        setMessages(prev => [...prev, { role: 'bot', text: '⚠️ Erro ao consultar a IA. Tente novamente.', nodeId: undefined }])
+      } finally {
+        setLlmLoading(false)
+      }
+      return
     }
     setInputValue('')
-  }, [inputValue, data, currentNode])
+  }, [inputValue, data, llmLoading])
 
   // Auto-scroll para última mensagem
   useEffect(() => {
@@ -249,15 +257,16 @@ export default function CientistaChat() {
             value={inputValue}
             onChange={e => setInputValue(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter') handleSend() }}
-            placeholder="Digite sua pergunta... (ex: quantos experimentos ativos?)"
-            className="flex-1 text-sm px-4 py-2.5 rounded-xl border border-gray-200 bg-white focus:outline-none focus:border-red-400 focus:ring-1 focus:ring-red-200 transition-colors placeholder:text-gray-400"
+            placeholder={llmLoading ? 'Consultando IA...' : 'Digite sua pergunta... (ex: quantos experimentos ativos?)'}
+            disabled={llmLoading}
+            className="flex-1 text-sm px-4 py-2.5 rounded-xl border border-gray-200 bg-white focus:outline-none focus:border-red-400 focus:ring-1 focus:ring-red-200 transition-colors placeholder:text-gray-400 disabled:bg-gray-50"
           />
           <button
             onClick={handleSend}
-            disabled={!inputValue.trim()}
+            disabled={!inputValue.trim() || llmLoading}
             className="px-4 py-2.5 bg-red-600 text-white rounded-xl hover:bg-red-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center gap-1.5"
           >
-            <Send size={15} />
+            {llmLoading ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} />}
           </button>
         </div>
 

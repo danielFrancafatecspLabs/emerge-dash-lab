@@ -5,6 +5,7 @@ import { classifySegmentos } from '@/lib/segmento-classifier'
 import Sidebar from '@/components/layout/Sidebar'
 import Link from 'next/link'
 import LogoutButton from '@/components/layout/LogoutButton'
+import GenerateImageButton from '@/components/report/GenerateImageButton'
 import ReportContent from '@/components/report/ReportContent'
 
 export const dynamic = 'force-dynamic'
@@ -294,6 +295,7 @@ export default async function ReportPage() {
             <Link href="/portfolio" className="text-xs text-gray-500 hover:text-gray-700 transition-colors">
               Ver lista completa
             </Link>
+            <GenerateImageButton />
             <LogoutButton />
           </div>
         </header>
