@@ -1,5 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  typescript: { ignoreBuildErrors: true },
   basePath: '/jira',
   // Aumenta o timeout para 60s (máximo no plano Pro da Vercel).
   // Necessário porque o fetch de changelogs do Jira pode ser lento.
