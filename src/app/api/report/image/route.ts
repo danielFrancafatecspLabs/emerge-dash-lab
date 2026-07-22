@@ -64,7 +64,7 @@ Make it look like a polished corporate newsletter/infographic with good typograp
       response_format: 'b64_json',
     })
 
-    const b64 = response.data[0]?.b64_json
+    const b64 = response.data?.[0]?.b64_json
     if (!b64) return NextResponse.json({ error: 'Imagem não gerada' }, { status: 500 })
 
     return NextResponse.json({ image: b64, format: 'png' })
