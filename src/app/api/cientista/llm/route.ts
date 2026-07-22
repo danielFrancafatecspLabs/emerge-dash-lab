@@ -33,7 +33,7 @@ DADOS DO PORTFÓLIO (em tempo real do Jira):
 - Pipeline de Iniciativas:
   • Backlog: ${pipe['BACKLOG'] ?? 0}
   • Em Refinamento: ${pipe['EM REFINAMENTO'] ?? 0}
-  • Pré-Piloto / Pronto para Execução: ${pipe['PRÉ PILOTO'] ?? (pipe['PRONTO PARA EXECUÇÃO'] ?? 0)}
+  • Pronto para Execução: ${pipe['PRONTO PARA EXECUÇÃO'] ?? 0}
   • Em Piloto: ${pipe['EM PILOTO'] ?? 0}
   • Em Experimentação: ${pipe['EM EXPERIMENTAÇÃO'] ?? 0}
   • Aguardando Piloto: ${pipe['AGUARDANDO PILOTO'] ?? 0}
