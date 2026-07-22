@@ -47,11 +47,6 @@ DADOS DO PORTFÓLIO (em tempo real do Jira):
 }
 
 export async function POST(request: NextRequest) {
-  const token = request.cookies.get('auth_token')?.value
-  if (!process.env.AUTH_SECRET || token !== process.env.AUTH_SECRET) {
-    return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
-  }
-
   try {
     const { question } = await request.json()
     if (!question?.trim()) return NextResponse.json({ error: 'Pergunta vazia' }, { status: 400 })
