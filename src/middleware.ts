@@ -30,6 +30,7 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  // :path* cobre /jira, /jira/, /jira/qualquer/coisa
-  matcher: ['/jira/:path*'],
+  // Com basePath=/jira, o matcher é relativo ao basePath.
+  // '/(.*)'  compila para /jira/(.*) — cobre /jira, /jira/, /jira/report, etc.
+  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
 }
