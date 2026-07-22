@@ -1,5 +1,5 @@
 'use client'
-import { Target, BarChart2, Activity, Users, FileText, Bot, Flag, Settings } from 'lucide-react'
+import { Target, BarChart2, Activity, Users, FileText, Bot, Flag, ListOrdered, Settings } from 'lucide-react'
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 
@@ -7,6 +7,7 @@ const NAV = [
   { label: 'OKRs',      icon: Flag,     href: '/okrs',          inactive: false },
   { label: 'Estratégia', icon: Target,   href: '/estrategia',    inactive: false },
   { label: 'Portfólio',  icon: BarChart2, href: '/portfolio',     inactive: false },
+  { label: 'Priorização',icon: ListOrdered,href: '/priorizacao',  inactive: false },
   { label: 'Report',     icon: FileText, href: '/report',         inactive: false },
   { label: 'Monitoram.', icon: Activity,  href: '/monitoramento', inactive: false },
   { label: 'Cientista',  icon: Bot,       href: '/cientista',     inactive: false },

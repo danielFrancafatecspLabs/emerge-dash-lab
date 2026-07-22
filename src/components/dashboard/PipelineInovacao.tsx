@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import { DashboardData, PipelineCount, EpicDetail } from '@/lib/types'
-import { formatBRL, STATUS_PIPELINE, getPipelineConversionRate, getPipelineStage } from '@/lib/mappers'
-import { Settings, X, Info } from 'lucide-react'
+import { formatBRL, STATUS_PIPELINE, getPipelineStage } from '@/lib/mappers'
+import { Settings, X, Clock, ArrowRight } from 'lucide-react'
 import EpicModal from './EpicModal'
 
 interface Props { data: DashboardData }
@@ -25,18 +25,13 @@ interface FieldConfig { mode: Mode; value: string }
 type ColunasConfig = Partial<Record<keyof PipelineCount, FieldConfig>>
 
 interface PipelineKpis {
-  taxaConversaoTotal: string
-  leadtimeTotal: string
   leadtimeEscala: string
-  cycleTimeExp: string
-  blockedTime: string
+  leadtimePiloto: string
 }
 
 const FUNIL_FIELDS: { key: keyof PipelineKpis; label: string; desc: string }[] = [
-  { key: 'leadtimeTotal', label: 'Leadtime total', desc: 'Média de dias desde a criação da iniciativa até hoje, considerando apenas iniciativas ativas (não canceladas nem concluídas).' },
-  { key: 'leadtimeEscala', label: 'Leadtime → Escala', desc: 'Média de dias desde a criação até chegar ao estágio EM ESCALA. Mede o tempo necessário para uma iniciativa atingir escala.' },
-  { key: 'cycleTimeExp',  label: 'Cycle time exp.', desc: 'Média de dias que os Epics (experimentos) permanecem nos status "Em andamento" ou "EM VALIDAÇÃO" no board 2707. Calculado via changelog do Jira.' },
-  { key: 'blockedTime',   label: 'Blocked time',   desc: 'Média de dias em que os experimentos ativos ficaram com o campo "Motivo de Bloqueio" preenchido. Calculado via changelog do Jira (entrada e saída do bloqueio).' },
+  { key: 'leadtimeEscala', label: 'Leadtime → Escala', desc: 'Leadtime total da esteira de Iniciativas. Média de dias desde a criação até atingir o estágio EM ESCALA, sem considerar tempos de bloqueio.' },
+  { key: 'leadtimePiloto', label: 'Leadtime → Piloto', desc: 'Média de dias desde a criação até atingir o estágio EM PILOTO, sem considerar tempos de bloqueio.' },
 ]
 
 function getEpicsForStage(data: DashboardData, stage: keyof PipelineCount): EpicDetail[] {
@@ -70,7 +65,6 @@ export default function PipelineInovacao({ data }: Props) {
 
   const percentOfTotal = (value: number) =>
     totalPipelineCount > 0 ? Math.round((value / totalPipelineCount) * 100) : 0
-  const taxaConversao = getPipelineConversionRate(p)
   const conversionEscala = totalPipelineCount > 0
     ? `${Math.round((countEmEscala / totalPipelineCount) * 100)}%`
     : '0%'
@@ -79,23 +73,9 @@ export default function PipelineInovacao({ data }: Props) {
     : '0%'
 
   const kpiDefaults: PipelineKpis = {
-    taxaConversaoTotal: taxaConversao,
-    leadtimeTotal:      data.leadTime.leadtimeTotalDias > 0 ? `${data.leadTime.leadtimeTotalDias} dias` : '-',
-    leadtimeEscala:     data.leadTime.leadtimePorEstagio?.['EM ESCALA'] ? `${data.leadTime.leadtimePorEstagio['EM ESCALA']} dias` : '-',
-    cycleTimeExp:       data.leadTime.cycleTimeExperimentacaoDias > 0 ? `${data.leadTime.cycleTimeExperimentacaoDias} dias` : '-',
-    blockedTime:        data.leadTime.blockedTimeDias > 0 ? `${data.leadTime.blockedTimeDias} dias` : '-',
+    leadtimeEscala: data.leadTime.leadtimePorEstagio?.['EM ESCALA'] ? `${data.leadTime.leadtimePorEstagio['EM ESCALA']} dias` : '-',
+    leadtimePiloto: data.leadTime.leadtimePorEstagio?.['EM PILOTO'] ? `${data.leadTime.leadtimePorEstagio['EM PILOTO']} dias` : '-',
   }
-
-  // ── Bloqueios: contar epics bloqueados e agrupar por motivo ──
-  const epicsBloqueados = data.allEpics.filter(e => !!e.motivoBloqueio)
-  const motivosBloqueio = epicsBloqueados.reduce((acc, e) => {
-    const motivo = e.motivoBloqueio!
-    acc[motivo] = (acc[motivo] ?? 0) + 1
-    return acc
-  }, {} as Record<string, number>)
-  const topMotivos = Object.entries(motivosBloqueio)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 3)
 
   const [kpis, setKpis] = useState<PipelineKpis>(kpiDefaults)
   const [colunasConfig, setColunasConfig] = useState<ColunasConfig>(defaultColunas)
@@ -220,53 +200,68 @@ export default function PipelineInovacao({ data }: Props) {
           })}
         </div>
 
-        {/* Desempenho do Funil + Valor */}
-        <div className="grid gap-2" style={{ gridTemplateColumns: '3fr 1fr' }}>
+        {/* Lead Time — Esteira de Iniciativas */}
+        <div className="grid gap-2" style={{ gridTemplateColumns: '1fr 1fr' }}>
+          {/* Leadtime → Escala */}
           <div className="rounded-lg p-3" style={{ background: 'rgba(255,255,255,0.08)' }}>
-            <p className="text-white/60 uppercase mb-2" style={{ fontSize: 9, letterSpacing: '0.08em' }}>
-              Desempenho do Funil
-            </p>
-            <div className="grid grid-cols-4 gap-2">
-              {FUNIL_FIELDS.map(f => {
-                const isBlocked = f.key === 'blockedTime'
-                return (
-                  <div key={f.key} className="text-center relative group">
-                    <div className="flex items-center justify-center gap-1">
-                      <p className="text-white/50" style={{ fontSize: 8 }}>{f.label}</p>
-                      <div className="relative">
-                        <Info size={9} className="text-white/30 cursor-help" />
-                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 w-48 p-2 rounded-lg bg-gray-900 text-white text-[9px] leading-relaxed opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 shadow-xl pointer-events-none">
-                          {f.desc}
-                          <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-px border-4 border-transparent border-t-gray-900" />
-                        </div>
-                      </div>
-                    </div>
-                    <p className="text-white font-bold text-sm">{kpis[f.key]}</p>
-                    {/* Motivos de bloqueio */}
-                    {isBlocked && topMotivos.length > 0 && (
-                      <div className="mt-1 space-y-0.5">
-                        {topMotivos.map(([motivo, count]) => (
-                          <div key={motivo} className="flex items-center justify-between gap-1 text-white/40" style={{ fontSize: 7 }}>
-                            <span className="truncate max-w-[70px] text-left">{motivo}</span>
-                            <span className="font-semibold text-white/50">{count}</span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )
-              })}
+            <div className="flex items-center gap-1.5 mb-1">
+              <Clock size={12} className="text-white/50" />
+              <p className="text-white/60 uppercase" style={{ fontSize: 9, letterSpacing: '0.08em' }}>
+                Leadtime → Escala
+              </p>
             </div>
+            <p className="text-white font-bold" style={{ fontSize: 22, lineHeight: 1.1 }}>{kpis.leadtimeEscala}</p>
+            <p className="text-white/40 mt-0.5" style={{ fontSize: 8 }}>
+              Esteira completa: Backlog → Escala
+            </p>
           </div>
+
+          {/* Leadtime → Piloto */}
           <div className="rounded-lg p-3" style={{ background: 'rgba(255,255,255,0.08)' }}>
-            <p className="text-white/60 uppercase mb-2" style={{ fontSize: 9, letterSpacing: '0.05em' }}>
-              Valor
-            </p>
-            <div>
-              <p className="text-white/50" style={{ fontSize: 8 }}>Benefício potencial</p>
-              <p className="text-white font-bold text-sm">{formatBRL(data.beneficioTotal)}</p>
+            <div className="flex items-center gap-1.5 mb-1">
+              <ArrowRight size={12} className="text-white/50" />
+              <p className="text-white/60 uppercase" style={{ fontSize: 9, letterSpacing: '0.08em' }}>
+                Leadtime → Piloto
+              </p>
             </div>
+            <p className="text-white font-bold" style={{ fontSize: 22, lineHeight: 1.1 }}>{kpis.leadtimePiloto}</p>
+            <p className="text-white/40 mt-0.5" style={{ fontSize: 8 }}>
+              Backlog → Piloto
+            </p>
           </div>
+        </div>
+
+        {/* Cycle Time — Experimentação (geral) */}
+        <div className="mt-2">
+          <p className="text-white/50 uppercase mb-1.5" style={{ fontSize: 8, letterSpacing: '0.08em' }}>
+            Cycle Time (Experimentação)
+          </p>
+          <div className="rounded-lg p-3 text-center" style={{ background: 'rgba(255,255,255,0.08)' }}>
+            <p className="text-white font-bold" style={{ fontSize: 22, lineHeight: 1.1 }}>
+              {data.cycleTimeExperimentacaoGeral?.mediaDias ? `${data.cycleTimeExperimentacaoGeral.mediaDias}d` : '-'}
+            </p>
+            <p className="text-white/40 mt-0.5" style={{ fontSize: 9 }}>
+              {data.cycleTimeExperimentacaoGeral?.qtdIniciativas
+                ? `${data.cycleTimeExperimentacaoGeral.qtdIniciativas} epics · mediana ${data.cycleTimeExperimentacaoGeral.medianaDias}d`
+                : 'sem dados'}
+            </p>
+          </div>
+        </div>
+
+        {/* Diagnóstico resumido */}
+        {data.cycleTimeDiagnostico && (
+          <p className="text-white/30 mt-1.5" style={{ fontSize: 8 }}>
+            {data.cycleTimeDiagnostico.analisados}/{data.cycleTimeDiagnostico.totalEpics} epics analisados
+            {data.cycleTimeDiagnostico.semChangelog > 0 && ` · ${data.cycleTimeDiagnostico.semChangelog} sem changelog`}
+          </p>
+        )}
+
+        {/* Valor */}
+        <div className="rounded-lg p-3 mt-2" style={{ background: 'rgba(255,255,255,0.08)' }}>
+          <p className="text-white/60 uppercase mb-1" style={{ fontSize: 9, letterSpacing: '0.05em' }}>
+            Benefício Potencial
+          </p>
+          <p className="text-white font-bold" style={{ fontSize: 18 }}>{formatBRL(data.beneficioTotal)}</p>
         </div>
       </div>
 
@@ -360,20 +355,11 @@ export default function PipelineInovacao({ data }: Props) {
                 </div>
               </div>
 
-              {/* Métricas do Funil */}
+              {/* Métricas de Lead Time */}
               <div>
-                <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Métricas do Funil</p>
+                <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Lead Time (Esteira de Iniciativas)</p>
+                <p className="text-xs text-gray-400 mb-2">Tempo médio desde a criação até atingir cada estágio, sem considerar bloqueios.</p>
                 <div className="space-y-2">
-                  <div className="flex items-center gap-3 rounded-lg border border-gray-200 p-3">
-                    <label className="text-sm text-gray-700 flex-1">Taxa de conversão</label>
-                    <input
-                      type="text"
-                      value={draftKpis.taxaConversaoTotal}
-                      onChange={e => setDraftKpis(d => ({ ...d, taxaConversaoTotal: e.target.value }))}
-                      className="border border-gray-300 rounded px-2 py-1 text-sm text-gray-800 focus:outline-none focus:border-red-400"
-                      style={{ width: 130 }}
-                    />
-                  </div>
                   {FUNIL_FIELDS.map(f => (
                     <div key={f.key} className="flex items-center gap-3 rounded-lg border border-gray-200 p-3">
                       <label className="text-sm text-gray-700 flex-1">{f.label}</label>

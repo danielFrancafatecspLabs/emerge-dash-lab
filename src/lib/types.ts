@@ -23,7 +23,7 @@ export interface JiraIssueFields {
   customfield_11662?: string                          // Sponsor
   customfield_11663?: string                          // BO (Business Owner)
   customfield_11664?: string                          // Complexidade
-  customfield_11665?: string                          // Time Responsável
+  customfield_16911?: { value: string; id: string }    // Time Responsável (Lab)
   customfield_13242?: number                          // Benefício Quantitativo (R$)
   customfield_13243?: string                          // Benefício Qualitativo
   customfield_16400?: { value: string; id: string }   // Domínio
@@ -88,6 +88,7 @@ export interface EpicDetail {
   statusDetalhado?: string | null
   prioridade?: string | null
   criadoEm?: string | null
+  concluidoEm?: string | null
 }
 
 export interface Iniciativa {
@@ -135,8 +136,9 @@ export interface LeadTimeStats {
   leadtimeTotalDias: number       // média de dias desde criação até hoje (iniciativas ativas)
   leadtimeConcluidasDias: number  // média de dias desde criação até updated (iniciativas FINALIZADO)
   leadtimePorEstagio: Partial<Record<keyof PipelineCount, number>>  // lead time médio até cada estágio
-  cycleTimeExperimentacaoDias: number  // média de dias que os Epics ficam em "EM EXPERIMENTAÇÃO"
+  cycleTimeExperimentacaoDias: number  // média de dias que os Epics ficam em "EM EXPERIMENTAÇÃO" (já descontado o tempo bloqueado)
   blockedTimeDias: number         // média de dias no status atual para Epics com motivoBloqueio preenchido
+  blockedTimeExperimentacaoDias: number  // média de dias bloqueados dos Epics que estão em experimentação
 }
 
 export interface CycleTimeEstagio {
@@ -145,6 +147,14 @@ export interface CycleTimeEstagio {
   mediaDias: number         // média de dias que as iniciativas ficam nesse estágio
   medianaDias: number       // mediana de dias
   qtdIniciativas: number    // quantas iniciativas passaram por esse estágio
+}
+
+export interface CycleTimeDiagnostico {
+  totalEpics: number        // total de Epics no board
+  analisados: number        // Epics com changelog que tiveram períodos em experimentação
+  semChangelog: number      // Epics sem changelog (pulados)
+  semPeriodo: number        // Epics com changelog mas sem período em experimentação
+  semPorte: { key: string; nome: string; cycleTimeDias: number }[]  // Epics analisados sem complexidade definida
 }
 
 export interface DashboardData {
@@ -165,9 +175,87 @@ export interface DashboardData {
   iniciativasPorMeta: Record<'EBITDA' | 'NPS' | 'Receita', Iniciativa[]>
   leadTime: LeadTimeStats
   cycleTimeIdeacao: CycleTimeEstagio[]
-  cycleTimeExperimentacao: CycleTimeEstagio[]
+  cycleTimeExperimentacao: CycleTimeEstagio[]       // quebrado por porte (P/M/G)
+  cycleTimeExperimentacaoGeral: CycleTimeEstagio    // agregado geral (visão antiga)
+  cycleTimeDiagnostico: CycleTimeDiagnostico
   /** Status IDs da coluna "EM PILOTO" no board 2706 */
   pilotoStatusIds: string[]
   /** Status IDs da coluna "EM ESCALA" no board 2706 */
   escalaStatusIds: string[]
 }
+
+// ── Tipos para o Dashboard de Monitoramento Estratégico ──
+
+export interface MesValor {
+  mes: string   // ex.: "Jan", "Fev", ...
+  ano: number
+  valor: number
+}
+
+export interface SerieMensal {
+  meta?: number            // meta anual (opcional, configurável)
+  realizado: MesValor[]    // valores acumulados mês a mês (concluídos)
+  beneficio: MesValor[]    // benefício potencial acumulado mês a mês (R$)
+}
+
+export interface BeneficioPorArea {
+  area: string             // ex.: "Marketing", "Tecnologia", "Operações"
+  valor: number            // benefício total em R$
+  percentual: number       // % do total
+}
+
+export interface FunilEtapa {
+  etapa: string            // ex.: "Ideias", "Em avaliação"
+  quantidade: number
+  taxaConversao: number    // % para a próxima etapa (0-100)
+}
+
+export interface ConclusaoMensal {
+  mes: string
+  quantidade: number       // experimentos concluídos no mês
+  beneficio: number        // benefício gerado no mês (R$)
+}
+
+export interface MaturidadeEstagio {
+  estagio: string          // "Discovery", "MVP", "Piloto", "Escala"
+  quantidade: number
+  cor: string
+}
+
+export interface InsightExecutivo {
+  texto: string
+  tipo: 'positivo' | 'neutro' | 'alerta'
+}
+
+export interface IniciativaLab {
+  key: string
+  nome: string
+  status: string        // nome do status
+  timeResponsavel: string | null
+  sponsor: string | null
+  criadoEm: string | null
+}
+
+export interface MonitoramentoData {
+  // KPI cards
+  beneficioPotencial: number
+  experimentosConcluidos: number
+  taxaConversao: number          // % concluídos / total pipeline
+  pipelineAtivo: number
+  custoTotal: number             // soma dos custos estimados
+  roi: number | null             // beneficio / custo (se custo > 0)
+
+  // Gráficos
+  burnup: SerieMensal
+  beneficioPorArea: BeneficioPorArea[]
+  funil: FunilEtapa[]
+  conclusoesMensais: ConclusaoMensal[]
+  maturidade: MaturidadeEstagio[]
+  insights: InsightExecutivo[]
+  iniciativasPorLab: IniciativaLab[]
+}
+
+export type PeriodoFiltro =
+  | { tipo: 'ultimos12' }
+  | { tipo: 'semestre'; ano: number; semestre: 1 | 2 }
+  | { tipo: 'tudo' }

@@ -4,7 +4,7 @@ const FIELDS_INICIATIVA = [
   'summary', 'status', 'issuetype', 'created', 'updated',
   'customfield_13242', // Benefício Quantitativo (R$) — campo preenchido na Iniciativa
   'customfield_11662', // Sponsor
-  'customfield_11665', // Time Responsável
+  'customfield_16911', // Time Responsável (Lab)
   'customfield_11661', // Domínio
 ].join(',')
 
@@ -15,7 +15,7 @@ const FIELDS_EPIC = [
   'customfield_11662', // Sponsor
   'customfield_11663', // BO
   'customfield_11664', // Complexidade
-  'customfield_11665', // Time Responsável
+  'customfield_16911', // Time Responsável (Lab)
   'customfield_13242', // Benefício Quantitativo
   'customfield_13243', // Benefício Qualitativo
   'customfield_16400', // Domínio

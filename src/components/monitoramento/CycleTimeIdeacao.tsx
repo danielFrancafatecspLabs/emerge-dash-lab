@@ -1,15 +1,18 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   Cell, LabelList,
 } from 'recharts'
-import { Info } from 'lucide-react'
-import type { CycleTimeEstagio } from '@/lib/types'
+import { Info, Clock, AlertTriangle, ChevronDown, ChevronRight } from 'lucide-react'
+import type { CycleTimeEstagio, CycleTimeDiagnostico, LeadTimeStats } from '@/lib/types'
 
 interface Props {
-  data: CycleTimeEstagio[]
+  data: CycleTimeEstagio[]        // quebrado por porte (P/M/G)
+  leadTime?: LeadTimeStats
+  diagnostico?: CycleTimeDiagnostico
+  geral?: CycleTimeEstagio        // agregado geral (visão antiga, sem quebra)
 }
 
 // Cores por estágio (consistentes com o pipeline)
@@ -23,11 +26,47 @@ const CORES: Record<string, string> = {
   'FINALIZADO':           '#134E4A',
 }
 
+// Cores por porte (P, M, G)
+const CORES_PORTE: Record<string, string> = {
+  'P': '#22C55E',  // verde
+  'M': '#F59E0B',  // âmbar
+  'G': '#EF4444',  // vermelho
+}
+
 function getCor(estagio: string): string {
+  // Separador
+  if (estagio === 'SEPARADOR') return 'transparent'
+  // Geral (visão antiga)
+  if (estagio === 'EM EXPERIMENTAÇÃO') return '#FCD34D'
+  // Extrai o porte do estagio: "EM EXPERIMENTAÇÃO (P)" → "P"
+  const match = estagio.match(/\(([PMG])\)$/)
+  if (match) return CORES_PORTE[match[1]] ?? '#888'
   return CORES[estagio] ?? '#888'
 }
 
-export default function CycleTimeIdeacao({ data }: Props) {
+export default function CycleTimeIdeacao({ data, leadTime, diagnostico, geral }: Props) {
+  const [showSemPorte, setShowSemPorte] = useState(false)
+
+  // Combinar visão geral (antiga) + quebra por porte
+  const chartData = useMemo(() => {
+    const result: CycleTimeEstagio[] = []
+    if (geral && geral.qtdIniciativas > 0) {
+      result.push(geral)
+    }
+    // Separador visual: inserir um item "—" entre geral e portes
+    if (geral && geral.qtdIniciativas > 0 && data.length > 0) {
+      result.push({
+        estagio: 'SEPARADOR',
+        label: '— Por porte —',
+        mediaDias: 0,
+        medianaDias: 0,
+        qtdIniciativas: 0,
+      })
+    }
+    result.push(...data)
+    return result
+  }, [data, geral])
+
   if (!data || data.length === 0) {
     return (
       <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6 text-center text-gray-400">
@@ -41,14 +80,88 @@ export default function CycleTimeIdeacao({ data }: Props) {
       <div className="px-5 py-3 border-b border-gray-100">
         <h3 className="text-sm font-bold text-gray-800">Cycle Time — Board de Experimentação</h3>
         <p className="text-xs text-gray-400 mt-0.5">
-          Tempo médio (dias) que os Epics (experimentos) permanecem em execução (status "Em andamento" / "EM VALIDAÇÃO")
+          Tempo médio (dias) que os experimentos permanecem em execução ("Em andamento" / "EM VALIDAÇÃO"), descontando bloqueios. Quebrado por porte (P = Baixa, M = Média, G = Alta).
         </p>
       </div>
 
+      {/* Diagnóstico: quantos experimentos foram analisados */}
+      {diagnostico && (
+        <div className="px-5 py-2 border-b border-gray-100 bg-gray-50/50">
+          <div className="flex items-center gap-2 text-[11px] text-gray-500 flex-wrap">
+            <span className="font-medium text-gray-700">{diagnostico.analisados} de {diagnostico.totalEpics} analisados</span>
+            <span className="text-gray-300">|</span>
+            <span className="text-amber-600">{diagnostico.semChangelog} sem changelog</span>
+            <span className="text-gray-300">|</span>
+            <span className="text-gray-400">{diagnostico.semPeriodo} sem período em experimentação</span>
+            {diagnostico.semPorte && diagnostico.semPorte.length > 0 && (
+              <>
+                <span className="text-gray-300">|</span>
+                <button
+                  onClick={() => setShowSemPorte(!showSemPorte)}
+                  className="inline-flex items-center gap-0.5 text-amber-600 hover:text-amber-800 font-medium transition-colors"
+                >
+                  {showSemPorte ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+                  {diagnostico.semPorte.length} sem porte (complexidade)
+                </button>
+              </>
+            )}
+          </div>
+
+          {/* Lista expansível de experimentos sem porte */}
+          {showSemPorte && diagnostico.semPorte && diagnostico.semPorte.length > 0 && (
+            <div className="mt-2 max-h-48 overflow-y-auto border border-amber-200 rounded-md bg-white">
+              <table className="w-full text-[11px]">
+                <thead className="bg-amber-50 sticky top-0">
+                  <tr className="text-amber-800">
+                    <th className="text-left py-1 px-2 font-medium">Key</th>
+                    <th className="text-left py-1 px-2 font-medium">Nome</th>
+                    <th className="text-right py-1 px-2 font-medium">Cycle Time</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {diagnostico.semPorte.map((epic) => (
+                    <tr key={epic.key} className="border-t border-amber-100 hover:bg-amber-50/50">
+                      <td className="py-1 px-2 font-mono text-amber-700">{epic.key}</td>
+                      <td className="py-1 px-2 text-gray-600 max-w-[300px] truncate" title={epic.nome}>{epic.nome}</td>
+                      <td className="py-1 px-2 text-right text-gray-500">{epic.cycleTimeDias}d</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Cards de resumo: Cycle Time + Tempo Bloqueado */}
+      {leadTime && (
+        <div className="grid grid-cols-2 gap-3 px-5 py-3 border-b border-gray-100">
+          {/* Cycle Time (sem bloqueio) */}
+          <div className="rounded-lg p-3" style={{ background: '#ECFDF5' }}>
+            <div className="flex items-center gap-1.5 mb-1">
+              <Clock size={13} className="text-emerald-600" />
+              <p className="text-xs font-semibold text-emerald-800">Cycle Time</p>
+            </div>
+            <p className="text-xl font-bold text-emerald-700">{leadTime.cycleTimeExperimentacaoDias}d</p>
+            <p className="text-[10px] text-emerald-600 mt-0.5">Tempo em execução (sem bloqueios)</p>
+          </div>
+
+          {/* Tempo Bloqueado */}
+          <div className="rounded-lg p-3" style={{ background: '#FEF3C7' }}>
+            <div className="flex items-center gap-1.5 mb-1">
+              <AlertTriangle size={13} className="text-amber-600" />
+              <p className="text-xs font-semibold text-amber-800">Tempo Bloqueado</p>
+            </div>
+            <p className="text-xl font-bold text-amber-700">{leadTime.blockedTimeExperimentacaoDias}d</p>
+            <p className="text-[10px] text-amber-600 mt-0.5">Média dos experimentos em execução</p>
+          </div>
+        </div>
+      )}
+
       <div className="p-4">
-        <ResponsiveContainer width="100%" height={320}>
+        <ResponsiveContainer width="100%" height={Math.max(320, chartData.length * 40)}>
           <BarChart
-            data={data}
+            data={chartData}
             layout="vertical"
             margin={{ top: 5, right: 50, left: 100, bottom: 5 }}
           >
@@ -89,8 +202,8 @@ export default function CycleTimeIdeacao({ data }: Props) {
               barSize={28}
               name="mediaDias"
             >
-              {data.map((entry) => (
-                <Cell key={entry.estagio} fill={getCor(entry.estagio)} fillOpacity={0.85} />
+              {chartData.map((entry) => (
+                <Cell key={entry.estagio} fill={getCor(entry.estagio)} fillOpacity={entry.estagio === 'SEPARADOR' ? 0 : 0.85} />
               ))}
               <LabelList
                 dataKey="mediaDias"
@@ -115,18 +228,24 @@ export default function CycleTimeIdeacao({ data }: Props) {
             </tr>
           </thead>
           <tbody>
-            {data.map((item) => (
-              <tr key={item.estagio} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
+            {chartData.map((item) => (
+              <tr key={item.estagio} className={`border-b border-gray-50 hover:bg-gray-50 transition-colors ${item.estagio === 'SEPARADOR' ? 'bg-gray-100' : ''}`}>
                 <td className="py-1.5 flex items-center gap-2">
-                  <span
-                    className="inline-block w-2.5 h-2.5 rounded-full flex-shrink-0"
-                    style={{ background: getCor(item.estagio) }}
-                  />
-                  <span className="text-gray-700">{item.label}</span>
+                  {item.estagio === 'SEPARADOR' ? (
+                    <span className="text-[10px] text-gray-400 font-medium pl-3">{item.label}</span>
+                  ) : (
+                    <>
+                      <span
+                        className="inline-block w-2.5 h-2.5 rounded-full flex-shrink-0"
+                        style={{ background: getCor(item.estagio) }}
+                      />
+                      <span className="text-gray-700">{item.label}</span>
+                    </>
+                  )}
                 </td>
-                <td className="text-right py-1.5 font-semibold text-gray-800">{item.mediaDias}d</td>
-                <td className="text-right py-1.5 text-gray-500">{item.medianaDias}d</td>
-                <td className="text-right py-1.5 text-gray-500">{item.qtdIniciativas}</td>
+                <td className="text-right py-1.5 font-semibold text-gray-800">{item.estagio === 'SEPARADOR' ? '' : `${item.mediaDias}d`}</td>
+                <td className="text-right py-1.5 text-gray-500">{item.estagio === 'SEPARADOR' ? '' : `${item.medianaDias}d`}</td>
+                <td className="text-right py-1.5 text-gray-500">{item.estagio === 'SEPARADOR' ? '' : item.qtdIniciativas}</td>
               </tr>
             ))}
           </tbody>

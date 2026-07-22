@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect, useCallback } from 'react'
+import { Monitor } from 'lucide-react'
 import Header from '@/components/layout/Header'
 import Sidebar from '@/components/layout/Sidebar'
 import ResumoExecutivo from '@/components/dashboard/ResumoExecutivo'
@@ -9,8 +10,10 @@ import Top5Experimentos from '@/components/dashboard/Top5Experimentos'
 import SituacaoPortfolio from '@/components/dashboard/SituacaoPortfolio'
 import PipelineInovacao from '@/components/dashboard/PipelineInovacao'
 import GovernancaAlinhamento from '@/components/dashboard/GovernancaAlinhamento'
+import BurnupChart from '@/components/monitoramento/BurnupChart'
+import IniciativasPorLab from '@/components/monitoramento/IniciativasPorLab'
 import { PeriodoFiltro, isDataNoPeriodo } from '@/lib/periodo-filter'
-import { DashboardData, Iniciativa, EpicDetail, PipelineCount, MercadoAgregado, MetaCategoria } from '@/lib/types'
+import { DashboardData, Iniciativa, EpicDetail, PipelineCount, MercadoAgregado, MetaCategoria, MonitoramentoData } from '@/lib/types'
 import { getPipelineStage } from '@/lib/mappers'
 
 /**
@@ -209,15 +212,127 @@ function filtrarDashboardData(data: DashboardData, periodo: PeriodoFiltro): Dash
 
 interface EstrategiaClientProps {
   data: DashboardData
+  monitoramento: MonitoramentoData
 }
 
-export default function EstrategiaClient({ data }: EstrategiaClientProps) {
+export default function EstrategiaClient({ data, monitoramento }: EstrategiaClientProps) {
   const [periodoSelecionado, setPeriodoSelecionado] = useState<PeriodoFiltro>({ tipo: 'ultimos12' })
+  const [modoSlide, setModoSlide] = useState(false)
+  const [slideScale, setSlideScale] = useState(0.5)
 
   const dadosFiltrados = useMemo(
     () => filtrarDashboardData(data, periodoSelecionado),
     [data, periodoSelecionado]
   )
+
+  // Calcula o scale para o modo slide baseado no viewport
+  const computeScale = useCallback(() => {
+    const vw = window.innerWidth
+    const vh = window.innerHeight
+    const containerW = Math.min(vw * 0.96, 1280)
+    const containerH = Math.min(vh * 0.96, 720) - 32 // 32 = altura da barra
+    const scaleX = containerW / 1920
+    const scaleY = containerH / 1080
+    return Math.min(scaleX, scaleY)
+  }, [])
+
+  useEffect(() => {
+    if (modoSlide) {
+      setSlideScale(computeScale())
+      const onResize = () => setSlideScale(computeScale())
+      window.addEventListener('resize', onResize)
+      return () => window.removeEventListener('resize', onResize)
+    }
+  }, [modoSlide, computeScale])
+
+  // ── Modo Slide: tela cheia, sem sidebar/header, tamanho fixo 16:9 ──
+  if (modoSlide) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80" onClick={() => setModoSlide(false)}>
+        {/* Container externo: 1280×720 visível. Interno renderiza a 1920×1080 e escala para caber. */}
+        <div
+          className="bg-white overflow-hidden shadow-2xl flex-shrink-0 relative"
+          style={{ width: 'min(96vw, 1280px)', aspectRatio: '16/9', maxHeight: '96vh' }}
+          onClick={e => e.stopPropagation()}
+        >
+          {/* Barra superior compacta — fora do scale */}
+          <div className="flex items-center justify-between px-4 py-1.5 border-b relative z-10" style={{ background: '#8B0000' }}>
+            <div className="flex items-center gap-2">
+              <span className="text-white font-bold text-sm">Dashboard Estratégico — BeOn Lab</span>
+              <span className="text-white/60 text-xs">
+                {periodoSelecionado.tipo === 'tudo' ? 'Todo o período' :
+                 periodoSelecionado.tipo === 'ultimos12' ? 'Últimos 12 meses' :
+                 periodoSelecionado.tipo === 'ultimoAno' ? `Ano ${periodoSelecionado.ano}` :
+                 `${periodoSelecionado.mes}/${periodoSelecionado.ano}`}
+              </span>
+            </div>
+            <button
+              onClick={() => setModoSlide(false)}
+              className="text-white/70 hover:text-white text-xs px-2 py-0.5 rounded hover:bg-white/10"
+            >
+              ✕ Fechar
+            </button>
+          </div>
+
+          {/* Área de conteúdo: renderiza a 1920×1200 e escala para caber no espaço restante */}
+          <div className="overflow-hidden" style={{ height: 'calc(100% - 32px)' }}>
+            <div
+              style={{
+                width: 1920,
+                height: 1200,
+                transformOrigin: 'top left',
+                transform: `scale(${slideScale})`,
+              }}
+            >
+              {/* Layout interno: sidebar + header + content, igual ao normal */}
+              <div className="flex" style={{ height: 1200, background: '#f0f0f0' }}>
+                {/* Sidebar compacta */}
+                <div className="flex-shrink-0" style={{ width: 72, background: '#8B0000', paddingTop: 48 }}>
+                  <Sidebar />
+                </div>
+
+                {/* Main */}
+                <div className="flex-1 flex flex-col min-w-0">
+                  {/* Header */}
+                  <Header
+                    periodoSelecionado={periodoSelecionado}
+                    onPeriodoChange={setPeriodoSelecionado}
+                  />
+
+                  {/* Content */}
+                  <main className="flex-1 p-2 gap-2 flex flex-col" style={{ marginTop: 0 }}>
+                    {/* Row 1: Resumo Executivo (esq) + Portfólio (dir) */}
+                    <div className="grid gap-2 flex-shrink-0" style={{ gridTemplateColumns: '1fr 1fr' }}>
+                      <ResumoExecutivo data={dadosFiltrados} />
+                      <PortfolioPorMercado />
+                    </div>
+
+                    {/* Row 2: Iniciativas por Lab + Top 5 + Situação */}
+                    <div className="grid gap-2 flex-1 min-h-0" style={{ gridTemplateColumns: '45fr 35fr 20fr' }}>
+                      <IniciativasPorLab data={monitoramento.iniciativasPorLab} />
+                      <Top5Experimentos data={dadosFiltrados} />
+                      <SituacaoPortfolio data={dadosFiltrados} />
+                    </div>
+
+                    {/* Row 3: Pipeline + Crescimento da Experimentação */}
+                    <div className="grid gap-2 flex-shrink-0" style={{ gridTemplateColumns: '40fr 60fr', maxHeight: 360 }}>
+                      <PipelineInovacao data={dadosFiltrados} />
+                      <BurnupChart data={monitoramento.burnup} />
+                    </div>
+                  </main>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Dica no canto */}
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 text-white/50 text-xs">
+          Clique fora do slide ou pressione ✕ para fechar • Ideal para print (Ctrl+P)
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="flex min-h-screen" style={{ background: '#f0f0f0' }}>
@@ -243,20 +358,34 @@ export default function EstrategiaClient({ data }: EstrategiaClientProps) {
         {/* Content */}
         <main className="flex-1 p-3 gap-3 flex flex-col" style={{ marginTop: 52 }}>
 
-          {/* Row 1: Resumo Executivo (Metas + Pipeline) */}
-          <ResumoExecutivo data={dadosFiltrados} />
+          {/* Botão Modo Slide */}
+          <div className="flex justify-end relative z-10">
+            <button
+              onClick={() => setModoSlide(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-300 bg-white text-gray-600 hover:bg-gray-50 hover:border-gray-400 transition-colors shadow-sm"
+            >
+              <Monitor size={14} />
+              Modo Slide (print)
+            </button>
+          </div>
 
-          {/* Row 2: Portfólio Mercado (45%) + Top 5 (35%) + Situação (20%) */}
-          <div className="grid gap-3 grid-cols-1 md:grid-cols-2 lg:grid-cols-[45fr_35fr_20fr]">
+          {/* Row 1: Resumo Executivo (esq) + Portfólio (dir) */}
+          <div className="grid gap-3 grid-cols-1 lg:grid-cols-[1fr_1fr]">
+            <ResumoExecutivo data={dadosFiltrados} />
             <PortfolioPorMercado />
+          </div>
+
+          {/* Row 2: Iniciativas por Lab + Top 5 + Situação */}
+          <div className="grid gap-3 grid-cols-1 md:grid-cols-2 lg:grid-cols-[45fr_35fr_20fr]">
+            <IniciativasPorLab data={monitoramento.iniciativasPorLab} />
             <Top5Experimentos data={dadosFiltrados} />
             <SituacaoPortfolio data={dadosFiltrados} />
           </div>
 
-          {/* Row 3: Pipeline (60%) + Governança (40%) */}
-          <div className="grid gap-3 grid-cols-1 lg:grid-cols-[60fr_40fr]">
+          {/* Row 3: Pipeline (40%) + Crescimento da Experimentação (60%) */}
+          <div className="grid gap-3 grid-cols-1 lg:grid-cols-[40fr_60fr]" style={{ maxHeight: 380 }}>
             <PipelineInovacao data={dadosFiltrados} />
-            <GovernancaAlinhamento data={dadosFiltrados} />
+            <BurnupChart data={monitoramento.burnup} />
           </div>
 
         </main>

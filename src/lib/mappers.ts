@@ -8,6 +8,16 @@ import {
   MercadoAgregado,
   LeadTimeStats,
   CycleTimeEstagio,
+  CycleTimeDiagnostico,
+  MonitoramentoData,
+  BeneficioPorArea,
+  FunilEtapa,
+  ConclusaoMensal,
+  MaturidadeEstagio,
+  InsightExecutivo,
+  SerieMensal,
+  PeriodoFiltro,
+  IniciativaLab,
 } from './types'
 import type { ChangelogEntry } from './jira'
 import type { MetaCategoria } from './portfolio-classifier'
@@ -57,8 +67,26 @@ function normalizeSponsor(raw: string): string {
   return SPONSOR_ALIASES[trimmed] ?? trimmed
 }
 
-function mapEpicToDetail(epic: JiraIssue): EpicDetail {
+function mapEpicToDetail(epic: JiraIssue, changelog?: ChangelogEntry[]): EpicDetail {
   const f = epic.fields
+
+  // Extrai data de conclusão do changelog: primeira vez que status mudou para "Concluído" (10003)
+  let concluidoEm: string | null = null
+  if (changelog && changelog.length > 0) {
+    const sorted = [...changelog].sort(
+      (a, b) => new Date(a.created).getTime() - new Date(b.created).getTime()
+    )
+    for (const entry of sorted) {
+      for (const item of entry.items) {
+        if (item.field === 'status' && item.toString === '10003') {
+          concluidoEm = entry.created
+          break
+        }
+      }
+      if (concluidoEm) break
+    }
+  }
+
   return {
     key: epic.key,
     nome: f.summary,
@@ -66,7 +94,7 @@ function mapEpicToDetail(epic: JiraIssue): EpicDetail {
     sponsor: f.customfield_11662 ? normalizeSponsor(f.customfield_11662) : null,
     bo: f.customfield_11663 ?? null,
     complexidade: f.customfield_11664 ?? null,
-    timeResponsavel: f.customfield_11665 ?? null,
+    timeResponsavel: f.customfield_16911?.value ?? null,
     beneficioQuantitativo: f.customfield_13242 ?? null,
     beneficioQualitativo: f.customfield_13243 ?? null,
     dominio: f.customfield_16400?.value ?? null,
@@ -83,6 +111,7 @@ function mapEpicToDetail(epic: JiraIssue): EpicDetail {
     statusDetalhado: f.lastComment ?? null,
     prioridade: f.priority?.name ?? null,
     criadoEm: f.created ?? null,
+    concluidoEm,
   }
 }
 
@@ -126,7 +155,7 @@ export function buildDashboardData(
   // 1. Mapear todos os epics com metaCategoria e segmento (LLM)
   const epicDetailMap = new Map(
     epicsRaw.map(e => {
-      const detail = mapEpicToDetail(e)
+      const detail = mapEpicToDetail(e, epicChangelogs[e.key])
       const seg = segmentoClassification[e.key]
       if (seg) detail.mercado = seg
       return [e.key, { ...detail, metaCategoria: portfolioClassification[e.key] ?? null }]
@@ -173,7 +202,7 @@ export function buildDashboardData(
       dominios: Array.from(new Set(myEpics.map(e => e.dominio).filter(Boolean) as string[])),
       sponsors: Array.from(new Set(myEpics.map(e => e.sponsor).filter(Boolean) as string[])),
       segmentos: Array.from(new Set(myEpics.map(e => e.segmento).filter(Boolean) as string[])),
-      timeResponsavel: ini.fields.customfield_11665 ?? null,
+      timeResponsavel: ini.fields.customfield_16911?.value ?? null,
       sponsor: ini.fields.customfield_11662 ? normalizeSponsor(ini.fields.customfield_11662) : null,
       criadoEm: ini.fields.created ?? null,
     }
@@ -394,6 +423,8 @@ export function buildDashboardData(
     }
   }
 
+  const cycleTimeExpResult = calculateCycleTimeExperimentacaoDetalhado(epicChangelogs, epicsRaw)
+
   return {
     iniciativas,
     allEpics: allEpicDetails,
@@ -412,7 +443,9 @@ export function buildDashboardData(
     iniciativasPorMeta,
     leadTime: calculateLeadTime(iniciativas, epicChangelogs, epicsRaw),
     cycleTimeIdeacao: calculateCycleTimeIdeacao(iniciativasRaw, iniciativaChangelogs),
-    cycleTimeExperimentacao: calculateCycleTimeExperimentacaoDetalhado(epicChangelogs, epicsRaw),
+    cycleTimeExperimentacao: cycleTimeExpResult.ciclos,
+    cycleTimeExperimentacaoGeral: cycleTimeExpResult.geral,
+    cycleTimeDiagnostico: cycleTimeExpResult.diagnostico,
     pilotoStatusIds,
     escalaStatusIds,
   }
@@ -480,7 +513,10 @@ function calculateLeadTime(iniciativas: Iniciativa[], epicChangelogs: Record<str
   // Blocked time: média de dias no status atual para Epics com motivoBloqueio preenchido
   const blockedTimeDias = calculateBlockedTime(epicChangelogs, epicsRaw)
 
-  return { leadtimeTotalDias, leadtimeConcluidasDias, leadtimePorEstagio, cycleTimeExperimentacaoDias, blockedTimeDias }
+  // Blocked time específico dos Epics em experimentação
+  const blockedTimeExperimentacaoDias = calculateBlockedTimeExperimentacao(epicChangelogs, epicsRaw)
+
+  return { leadtimeTotalDias, leadtimeConcluidasDias, leadtimePorEstagio, cycleTimeExperimentacaoDias, blockedTimeDias, blockedTimeExperimentacaoDias }
 }
 
 /**
@@ -550,18 +586,37 @@ function calculateCycleTimeExperimentacao(
  * Versão detalhada do cycle time de experimentação.
  * Retorna um CycleTimeEstagio[] com média, mediana e quantidade de Epics
  * que passaram pelo status "Em andamento" / "EM VALIDAÇÃO" (board 2707).
- * Agrupa os dois status em um único estágio "EM EXPERIMENTAÇÃO".
+ * Quebra por porte (complexidade): P (Baixa), M (Média), G (Alta).
  */
 function calculateCycleTimeExperimentacaoDetalhado(
   epicChangelogs: Record<string, ChangelogEntry[]>,
   epicsRaw: JiraIssue[]
-): CycleTimeEstagio[] {
+): { ciclos: CycleTimeEstagio[]; diagnostico: CycleTimeDiagnostico } {
   const EXPERIMENTACAO_NAMES = new Set(['Em andamento', 'In Progress', 'EM VALIDAÇÃO'])
-  const todosCycleTimes: number[] = []
+
+  // Mapeia complexidade → label de porte
+  const PORTE_MAP: Record<string, string> = {
+    'Baixa':  'P',
+    'Média':  'M',
+    'Alta':   'G',
+  }
+
+  // Acumulador por porte
+  const porteCycleTimes: Record<string, number[]> = {}
+
+  // Lista de Epics sem porte (para diagnóstico)
+  const semPorteList: { key: string; nome: string; cycleTimeDias: number }[] = []
+
+  // Contadores de diagnóstico
+  let semChangelog = 0
+  let semPeriodo = 0
 
   for (const epic of epicsRaw) {
     const changelog = epicChangelogs[epic.key]
-    if (!changelog || changelog.length === 0) continue
+    if (!changelog || changelog.length === 0) {
+      semChangelog++
+      continue
+    }
 
     const sorted = [...changelog].sort(
       (a, b) => new Date(a.created).getTime() - new Date(b.created).getTime()
@@ -594,32 +649,84 @@ function calculateCycleTimeExperimentacaoDetalhado(
       periodos.push({ inicio: entrouEm, fim: Date.now() })
     }
 
-    if (periodos.length === 0) continue
+    if (periodos.length === 0) {
+      semPeriodo++
+      continue
+    }
 
     // Subtrair dias bloqueados
     const bloqueios = getPeriodosBloqueio(epic.key, epicChangelogs)
     const epicCycleTime = subtrairBloqueios(periodos, bloqueios)
 
     if (epicCycleTime > 0) {
-      todosCycleTimes.push(epicCycleTime)
+      // Determinar o porte pela complexidade do Epic
+      const complexidadeRaw = epic.fields.customfield_11664 ?? 'Sem porte'
+      const porte = PORTE_MAP[complexidadeRaw] ?? 'Sem porte'
+
+      if (porte === 'Sem porte') {
+        semPorteList.push({
+          key: epic.key,
+          nome: epic.fields.summary,
+          cycleTimeDias: epicCycleTime,
+        })
+      }
+
+      if (!porteCycleTimes[porte]) porteCycleTimes[porte] = []
+      porteCycleTimes[porte].push(epicCycleTime)
     }
   }
 
-  if (todosCycleTimes.length === 0) return []
+  // Ordem de exibição: P, M, G, depois "Sem porte"
+  const ORDEM = ['P', 'M', 'G', 'Sem porte']
+  const resultado: CycleTimeEstagio[] = []
 
-  const sorted = [...todosCycleTimes].sort((a, b) => a - b)
-  const media = Math.round(sorted.reduce((s, d) => s + d, 0) / sorted.length)
-  const mediana = sorted.length % 2 === 0
-    ? Math.round((sorted[sorted.length / 2 - 1] + sorted[sorted.length / 2]) / 2)
-    : sorted[Math.floor(sorted.length / 2)]
+  for (const porte of ORDEM) {
+    const dias = porteCycleTimes[porte]
+    if (!dias || dias.length === 0) continue
 
-  return [{
+    const sorted = [...dias].sort((a, b) => a - b)
+    const media = Math.round(sorted.reduce((s, d) => s + d, 0) / sorted.length)
+    const mediana = sorted.length % 2 === 0
+      ? Math.round((sorted[sorted.length / 2 - 1] + sorted[sorted.length / 2]) / 2)
+      : sorted[Math.floor(sorted.length / 2)]
+
+    resultado.push({
+      estagio: `EM EXPERIMENTAÇÃO (${porte})`,
+      label: `Porte ${porte}`,
+      mediaDias: media,
+      medianaDias: mediana,
+      qtdIniciativas: sorted.length,
+    })
+  }
+
+  const analisados = Object.values(porteCycleTimes).reduce((s, arr) => s + arr.length, 0)
+
+  // Agregado geral (todos os Epics, sem quebra por porte) — visão antiga
+  const todosDias = Object.values(porteCycleTimes).flat()
+  const sortedGeral = [...todosDias].sort((a, b) => a - b)
+  const geral: CycleTimeEstagio = {
     estagio: 'EM EXPERIMENTAÇÃO',
-    label: 'Experimentação',
-    mediaDias: media,
-    medianaDias: mediana,
-    qtdIniciativas: sorted.length,
-  }]
+    label: 'Geral',
+    mediaDias: todosDias.length > 0 ? Math.round(sortedGeral.reduce((s, d) => s + d, 0) / sortedGeral.length) : 0,
+    medianaDias: todosDias.length > 0
+      ? (sortedGeral.length % 2 === 0
+        ? Math.round((sortedGeral[sortedGeral.length / 2 - 1] + sortedGeral[sortedGeral.length / 2]) / 2)
+        : sortedGeral[Math.floor(sortedGeral.length / 2)])
+      : 0,
+    qtdIniciativas: todosDias.length,
+  }
+
+  return {
+    ciclos: resultado,
+    geral,
+    diagnostico: {
+      totalEpics: epicsRaw.length,
+      analisados,
+      semChangelog,
+      semPeriodo,
+      semPorte: semPorteList,
+    },
+  }
 }
 
 /**
@@ -758,6 +865,33 @@ function calculateBlockedTime(
 }
 
 /**
+ * Calcula o blocked time médio apenas dos Epics que estão EM EXPERIMENTAÇÃO
+ * (status "Em andamento" id=3 ou "EM VALIDAÇÃO" id=10204).
+ * Retorna a média de dias bloqueados desses Epics.
+ */
+function calculateBlockedTimeExperimentacao(
+  epicChangelogs: Record<string, ChangelogEntry[]>,
+  epicsRaw: JiraIssue[]
+): number {
+  const EXPERIMENTACAO_STATUS_IDS = new Set(['3', '10204'])
+  const diasPorEpic: number[] = []
+
+  for (const epic of epicsRaw) {
+    // Só considera Epics que estão atualmente em experimentação
+    if (!EXPERIMENTACAO_STATUS_IDS.has(epic.fields.status.id)) continue
+
+    const periodos = getPeriodosBloqueio(epic.key, epicChangelogs)
+    if (periodos.length === 0) continue
+
+    const total = subtrairBloqueios(periodos, [])
+    if (total > 0) diasPorEpic.push(total)
+  }
+
+  if (diasPorEpic.length === 0) return 0
+  return Math.round(diasPorEpic.reduce((s, d) => s + d, 0) / diasPorEpic.length)
+}
+
+/**
  * Calcula o cycle time por etapa do board de ideação (2706).
  * Para cada Iniciativa, analisa o changelog e mede quanto tempo ficou em cada status.
  * Retorna um array ordenado pela ordem do pipeline.
@@ -888,4 +1022,297 @@ export function formatBRL(value: number): string {
   if (value >= 1_000_000) return `R$ ${(value / 1_000_000).toFixed(0)}M`
   if (value >= 1_000) return `R$ ${(value / 1_000).toFixed(0)}K`
   return `R$ ${value.toFixed(0)}`
+}
+
+// ── Monitoramento Estratégico ──
+
+const MESES_ABREV = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
+
+/**
+ * Retorna true se a data está dentro do período especificado.
+ */
+function dataEstaNoPeriodo(dataStr: string | null | undefined, periodo: PeriodoFiltro): boolean {
+  if (!dataStr) return false
+  const d = new Date(dataStr)
+  if (isNaN(d.getTime())) return false
+
+  const hoje = new Date()
+
+  if (periodo.tipo === 'tudo') return true
+
+  if (periodo.tipo === 'ultimos12') {
+    const corte = new Date(hoje.getFullYear(), hoje.getMonth() - 11, 1)
+    return d >= corte
+  }
+
+  if (periodo.tipo === 'semestre') {
+    const mesInicio = periodo.semestre === 1 ? 0 : 6
+    const mesFim = periodo.semestre === 1 ? 5 : 11
+    const inicio = new Date(periodo.ano, mesInicio, 1)
+    const fim = new Date(periodo.ano, mesFim + 1, 0, 23, 59, 59)
+    return d >= inicio && d <= fim
+  }
+
+  return true
+}
+
+/**
+ * Retorna os meses que compõem o período (para gráficos).
+ */
+function getMesesDoPeriodo(periodo: PeriodoFiltro): { mes: string; ano: number; mesIdx: number }[] {
+  const hoje = new Date()
+  const resultado: { mes: string; ano: number; mesIdx: number }[] = []
+
+  if (periodo.tipo === 'tudo') {
+    // Do início de 2024 até o mês atual
+    for (let ano = 2024; ano <= hoje.getFullYear(); ano++) {
+      const maxMes = ano === hoje.getFullYear() ? hoje.getMonth() : 11
+      for (let m = 0; m <= maxMes; m++) {
+        resultado.push({ mes: MESES_ABREV[m], ano, mesIdx: m })
+      }
+    }
+    return resultado
+  }
+
+  if (periodo.tipo === 'ultimos12') {
+    for (let i = 11; i >= 0; i--) {
+      const d = new Date(hoje.getFullYear(), hoje.getMonth() - i, 1)
+      resultado.push({
+        mes: MESES_ABREV[d.getMonth()],
+        ano: d.getFullYear(),
+        mesIdx: d.getMonth(),
+      })
+    }
+    return resultado
+  }
+
+  if (periodo.tipo === 'semestre') {
+    const inicio = periodo.semestre === 1 ? 0 : 6
+    const fim = periodo.semestre === 1 ? 5 : 11
+    for (let m = inicio; m <= fim; m++) {
+      resultado.push({ mes: MESES_ABREV[m], ano: periodo.ano, mesIdx: m })
+    }
+    return resultado
+  }
+
+  return resultado
+}
+
+/**
+ * Constrói os dados para o dashboard de Monitoramento Estratégico a partir
+ * dos mesmos dados reais usados pelo DashboardData.
+ * @param periodo Filtro de período (ultimos12, semestre, tudo)
+ */
+export function buildMonitoramentoData(data: DashboardData, periodo: PeriodoFiltro = { tipo: 'ultimos12' }): MonitoramentoData {
+  const allEpics = data.allEpics
+
+  // Filtrar epics pelo período (usando criadoEm)
+  const epicsNoPeriodo = periodo.tipo === 'tudo'
+    ? allEpics
+    : allEpics.filter(e => dataEstaNoPeriodo(e.criadoEm, periodo))
+
+  // ── KPIs ──
+  const experimentosConcluidos = epicsNoPeriodo.filter(e =>
+    e.status.id === '10003'
+  ).length
+
+  const totalPipeline = Object.values(data.pipeline).reduce((s, v) => s + v, 0)
+  const taxaConversao = totalPipeline > 0 ? Math.round((experimentosConcluidos / totalPipeline) * 100) : 0
+
+  const pipelineAtivo = data.totalEpicsAtivos
+
+  const custoTotal = epicsNoPeriodo.reduce((s, e) => s + (e.custoEstimado ?? 0), 0)
+  const beneficioNoPeriodo = epicsNoPeriodo.reduce((s, e) => s + (e.beneficioQuantitativo ?? 0), 0)
+  const roi = custoTotal > 0 ? beneficioNoPeriodo / custoTotal : null
+
+  // ── Burnup: acumulado mês a mês de TODOS os experimentos (criados no período) ──
+  // Usa criadoEm como referência para posicionar cada experimento no mês
+  const meses = getMesesDoPeriodo(periodo)
+  const realizado: { mes: string; ano: number; valor: number }[] = []
+  const beneficioAcumulado: { mes: string; ano: number; valor: number }[] = []
+  let acumulado = 0
+  let acumuladoBeneficio = 0
+  for (const { mes, ano, mesIdx } of meses) {
+    const epicsNoMes = epicsNoPeriodo.filter(e => {
+      if (!e.criadoEm) return false
+      const d = new Date(e.criadoEm)
+      return d.getFullYear() === ano && d.getMonth() === mesIdx
+    })
+    acumulado += epicsNoMes.length
+    realizado.push({ mes, ano, valor: acumulado })
+
+    // Benefício acumulado: soma o benefício de TODOS os epics até o mês
+    acumuladoBeneficio += epicsNoMes.reduce((s, e) => s + (e.beneficioQuantitativo ?? 0), 0)
+    beneficioAcumulado.push({ mes, ano, valor: acumuladoBeneficio })
+  }
+  const burnup: SerieMensal = { realizado, beneficio: beneficioAcumulado }
+
+  // ── Benefício por Área (via domínio) ──
+  const areaMap = new Map<string, number>()
+  for (const e of epicsNoPeriodo) {
+    const area = e.dominio ?? 'Não classificado'
+    areaMap.set(area, (areaMap.get(area) ?? 0) + (e.beneficioQuantitativo ?? 0))
+  }
+  const totalBeneficio = Array.from(areaMap.values()).reduce((s, v) => s + v, 0)
+  const beneficioPorArea: BeneficioPorArea[] = Array.from(areaMap.entries())
+    .map(([area, valor]) => ({
+      area,
+      valor,
+      percentual: totalBeneficio > 0 ? Math.round((valor / totalBeneficio) * 100) : 0,
+    }))
+    .sort((a, b) => b.valor - a.valor)
+    .slice(0, 8)
+
+  // ── Funil da Experimentação ──
+  const funil: FunilEtapa[] = buildFunil(data)
+
+  // ── Conclusões mensais (quantidade + benefício) ──
+  const conclusoesMensais: ConclusaoMensal[] = meses.map(({ mes, ano, mesIdx }) => {
+    const epicsMes = epicsNoPeriodo.filter(e => {
+      // Usa concluidoEm como referência para data de conclusão
+      const dataRef = e.concluidoEm ?? e.criadoEm
+      if (!dataRef) return false
+      const d = new Date(dataRef)
+      return d.getFullYear() === ano && d.getMonth() === mesIdx && e.status.id === '10003'
+    })
+    return {
+      mes: periodo.tipo === 'tudo' ? `${mes}/${String(ano).slice(2)}` : mes,
+      quantidade: epicsMes.length,
+      beneficio: epicsMes.reduce((s, e) => s + (e.beneficioQuantitativo ?? 0), 0),
+    }
+  })
+
+  // ── Maturidade do portfólio ──
+  const maturidade: MaturidadeEstagio[] = buildMaturidade(data)
+
+  // ── Insights ──
+  const insights: InsightExecutivo[] = buildInsights(data, conclusoesMensais, beneficioPorArea)
+
+  // ── Iniciativas por Lab ──
+  const iniciativasFiltradas = periodo.tipo === 'tudo'
+    ? data.iniciativas
+    : data.iniciativas.filter(ini => dataEstaNoPeriodo(ini.criadoEm, periodo))
+  const iniciativasPorLab: IniciativaLab[] = iniciativasFiltradas.map(ini => ({
+    key: ini.key,
+    nome: ini.nome,
+    status: ini.status.name,
+    timeResponsavel: ini.timeResponsavel,
+    sponsor: ini.sponsor,
+    criadoEm: ini.criadoEm,
+  }))
+
+  return {
+    beneficioPotencial: beneficioNoPeriodo,
+    experimentosConcluidos,
+    taxaConversao,
+    pipelineAtivo,
+    custoTotal,
+    roi,
+    burnup,
+    beneficioPorArea,
+    funil,
+    conclusoesMensais,
+    maturidade,
+    insights,
+    iniciativasPorLab,
+  }
+}
+
+function buildFunil(data: DashboardData): FunilEtapa[] {
+  const p = data.pipeline
+  const ideias = p.BACKLOG + p['EM REFINAMENTO']
+  const emAvaliacao = p['PRONTO PARA EXECUÇÃO']
+  const emExecucao = p['EM EXPERIMENTAÇÃO'] + p['AGUARDANDO PILOTO'] + p['EM PILOTO']
+  const concluidos = p.FINALIZADO
+  const escalados = p['EM ESCALA']
+
+  const etapas: { etapa: string; qtd: number }[] = [
+    { etapa: 'Ideias', qtd: ideias },
+    { etapa: 'Em avaliação', qtd: emAvaliacao },
+    { etapa: 'Em execução', qtd: emExecucao },
+    { etapa: 'Concluídos', qtd: concluidos },
+    { etapa: 'Escalados', qtd: escalados },
+  ]
+
+  return etapas.map((e, i) => {
+    const proxima = etapas[i + 1]
+    const taxa = proxima ? (e.qtd > 0 ? Math.round((proxima.qtd / e.qtd) * 100) : 0) : 0
+    return { etapa: e.etapa, quantidade: e.qtd, taxaConversao: taxa }
+  })
+}
+
+function buildMaturidade(data: DashboardData): MaturidadeEstagio[] {
+  const p = data.pipeline
+  // Discovery: backlog + refinamento
+  // MVP: pronto para execução + experimentação
+  // Piloto: aguardando piloto + em piloto
+  // Escala: em escala + finalizado
+  return [
+    { estagio: 'Discovery', quantidade: p.BACKLOG + p['EM REFINAMENTO'], cor: '#94A3B8' },
+    { estagio: 'MVP', quantidade: p['PRONTO PARA EXECUÇÃO'] + p['EM EXPERIMENTAÇÃO'], cor: '#60A5FA' },
+    { estagio: 'Piloto', quantidade: p['AGUARDANDO PILOTO'] + p['EM PILOTO'], cor: '#F59E0B' },
+    { estagio: 'Escala', quantidade: p['EM ESCALA'] + p.FINALIZADO, cor: '#10B981' },
+  ]
+}
+
+function buildInsights(
+  data: DashboardData,
+  conclusoesMensais: ConclusaoMensal[],
+  beneficioPorArea: BeneficioPorArea[]
+): InsightExecutivo[] {
+  const insights: InsightExecutivo[] = []
+
+  // Mês com mais conclusões
+  const mesTop = [...conclusoesMensais].sort((a, b) => b.quantidade - a.quantidade)[0]
+  if (mesTop && mesTop.quantidade > 0) {
+    insights.push({
+      texto: `${mesTop.mes} concentrou o maior número de experimentos concluídos (${mesTop.quantidade}).`,
+      tipo: 'positivo',
+    })
+  }
+
+  // Área com maior benefício
+  const areaTop = beneficioPorArea[0]
+  if (areaTop && areaTop.valor > 0) {
+    insights.push({
+      texto: `${areaTop.area} representa o maior benefício financeiro (${formatBRL(areaTop.valor)}).`,
+      tipo: 'positivo',
+    })
+  }
+
+  // Pipeline ativo
+  if (data.totalEpicsAtivos > 0) {
+    insights.push({
+      texto: `${data.totalEpicsAtivos} experimentos ativos no pipeline.`,
+      tipo: 'neutro',
+    })
+  }
+
+  // Cycle time
+  if (data.cycleTimeExperimentacaoGeral?.mediaDias) {
+    const ct = data.cycleTimeExperimentacaoGeral.mediaDias
+    insights.push({
+      texto: `Cycle time médio de experimentação: ${ct} dias.`,
+      tipo: 'neutro',
+    })
+  }
+
+  // Alerta: muitos bloqueados
+  const bloqueados = data.allEpics.filter(e => !!e.motivoBloqueio).length
+  if (bloqueados > 5) {
+    insights.push({
+      texto: `${bloqueados} experimentos estão bloqueados — requer atenção.`,
+      tipo: 'alerta',
+    })
+  }
+
+  // Se não tem custo, mencionar
+  if (data.allEpics.filter(e => (e.custoEstimado ?? 0) > 0).length === 0) {
+    insights.push({
+      texto: 'Custos dos experimentos ainda não foram preenchidos. Atualize para calcular o ROI.',
+      tipo: 'neutro',
+    })
+  }
+
+  return insights.slice(0, 6)
 }
