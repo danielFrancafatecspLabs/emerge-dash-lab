@@ -7,12 +7,7 @@ import { classifySegmentos } from '@/lib/segmento-classifier'
 
 export const dynamic = 'force-dynamic'
 
-export async function GET(request: NextRequest) {
-  const token = request.cookies.get('auth_token')?.value
-  if (!process.env.AUTH_SECRET || token !== process.env.AUTH_SECRET) {
-    return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
-  }
-
+export async function GET(_request: NextRequest) {
   try {
     const raw = await fetchDashboardRaw()
     const [cls, seg] = await Promise.all([

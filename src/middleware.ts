@@ -16,6 +16,11 @@ export function middleware(request: NextRequest) {
   const secret = process.env.AUTH_SECRET
   if (secret && token === secret) return NextResponse.next()
 
+  // Para rotas de API, retorna 401 JSON em vez de redirecionar para HTML
+  if (stripped.startsWith('/api/')) {
+    return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+  }
+
   return NextResponse.redirect(new URL(`${BASE}/login`, request.url))
 }
 
