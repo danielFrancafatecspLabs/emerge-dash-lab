@@ -8,6 +8,11 @@ export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
   const stripped = pathname.startsWith(BASE) ? pathname.slice(BASE.length) : pathname
 
+  // Ignorar assets estáticos do Next.js
+  if (stripped.startsWith('/_next/') || stripped === '/favicon.ico') {
+    return NextResponse.next()
+  }
+
   // Rotas públicas (login + logout)
   const isPublic = PUBLIC_PATHS.some(p => stripped.startsWith(p))
   if (isPublic) return NextResponse.next()
@@ -25,5 +30,6 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/jira', '/jira/((?!_next/static|_next/image|favicon.ico).*)'],
+  // :path* cobre /jira, /jira/, /jira/qualquer/coisa
+  matcher: ['/jira/:path*'],
 }

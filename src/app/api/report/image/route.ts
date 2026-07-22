@@ -54,12 +54,19 @@ Make it look like a polished corporate newsletter/infographic with good typograp
     const response = await client.images.generate({
       model: deployment,
       prompt,
-      n: 1,
-      size: '1024x1792',
-      response_format: 'b64_json',
+      size: '1024x1536',
     })
 
-    const b64 = response.data?.[0]?.b64_json
+    const item = response.data?.[0]
+    let b64 = item?.b64_json ?? null
+
+    // gpt-image-1/2 retorna URL em vez de b64_json — buscar e converter
+    if (!b64 && item?.url) {
+      const imgRes = await fetch(item.url)
+      const buf = await imgRes.arrayBuffer()
+      b64 = Buffer.from(buf).toString('base64')
+    }
+
     if (!b64) return NextResponse.json({ error: 'Imagem não gerada' }, { status: 500 })
 
     return NextResponse.json({ image: b64, format: 'png' })
