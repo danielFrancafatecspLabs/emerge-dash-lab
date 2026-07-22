@@ -1,8 +1,9 @@
 import { fetchDashboardRaw } from '@/lib/jira'
-import { buildDashboardData } from '@/lib/mappers'
+import { buildDashboardData, buildMonitoramentoData } from '@/lib/mappers'
 import { classifyPortfolios } from '@/lib/portfolio-classifier'
 import { classifySegmentos } from '@/lib/segmento-classifier'
 import EstrategiaClient from '@/components/dashboard/EstrategiaClient'
+import type { MonitoramentoData } from '@/lib/types'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 300
@@ -10,6 +11,7 @@ export const maxDuration = 60 // 60 segundos para acomodar fetch de changelogs
 
 export default async function PortfolioPage() {
   let data
+  let monitoramento
   let error: string | null = null
 
   try {
@@ -29,11 +31,12 @@ export default async function PortfolioPage() {
       classifySegmentos(segmentoInputs),
     ])
     data = buildDashboardData(raw.iniciativas, raw.epics, classification, segmentoClassification, raw.board2706Config, raw.epicChangelogs, raw.iniciativaChangelogs)
+    monitoramento = buildMonitoramentoData(data)
   } catch (e) {
     error = String(e)
   }
 
-  if (error || !data) {
+  if (error || !data || !monitoramento) {
     return (
       <div className="flex min-h-screen items-center justify-center" style={{ background: '#f0f0f0' }}>
         <div className="bg-white rounded-lg p-8 shadow text-center max-w-lg">
@@ -47,5 +50,5 @@ export default async function PortfolioPage() {
     )
   }
 
-  return <EstrategiaClient data={data} />
+  return <EstrategiaClient data={data} monitoramento={monitoramento} />
 }

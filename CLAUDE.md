@@ -64,7 +64,7 @@ Projeto Jira: `GL` — **BeOn Lab - Governança Labs** (`project ID: 10371`).
   customfield_11662,  // Sponsor
   customfield_11663,  // BO (Business Owner)
   customfield_11664,  // Complexidade
-  customfield_11665,  // Time Responsável
+  customfield_16911,  // Time Responsável (Lab — option → .value)
   customfield_13242,  // Benefício Quantitativo (R$, number)
   customfield_13243,  // Benefício Qualitativo (string)
   customfield_16400,  // Domínio (option → .value)
@@ -136,7 +136,7 @@ Cache recomendado: `revalidate: 300` (5 min) para respeitar rate limit.
 | Sponsor | `customfield_11662` | string |
 | Business Owner | `customfield_11663` | string |
 | Complexidade | `customfield_11664` | string (`"Baixa"`, `"Alta"`) |
-| Time Responsável | `customfield_11665` | string |
+| Time Responsável (Lab) | `customfield_16911` | option → `.value` |
 | Benefício Quantitativo | `customfield_13242` | number (R$) |
 | Benefício Qualitativo | `customfield_13243` | string |
 | Domínio | `customfield_16400` | option → `.value` |
