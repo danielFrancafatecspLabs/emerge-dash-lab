@@ -53,7 +53,7 @@ export default function LoginPage() {
             Dashboard Executivo
           </p>
           <p className="text-white/60 text-center" style={{ fontSize: 11 }}>
-            BeOn Lab · Claro Brasil
+            beOn Labs · Claro Brasil
           </p>
         </div>
 

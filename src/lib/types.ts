@@ -22,7 +22,7 @@ export interface JiraIssueFields {
   customfield_13406?: { value: string }               // Motivo de Bloqueio
   customfield_11662?: string                          // Sponsor
   customfield_11663?: string                          // BO (Business Owner)
-  customfield_11664?: string                          // Complexidade
+  customfield_11664?: string | { value: string }        // Complexidade (pode vir como string ou objeto)
   customfield_16911?: { value: string; id: string }    // Time Responsável (Lab)
   customfield_13242?: number                          // Benefício Quantitativo (R$)
   customfield_13243?: string                          // Benefício Qualitativo
@@ -147,6 +147,27 @@ export interface CycleTimeEstagio {
   mediaDias: number         // média de dias que as iniciativas ficam nesse estágio
   medianaDias: number       // mediana de dias
   qtdIniciativas: number    // quantas iniciativas passaram por esse estágio
+  blockedTimeDias?: number  // média de dias bloqueados nesse estágio (opcional)
+}
+
+export interface LeadTimeJornadaFase {
+  fase: string           // nome da fase: "Backlog", "Experimentação", "Transição para Piloto", "Piloto", "Escala"
+  dias: number           // dias gastos nessa fase
+  pct: number            // percentual do lead time total
+  cor: string            // cor do bloco na timeline
+  destaque?: boolean     // true para fase de Experimentação (laranja)
+}
+
+export interface LeadTimeJornada {
+  totalDias: number                    // lead time total (Backlog → Escala)
+  fases: LeadTimeJornadaFase[]         // fases da jornada
+  bottleneck: { fase: string; dias: number; pct: number }  // fase que mais consome tempo
+  tempoGeracaoValorDias: number        // tempo de experimentação + piloto (geração de valor)
+  tempoEsperaTransicaoDias: number     // tempo de backlog + transições (espera)
+  tempoImplantacaoEscalaDias: number   // tempo em escala
+  blockedTimeDias: number              // média de dias bloqueados dos experimentos concluídos
+  blockedTimePct: number               // % do blocked time sobre o total de dias dos concluídos
+  insights: string[]                   // bullets de insight executivo
 }
 
 export interface CycleTimeDiagnostico {
@@ -178,6 +199,7 @@ export interface DashboardData {
   cycleTimeExperimentacao: CycleTimeEstagio[]       // quebrado por porte (P/M/G)
   cycleTimeExperimentacaoGeral: CycleTimeEstagio    // agregado geral (visão antiga)
   cycleTimeDiagnostico: CycleTimeDiagnostico
+  leadTimeJornada: LeadTimeJornada
   /** Status IDs da coluna "EM PILOTO" no board 2706 */
   pilotoStatusIds: string[]
   /** Status IDs da coluna "EM ESCALA" no board 2706 */

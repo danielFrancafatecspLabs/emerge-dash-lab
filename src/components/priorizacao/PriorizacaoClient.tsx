@@ -1,10 +1,11 @@
 'use client'
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
-import { AlertTriangle, ChevronDown, ChevronUp, Presentation } from 'lucide-react'
+import { AlertTriangle, ChevronDown, ChevronUp, Presentation, Target } from 'lucide-react'
 import QuadranteCard from './QuadranteCard'
 import NaoClassificadosList from './NaoClassificadosList'
 import ModoReuniao from './ModoReuniao'
+import VisaoEstrategica from './VisaoEstrategica'
 
 // --------------- Tipos ---------------
 
@@ -80,6 +81,7 @@ export default function PriorizacaoClient() {
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
   const [mostrarSoSemDados, setMostrarSoSemDados] = useState(false)
   const [modoReuniao, setModoReuniao] = useState(false)
+  const [visaoEstrategica, setVisaoEstrategica] = useState(false)
 
   // Carregar dados da API
   useEffect(() => {
@@ -271,6 +273,19 @@ export default function PriorizacaoClient() {
           </div>
           <div className="flex items-center gap-3 flex-wrap">
             <button
+              onClick={() => setVisaoEstrategica(!visaoEstrategica)}
+              className={`flex items-center gap-2 px-4 py-2 rounded font-medium transition-colors ${
+                visaoEstrategica
+                  ? 'bg-white border-2 text-gray-800'
+                  : 'text-white'
+              }`}
+              style={visaoEstrategica ? { borderColor: '#8B0000' } : { background: '#8B0000' }}
+              title="Visão Estratégica: matriz Complexidade × Benefício"
+            >
+              <Target size={18} />
+              Visão Estratégica
+            </button>
+            <button
               onClick={() => setModoReuniao(true)}
               className="flex items-center gap-2 px-4 py-2 rounded text-white font-medium transition-colors"
               style={{ background: '#8B0000' }}
@@ -339,9 +354,13 @@ export default function PriorizacaoClient() {
         </div>
       </div>
 
-      {/* Grid de quadrantes */}
+      {/* Visão Estratégica ou Grid de quadrantes */}
       <div className="px-6 pb-8">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {visaoEstrategica ? (
+          <VisaoEstrategica experimentos={experimentos} />
+        ) : (
+          <>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <QuadranteCard
             titulo="🎯 Estratégico"
             descricao="Maioria votou Alta + tem benefício"
@@ -403,6 +422,8 @@ export default function PriorizacaoClient() {
           mostrarSoSemDados={mostrarSoSemDados}
           onToggleFiltro={() => setMostrarSoSemDados(prev => !prev)}
         />
+          </>
+        )}
       </div>
     </div>
   )

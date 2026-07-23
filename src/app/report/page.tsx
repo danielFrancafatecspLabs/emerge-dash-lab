@@ -178,17 +178,21 @@ export default async function ReportPage() {
     return db - da
   })
 
-  // ── Funil de Iniciativas (board 2706 — Ideação) ──
+  // ── Funil de Inovação ──
+  // Em Andamento: Experimentos (Epics do board 2707) com status "Em andamento"
+  // Em Piloto: Iniciativas (board 2706) na coluna "EM PILOTO"
+  // Concluídos: Experimentos (Epics do board 2707) com status "Concluído"
+  // Em Escala: Iniciativas (board 2706) na coluna "EM ESCALA"
+  const emAndamentoCount = data.allEpics.filter(e => e.status.id === '3').length
+  const emPilotoCount = data.pipeline['EM PILOTO']
+  const concluidosCount = data.allEpics.filter(e => e.status.id === '10003').length
+  const emEscalaCount = data.pipeline['EM ESCALA']
+
   const funilStages = [
-    { label: 'Backlog', value: data.pipeline['BACKLOG'], color: '#9CA3AF' },
-    { label: 'Em Refinamento', value: data.pipeline['EM REFINAMENTO'], color: '#3B82F6' },
-    { label: 'Pronto p/ Execução', value: data.pipeline['PRONTO PARA EXECUÇÃO'], color: '#06B6D4' },
-    { label: 'Em Experimentação', value: data.pipeline['EM EXPERIMENTAÇÃO'], color: '#FCD34D' },
-    { label: 'Aguardando Piloto', value: data.pipeline['AGUARDANDO PILOTO'], color: '#F97316' },
-    { label: 'Em Piloto', value: data.pipeline['EM PILOTO'], color: '#EF4444' },
-    { label: 'Em Escala', value: data.pipeline['EM ESCALA'], color: '#22C55E' },
-    { label: 'Concluído', value: data.pipeline['FINALIZADO'], color: '#134E4A' },
-    { label: 'Cancelado', value: data.pipeline['CANCELADO'], color: '#6B7280' },
+    { label: 'Em Andamento', value: emAndamentoCount, color: '#3B82F6' },
+    { label: 'Em Piloto', value: emPilotoCount, color: '#EF4444' },
+    { label: 'Concluídos', value: concluidosCount, color: '#134E4A' },
+    { label: 'Em Escala', value: emEscalaCount, color: '#22C55E' },
   ]
   const funilMax = Math.max(...funilStages.map(s => s.value), 1)
 
@@ -278,12 +282,12 @@ export default async function ReportPage() {
   const beneficioPotencialEstimado = data.allEpics.reduce((sum, e) => sum + (e.beneficioQuantitativo ?? 0), 0)
 
   return (
-    <div className="flex min-h-screen" style={{ background: '#f0f0f0' }}>
+    <div className="flex h-screen overflow-hidden" style={{ background: '#f0f0f0' }}>
       <Sidebar />
 
-      <main className="flex-1 flex flex-col min-w-0">
-        {/* Header */}
-        <header className="bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between">
+      <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        {/* Header fixo */}
+        <header className="bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
             <img src="/jira/logobeonlabs.png" alt="BeOn Labs" className="h-8 w-auto" />
             <div>

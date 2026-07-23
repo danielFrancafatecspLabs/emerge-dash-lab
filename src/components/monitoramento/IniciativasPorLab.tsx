@@ -4,7 +4,7 @@ import { useMemo } from 'react'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, LabelList,
 } from 'recharts'
-import { Beaker, Users } from 'lucide-react'
+import { Users } from 'lucide-react'
 import type { IniciativaLab } from '@/lib/types'
 
 interface Props {
@@ -62,58 +62,32 @@ export default function IniciativasPorLab({ data }: Props) {
         </div>
       </div>
 
-      {/* Layout: Gráfico + Cards lado a lado */}
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
-        {/* Gráfico de barras horizontal — ocupa 3 colunas */}
-        <div className="lg:col-span-3">
-          <ResponsiveContainer width="100%" height={Math.max(200, chartData.length * 36 + 40)}>
-            <BarChart data={chartData} layout="vertical" margin={{ top: 0, right: 30, left: 110, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" horizontal={false} />
-              <XAxis type="number" tick={{ fontSize: 10, fill: '#9CA3AF' }} axisLine={false} tickLine={false}
-                allowDecimals={false} />
-              <YAxis
-                type="category"
-                dataKey="lab"
-                tick={{ fontSize: 11, fill: '#374151' }}
-                axisLine={false}
-                tickLine={false}
-                width={105}
-              />
-              <Tooltip
-                contentStyle={{ borderRadius: 8, border: '1px solid #e5e7eb', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}
-                formatter={(value: number) => [`${value} iniciativa${value !== 1 ? 's' : ''}`, 'Quantidade']}
-              />
-              <Bar dataKey="qtd" radius={[0, 4, 4, 0]} barSize={18}>
-                {chartData.map((_, i) => (
-                  <Cell key={i} fill={CORES[i % CORES.length]} />
-                ))}
-                <LabelList dataKey="qtd" position="right" fontSize={11} fill="#374151" fontWeight={600} />
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-
-        {/* Cards resumo — ocupa 2 colunas */}
-        <div className="lg:col-span-2 space-y-2">
-          {agrupado.map(([lab, iniciativas]) => (
-            <div
-              key={lab}
-              className="flex items-center justify-between rounded-lg border border-gray-100 p-2.5 hover:shadow-sm transition-shadow bg-gray-50/50"
-            >
-              <div className="flex items-center gap-2 min-w-0">
-                <Beaker size={13} className="text-red-500 shrink-0" />
-                <span className="text-xs font-medium text-gray-700 truncate" title={lab}>
-                  {lab}
-                </span>
-              </div>
-              <div className="flex items-center gap-1.5 shrink-0 ml-2">
-                <span className="text-sm font-bold text-red-600">{iniciativas.length}</span>
-                <span className="text-[10px] text-gray-400">inic.</span>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
+      {/* Gráfico de barras horizontal */}
+      <ResponsiveContainer width="100%" height={Math.max(200, chartData.length * 36 + 40)}>
+        <BarChart data={chartData} layout="vertical" margin={{ top: 0, right: 30, left: 130, bottom: 0 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" horizontal={false} />
+          <XAxis type="number" tick={{ fontSize: 10, fill: '#9CA3AF' }} axisLine={false} tickLine={false}
+            allowDecimals={false} />
+          <YAxis
+            type="category"
+            dataKey="lab"
+            tick={{ fontSize: 11, fill: '#374151' }}
+            axisLine={false}
+            tickLine={false}
+            width={125}
+          />
+          <Tooltip
+            contentStyle={{ borderRadius: 8, border: '1px solid #e5e7eb', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}
+            formatter={(value: number) => [`${value} iniciativa${value !== 1 ? 's' : ''}`, 'Quantidade']}
+          />
+          <Bar dataKey="qtd" radius={[0, 4, 4, 0]} barSize={24}>
+            {chartData.map((_, i) => (
+              <Cell key={i} fill={CORES[i % CORES.length]} />
+            ))}
+            <LabelList dataKey="qtd" position="right" fontSize={11} fill="#374151" fontWeight={600} />
+          </Bar>
+        </BarChart>
+      </ResponsiveContainer>
     </div>
   )
 }
