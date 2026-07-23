@@ -11,6 +11,8 @@ import BurnupChart from '@/components/monitoramento/BurnupChart'
 import BeneficioPorAreaChart from '@/components/monitoramento/BeneficioPorAreaChart'
 import { InsightsExecutivos } from '@/components/monitoramento/MaturidadeInsights'
 import IniciativasPorLab from '@/components/monitoramento/IniciativasPorLab'
+import PipelineInovacao from '@/components/dashboard/PipelineInovacao'
+import CycleTimeEstrategia from '@/components/dashboard/CycleTimeEstrategia'
 
 export const dynamic = 'force-dynamic'
 
@@ -120,6 +122,17 @@ export default async function MonitoramentoPage({
 
           {/* Linha 4 — Insights Executivos */}
           <InsightsExecutivos data={monitoramento.insights} />
+
+          {/* Linha 5 — Pipeline de Iniciativas */}
+          <PipelineInovacao data={data} />
+
+          {/* Linha 6 — Cycle Time Experimentação (por porte) */}
+          {monitoramento.cycleTimeExperimentacaoGeral?.qtdIniciativas > 0 && (
+            <CycleTimeEstrategia
+              porPorte={monitoramento.cycleTimeExperimentacao}
+              geral={monitoramento.cycleTimeExperimentacaoGeral}
+            />
+          )}
         </div>
       </main>
     </div>
