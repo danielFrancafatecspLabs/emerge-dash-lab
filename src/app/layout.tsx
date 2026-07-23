@@ -3,7 +3,7 @@ import './globals.css'
 
 export const metadata: Metadata = {
   title: 'Dashboard Executivo de Experimentos Telecom',
-  description: 'Portfólio de inovação BeOn Lab',
+  description: 'Portfólio de inovação beOn Labs',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

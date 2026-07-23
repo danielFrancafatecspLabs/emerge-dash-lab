@@ -29,9 +29,9 @@ export async function GET(_request: NextRequest) {
 
     const semana = new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
 
-    const prompt = `Create a professional weekly report infographic for "BeOn Lab" innovation portfolio of Claro Brasil telecom company. Style: corporate, clean, modern. Colors: deep red (#8B0000) header, white body, gray accents. Layout (portrait, like a newsletter):
+    const prompt = `Create a professional weekly report infographic for "beOn Labs" innovation portfolio of Claro Brasil telecom company. Style: corporate, clean, modern. Colors: deep red (#8B0000) header, white body, gray accents. Layout (portrait, like a newsletter):
 
-HEADER: Bold red background. Logo area "BeOn Lab | Claro Brasil". Title "Atualização Semanal do Portfólio de Inovação" and date "${semana}".
+HEADER: Bold red background. Logo area "beOn Labs | Claro Brasil". Title "Atualização Semanal do Portfólio de Inovação" and date "${semana}".
 
 SECTION 1 - DESTAQUES DA SEMANA (white card with red left border):
 "O portfólio conta com ${totalIniciativas} iniciativas ativas e ${totalEpics} experimentos, com potencial financeiro bruto de R$ ${(beneficio / 1_000_000).toFixed(1)} MM."
@@ -44,7 +44,7 @@ SECTION 2 - FUNIL DE INOVAÇÃO (3 funnel stages with red tones):
 SECTION 3 - TOP DOMÍNIOS (horizontal bar chart in red):
 ${top5Dom.map(([d, n]) => `${d}: ${n}`).join(', ')}
 
-FOOTER: "BeOn Lab | P&D Claro Brasil" in small text.
+FOOTER: "beOn Labs | P&D Claro Brasil" in small text.
 
 Make it look like a polished corporate newsletter/infographic with good typography and visual hierarchy. No Lorem ipsum.`
 

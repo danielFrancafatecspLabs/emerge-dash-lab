@@ -166,7 +166,7 @@ export default function ReportPDF({
         {/* HEADER */}
         <View style={styles.header}>
           <Text style={styles.headerLabel}>Relatório Executivo de Inovação</Text>
-          <Text style={styles.headerTitle}>BeOn Lab — Panorama do Portfólio</Text>
+          <Text style={styles.headerTitle}>beOn Labs — Panorama do Portfólio</Text>
           <Text style={styles.headerText}>
             O pipeline de inovação conta atualmente com {totalIniciativas} iniciativas no funil,
             das quais {qtdExperimentos} já evoluíram para experimentos ativos.
@@ -354,7 +354,7 @@ export default function ReportPDF({
 
         {/* FOOTER */}
         <Text style={styles.footer}>
-          BeOn Lab — Relatório Executivo de Inovação — {dataHora} — Confidencial
+          beOn Labs — Relatório Executivo de Inovação — {dataHora} — Confidencial
         </Text>
       </Page>
     </Document>

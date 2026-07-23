@@ -7,11 +7,10 @@ import Sidebar from '@/components/layout/Sidebar'
 import ResumoExecutivo from '@/components/dashboard/ResumoExecutivo'
 import PortfolioPorMercado from '@/components/dashboard/PortfolioPorMercado'
 import Top5Experimentos from '@/components/dashboard/Top5Experimentos'
-import SituacaoPortfolio from '@/components/dashboard/SituacaoPortfolio'
-import PipelineInovacao from '@/components/dashboard/PipelineInovacao'
 import GovernancaAlinhamento from '@/components/dashboard/GovernancaAlinhamento'
 import BurnupChart from '@/components/monitoramento/BurnupChart'
-import IniciativasPorLab from '@/components/monitoramento/IniciativasPorLab'
+import LeadTimeJornada from '@/components/dashboard/LeadTimeJornada'
+import FunilExperimentos from '@/components/dashboard/FunilExperimentos'
 import { PeriodoFiltro, isDataNoPeriodo } from '@/lib/periodo-filter'
 import { DashboardData, Iniciativa, EpicDetail, PipelineCount, MercadoAgregado, MetaCategoria, MonitoramentoData } from '@/lib/types'
 import { getPipelineStage } from '@/lib/mappers'
@@ -258,7 +257,7 @@ export default function EstrategiaClient({ data, monitoramento }: EstrategiaClie
           {/* Barra superior compacta — fora do scale */}
           <div className="flex items-center justify-between px-4 py-1.5 border-b relative z-10" style={{ background: '#8B0000' }}>
             <div className="flex items-center gap-2">
-              <span className="text-white font-bold text-sm">Dashboard Estratégico — BeOn Lab</span>
+              <span className="text-white font-bold text-sm">Dashboard Estratégico — beOn Labs</span>
               <span className="text-white/60 text-xs">
                 {periodoSelecionado.tipo === 'tudo' ? 'Todo o período' :
                  periodoSelecionado.tipo === 'ultimos12' ? 'Últimos 12 meses' :
@@ -301,23 +300,21 @@ export default function EstrategiaClient({ data, monitoramento }: EstrategiaClie
 
                   {/* Content */}
                   <main className="flex-1 p-2 gap-2 flex flex-col" style={{ marginTop: 0 }}>
-                    {/* Row 1: Resumo Executivo (esq) + Portfólio (dir) */}
-                    <div className="grid gap-2 flex-shrink-0" style={{ gridTemplateColumns: '1fr 1fr' }}>
-                      <ResumoExecutivo data={dadosFiltrados} />
+                    {/* Row 1: Resumo Executivo + Portfólio + Funil */}
+                    <div className="grid gap-2 flex-1 min-h-0" style={{ gridTemplateColumns: '1fr 1fr 1fr' }}>
+                      <ResumoExecutivo data={data} />
                       <PortfolioPorMercado />
+                      <FunilExperimentos data={data} />
                     </div>
 
-                    {/* Row 2: Iniciativas por Lab + Top 5 + Situação */}
-                    <div className="grid gap-2 flex-1 min-h-0" style={{ gridTemplateColumns: '45fr 35fr 20fr' }}>
-                      <IniciativasPorLab data={monitoramento.iniciativasPorLab} />
+                    {/* Row 2: Top 5 + Burnup + Jornada de Adoção */}
+                    <div className="grid gap-2 flex-shrink-0" style={{ gridTemplateColumns: '20fr 45fr 35fr', maxHeight: 360 }}>
                       <Top5Experimentos data={dadosFiltrados} />
-                      <SituacaoPortfolio data={dadosFiltrados} />
-                    </div>
-
-                    {/* Row 3: Pipeline + Crescimento da Experimentação */}
-                    <div className="grid gap-2 flex-shrink-0" style={{ gridTemplateColumns: '40fr 60fr', maxHeight: 360 }}>
-                      <PipelineInovacao data={dadosFiltrados} />
                       <BurnupChart data={monitoramento.burnup} />
+                      <LeadTimeJornada
+                        data={dadosFiltrados.leadTimeJornada}
+                        cycleTimeExperimentacao={dadosFiltrados.cycleTimeExperimentacao}
+                      />
                     </div>
                   </main>
                 </div>
@@ -369,23 +366,21 @@ export default function EstrategiaClient({ data, monitoramento }: EstrategiaClie
             </button>
           </div>
 
-          {/* Row 1: Resumo Executivo (esq) + Portfólio (dir) */}
-          <div className="grid gap-3 grid-cols-1 lg:grid-cols-[1fr_1fr]">
-            <ResumoExecutivo data={dadosFiltrados} />
+          {/* Row 1: Resumo Executivo + Portfólio + Funil */}
+          <div className="grid gap-3 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+            <ResumoExecutivo data={data} />
             <PortfolioPorMercado />
+            <FunilExperimentos data={data} />
           </div>
 
-          {/* Row 2: Iniciativas por Lab + Top 5 + Situação */}
-          <div className="grid gap-3 grid-cols-1 md:grid-cols-2 lg:grid-cols-[45fr_35fr_20fr]">
-            <IniciativasPorLab data={monitoramento.iniciativasPorLab} />
+          {/* Row 2: Top 5 + Burnup + Jornada de Adoção */}
+          <div className="grid gap-3 grid-cols-1 lg:grid-cols-[20fr_45fr_35fr]" style={{ maxHeight: 380 }}>
             <Top5Experimentos data={dadosFiltrados} />
-            <SituacaoPortfolio data={dadosFiltrados} />
-          </div>
-
-          {/* Row 3: Pipeline (40%) + Crescimento da Experimentação (60%) */}
-          <div className="grid gap-3 grid-cols-1 lg:grid-cols-[40fr_60fr]" style={{ maxHeight: 380 }}>
-            <PipelineInovacao data={dadosFiltrados} />
             <BurnupChart data={monitoramento.burnup} />
+            <LeadTimeJornada
+              data={dadosFiltrados.leadTimeJornada}
+              cycleTimeExperimentacao={dadosFiltrados.cycleTimeExperimentacao}
+            />
           </div>
 
         </main>

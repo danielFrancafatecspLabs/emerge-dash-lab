@@ -124,39 +124,39 @@ export default function PipelineInovacao({ data }: Props) {
 
   return (
     <>
-      <div className="rounded-lg p-5 h-full flex flex-col" style={{ background: '#6B0000' }}>
+      <div className="rounded-lg p-1.5 h-full flex flex-col" style={{ background: '#6B0000' }}>
         {/* Header */}
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-3">
-            <span className="text-white/70" style={{ fontSize: 11 }}>⚡</span>
+        <div className="flex items-center justify-between mb-0.5">
+          <div className="flex items-center gap-1.5">
+            <span className="text-white/70" style={{ fontSize: 9 }}>⚡</span>
             <div>
-              <p className="text-white font-semibold text-xs uppercase tracking-widest leading-none">
+              <p className="text-white font-semibold uppercase tracking-widest leading-none" style={{ fontSize: 9 }}>
                 Pipeline de Iniciativas
               </p>
-              <div className="flex items-center gap-3 mt-1">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-white/50" style={{ fontSize: 9 }}>Escala</span>
-                  <span className="text-white font-bold" style={{ fontSize: 13 }}>{conversionEscala}</span>
+              <div className="flex items-center gap-2 mt-0.5">
+                <div className="flex items-center gap-0.5">
+                  <span className="text-white/50" style={{ fontSize: 7 }}>Escala</span>
+                  <span className="text-white font-bold" style={{ fontSize: 10 }}>{conversionEscala}</span>
                 </div>
-                <div className="flex items-center gap-1.5">
-                  <span className="text-white/50" style={{ fontSize: 9 }}>Piloto</span>
-                  <span className="text-white font-bold" style={{ fontSize: 13 }}>{conversionPiloto}</span>
+                <div className="flex items-center gap-0.5">
+                  <span className="text-white/50" style={{ fontSize: 7 }}>Piloto</span>
+                  <span className="text-white font-bold" style={{ fontSize: 10 }}>{conversionPiloto}</span>
                 </div>
               </div>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
             <button
               onClick={openEdit}
-              className="rounded p-1.5 transition-colors hover:bg-white/20"
+              className="rounded p-1 transition-colors hover:bg-white/20"
               style={{ color: 'rgba(255,255,255,0.7)' }}
               title="Configurar métricas"
             >
-              <Settings size={13} />
+              <Settings size={10} />
             </button>
             <button
-              className="text-xs font-semibold px-3 py-1 rounded"
-              style={{ background: 'rgba(255,255,255,0.15)', color: 'white', fontSize: 10 }}
+              className="font-semibold px-2 py-0.5 rounded"
+              style={{ background: 'rgba(255,255,255,0.15)', color: 'white', fontSize: 8 }}
             >
               Semestre Atual ▾
             </button>
@@ -165,7 +165,7 @@ export default function PipelineInovacao({ data }: Props) {
 
         {/* Fluxo de conversão removido conforme pedido */}
         {/* Colunas do pipeline */}
-        <div className="grid gap-1 mb-4" style={{ gridTemplateColumns: `repeat(${COLUNAS.length}, 1fr)` }}>
+        <div className="grid gap-0.5 mb-1" style={{ gridTemplateColumns: `repeat(${COLUNAS.length}, 1fr)` }}>
           {COLUNAS.map(c => {
             const count = getColCount(c.key)
             const isFixed = colunasConfig[c.key]?.mode === 'fixo'
@@ -173,20 +173,20 @@ export default function PipelineInovacao({ data }: Props) {
               <button
                 key={c.key}
                 onClick={() => count > 0 && !isFixed ? setEpicModal(c.key) : undefined}
-                className="text-center rounded py-1 transition-colors relative"
+                className="text-center rounded py-0.5 transition-colors relative"
                 style={{ background: count > 0 ? 'rgba(255,255,255,0.05)' : 'transparent' }}
                 title={count > 0 && !isFixed ? `Ver ${count} experimentos` : undefined}
               >
-                <p className="text-white/60 uppercase" style={{ fontSize: 8, letterSpacing: '0.05em' }}>
+                <p className="text-white/60 uppercase" style={{ fontSize: 7, letterSpacing: '0.04em' }}>
                   {c.label ?? c.key}
                 </p>
                 <p
                   className={`text-white font-bold ${count > 0 && !isFixed ? 'hover:text-yellow-300' : ''}`}
-                  style={{ fontSize: 26, lineHeight: 1.1 }}
+                  style={{ fontSize: 14, lineHeight: 1.1 }}
                 >
                   {count}
                 </p>
-                <p className="text-white/50" style={{ fontSize: 8 }}>{c.sub}</p>
+                <p className="text-white/50" style={{ fontSize: 7 }}>{c.sub}</p>
                 {isFixed && (
                   <span
                     className="absolute top-0.5 right-0.5 px-1 rounded"
@@ -201,67 +201,101 @@ export default function PipelineInovacao({ data }: Props) {
         </div>
 
         {/* Lead Time — Esteira de Iniciativas */}
-        <div className="grid gap-2" style={{ gridTemplateColumns: '1fr 1fr' }}>
+        <div className="grid gap-0.5" style={{ gridTemplateColumns: '1fr 1fr' }}>
           {/* Leadtime → Escala */}
-          <div className="rounded-lg p-3" style={{ background: 'rgba(255,255,255,0.08)' }}>
-            <div className="flex items-center gap-1.5 mb-1">
-              <Clock size={12} className="text-white/50" />
-              <p className="text-white/60 uppercase" style={{ fontSize: 9, letterSpacing: '0.08em' }}>
+          <div className="rounded p-1" style={{ background: 'rgba(255,255,255,0.08)' }}>
+            <div className="flex items-center gap-0.5 mb-0.5">
+              <Clock size={8} className="text-white/50" />
+              <p className="text-white/60 uppercase" style={{ fontSize: 7, letterSpacing: '0.05em' }}>
                 Leadtime → Escala
               </p>
             </div>
-            <p className="text-white font-bold" style={{ fontSize: 22, lineHeight: 1.1 }}>{kpis.leadtimeEscala}</p>
-            <p className="text-white/40 mt-0.5" style={{ fontSize: 8 }}>
+            <p className="text-white font-bold" style={{ fontSize: 12, lineHeight: 1.1 }}>{kpis.leadtimeEscala}</p>
+            <p className="text-white/40 mt-0.5" style={{ fontSize: 6 }}>
               Esteira completa: Backlog → Escala
             </p>
           </div>
 
           {/* Leadtime → Piloto */}
-          <div className="rounded-lg p-3" style={{ background: 'rgba(255,255,255,0.08)' }}>
-            <div className="flex items-center gap-1.5 mb-1">
-              <ArrowRight size={12} className="text-white/50" />
-              <p className="text-white/60 uppercase" style={{ fontSize: 9, letterSpacing: '0.08em' }}>
+          <div className="rounded p-1" style={{ background: 'rgba(255,255,255,0.08)' }}>
+            <div className="flex items-center gap-0.5 mb-0.5">
+              <ArrowRight size={8} className="text-white/50" />
+              <p className="text-white/60 uppercase" style={{ fontSize: 7, letterSpacing: '0.05em' }}>
                 Leadtime → Piloto
               </p>
             </div>
-            <p className="text-white font-bold" style={{ fontSize: 22, lineHeight: 1.1 }}>{kpis.leadtimePiloto}</p>
-            <p className="text-white/40 mt-0.5" style={{ fontSize: 8 }}>
+            <p className="text-white font-bold" style={{ fontSize: 12, lineHeight: 1.1 }}>{kpis.leadtimePiloto}</p>
+            <p className="text-white/40 mt-0.5" style={{ fontSize: 6 }}>
               Backlog → Piloto
             </p>
           </div>
         </div>
 
-        {/* Cycle Time — Experimentação (geral) */}
-        <div className="mt-2">
-          <p className="text-white/50 uppercase mb-1.5" style={{ fontSize: 8, letterSpacing: '0.08em' }}>
-            Cycle Time (Experimentação)
+        {/* Cycle Time por Complexidade (por porte + blocked time de experimentos ativos) */}
+        <div className="mt-0.5">
+          <p className="text-white/50 uppercase mb-0.5" style={{ fontSize: 6, letterSpacing: '0.05em' }}>
+            Cycle Time por Complexidade
           </p>
-          <div className="rounded-lg p-3 text-center" style={{ background: 'rgba(255,255,255,0.08)' }}>
-            <p className="text-white font-bold" style={{ fontSize: 22, lineHeight: 1.1 }}>
-              {data.cycleTimeExperimentacaoGeral?.mediaDias ? `${data.cycleTimeExperimentacaoGeral.mediaDias}d` : '-'}
-            </p>
-            <p className="text-white/40 mt-0.5" style={{ fontSize: 9 }}>
-              {data.cycleTimeExperimentacaoGeral?.qtdIniciativas
-                ? `${data.cycleTimeExperimentacaoGeral.qtdIniciativas} epics · mediana ${data.cycleTimeExperimentacaoGeral.medianaDias}d`
-                : 'sem dados'}
-            </p>
+          <div className="rounded p-1" style={{ background: 'rgba(255,255,255,0.08)' }}>
+            {/* Por porte: Baixa (P) / Média (M) / Alta (G) */}
+            <div className="flex gap-0.5 mb-0.5">
+              {(data.cycleTimeExperimentacao ?? []).map((item) => {
+                const porteMatch = item.label.match(/Porte ([PMG])/)
+                const porte = porteMatch ? porteMatch[1] : null
+                const labelMap: Record<string, string> = { 'P': 'Baixa', 'M': 'Média', 'G': 'Alta' }
+                const corMap: Record<string, string> = { 'P': '#22C55E', 'M': '#F59E0B', 'G': '#EF4444' }
+                return (
+                  <div
+                    key={item.estagio}
+                    className="flex-1 rounded py-0.5 px-1 text-center"
+                    style={{ background: 'rgba(255,255,255,0.06)' }}
+                  >
+                    <div className="flex items-center justify-center gap-0.5">
+                      <span
+                        className="inline-block w-1 h-1 rounded-full flex-shrink-0"
+                        style={{ background: porte ? corMap[porte] : '#888' }}
+                      />
+                      <span className="text-white/50" style={{ fontSize: 6 }}>
+                        {porte ? `${labelMap[porte]} (${porte})` : item.label}
+                      </span>
+                    </div>
+                    <p className="text-white font-bold" style={{ fontSize: 10, lineHeight: 1.1 }}>
+                      {item.mediaDias}d
+                    </p>
+                  </div>
+                )
+              })}
+            </div>
+
+            {/* Blocked time — experimentos ativos com bloqueio aberto */}
+            <div className="flex items-center justify-between border-t pt-0.5" style={{ borderColor: 'rgba(255,255,255,0.1)' }}>
+              <div className="flex items-center gap-0.5">
+                <Clock size={7} className="text-amber-400/70" />
+                <span className="text-white/50" style={{ fontSize: 6 }}>Tempo Bloqueado</span>
+              </div>
+              <span className="text-amber-400 font-bold" style={{ fontSize: 9 }}>
+                {data.leadTime?.blockedTimeExperimentacaoDias != null && data.leadTime.blockedTimeExperimentacaoDias > 0
+                  ? `${data.leadTime.blockedTimeExperimentacaoDias}d`
+                  : '—'}
+              </span>
+            </div>
           </div>
         </div>
 
         {/* Diagnóstico resumido */}
         {data.cycleTimeDiagnostico && (
-          <p className="text-white/30 mt-1.5" style={{ fontSize: 8 }}>
+          <p className="text-white/30 mt-0.5" style={{ fontSize: 7 }}>
             {data.cycleTimeDiagnostico.analisados}/{data.cycleTimeDiagnostico.totalEpics} epics analisados
             {data.cycleTimeDiagnostico.semChangelog > 0 && ` · ${data.cycleTimeDiagnostico.semChangelog} sem changelog`}
           </p>
         )}
 
         {/* Valor */}
-        <div className="rounded-lg p-3 mt-2" style={{ background: 'rgba(255,255,255,0.08)' }}>
-          <p className="text-white/60 uppercase mb-1" style={{ fontSize: 9, letterSpacing: '0.05em' }}>
+        <div className="rounded p-1 mt-0.5" style={{ background: 'rgba(255,255,255,0.08)' }}>
+          <p className="text-white/60 uppercase mb-0.5" style={{ fontSize: 8, letterSpacing: '0.04em' }}>
             Benefício Potencial
           </p>
-          <p className="text-white font-bold" style={{ fontSize: 18 }}>{formatBRL(data.beneficioTotal)}</p>
+          <p className="text-white font-bold" style={{ fontSize: 14 }}>{formatBRL(data.beneficioTotal)}</p>
         </div>
       </div>
 

@@ -23,14 +23,14 @@ const META_COLORS: Record<string, { bg: string; bar: string; text: string; glow:
 export default function ResumoExecutivo({ data }: Props) {
   const [modal, setModal] = useState<{ title: string; items: Iniciativa[] } | null>(null)
 
-  // ── Pipeline stats ──
-  const totalIniciativas = data.iniciativas.length
-  const escalado = data.iniciativas.filter(i => getPipelineStage(i.status) === 'EM ESCALA')
-  const emPiloto = data.iniciativas.filter(i => getPipelineStage(i.status) === 'EM PILOTO')
-  const emExperimentacao = data.iniciativas.filter(i => getPipelineStage(i.status) === 'EM EXPERIMENTAÇÃO')
+  // ── Pipeline stats (base: experimentos do board 2707, mesma lógica do funil) ──
+  const totalExperimentos = data.allEpics.filter(e => e.status?.id !== '10015').length
+  const concluidos = data.allEpics.filter(e => e.status?.id === '10003').length
+  const emPilotoEscala = data.pipeline['EM PILOTO'] + data.pipeline['EM ESCALA']
+  const emEscala = data.pipeline['EM ESCALA']
 
-  const taxaEscala = totalIniciativas > 0 ? Math.round((escalado.length / totalIniciativas) * 100) : 0
-  const taxaPiloto = totalIniciativas > 0 ? Math.round(((emPiloto.length + escalado.length) / totalIniciativas) * 100) : 0
+  const taxaEscala = totalExperimentos > 0 ? Math.round((emEscala / totalExperimentos) * 100) : 0
+  const taxaPiloto = totalExperimentos > 0 ? Math.round((emPilotoEscala / totalExperimentos) * 100) : 0
 
   // ── Metas stats ──
   const metasKeys = ['EBITDA', 'Receita', 'NPS'] as const
@@ -51,7 +51,7 @@ export default function ResumoExecutivo({ data }: Props) {
             <div>
               <h2 className="text-sm font-bold text-gray-900">Resumo Executivo</h2>
               <p className="text-xs text-gray-400">
-                Metas estratégicas & pipeline • {totalIniciativas} iniciativas (board 2706)
+                Metas estratégicas & pipeline • {data.iniciativas.length} iniciativas (board 2706)
               </p>
             </div>
           </div>
@@ -142,7 +142,8 @@ export default function ResumoExecutivo({ data }: Props) {
               <div
                 className="rounded-lg border border-emerald-100 bg-gradient-to-br from-emerald-50 to-white p-2.5 cursor-pointer hover:shadow-sm transition-all duration-200 group"
                 onClick={() => {
-                  if (escalado.length > 0) setModal({ title: 'Iniciativas em escala', items: escalado })
+                  const items = data.iniciativas.filter(i => getPipelineStage(i.status) === 'EM ESCALA')
+                  if (items.length > 0) setModal({ title: 'Iniciativas em escala', items })
                 }}
               >
                 <div className="flex items-center gap-2.5">
@@ -156,9 +157,9 @@ export default function ResumoExecutivo({ data }: Props) {
                 </div>
                 <div className="mt-2 pt-2 border-t border-emerald-100/60 flex gap-3">
                   {[
-                    { label: 'Exp.', count: emExperimentacao.length, color: 'text-emerald-700' },
-                    { label: 'Piloto', count: emPiloto.length, color: 'text-amber-700' },
-                    { label: 'Escala', count: escalado.length, color: 'text-red-700' },
+                    { label: 'Exp.', count: data.iniciativas.filter(i => getPipelineStage(i.status) === 'EM EXPERIMENTAÇÃO').length, color: 'text-emerald-700' },
+                    { label: 'Piloto', count: data.pipeline['EM PILOTO'], color: 'text-amber-700' },
+                    { label: 'Escala', count: data.pipeline['EM ESCALA'], color: 'text-red-700' },
                   ].map(s => (
                     <div key={s.label} className="flex items-center gap-1">
                       <span className="text-[9px] text-gray-400">{s.label}</span>
@@ -172,7 +173,8 @@ export default function ResumoExecutivo({ data }: Props) {
               <div
                 className="rounded-lg border border-red-100 bg-gradient-to-br from-red-50 to-white p-2.5 cursor-pointer hover:shadow-sm transition-all duration-200 group"
                 onClick={() => {
-                  if (escalado.length > 0) setModal({ title: 'Iniciativas em escala', items: escalado })
+                  const items = data.iniciativas.filter(i => getPipelineStage(i.status) === 'EM ESCALA')
+                  if (items.length > 0) setModal({ title: 'Iniciativas em escala', items })
                 }}
               >
                 <div className="flex items-center gap-2.5">
@@ -185,7 +187,7 @@ export default function ResumoExecutivo({ data }: Props) {
                       <span className="text-sm font-extrabold text-gray-900">{taxaEscala}%</span>
                     </div>
                     <div className="flex items-center justify-between mt-0.5">
-                      <span className="text-[9px] text-gray-400">{escalado.length} de {totalIniciativas}</span>
+                      <span className="text-[9px] text-gray-400">{emEscala} de {totalExperimentos}</span>
                       <div className="w-20 h-1.5 bg-red-100 rounded-full overflow-hidden">
                         <div
                           className="h-full bg-gradient-to-r from-red-500 to-red-600 rounded-full transition-all duration-700"
@@ -201,7 +203,10 @@ export default function ResumoExecutivo({ data }: Props) {
               <div
                 className="rounded-lg border border-amber-100 bg-gradient-to-br from-amber-50 to-white p-2.5 cursor-pointer hover:shadow-sm transition-all duration-200 group"
                 onClick={() => {
-                  const items = [...emPiloto, ...escalado]
+                  const items = data.iniciativas.filter(i => {
+                    const s = getPipelineStage(i.status)
+                    return s === 'EM PILOTO' || s === 'EM ESCALA'
+                  })
                   if (items.length > 0) setModal({ title: 'Iniciativas em piloto/escala', items })
                 }}
               >
@@ -215,7 +220,7 @@ export default function ResumoExecutivo({ data }: Props) {
                       <span className="text-sm font-extrabold text-gray-900">{taxaPiloto}%</span>
                     </div>
                     <div className="flex items-center justify-between mt-0.5">
-                      <span className="text-[9px] text-gray-400">{emPiloto.length + escalado.length} de {totalIniciativas}</span>
+                      <span className="text-[9px] text-gray-400">{emPilotoEscala} de {totalExperimentos}</span>
                       <div className="w-20 h-1.5 bg-amber-100 rounded-full overflow-hidden">
                         <div
                           className="h-full bg-gradient-to-r from-amber-500 to-orange-500 rounded-full transition-all duration-700"

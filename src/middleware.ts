@@ -5,6 +5,11 @@ const PUBLIC_PATHS = ['/login', '/api/auth']
 const BASE = '/jira'
 
 export function middleware(request: NextRequest) {
+  // TODO: REATIVAR AUTENTICAÇÃO ANTES DE SUBIR PARA PRODUÇÃO
+  // Desabilitado temporariamente para desenvolvimento local
+  return NextResponse.next()
+
+  /*
   const { pathname } = request.nextUrl
   const stripped = pathname.startsWith(BASE) ? pathname.slice(BASE.length) : pathname
 
@@ -27,6 +32,7 @@ export function middleware(request: NextRequest) {
   }
 
   return NextResponse.redirect(new URL(`${BASE}/login`, request.url))
+  */
 }
 
 export const config = {

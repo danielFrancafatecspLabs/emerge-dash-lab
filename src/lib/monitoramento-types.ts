@@ -1,5 +1,7 @@
 // Tipos para o dashboard estratégico de Monitoramento da Experimentação
 
+import type { CycleTimeEstagio } from '@/lib/types'
+
 export interface KpiEstrategico {
   titulo: string
   valor: string
@@ -70,4 +72,8 @@ export interface MonitoramentoData {
   // Linha 4
   maturidade: MaturidadeEstagio[]
   insights: InsightExecutivo[]
+
+  // Cycle Time — Experimentação (por porte)
+  cycleTimeExperimentacao: CycleTimeEstagio[]
+  cycleTimeExperimentacaoGeral: CycleTimeEstagio
 }

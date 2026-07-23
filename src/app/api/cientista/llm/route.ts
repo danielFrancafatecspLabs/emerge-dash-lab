@@ -24,7 +24,7 @@ function buildContext(data: Awaited<ReturnType<typeof buildDashboardData>>): str
   const top5Spon = Object.entries(sponsorCount).sort((a, b) => b[1] - a[1]).slice(0, 5)
 
   return `
-Você é o Cientista de Dados do BeOn Lab da Claro Brasil. Responda em português, de forma clara e concisa.
+Você é o Cientista de Dados do beOn Labs da Claro Brasil. Responda em português, de forma clara e concisa.
 
 DADOS DO PORTFÓLIO (em tempo real do Jira):
 - Total de Iniciativas: ${totalIniciativas}

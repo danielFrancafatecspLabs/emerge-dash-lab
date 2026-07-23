@@ -41,13 +41,21 @@ export async function GET() {
         return pa - pb
       })
 
+    // ── Funil de Inovação ──
+    // Em Andamento: Experimentos (Epics do board 2707) com status "Em andamento"
+    // Em Piloto: Iniciativas (board 2706) na coluna "EM PILOTO"
+    // Concluídos: Experimentos (Epics do board 2707) com status "Concluído"
+    // Em Escala: Iniciativas (board 2706) na coluna "EM ESCALA"
+    const emAndamentoCount = data.allEpics.filter(e => e.status.id === '3').length
+    const emPilotoCount = data.pipeline['EM PILOTO']
+    const concluidosCount = data.allEpics.filter(e => e.status.id === '10003').length
+    const emEscalaCount = data.pipeline['EM ESCALA']
+
     const funilStages = [
-      { label: 'Em Refinamento', value: data.pipeline['EM REFINAMENTO'], color: '#3B82F6' },
-      { label: 'Em Experimentação', value: data.pipeline['EM EXPERIMENTAÇÃO'], color: '#FCD34D' },
-      { label: 'Concluído', value: data.pipeline['FINALIZADO'], color: '#134E4A' },
-      { label: 'Aguardando Piloto', value: data.pipeline['AGUARDANDO PILOTO'], color: '#F97316' },
-      { label: 'Em Piloto', value: data.pipeline['EM PILOTO'], color: '#EF4444' },
-      { label: 'Cancelado', value: data.pipeline['CANCELADO'], color: '#6B7280' },
+      { label: 'Em Andamento', value: emAndamentoCount, color: '#3B82F6' },
+      { label: 'Em Piloto', value: emPilotoCount, color: '#EF4444' },
+      { label: 'Concluídos', value: concluidosCount, color: '#134E4A' },
+      { label: 'Em Escala', value: emEscalaCount, color: '#22C55E' },
     ]
     const funilMax = Math.max(...funilStages.map(s => s.value), 1)
 
