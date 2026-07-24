@@ -37,7 +37,7 @@ export default function Header({ periodoSelecionado = { tipo: 'ultimos12' }, onP
       <div className="flex items-center gap-3">
         <Radio size={20} color="white" />
         <h1 className="text-white font-bold tracking-wide" style={{ fontSize: 15, letterSpacing: '0.08em' }}>
-          DASHBOARD EXECUTIVO DE EXPERIMENTOS TELECOM
+          DASHBOARD BEON LABS
         </h1>
       </div>
       <div className="flex items-center gap-3">

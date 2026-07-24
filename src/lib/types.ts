@@ -36,6 +36,8 @@ export interface JiraIssueFields {
   lastComment?: string | null
   // Prioridade padrão do Jira
   priority?: { id?: string; name?: string } | null
+  // Anexos
+  attachment?: { id: string; filename: string; content: string; mimeType: string; created: string }[]
 }
 
 export interface JiraIssue {
@@ -89,6 +91,7 @@ export interface EpicDetail {
   prioridade?: string | null
   criadoEm?: string | null
   concluidoEm?: string | null
+  anexos?: { filename: string; url: string }[] | null
 }
 
 export interface Iniciativa {

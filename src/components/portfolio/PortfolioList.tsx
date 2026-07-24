@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react'
 import { DashboardData, EpicDetail } from '@/lib/types'
 import { formatBRL, META_LABELS } from '@/lib/mappers'
-import { Filter, X, Search, Eye, ChevronDown, TrendingUp, Users, DollarSign, Maximize2, Minimize2, Target, Layers, Zap } from 'lucide-react'
+import { Filter, X, Search, Eye, ChevronDown, TrendingUp, Users, DollarSign, Maximize2, Minimize2, Target, Layers, Zap, Paperclip } from 'lucide-react'
 import ExperimentoModal from '@/components/dashboard/ExperimentoModal'
 
 interface Props { data: DashboardData }
@@ -160,7 +160,7 @@ export default function PortfolioList({ data }: Props) {
               <Layers size={22} className="text-blue-700" />
             </div>
             <div className="min-w-0">
-              <p className="text-xs text-blue-500 font-semibold uppercase tracking-wider">Experimentos (board 2707)</p>
+              <p className="text-xs text-blue-500 font-semibold uppercase tracking-wider">Experimentos (board 2707) <span className="font-normal lowercase normal-case tracking-normal text-blue-400">— Iniciativas que já passaram por aqui</span></p>
               <p className="text-2xl font-extrabold text-gray-900">{epics.length}</p>
               {hasFilter && (
                 <p className="text-xs text-amber-600 mt-0.5">{filtered.length} exibidos com filtros</p>
@@ -430,6 +430,7 @@ export default function PortfolioList({ data }: Props) {
                   {visibleColumns.statusDetalhado && (<th className="px-3 py-2 text-left text-gray-400 font-semibold uppercase whitespace-nowrap" style={{ fontSize: 9 }}>Status Detalhado</th>)}
                   <th className="px-3 py-2 text-left text-gray-400 font-semibold uppercase whitespace-nowrap" style={{ fontSize: 9 }}>Benefício Potencial Estimado</th>
                   {visibleColumns.alinhamentos && (<th className="px-3 py-2 text-left text-gray-400 font-semibold uppercase whitespace-nowrap" style={{ fontSize: 9 }}>Alinhamentos</th>)}
+                  <th className="px-3 py-2 text-center text-gray-400 font-semibold uppercase whitespace-nowrap" style={{ fontSize: 9, width: 60 }}>Anexo</th>
                 </>
               </tr>
             </thead>
@@ -488,12 +489,30 @@ export default function PortfolioList({ data }: Props) {
                       )}
                     </td>
                   )}
+                  <td className="px-3 py-2 text-center">
+                    {e.anexos && e.anexos.length > 0 ? (
+                      <a
+                        href={`https://clarobr-jsw-tecnologia.atlassian.net/browse/${e.key}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 hover:underline"
+                        style={{ fontSize: 11 }}
+                        onClick={e => e.stopPropagation()}
+                        title={e.anexos.map(a => a.filename).join('\n')}
+                      >
+                        <Paperclip size={12} />
+                        {e.anexos.length > 1 ? `${e.anexos.length}` : ''}
+                      </a>
+                    ) : (
+                      <span className="text-gray-300" style={{ fontSize: 11 }}>—</span>
+                    )}
+                  </td>
                 </tr>
               ))}
 
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="px-4 py-10 text-center text-gray-400 text-sm">
+                  <td colSpan={9} className="px-4 py-10 text-center text-gray-400 text-sm">
                     Nenhum experimento encontrado com os filtros aplicados.
                   </td>
                 </tr>

@@ -1,6 +1,7 @@
 'use client'
 
 import { formatBRL } from '@/lib/mappers'
+import type { MercadoAgregado } from '@/lib/types'
 
 const SEGMENTO_ICONS: Record<string, string> = {
   'Consumo':     '👤',
@@ -8,7 +9,11 @@ const SEGMENTO_ICONS: Record<string, string> = {
   'PME/GE/GOV':  '🏢',
 }
 
-const HARDCODED_MARKETS = [
+interface Props {
+  data: MercadoAgregado[]
+}
+
+const HARDCODED_MARKETS: MercadoAgregado[] = [
   {
     nome: 'Consumo',
     qtdExperimentos: 63,
@@ -17,6 +22,8 @@ const HARDCODED_MARKETS = [
       { nome: 'Digital', count: 7, pct: 78 },
       { nome: 'TI', count: 2, pct: 22 },
     ],
+    epics: [],
+    alertas: { bloqueadosIA: 0, aguardandoDelivery: 0, semSponsor: 0 },
   },
   {
     nome: 'Corporativo',
@@ -26,6 +33,8 @@ const HARDCODED_MARKETS = [
       { nome: 'Financeiro / ADM', count: 13, pct: 68 },
       { nome: 'Jurídico', count: 6, pct: 32 },
     ],
+    epics: [],
+    alertas: { bloqueadosIA: 0, aguardandoDelivery: 0, semSponsor: 0 },
   },
   {
     nome: 'PME/GE/GOV',
@@ -35,17 +44,21 @@ const HARDCODED_MARKETS = [
       { nome: 'Atendimento', count: 1, pct: 50 },
       { nome: 'Vendas', count: 1, pct: 50 },
     ],
+    epics: [],
+    alertas: { bloqueadosIA: 0, aguardandoDelivery: 0, semSponsor: 0 },
   },
 ]
 
-export default function PortfolioPorMercado() {
+export default function PortfolioPorMercado({ data }: Props) {
+  const items: MercadoAgregado[] = (Array.isArray(data) && data.length > 0) ? data : HARDCODED_MARKETS
+
   return (
     <div className="bg-white rounded-lg p-4 border border-gray-200">
       <p className="text-xs font-semibold text-gray-500 uppercase tracking-widest mb-3">
         Portfólio
       </p>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        {HARDCODED_MARKETS.map(m => {
+        {items.map(m => {
           const icon = SEGMENTO_ICONS[m.nome] ?? '📦'
           return (
             <div

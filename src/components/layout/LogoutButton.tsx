@@ -7,6 +7,8 @@ export default function LogoutButton() {
   const router = useRouter()
 
   async function handleLogout() {
+    localStorage.removeItem('user_role')
+    localStorage.removeItem('username')
     await fetch('/jira/api/auth/logout', { method: 'POST' })
     router.replace('/login')
   }

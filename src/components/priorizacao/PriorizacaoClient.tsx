@@ -1,11 +1,14 @@
 'use client'
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
-import { AlertTriangle, ChevronDown, ChevronUp, Presentation, Target } from 'lucide-react'
+import { AlertTriangle, ChevronDown, ChevronUp, List, Presentation, Target } from 'lucide-react'
+import Header from '@/components/layout/Header'
+import Sidebar from '@/components/layout/Sidebar'
 import QuadranteCard from './QuadranteCard'
 import NaoClassificadosList from './NaoClassificadosList'
 import ModoReuniao from './ModoReuniao'
 import VisaoEstrategica from './VisaoEstrategica'
+import VisaoListaPriorizacao from './VisaoListaPriorizacao'
 
 // --------------- Tipos ---------------
 
@@ -82,6 +85,7 @@ export default function PriorizacaoClient() {
   const [mostrarSoSemDados, setMostrarSoSemDados] = useState(false)
   const [modoReuniao, setModoReuniao] = useState(false)
   const [visaoEstrategica, setVisaoEstrategica] = useState(false)
+  const [visaoLista, setVisaoLista] = useState(true)  // Lista executiva como padrão
 
   // Carregar dados da API
   useEffect(() => {
@@ -261,29 +265,60 @@ export default function PriorizacaoClient() {
   }
 
   return (
-    <div className="min-h-screen" style={{ background: '#f0f0f0' }}>
-      {/* Header */}
-      <div className="bg-white border-b shadow-sm px-6 py-4">
-        <div className="flex items-center justify-between flex-wrap gap-4">
-          <div>
-            <h1 className="text-2xl font-bold" style={{ color: '#8B0000' }}>Priorização de Experimentos</h1>
-            <p className="text-sm text-gray-500 mt-1">
-              Board 2707 — {experimentos.length} experimentos em backlog/refinamento/andamento
-            </p>
+    <div className="flex min-h-screen" style={{ background: '#f0f0f0' }}>
+      {/* Sidebar fixa */}
+      <div className="flex-shrink-0" style={{ width: 72 }}>
+        <div className="fixed top-0 left-0 h-full" style={{ width: 72 }}>
+          <div style={{ background: '#8B0000', paddingTop: 52, height: '100%' }}>
+            <Sidebar />
           </div>
+        </div>
+      </div>
+
+      {/* Main */}
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* Header fixo */}
+        <div className="fixed top-0 z-10" style={{ left: 72, right: 0 }}>
+          <Header />
+        </div>
+
+        {/* Content */}
+        <main className="flex-1 p-3 gap-3 flex flex-col" style={{ marginTop: 52 }}>
+          {/* Header interno da priorização */}
+          <div className="bg-white border rounded-lg shadow-sm px-6 py-4">
+            <div className="flex items-center justify-between flex-wrap gap-4">
+              <div>
+                <h1 className="text-2xl font-bold" style={{ color: '#8B0000' }}>Priorização de Experimentos</h1>
+                <p className="text-sm text-gray-500 mt-1">
+                  Board 2707 — {experimentos.length} experimentos em backlog/refinamento/andamento
+                </p>
+              </div>
           <div className="flex items-center gap-3 flex-wrap">
             <button
-              onClick={() => setVisaoEstrategica(!visaoEstrategica)}
+              onClick={() => { setVisaoLista(false); setVisaoEstrategica(!visaoEstrategica) }}
               className={`flex items-center gap-2 px-4 py-2 rounded font-medium transition-colors ${
-                visaoEstrategica
+                visaoEstrategica && !visaoLista
                   ? 'bg-white border-2 text-gray-800'
                   : 'text-white'
               }`}
-              style={visaoEstrategica ? { borderColor: '#8B0000' } : { background: '#8B0000' }}
+              style={visaoEstrategica && !visaoLista ? { borderColor: '#8B0000' } : { background: '#8B0000' }}
               title="Visão Estratégica: matriz Complexidade × Benefício"
             >
               <Target size={18} />
               Visão Estratégica
+            </button>
+            <button
+              onClick={() => { setVisaoEstrategica(false); setVisaoLista(!visaoLista) }}
+              className={`flex items-center gap-2 px-4 py-2 rounded font-medium transition-colors ${
+                visaoLista
+                  ? 'bg-white border-2 text-gray-800'
+                  : 'text-white'
+              }`}
+              style={visaoLista ? { borderColor: '#8B0000' } : { background: '#8B0000' }}
+              title="Lista: experimentos ordenados por prioridade (Highest → Low)"
+            >
+              <List size={18} />
+              Lista
             </button>
             <button
               onClick={() => setModoReuniao(true)}
@@ -323,7 +358,7 @@ export default function PriorizacaoClient() {
       </div>
 
       {/* Sumário */}
-      <div className="px-6 py-3 flex items-center gap-6 text-sm flex-wrap">
+      <div className="bg-white border rounded-lg shadow-sm px-6 py-3 flex items-center gap-6 text-sm flex-wrap">
         <div className="flex items-center gap-2">
           <div className="w-3 h-3 rounded-full" style={{ background: '#8B0000' }} />
           <span className="font-medium">Estratégico:</span>
@@ -354,9 +389,11 @@ export default function PriorizacaoClient() {
         </div>
       </div>
 
-      {/* Visão Estratégica ou Grid de quadrantes */}
-      <div className="px-6 pb-8">
-        {visaoEstrategica ? (
+      {/* Visão Estratégica, Lista ou Grid de quadrantes */}
+      <div className="pb-8">
+        {visaoLista ? (
+          <VisaoListaPriorizacao experimentos={experimentos} />
+        ) : visaoEstrategica ? (
           <VisaoEstrategica experimentos={experimentos} />
         ) : (
           <>
@@ -424,6 +461,8 @@ export default function PriorizacaoClient() {
         />
           </>
         )}
+      </div>
+        </main>
       </div>
     </div>
   )
