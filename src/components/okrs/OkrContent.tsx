@@ -141,7 +141,7 @@ export default function OkrContent() {
                 <tr className="border-b border-gray-100 text-gray-400">
                   <th className="text-left px-4 py-2 font-medium">Key Result</th>
                   <th className="text-center px-3 py-2 font-medium w-16">Base</th>
-                  <th className="text-center px-3 py-2 font-medium w-16">Meta X</th>
+                  <th className="text-center px-3 py-2 font-medium w-16">Meta</th>
                   <th className="text-center px-3 py-2 font-medium w-20">Atual</th>
                   <th className="text-center px-3 py-2 font-medium w-28">% Atingido</th>
                 </tr>
@@ -157,25 +157,10 @@ export default function OkrContent() {
                           <span className="text-gray-700">{kr.label}</span>
                         </div>
                       </td>
-                      <td className="text-center px-3 py-3 text-gray-500">{kr.base}</td>
-                      <td className="text-center px-3 py-3 font-medium text-gray-700">{kr.meta}</td>
-                      <td className="text-center px-3 py-3 font-medium text-gray-800">{kr.atual}</td>
-                      <td className="px-3 py-3">
-                        <div className="flex items-center gap-2">
-                          <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
-                            <div
-                              className="h-full rounded-full transition-all"
-                              style={{
-                                width: getProgressWidth(kr.pct),
-                                backgroundColor: getProgressColor(kr.pct),
-                              }}
-                            />
-                          </div>
-                          <span className={`text-xs font-semibold px-1.5 py-0.5 rounded ${getPctBg(kr.pct)} ${getPctColor(kr.pct)}`}>
-                            {kr.pct}
-                          </span>
-                        </div>
-                      </td>
+                      <td className="text-center px-3 py-3 text-gray-400">0</td>
+                      <td className="text-center px-3 py-3 text-gray-400">0</td>
+                      <td className="text-center px-3 py-3 text-gray-400">0</td>
+                      <td className="text-center px-3 py-3 text-gray-400">0%</td>
                     </tr>
                   )
                 })}

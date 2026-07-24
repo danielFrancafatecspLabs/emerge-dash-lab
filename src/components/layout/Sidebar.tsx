@@ -1,22 +1,35 @@
 'use client'
-import { Target, BarChart2, Activity, Users, FileText, Bot, Flag, ListOrdered, Settings } from 'lucide-react'
+import { Target, BarChart2, Activity, Users, FileText, Bot, Flag, ListOrdered, Settings, PanelRightOpen } from 'lucide-react'
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
+import { useEffect, useState } from 'react'
 
-const NAV = [
-  { label: 'OKRs',      icon: Flag,     href: '/okrs',          inactive: false },
-  { label: 'Estratégia', icon: Target,   href: '/estrategia',    inactive: false },
-  { label: 'Portfólio',  icon: BarChart2, href: '/portfolio',     inactive: false },
-  { label: 'Priorização',icon: ListOrdered,href: '/priorizacao',  inactive: false },
-  { label: 'Report',     icon: FileText, href: '/report',         inactive: false },
-  { label: 'Monitoram.', icon: Activity,  href: '/monitoramento', inactive: false },
-  { label: 'Cientista',  icon: Bot,       href: '/cientista',     inactive: false },
-  { label: 'Governança', icon: Users,     href: '/governanca',    inactive: true  },
-  { label: 'Admin',      icon: Settings,  href: '/admin/users',   inactive: false },
+const NAV_ALL = [
+  { label: 'OKRs',      icon: Flag,     href: '/okrs',          inactive: false, roles: ['admin', 'executivo'] },
+  { label: 'Estratégia', icon: Target,   href: '/estrategia',    inactive: false, roles: ['admin', 'executivo'] },
+  { label: 'Operacional',icon: Activity,  href: '/operacional',   inactive: false, roles: ['admin'] },
+  { label: 'Portfólio',  icon: BarChart2, href: '/portfolio',     inactive: false, roles: ['admin', 'executivo'] },
+  { label: 'Priorização',icon: ListOrdered,href: '/priorizacao',  inactive: false, roles: ['admin'] },
+  { label: 'Report',     icon: FileText, href: '/report',         inactive: false, roles: ['admin'] },
+  { label: 'Monitoram.', icon: Activity,  href: '/monitoramento', inactive: false, roles: ['admin'] },
+  { label: 'Cientista',  icon: Bot,       href: '/cientista',     inactive: false, roles: ['admin'] },
+  { label: 'Governança', icon: Users,     href: '/governanca',    inactive: true,  roles: ['admin', 'executivo'] },
+  { label: 'Admin',      icon: Settings,  href: '/admin/users',   inactive: false, roles: ['admin'] },
 ]
 
 export default function Sidebar() {
   const path = usePathname()
+  const [role, setRole] = useState<string | null>(null)
+
+  useEffect(() => {
+    const stored = localStorage.getItem('user_role')
+    setRole(stored)
+  }, [])
+
+  const NAV = NAV_ALL.filter(item => {
+    if (!role) return true // fallback: mostra tudo até carregar
+    return item.roles.includes(role)
+  })
 
   return (
     <aside
@@ -56,6 +69,20 @@ export default function Sidebar() {
           </Link>
         )
       })}
+
+      {/* Botão Modo Slide — só aparece na página de Estratégia */}
+      {path.startsWith('/estrategia') && (
+        <button
+          onClick={() => window.dispatchEvent(new CustomEvent('open-slide-mode'))}
+          className="flex flex-col items-center gap-1 py-3 px-1 w-full rounded-none hover:bg-white/10 transition-colors"
+          title="Expandir dashboard (ocultar menu)"
+        >
+          <PanelRightOpen size={20} color="white" strokeWidth={1.8} />
+          <span className="text-white text-center leading-tight" style={{ fontSize: 9 }}>
+            Slide
+          </span>
+        </button>
+      )}
     </aside>
   )
 }

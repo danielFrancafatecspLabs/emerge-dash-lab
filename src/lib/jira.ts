@@ -24,6 +24,7 @@ const FIELDS_EPIC = [
   'customfield_11378', // Segmento
   'customfield_15919', // Portfólio
   'customfield_10904', // Diretoria
+  'attachment',          // Anexos
 ].join(',')
 
 function getHeaders(): HeadersInit {
