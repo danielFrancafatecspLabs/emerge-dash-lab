@@ -153,6 +153,7 @@ export default function ResumoExecutivo({ data }: Props) {
                   <div>
                     <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider">Benefício Potencial</p>
                     <p className="text-base font-extrabold text-gray-900 tracking-tight">{formatBRL(data.beneficioTotal)}</p>
+                    <p className="text-[8px] text-gray-400 mt-0.5 leading-tight">Os números de benefícios exibidos consideram as estimativas fornecidas pelos usuários na etapa de cadastro do experimento.</p>
                   </div>
                 </div>
                 <div className="mt-2 pt-2 border-t border-emerald-100/60 flex gap-3">

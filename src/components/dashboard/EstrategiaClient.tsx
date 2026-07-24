@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useMemo, useEffect, useCallback } from 'react'
-import { Monitor } from 'lucide-react'
+import { useState, useMemo, useEffect } from 'react'
+import { PanelLeftOpen } from 'lucide-react'
 import Header from '@/components/layout/Header'
 import Sidebar from '@/components/layout/Sidebar'
 import ResumoExecutivo from '@/components/dashboard/ResumoExecutivo'
@@ -13,7 +13,7 @@ import LeadTimeJornada from '@/components/dashboard/LeadTimeJornada'
 import FunilExperimentos from '@/components/dashboard/FunilExperimentos'
 import { PeriodoFiltro, isDataNoPeriodo } from '@/lib/periodo-filter'
 import { DashboardData, Iniciativa, EpicDetail, PipelineCount, MercadoAgregado, MetaCategoria, MonitoramentoData } from '@/lib/types'
-import { getPipelineStage } from '@/lib/mappers'
+import { getPipelineStage, buildMonitoramentoData } from '@/lib/mappers'
 
 /**
  * Recalcula o DashboardData completo filtrando apenas iniciativas e epics
@@ -137,7 +137,7 @@ function filtrarDashboardData(data: DashboardData, periodo: PeriodoFiltro): Dash
   }).sort((a, b) => b.qtdExperimentos - a.qtdExperimentos)
 
   // ── Mercados por segmento ──
-  const mercadosSegmento = data.mercadosSegmento.map(ms => {
+  const mercadosSegmento = (data.mercadosSegmento ?? []).map(ms => {
     const epicsFiltrados = ms.epics.filter(e => isDataNoPeriodo(e.criadoEm, periodo))
     const domCount = new Map<string, number>()
     for (const e of epicsFiltrados) {
@@ -215,168 +215,65 @@ interface EstrategiaClientProps {
 }
 
 export default function EstrategiaClient({ data, monitoramento }: EstrategiaClientProps) {
-  const [periodoSelecionado, setPeriodoSelecionado] = useState<PeriodoFiltro>({ tipo: 'ultimos12' })
+  const [periodoFiltro, setPeriodoFiltro] = useState<PeriodoFiltro>({ tipo: 'ultimos12' })
   const [modoSlide, setModoSlide] = useState(false)
-  const [slideScale, setSlideScale] = useState(0.5)
 
   const dadosFiltrados = useMemo(
-    () => filtrarDashboardData(data, periodoSelecionado),
-    [data, periodoSelecionado]
+    () => filtrarDashboardData(data, periodoFiltro),
+    [data, periodoFiltro]
   )
 
-  // Calcula o scale para o modo slide baseado no viewport
-  const computeScale = useCallback(() => {
-    const vw = window.innerWidth
-    const vh = window.innerHeight
-    const containerW = Math.min(vw * 0.96, 1280)
-    const containerH = Math.min(vh * 0.96, 720) - 32 // 32 = altura da barra
-    const scaleX = containerW / 1920
-    const scaleY = containerH / 1080
-    return Math.min(scaleX, scaleY)
-  }, [])
+  const monitoramentoFiltrado = useMemo(
+    () => buildMonitoramentoData(dadosFiltrados, periodoFiltro),
+    [dadosFiltrados, periodoFiltro]
+  )
 
+  // Escuta evento da Sidebar para alternar modo slide (toggle sidebar)
   useEffect(() => {
-    if (modoSlide) {
-      setSlideScale(computeScale())
-      const onResize = () => setSlideScale(computeScale())
-      window.addEventListener('resize', onResize)
-      return () => window.removeEventListener('resize', onResize)
-    }
-  }, [modoSlide, computeScale])
-
-  // ── Modo Slide: tela cheia, sem sidebar/header, tamanho fixo 16:9 ──
-  if (modoSlide) {
-    return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80" onClick={() => setModoSlide(false)}>
-        {/* Container externo: 1280×720 visível. Interno renderiza a 1920×1080 e escala para caber. */}
-        <div
-          className="bg-white overflow-hidden shadow-2xl flex-shrink-0 relative"
-          style={{ width: 'min(96vw, 1280px)', aspectRatio: '16/9', maxHeight: '96vh' }}
-          onClick={e => e.stopPropagation()}
-        >
-          {/* Barra superior compacta — fora do scale */}
-          <div className="flex items-center justify-between px-4 py-1.5 border-b relative z-10" style={{ background: '#8B0000' }}>
-            <div className="flex items-center gap-2">
-              <span className="text-white font-bold text-sm">Dashboard Estratégico — beOn Labs</span>
-              <span className="text-white/60 text-xs">
-                {periodoSelecionado.tipo === 'tudo' ? 'Todo o período' :
-                 periodoSelecionado.tipo === 'ultimos12' ? 'Últimos 12 meses' :
-                 periodoSelecionado.tipo === 'ultimoAno' ? `Ano ${periodoSelecionado.ano}` :
-                 `${periodoSelecionado.mes}/${periodoSelecionado.ano}`}
-              </span>
-            </div>
-            <button
-              onClick={() => setModoSlide(false)}
-              className="text-white/70 hover:text-white text-xs px-2 py-0.5 rounded hover:bg-white/10"
-            >
-              ✕ Fechar
-            </button>
-          </div>
-
-          {/* Área de conteúdo: renderiza a 1920×1200 e escala para caber no espaço restante */}
-          <div className="overflow-hidden" style={{ height: 'calc(100% - 32px)' }}>
-            <div
-              style={{
-                width: 1920,
-                height: 1200,
-                transformOrigin: 'top left',
-                transform: `scale(${slideScale})`,
-              }}
-            >
-              {/* Layout interno: sidebar + header + content, igual ao normal */}
-              <div className="flex" style={{ height: 1200, background: '#f0f0f0' }}>
-                {/* Sidebar compacta */}
-                <div className="flex-shrink-0" style={{ width: 72, background: '#8B0000', paddingTop: 48 }}>
-                  <Sidebar />
-                </div>
-
-                {/* Main */}
-                <div className="flex-1 flex flex-col min-w-0">
-                  {/* Header */}
-                  <Header
-                    periodoSelecionado={periodoSelecionado}
-                    onPeriodoChange={setPeriodoSelecionado}
-                  />
-
-                  {/* Content */}
-                  <main className="flex-1 p-2 gap-2 flex flex-col" style={{ marginTop: 0 }}>
-                    {/* Row 1: Resumo Executivo + Portfólio + Funil */}
-                    <div className="grid gap-2 flex-1 min-h-0" style={{ gridTemplateColumns: '1fr 1fr 1fr' }}>
-                      <ResumoExecutivo data={data} />
-                      <PortfolioPorMercado />
-                      <FunilExperimentos data={data} />
-                    </div>
-
-                    {/* Row 2: Top 5 + Burnup + Jornada de Adoção */}
-                    <div className="grid gap-2 flex-shrink-0" style={{ gridTemplateColumns: '20fr 45fr 35fr', maxHeight: 360 }}>
-                      <Top5Experimentos data={dadosFiltrados} />
-                      <BurnupChart data={monitoramento.burnup} />
-                      <LeadTimeJornada
-                        data={dadosFiltrados.leadTimeJornada}
-                        cycleTimeExperimentacao={dadosFiltrados.cycleTimeExperimentacao}
-                      />
-                    </div>
-                  </main>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Dica no canto */}
-        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 text-white/50 text-xs">
-          Clique fora do slide ou pressione ✕ para fechar • Ideal para print (Ctrl+P)
-        </div>
-      </div>
-    )
-  }
+    const handler = () => setModoSlide(prev => !prev)
+    window.addEventListener('open-slide-mode', handler)
+    return () => window.removeEventListener('open-slide-mode', handler)
+  }, [])
 
   return (
     <div className="flex min-h-screen" style={{ background: '#f0f0f0' }}>
-      {/* Sidebar */}
-      <div className="flex-shrink-0" style={{ width: 72 }}>
-        <div className="fixed top-0 left-0 h-full" style={{ width: 72 }}>
-          <div style={{ background: '#8B0000', paddingTop: 52, height: '100%' }}>
-            <Sidebar />
+      {/* Sidebar — oculta no modo slide */}
+      {!modoSlide && (
+        <div className="flex-shrink-0" style={{ width: 72 }}>
+          <div className="fixed top-0 left-0 h-full" style={{ width: 72 }}>
+            <div style={{ background: '#8B0000', paddingTop: 52, height: '100%' }}>
+              <Sidebar />
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Main */}
       <div className="flex-1 flex flex-col min-w-0">
-        {/* Header */}
-        <div className="fixed top-0 z-10" style={{ left: 72, right: 0 }}>
-          <Header
-            periodoSelecionado={periodoSelecionado}
-            onPeriodoChange={setPeriodoSelecionado}
-          />
-        </div>
+        {/* Header — oculto no modo slide */}
+        {!modoSlide && (
+          <div className="fixed top-0 z-10" style={{ left: 72, right: 0 }}>
+            <Header
+              periodoSelecionado={periodoFiltro}
+              onPeriodoChange={setPeriodoFiltro}
+            />
+          </div>
+        )}
 
         {/* Content */}
-        <main className="flex-1 p-3 gap-3 flex flex-col" style={{ marginTop: 52 }}>
-
-          {/* Botão Modo Slide */}
-          <div className="flex justify-end relative z-10">
-            <button
-              onClick={() => setModoSlide(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-300 bg-white text-gray-600 hover:bg-gray-50 hover:border-gray-400 transition-colors shadow-sm"
-            >
-              <Monitor size={14} />
-              Modo Slide (print)
-            </button>
-          </div>
+        <main className="flex-1 p-3 gap-3 flex flex-col" style={{ marginTop: modoSlide ? 0 : 52 }}>
 
           {/* Row 1: Resumo Executivo + Portfólio + Funil */}
           <div className="grid gap-3 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-            <ResumoExecutivo data={data} />
-            <PortfolioPorMercado />
-            <FunilExperimentos data={data} />
+            <ResumoExecutivo data={dadosFiltrados} />
+            <PortfolioPorMercado data={dadosFiltrados.mercadosSegmento} />
+            <FunilExperimentos data={dadosFiltrados} />
           </div>
 
           {/* Row 2: Top 5 + Burnup + Jornada de Adoção */}
           <div className="grid gap-3 grid-cols-1 lg:grid-cols-[20fr_45fr_35fr]" style={{ maxHeight: 380 }}>
             <Top5Experimentos data={dadosFiltrados} />
-            <BurnupChart data={monitoramento.burnup} />
+            <BurnupChart data={monitoramentoFiltrado.burnup} />
             <LeadTimeJornada
               data={dadosFiltrados.leadTimeJornada}
               cycleTimeExperimentacao={dadosFiltrados.cycleTimeExperimentacao}
@@ -385,6 +282,18 @@ export default function EstrategiaClient({ data, monitoramento }: EstrategiaClie
 
         </main>
       </div>
+
+      {/* Botão flutuante para reexibir sidebar no modo slide */}
+      {modoSlide && (
+        <button
+          onClick={() => setModoSlide(false)}
+          className="fixed bottom-4 left-4 z-20 flex items-center gap-1.5 px-3 py-2 rounded-lg shadow-lg border border-gray-300 bg-white text-gray-600 hover:bg-gray-50 transition-colors text-xs font-medium"
+          title="Mostrar menu lateral"
+        >
+          <PanelLeftOpen size={14} />
+          Menu
+        </button>
+      )}
     </div>
   )
 }

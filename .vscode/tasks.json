@@ -10,6 +10,22 @@
 			"label": "install-pdf-deps-cmd",
 			"type": "shell",
 			"command": "cmd /c npm install html2canvas jspdf"
+		},
+		{
+			"label": "git-status",
+			"type": "shell",
+			"command": "cmd /c git status --short"
+		},
+		{
+			"label": "git-add-commit",
+			"type": "shell",
+			"command": "cmd /c git add -A && git commit -m \"feat: reativar login, controle de acesso por role, tela de boas-vindas, logo beOn Labs nos loadings\" && echo COMMIT-OK"
+		},
+		{
+			"label": "git-add",
+			"type": "shell",
+			"command": "git add -A",
+			"args": []
 		}
 	]
 }

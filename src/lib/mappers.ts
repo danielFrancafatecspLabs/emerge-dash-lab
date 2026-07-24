@@ -114,6 +114,10 @@ function mapEpicToDetail(epic: JiraIssue, changelog?: ChangelogEntry[]): EpicDet
     prioridade: f.priority?.name ?? null,
     criadoEm: f.created ?? null,
     concluidoEm,
+    anexos: f.attachment?.map(a => ({
+      filename: a.filename,
+      url: `${process.env.JIRA_BASE_URL}/secure/attachment/${a.id}/${encodeURIComponent(a.filename)}`,
+    })) ?? null,
   }
 }
 

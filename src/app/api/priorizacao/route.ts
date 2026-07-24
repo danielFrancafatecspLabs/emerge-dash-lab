@@ -21,7 +21,8 @@ const FIELDS = [
   'customfield_13243',  // Benefício Qualitativo
   'customfield_11662',  // Sponsor
   'customfield_11663',  // BO
-  'customfield_11665',  // Time Responsável
+  'customfield_11665',  // Time Responsável (próprio épico)
+  'customfield_16911',  // Time Responsável (Lab) — campo da iniciativa (pai)
   'customfield_16400',  // Domínio
   'customfield_11378',  // Segmento
   'customfield_15919',  // Portfólio
@@ -72,7 +73,7 @@ function mapToPriorizacao(issue: JiraIssue): ExperimentoPriorizacao {
     beneficioQualitativo: f.customfield_13243 ?? null,
     sponsor: f.customfield_11662 ?? null,
     bo: f.customfield_11663 ?? null,
-    timeResponsavel: f.customfield_11665 ?? null,
+    timeResponsavel: f.parent?.fields?.customfield_16911?.value ?? f.customfield_11665 ?? null,
     dominio: f.customfield_16400?.value ?? null,
     segmento: f.customfield_11378?.value ?? null,
     portfolio: f.customfield_15919?.value ?? null,

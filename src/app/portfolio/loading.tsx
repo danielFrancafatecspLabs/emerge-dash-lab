@@ -3,11 +3,18 @@ export default function Loading() {
     <div className="flex min-h-screen items-center justify-center" style={{ background: '#f0f0f0' }}>
       <div className="bg-white rounded-xl shadow p-8 flex flex-col items-center gap-4 text-center" style={{ maxWidth: 380 }}>
 
+        {/* Logo beOn Labs */}
+        <img
+          src="/jira/logobeonlabs.png"
+          alt="beOn Labs"
+          style={{ width: 72, height: 72, objectFit: 'contain' }}
+        />
+
         {/* Spinner */}
         <div
           className="rounded-full border-4 border-gray-200"
           style={{
-            width: 48, height: 48,
+            width: 40, height: 40,
             borderTopColor: '#CC0000',
             animation: 'spin 0.9s linear infinite',
           }}

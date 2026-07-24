@@ -25,7 +25,10 @@ export default function LoginPage() {
       })
 
       if (res.ok) {
-        router.replace('/estrategia')
+        const data = await res.json()
+        localStorage.setItem('user_role', data.role)
+        localStorage.setItem('username', data.username)
+        router.replace(`/bem-vindo?role=${data.role}&username=${encodeURIComponent(data.username)}`)
       } else {
         const data = await res.json()
         setError(data.error ?? 'Erro ao fazer login')
@@ -45,10 +48,15 @@ export default function LoginPage() {
       <div className="w-full max-w-sm">
         {/* Logo / Header */}
         <div
-          className="rounded-t-xl px-8 py-6 flex flex-col items-center gap-2"
+          className="rounded-t-xl px-8 py-6 flex flex-col items-center gap-3"
           style={{ background: '#8B0000' }}
         >
-          <Radio size={32} color="white" />
+          <img
+            src="/jira/logobeonlabs.png"
+            alt="beOn Labs"
+            style={{ width: 80, height: 80, objectFit: 'contain' }}
+          />
+          <Radio size={24} color="white" />
           <p className="text-white font-bold tracking-widest uppercase text-center" style={{ fontSize: 13, letterSpacing: '0.1em' }}>
             Dashboard Executivo
           </p>

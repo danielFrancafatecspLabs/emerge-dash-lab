@@ -16,9 +16,10 @@ export async function POST(request: Request) {
       maxAge: 60 * 60 * 24 * 7,
       path: '/',
     }
-    const response = NextResponse.json({ ok: true, role: user.role })
+    const response = NextResponse.json({ ok: true, role: user.role, username: user.username })
     response.cookies.set('auth_token', process.env.AUTH_SECRET!, cookieOpts)
     response.cookies.set('username', user.username, cookieOpts)
+    response.cookies.set('user_role', user.role, cookieOpts)
     return response
   } catch {
     return NextResponse.json({ error: 'Requisição inválida' }, { status: 400 })
