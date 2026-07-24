@@ -106,6 +106,115 @@
 				"add",
 				"-A"
 			]
+		},
+		{
+			"label": "git-commit-fix",
+			"type": "shell",
+			"command": "cmd",
+			"args": [
+				"/c",
+				"git",
+				"commit",
+				"-m",
+				"fix: wrap bem-vindo in Suspense boundary to fix production build"
+			]
+		},
+		{
+			"label": "git-push-fix",
+			"type": "shell",
+			"command": "cmd",
+			"args": [
+				"/c",
+				"git",
+				"push"
+			]
+		},
+		{
+			"label": "verify-hash",
+			"type": "shell",
+			"command": "cmd",
+			"args": [
+				"/c",
+				"node",
+				"-e",
+				"const {pbkdf2Sync} = require('crypto'); const salt='8fb46fb90b6b7760b5d917bfa1edb006'; const h1=pbkdf2Sync('asterito2026',salt,100000,64,'sha512').toString('hex'); const h2=pbkdf2Sync('beonlabs2026',salt,100000,64,'sha512').toString('hex'); console.log('asterito2026:',h1); console.log('beonlabs2026:',h2); console.log('stored: 407da17f8dd72480420cf64665de6102f04b760c980b9147b931c6b58d51231806765701c9da29fbdf65d7d90592950d68a7e8621b797fca83d51f22b7d7de48');"
+			]
+		},
+		{
+			"label": "verify-hash-2",
+			"type": "shell",
+			"command": "cmd",
+			"args": [
+				"/c",
+				"node",
+				"_check_hash.js"
+			]
+		},
+		{
+			"label": "git-check-users",
+			"type": "shell",
+			"command": "cmd",
+			"args": [
+				"/c",
+				"git",
+				"log",
+				"--oneline",
+				"-3",
+				"--",
+				"data/users.json"
+			]
+		},
+		{
+			"label": "restart-server",
+			"type": "shell",
+			"command": "cmd",
+			"args": [
+				"/c",
+				"npx",
+				"kill-port",
+				"3017"
+			]
+		},
+		{
+			"label": "test-build-final",
+			"type": "shell",
+			"command": "cmd",
+			"args": [
+				"/c",
+				"npm",
+				"run",
+				"build"
+			]
+		},
+		{
+			"label": "git-add-commit-push",
+			"type": "shell",
+			"command": "cmd",
+			"args": [
+				"/c",
+				"git",
+				"add",
+				"-A",
+				"&&",
+				"git",
+				"commit",
+				"-m",
+				"fix: embed users in code as fallback for Vercel production build",
+				"&&",
+				"git",
+				"push"
+			]
+		},
+		{
+			"label": "git-add-2",
+			"type": "shell",
+			"command": "cmd",
+			"args": [
+				"/c",
+				"git",
+				"add",
+				"-A"
+			]
 		}
 	]
 }
