@@ -42,25 +42,25 @@ export default function LoginPage() {
 
   return (
     <div
-      className="min-h-screen flex items-center justify-center"
+      className="min-h-dvh flex items-center justify-center p-4"
       style={{ background: '#f0f0f0' }}
     >
-      <div className="w-full max-w-sm">
+      <div className="w-full max-w-sm mx-auto">
         {/* Logo / Header */}
         <div
-          className="rounded-t-xl px-8 py-6 flex flex-col items-center gap-3"
+          className="rounded-t-xl px-6 sm:px-8 py-4 sm:py-6 flex flex-col items-center gap-2 sm:gap-3"
           style={{ background: '#8B0000' }}
         >
           <img
               src="/jira/logobeonlabs.png"
               alt="beOn Labs"
-              style={{ width: 80, height: 80, objectFit: 'contain', display: 'block' }}
+              style={{ width: 64, height: 64, objectFit: 'contain', display: 'block' }}
             />
-          <Radio size={24} color="white" />
-          <p className="text-white font-bold tracking-widest uppercase text-center" style={{ fontSize: 13, letterSpacing: '0.1em' }}>
+          <Radio size={20} color="white" />
+          <p className="text-white font-bold tracking-widest uppercase text-center" style={{ fontSize: 12, letterSpacing: '0.1em' }}>
             Dashboard Executivo
           </p>
-          <p className="text-white/60 text-center" style={{ fontSize: 11 }}>
+          <p className="text-white/60 text-center" style={{ fontSize: 10 }}>
             beOn Labs · Claro Brasil
           </p>
         </div>
@@ -68,10 +68,10 @@ export default function LoginPage() {
         {/* Form */}
         <form
           onSubmit={handleSubmit}
-          className="bg-white rounded-b-xl px-8 py-7 shadow-lg flex flex-col gap-4"
+          className="bg-white rounded-b-xl px-6 sm:px-8 py-5 sm:py-7 shadow-lg flex flex-col gap-3 sm:gap-4"
         >
           <div>
-            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
               Usuário
             </label>
             <input
@@ -86,7 +86,7 @@ export default function LoginPage() {
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
               Senha
             </label>
             <div className="relative">
