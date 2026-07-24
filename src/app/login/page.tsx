@@ -52,10 +52,10 @@ export default function LoginPage() {
           style={{ background: '#8B0000' }}
         >
           <img
-            src="/jira/logobeonlabs.png"
-            alt="beOn Labs"
-            style={{ width: 80, height: 80, objectFit: 'contain' }}
-          />
+              src="/jira/logobeonlabs.png"
+              alt="beOn Labs"
+              style={{ width: 80, height: 80, objectFit: 'contain', display: 'block' }}
+            />
           <Radio size={24} color="white" />
           <p className="text-white font-bold tracking-widest uppercase text-center" style={{ fontSize: 13, letterSpacing: '0.1em' }}>
             Dashboard Executivo
