@@ -215,6 +215,81 @@
 				"add",
 				"-A"
 			]
+		},
+		{
+			"label": "git-commit-2",
+			"type": "shell",
+			"command": "cmd",
+			"args": [
+				"/c",
+				"git",
+				"commit",
+				"-m",
+				"fix: embed users in code as fallback for Vercel production build"
+			]
+		},
+		{
+			"label": "git-rm-checkhash",
+			"type": "shell",
+			"command": "cmd",
+			"args": [
+				"/c",
+				"git",
+				"rm",
+				"_check_hash.js",
+				"&&",
+				"git",
+				"commit",
+				"-m",
+				"chore: remove temp debug file",
+				"&&",
+				"git",
+				"push"
+			]
+		},
+		{
+			"label": "git-rm-file",
+			"type": "shell",
+			"command": "cmd",
+			"args": [
+				"/c",
+				"git",
+				"rm",
+				"_check_hash.js"
+			]
+		},
+		{
+			"label": "git-commit-rm",
+			"type": "shell",
+			"command": "cmd",
+			"args": [
+				"/c",
+				"git",
+				"commit",
+				"-m",
+				"chore: remove temp debug file"
+			]
+		},
+		{
+			"label": "git-push-final",
+			"type": "shell",
+			"command": "cmd",
+			"args": [
+				"/c",
+				"git",
+				"push"
+			]
+		},
+		{
+			"label": "git-commit-logo-fix",
+			"type": "shell",
+			"command": "git add -A && git commit -m \"fix: corrige quebra da logo no login e bem-vindo (objectFit CSS + preload)\""
+		},
+		{
+			"label": "git-commit-logo-fix",
+			"type": "shell",
+			"command": "cmd /c \"git add -A && git commit -m \"fix: corrige quebra da logo no login e bem-vindo (objectFit CSS + preload)\"\"",
+			"isBackground": false
 		}
 	]
 }
