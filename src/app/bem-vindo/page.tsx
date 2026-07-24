@@ -107,7 +107,7 @@ function BemVindoContent() {
 export default function BemVindoPage() {
   return (
     <div
-      className="min-h-screen flex items-center justify-center"
+      className="min-h-dvh flex items-center justify-center"
       style={{ background: '#f0f0f0' }}
     >
       <Suspense fallback={

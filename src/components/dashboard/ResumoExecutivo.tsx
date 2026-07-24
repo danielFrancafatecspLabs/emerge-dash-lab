@@ -71,7 +71,7 @@ export default function ResumoExecutivo({ data }: Props) {
           <div className="flex flex-col gap-2">
             <div className="flex items-center gap-1.5">
               <Target size={12} className="text-gray-400" />
-              <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-widest">
+              <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-widest">
                 Metas Estratégicas
               </p>
             </div>
@@ -131,7 +131,7 @@ export default function ResumoExecutivo({ data }: Props) {
           <div className="flex flex-col gap-2">
             <div className="flex items-center gap-1.5">
               <Rocket size={12} className="text-gray-400" />
-              <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-widest">
+              <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-widest">
                 Pipeline de Conversão
               </p>
             </div>
@@ -151,9 +151,9 @@ export default function ResumoExecutivo({ data }: Props) {
                     <TrendingUp size={12} color="white" />
                   </div>
                   <div>
-                    <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider">Benefício Potencial</p>
+                    <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Benefício Potencial</p>
                     <p className="text-base font-extrabold text-gray-900 tracking-tight">{formatBRL(data.beneficioTotal)}</p>
-                    <p className="text-[8px] text-gray-400 mt-0.5 leading-tight">Os números de benefícios exibidos consideram as estimativas fornecidas pelos usuários na etapa de cadastro do experimento.</p>
+                    <p className="text-[10px] text-gray-400 mt-0.5 leading-tight">Os números de benefícios exibidos consideram as estimativas fornecidas pelos usuários na etapa de cadastro do experimento.</p>
                   </div>
                 </div>
                 <div className="mt-2 pt-2 border-t border-emerald-100/60 flex gap-3">
@@ -163,7 +163,7 @@ export default function ResumoExecutivo({ data }: Props) {
                     { label: 'Escala', count: data.pipeline['EM ESCALA'], color: 'text-red-700' },
                   ].map(s => (
                     <div key={s.label} className="flex items-center gap-1">
-                      <span className="text-[9px] text-gray-400">{s.label}</span>
+                      <span className="text-[10px] text-gray-400">{s.label}</span>
                       <span className={`text-xs font-bold ${s.color}`}>{s.count}</span>
                     </div>
                   ))}
@@ -184,11 +184,11 @@ export default function ResumoExecutivo({ data }: Props) {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between">
-                      <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider">Conversão p/ Escala</p>
+                      <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Conversão p/ Escala</p>
                       <span className="text-sm font-extrabold text-gray-900">{taxaEscala}%</span>
                     </div>
                     <div className="flex items-center justify-between mt-0.5">
-                      <span className="text-[9px] text-gray-400">{emEscala} de {totalExperimentos}</span>
+                      <span className="text-[10px] text-gray-400">{emEscala} de {totalExperimentos}</span>
                       <div className="w-20 h-1.5 bg-red-100 rounded-full overflow-hidden">
                         <div
                           className="h-full bg-gradient-to-r from-red-500 to-red-600 rounded-full transition-all duration-700"
@@ -217,11 +217,11 @@ export default function ResumoExecutivo({ data }: Props) {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between">
-                      <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider">Conversão p/ Piloto</p>
+                      <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Conversão p/ Piloto</p>
                       <span className="text-sm font-extrabold text-gray-900">{taxaPiloto}%</span>
                     </div>
                     <div className="flex items-center justify-between mt-0.5">
-                      <span className="text-[9px] text-gray-400">{emPilotoEscala} de {totalExperimentos}</span>
+                      <span className="text-[10px] text-gray-400">{emPilotoEscala} de {totalExperimentos}</span>
                       <div className="w-20 h-1.5 bg-amber-100 rounded-full overflow-hidden">
                         <div
                           className="h-full bg-gradient-to-r from-amber-500 to-orange-500 rounded-full transition-all duration-700"

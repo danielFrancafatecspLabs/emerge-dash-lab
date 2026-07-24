@@ -60,7 +60,7 @@ export default function LeadTimeJornadaComponent({ data, cycleTimeExperimentacao
                 title={`${fase.fase}: ${fase.dias}d (${fase.pct}%)`}
               >
                 {widthPct >= 12 && (
-                  <span className="font-semibold truncate px-1 text-white" style={{ fontSize: 9 }}>
+                  <span className="font-semibold truncate px-1 text-white" style={{ fontSize: 10 }}>
                     {fase.dias}d
                   </span>
                 )}
@@ -79,10 +79,10 @@ export default function LeadTimeJornadaComponent({ data, cycleTimeExperimentacao
                 className="flex flex-col items-center"
                 style={{ width: `${widthPct}%`, minWidth: widthPct < 10 ? 'auto' : undefined }}
               >
-                <span className="font-semibold truncate text-gray-500" style={{ fontSize: 8 }}>
+                <span className="font-semibold truncate text-gray-500" style={{ fontSize: 9 }}>
                   {fase.fase}
                 </span>
-                <span className="text-gray-400" style={{ fontSize: 8 }}>
+                <span className="text-gray-400" style={{ fontSize: 9 }}>
                   {fase.pct}%
                 </span>
               </div>
@@ -97,7 +97,7 @@ export default function LeadTimeJornadaComponent({ data, cycleTimeExperimentacao
         <div className="rounded-lg p-2.5" style={{ background: '#FFFBEB', border: '1px solid #FDE68A' }}>
           <div className="flex items-center gap-1 mb-1.5">
             <Zap size={11} style={{ color: '#F59E0B' }} />
-            <p className="font-semibold text-gray-700" style={{ fontSize: 9 }}>Cycle Time de Experimentação</p>
+            <p className="font-semibold text-gray-700" style={{ fontSize: 10 }}>Cycle Time de Experimentação</p>
           </div>
           <div className="space-y-1">
             {(cycleTimeExperimentacao ?? []).slice(0, 3).map((item) => {
@@ -112,7 +112,7 @@ export default function LeadTimeJornadaComponent({ data, cycleTimeExperimentacao
                       className="inline-block w-1.5 h-1.5 rounded-full flex-shrink-0"
                       style={{ background: porte ? corMap[porte] : '#888' }}
                     />
-                    <span className="text-gray-600" style={{ fontSize: 9 }}>
+                    <span className="text-gray-600" style={{ fontSize: 10 }}>
                       {porte ? `${labelMap[porte]} (${porte})` : item.label}
                     </span>
                   </div>
@@ -129,9 +129,9 @@ export default function LeadTimeJornadaComponent({ data, cycleTimeExperimentacao
         <div className="rounded-lg p-2.5" style={{ background: '#F3F4F6', border: '1px solid #D1D5DB' }}>
           <div className="flex items-center gap-1 mb-1.5">
             <Lock size={11} style={{ color: '#6B7280' }} />
-            <p className="font-semibold text-gray-700" style={{ fontSize: 9 }}>Tempo Bloqueado</p>
+            <p className="font-semibold text-gray-700" style={{ fontSize: 10 }}>Tempo Bloqueado</p>
           </div>
-          <p className="text-gray-600" style={{ fontSize: 9, lineHeight: 1.4 }}>
+          <p className="text-gray-600" style={{ fontSize: 10, lineHeight: 1.4 }}>
             <span className="font-bold text-gray-800">{data.blockedTimeDias}d</span>
             {' '}em média dos experimentos concluídos
           </p>
@@ -145,7 +145,7 @@ export default function LeadTimeJornadaComponent({ data, cycleTimeExperimentacao
                 }}
               />
             </div>
-            <span className="font-bold text-gray-600" style={{ fontSize: 9 }}>{data.blockedTimePct}%</span>
+            <span className="font-bold text-gray-600" style={{ fontSize: 10 }}>{data.blockedTimePct}%</span>
           </div>
         </div>
 
@@ -153,9 +153,9 @@ export default function LeadTimeJornadaComponent({ data, cycleTimeExperimentacao
         <div className="rounded-lg p-2.5" style={{ background: '#FEF2F2', border: '1px solid #FECACA' }}>
           <div className="flex items-center gap-1 mb-1.5">
             <AlertTriangle size={11} style={{ color: '#EF4444' }} />
-            <p className="font-semibold text-gray-700" style={{ fontSize: 9 }}>Gargalo</p>
+            <p className="font-semibold text-gray-700" style={{ fontSize: 10 }}>Gargalo</p>
           </div>
-          <p className="text-gray-600" style={{ fontSize: 9, lineHeight: 1.4 }}>
+          <p className="text-gray-600" style={{ fontSize: 10, lineHeight: 1.4 }}>
             <span className="font-bold text-red-600">{bottleneck.fase}</span>{' '}
             <span className="font-bold text-red-600">{bottleneck.dias}d</span> ({bottleneck.pct}%)
           </p>
@@ -166,14 +166,14 @@ export default function LeadTimeJornadaComponent({ data, cycleTimeExperimentacao
                 style={{ width: `${bottleneck.pct}%`, background: 'linear-gradient(90deg, #EF4444, #DC2626)' }}
               />
             </div>
-            <span className="font-bold text-red-600" style={{ fontSize: 9 }}>{bottleneck.pct}%</span>
+            <span className="font-bold text-red-600" style={{ fontSize: 10 }}>{bottleneck.pct}%</span>
           </div>
         </div>
       </div>
 
       {/* ── Observação ── */}
       <div className="mt-auto pt-2 border-t border-gray-100">
-        <p className="text-gray-400 italic" style={{ fontSize: 8, lineHeight: 1.4 }}>
+        <p className="text-gray-400 italic" style={{ fontSize: 9, lineHeight: 1.4 }}>
           Os resultados apresentados consideram os dados consolidados dos últimos 12 meses e ainda estão em processo de refinamento, podendo sofrer ajustes à medida que novas análises forem concluídas.
         </p>
       </div>

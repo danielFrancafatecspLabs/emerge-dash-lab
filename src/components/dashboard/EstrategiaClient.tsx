@@ -236,7 +236,7 @@ export default function EstrategiaClient({ data, monitoramento }: EstrategiaClie
   }, [])
 
   return (
-    <div className="flex min-h-screen" style={{ background: '#f0f0f0' }}>
+    <div className="flex min-h-dvh" style={{ background: '#f0f0f0' }}>
       {/* Sidebar — oculta no modo slide */}
       {!modoSlide && (
         <div className="flex-shrink-0" style={{ width: 72 }}>
@@ -261,17 +261,17 @@ export default function EstrategiaClient({ data, monitoramento }: EstrategiaClie
         )}
 
         {/* Content */}
-        <main className="flex-1 p-3 gap-3 flex flex-col" style={{ marginTop: modoSlide ? 0 : 52 }}>
+        <main className="flex-1 p-4 md:p-5 gap-4 flex flex-col" style={{ marginTop: modoSlide ? 0 : 52 }}>
 
           {/* Row 1: Resumo Executivo + Portfólio + Funil */}
-          <div className="grid gap-3 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
             <ResumoExecutivo data={dadosFiltrados} />
             <PortfolioPorMercado data={dadosFiltrados.mercadosSegmento} />
             <FunilExperimentos data={dadosFiltrados} />
           </div>
 
           {/* Row 2: Top 5 + Burnup + Jornada de Adoção */}
-          <div className="grid gap-3 grid-cols-1 lg:grid-cols-[20fr_45fr_35fr]" style={{ maxHeight: 380 }}>
+          <div className="grid gap-4 grid-cols-1 lg:grid-cols-[20fr_45fr_35fr]" style={{ minHeight: 320, maxHeight: 420 }}>
             <Top5Experimentos data={dadosFiltrados} />
             <BurnupChart data={monitoramentoFiltrado.burnup} />
             <LeadTimeJornada

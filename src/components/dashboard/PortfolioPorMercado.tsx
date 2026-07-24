@@ -75,23 +75,23 @@ export default function PortfolioPorMercado({ data }: Props) {
 
               <div className="grid grid-cols-2 gap-x-2 text-xs">
                 <div>
-                  <p className="text-gray-500" style={{ fontSize: 9 }}>Experimentos</p>
+                  <p className="text-gray-500" style={{ fontSize: 10 }}>Experimentos</p>
                   <p className="font-bold text-gray-800">{m.qtdExperimentos}</p>
                 </div>
                 <div>
-                  <p className="text-gray-500" style={{ fontSize: 9 }}>Benefício potencial</p>
+                  <p className="text-gray-500" style={{ fontSize: 10 }}>Benefício potencial</p>
                   <p className="font-bold text-gray-800">{formatBRL(m.valorPotencial)}</p>
                 </div>
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <p className="text-gray-400 uppercase font-semibold tracking-widest" style={{ fontSize: 9 }}>
+                <p className="text-gray-400 uppercase font-semibold tracking-widest" style={{ fontSize: 10 }}>
                   Principais Domínios
                 </p>
                 {m.dominios.length > 0 ? m.dominios.map(d => (
                   <div key={d.nome}>
                     <div className="flex justify-between items-center mb-0.5">
-                      <span className="text-gray-600 truncate" style={{ fontSize: 9 }}>{d.nome}</span>
+                      <span className="text-gray-600 truncate" style={{ fontSize: 10 }}>{d.nome}</span>
                       <span className="font-bold text-gray-700 ml-1 tabular-nums" style={{ fontSize: 10 }}>{d.count}</span>
                     </div>
                     <div className="h-1 bg-gray-200 rounded-full">
@@ -99,7 +99,7 @@ export default function PortfolioPorMercado({ data }: Props) {
                     </div>
                   </div>
                 )) : (
-                  <p className="text-gray-400" style={{ fontSize: 9 }}>—</p>
+                  <p className="text-gray-400" style={{ fontSize: 10 }}>—</p>
                 )}
               </div>
             </div>

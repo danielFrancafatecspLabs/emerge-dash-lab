@@ -27,7 +27,7 @@ export default function OperacionalClient({ data, monitoramento }: Props) {
   const iniciativasLab = monitoramento?.iniciativasPorLab ?? []
 
   return (
-    <div className="flex min-h-screen" style={{ background: '#f0f0f0' }}>
+    <div className="flex min-h-dvh" style={{ background: '#f0f0f0' }}>
       {/* Sidebar */}
       <div className="flex-shrink-0" style={{ width: 72 }}>
         <div className="fixed top-0 left-0 h-full" style={{ width: 72 }}>
@@ -45,7 +45,7 @@ export default function OperacionalClient({ data, monitoramento }: Props) {
         </div>
 
         {/* Content */}
-        <main className="flex-1 p-3 gap-3 flex flex-col" style={{ marginTop: 52 }}>
+        <main className="flex-1 p-4 md:p-5 gap-4 flex flex-col" style={{ marginTop: 52 }}>
           {/* Título */}
           <div className="mb-1">
             <h1 className="text-lg font-bold text-gray-900">
@@ -57,7 +57,7 @@ export default function OperacionalClient({ data, monitoramento }: Props) {
           </div>
 
           {/* Row 1: Jornada de Adoção + Cycle Time + Gargalo */}
-          <div className="grid gap-3 grid-cols-1 lg:grid-cols-3">
+          <div className="grid gap-4 grid-cols-1 lg:grid-cols-3">
             <LeadTimeJornada
               data={dados.leadTimeJornada}
               cycleTimeExperimentacao={dados.cycleTimeExperimentacao}
@@ -74,13 +74,13 @@ export default function OperacionalClient({ data, monitoramento }: Props) {
           <PipelineIniciativasHorizontal data={dados} />
 
           {/* Row 3: Situação do Portfólio + Iniciativas por Lab */}
-          <div className="grid gap-3 grid-cols-1 lg:grid-cols-2">
+          <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
             <SituacaoPortfolioOperacional data={dados} />
             <IniciativasPorLab data={iniciativasLab} />
           </div>
 
           {/* Row 4: Top 5 Experimentos + Top 5 Domínios */}
-          <div className="grid gap-3 grid-cols-1 lg:grid-cols-2">
+          <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
             <Top5Experimentos data={dados} />
             <Top5Dominios data={dados} />
           </div>

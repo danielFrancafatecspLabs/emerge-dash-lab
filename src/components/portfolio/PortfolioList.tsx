@@ -416,7 +416,7 @@ export default function PortfolioList({ data }: Props) {
           </div>
         </div>
 
-        <div className="overflow-auto" style={{ maxHeight: 'calc(100vh - 300px)' }}>
+        <div className="overflow-auto" style={{ maxHeight: 'calc(100dvh - 300px)' }}>
           <table className="w-full">
             <thead className="sticky top-0 bg-white z-10">
               <tr className="border-b border-gray-200">

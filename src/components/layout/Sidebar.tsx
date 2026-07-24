@@ -34,7 +34,7 @@ export default function Sidebar() {
   return (
     <aside
       className="flex flex-col items-center pt-4 pb-6 gap-1"
-      style={{ width: 72, background: '#8B0000', minHeight: '100%' }}
+      style={{ width: 72, background: '#8B0000', minHeight: '100dvh' }}
     >
       {NAV.map(({ label, icon: Icon, href, inactive }) => {
         const active = !inactive && path.startsWith(href)

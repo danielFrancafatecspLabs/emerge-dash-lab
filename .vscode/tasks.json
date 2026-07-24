@@ -290,6 +290,16 @@
 			"type": "shell",
 			"command": "cmd /c \"git add -A && git commit -m \"fix: corrige quebra da logo no login e bem-vindo (objectFit CSS + preload)\"\"",
 			"isBackground": false
+		},
+		{
+			"label": "git-commit-zoom",
+			"type": "shell",
+			"command": "cmd /c git add -A && git commit -m \"fix: zoom resilience - min-h-screen to min-h-dvh, increased padding/gaps and font sizes\" && git push origin main"
+		},
+		{
+			"label": "git-commit-zoom-ps",
+			"type": "shell",
+			"command": "git add -A; git commit -m 'fix: zoom resilience - min-h-screen to min-h-dvh, increased padding/gaps and font sizes'; git push origin main"
 		}
 	]
 }

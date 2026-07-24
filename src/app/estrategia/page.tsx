@@ -38,7 +38,7 @@ export default async function PortfolioPage() {
 
   if (error || !data || !monitoramento) {
     return (
-      <div className="flex min-h-screen items-center justify-center" style={{ background: '#f0f0f0' }}>
+      <div className="flex min-h-dvh items-center justify-center" style={{ background: '#f0f0f0' }}>
         <div className="bg-white rounded-lg p-8 shadow text-center max-w-lg">
           <p className="text-2xl font-bold mb-2" style={{ color: '#CC0000' }}>Erro ao carregar dados</p>
           <p className="text-gray-600 text-sm">{error}</p>

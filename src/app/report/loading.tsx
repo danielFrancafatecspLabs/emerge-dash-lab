@@ -1,6 +1,6 @@
 export default function Loading() {
   return (
-    <div className="flex min-h-screen items-center justify-center" style={{ background: '#f0f0f0' }}>
+    <div className="flex min-h-dvh items-center justify-center" style={{ background: '#f0f0f0' }}>
       <div className="bg-white rounded-xl shadow p-8 flex flex-col items-center gap-4 text-center" style={{ maxWidth: 380 }}>
 
         {/* Logo beOn Labs */}
