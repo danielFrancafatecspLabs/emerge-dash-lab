@@ -73,7 +73,7 @@ export default async function MonitoramentoPage({
 
   if (error || !data || !monitoramento) {
     return (
-      <div className="flex min-h-screen items-center justify-center" style={{ background: '#f8fafc' }}>
+      <div className="flex min-h-dvh items-center justify-center" style={{ background: '#f8fafc' }}>
         <div className="bg-white rounded-xl p-8 shadow-sm border border-gray-100 text-center max-w-lg">
           <p className="text-2xl font-bold mb-2 text-gray-800">Erro ao carregar dados</p>
           <p className="text-gray-500 text-sm">{error}</p>
@@ -83,7 +83,7 @@ export default async function MonitoramentoPage({
   }
 
   return (
-    <div className="flex min-h-screen" style={{ background: '#f8fafc' }}>
+    <div className="flex min-h-dvh" style={{ background: '#f8fafc' }}>
       <Sidebar />
 
       <main className="flex-1 flex flex-col min-w-0">

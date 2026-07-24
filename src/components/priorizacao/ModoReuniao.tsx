@@ -65,7 +65,7 @@ export default function ModoReuniao({ experimentos, votos, onVotar, onVoltar }: 
 
   if (!exp) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: '#f0f0f0' }}>
+      <div className="min-h-dvh flex items-center justify-center" style={{ background: '#f0f0f0' }}>
         <div className="text-center bg-white p-10 rounded-lg shadow">
           <p className="text-xl font-bold mb-2" style={{ color: '#8B0000' }}>🎉 Todos os experimentos foram votados!</p>
           <p className="text-gray-500 mb-4">Nenhum experimento pendente.</p>
@@ -87,7 +87,7 @@ export default function ModoReuniao({ experimentos, votos, onVotar, onVoltar }: 
   const scoreComplexidade = getPontuacaoComplexidade(exp.complexidade)
 
   return (
-    <div className="min-h-screen" style={{ background: '#f0f0f0' }}>
+    <div className="min-h-dvh" style={{ background: '#f0f0f0' }}>
       {/* Header */}
       <div className="bg-white border-b shadow-sm px-6 py-4">
         <div className="flex items-center justify-between flex-wrap gap-4">

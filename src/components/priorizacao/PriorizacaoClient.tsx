@@ -230,7 +230,7 @@ export default function PriorizacaoClient() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center" style={{ background: '#f0f0f0' }}>
+      <div className="flex min-h-dvh items-center justify-center" style={{ background: '#f0f0f0' }}>
         <div className="text-center">
           <div className="animate-spin rounded-full h-10 w-10 border-b-2 mx-auto mb-4" style={{ borderColor: '#CC0000' }} />
           <p className="text-gray-600">Carregando experimentos do board 2707...</p>
@@ -241,7 +241,7 @@ export default function PriorizacaoClient() {
 
   if (erro) {
     return (
-      <div className="flex min-h-screen items-center justify-center" style={{ background: '#f0f0f0' }}>
+      <div className="flex min-h-dvh items-center justify-center" style={{ background: '#f0f0f0' }}>
         <div className="bg-white rounded-lg p-8 shadow text-center max-w-lg">
           <p className="text-2xl font-bold mb-2" style={{ color: '#CC0000' }}>Erro ao carregar</p>
           <p className="text-gray-600 text-sm">{erro}</p>
@@ -265,7 +265,7 @@ export default function PriorizacaoClient() {
   }
 
   return (
-    <div className="flex min-h-screen" style={{ background: '#f0f0f0' }}>
+    <div className="flex min-h-dvh" style={{ background: '#f0f0f0' }}>
       {/* Sidebar fixa */}
       <div className="flex-shrink-0" style={{ width: 72 }}>
         <div className="fixed top-0 left-0 h-full" style={{ width: 72 }}>

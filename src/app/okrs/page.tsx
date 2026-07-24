@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic'
 
 export default function OkrsPage() {
   return (
-    <div className="flex min-h-screen" style={{ background: '#f0f0f0' }}>
+    <div className="flex min-h-dvh" style={{ background: '#f0f0f0' }}>
       {/* Sidebar */}
       <div className="flex-shrink-0" style={{ width: 72 }}>
         <div className="fixed top-0 left-0 h-full" style={{ width: 72 }}>

@@ -12,7 +12,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head>
         <link rel="preload" href="/jira/logobeonlabs.png" as="image" />
       </head>
-      <body className="bg-gray-100 min-h-screen">{children}</body>
+      <body className="bg-gray-100 min-h-dvh">{children}</body>
     </html>
   )
 }

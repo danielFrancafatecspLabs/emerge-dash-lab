@@ -21,7 +21,7 @@ export default function Top5Experimentos({ data }: Props) {
           <thead>
             <tr className="border-b border-gray-200">
               {['Experimento', 'Lab Responsável', 'Domínio', 'Valor Potencial', ''].map(h => (
-                <th key={h} className="text-left pb-2 text-gray-500 font-semibold pr-2" style={{ fontSize: 9 }}>
+                <th key={h} className="text-left pb-2 text-gray-500 font-semibold pr-2" style={{ fontSize: 10 }}>
                   {h.toUpperCase()}
                 </th>
               ))}
@@ -34,7 +34,7 @@ export default function Top5Experimentos({ data }: Props) {
                   <div className="flex items-center gap-1.5">
                     <span
                       className="rounded-full text-white flex items-center justify-center font-bold flex-shrink-0"
-                      style={{ width: 18, height: 18, fontSize: 9, background: '#CC0000' }}
+                      style={{ width: 20, height: 20, fontSize: 10, background: '#CC0000' }}
                     >
                       {i + 1}
                     </span>
