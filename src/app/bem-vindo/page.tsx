@@ -33,7 +33,7 @@ function BemVindoContent() {
         <img
           src="/jira/logobeonlabs.png"
           alt="beOn Labs"
-          style={{ width: 100, height: 100, objectFit: 'contain' }}
+          style={{ width: 100, height: 100, objectFit: 'contain', display: 'block' }}
         />
 
         {/* Saudação */}
