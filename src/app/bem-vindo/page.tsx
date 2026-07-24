@@ -1,10 +1,10 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Radio, Shield, Briefcase } from 'lucide-react'
+import { Shield, Briefcase } from 'lucide-react'
 
-export default function BemVindoPage() {
+function BemVindoContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [fadeOut, setFadeOut] = useState(false)
@@ -24,10 +24,7 @@ export default function BemVindoPage() {
   }, [router])
 
   return (
-    <div
-      className="min-h-screen flex items-center justify-center"
-      style={{ background: '#f0f0f0' }}
-    >
+    <>
       <div
         className={`bg-white rounded-2xl shadow-xl p-10 flex flex-col items-center gap-6 text-center transition-all duration-700 ease-in-out ${fadeOut ? 'opacity-0 scale-95' : 'opacity-100 scale-100'}`}
         style={{ maxWidth: 420 }}
@@ -103,6 +100,27 @@ export default function BemVindoPage() {
           animation: loadingBar 2.5s ease-in-out forwards;
         }
       `}</style>
+    </>
+  )
+}
+
+export default function BemVindoPage() {
+  return (
+    <div
+      className="min-h-screen flex items-center justify-center"
+      style={{ background: '#f0f0f0' }}
+    >
+      <Suspense fallback={
+        <div className="bg-white rounded-2xl shadow-xl p-10 flex flex-col items-center gap-6" style={{ maxWidth: 420 }}>
+          <img src="/jira/logobeonlabs.png" alt="beOn Labs" style={{ width: 100, height: 100, objectFit: 'contain' }} />
+          <h1 className="font-extrabold tracking-tight" style={{ fontSize: 26, color: '#8B0000' }}>
+            Bem-vindo ao beOn Labs!
+          </h1>
+          <p className="text-gray-400" style={{ fontSize: 13 }}>Carregando...</p>
+        </div>
+      }>
+        <BemVindoContent />
+      </Suspense>
     </div>
   )
 }
