@@ -26,6 +26,86 @@
 			"type": "shell",
 			"command": "git add -A",
 			"args": []
+		},
+		{
+			"label": "git-commit",
+			"type": "shell",
+			"command": "git commit -m \"feat: reativar login, controle de acesso por role, tela de boas-vindas, logo beOn Labs nos loadings\"",
+			"args": []
+		},
+		{
+			"label": "git-commit",
+			"type": "shell",
+			"command": "git commit -m 'feat: auth, role-based sidebar, welcome screen, beOn Labs logo on loadings'",
+			"args": []
+		},
+		{
+			"label": "git-commit-cmd",
+			"type": "shell",
+			"command": "cmd",
+			"args": [
+				"/c",
+				"git",
+				"commit",
+				"-m",
+				"feat: auth, role-based sidebar, welcome screen, logo on loadings"
+			]
+		},
+		{
+			"label": "git-push",
+			"type": "shell",
+			"command": "cmd",
+			"args": [
+				"/c",
+				"git",
+				"push",
+				"origin",
+				"main"
+			]
+		},
+		{
+			"label": "test-build",
+			"type": "shell",
+			"command": "cmd",
+			"args": [
+				"/c",
+				"npm",
+				"run",
+				"build"
+			]
+		},
+		{
+			"label": "test-build-2",
+			"type": "shell",
+			"command": "cmd",
+			"args": [
+				"/c",
+				"npm",
+				"run",
+				"build"
+			]
+		},
+		{
+			"label": "test-build-3",
+			"type": "shell",
+			"command": "cmd",
+			"args": [
+				"/c",
+				"npm",
+				"run",
+				"build"
+			]
+		},
+		{
+			"label": "git-add-fix",
+			"type": "shell",
+			"command": "cmd",
+			"args": [
+				"/c",
+				"git",
+				"add",
+				"-A"
+			]
 		}
 	]
 }
