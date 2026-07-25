@@ -5,16 +5,16 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 
 const NAV_ALL = [
-  { label: 'OKRs',      icon: Flag,     href: '/okrs',          inactive: false, roles: ['admin', 'executivo'] },
+  { label: 'OKRs',      icon: Flag,     href: '/okrs',          inactive: false, roles: ['admin'] },
   { label: 'Estratégia', icon: Target,   href: '/estrategia',    inactive: false, roles: ['admin', 'executivo'] },
   { label: 'Operacional',icon: Activity,  href: '/operacional',   inactive: false, roles: ['admin'] },
-  { label: 'Portfólio',  icon: BarChart2, href: '/portfolio',     inactive: false, roles: ['admin', 'executivo'] },
+  { label: 'Portfólio',  icon: BarChart2, href: '/portfolio',     inactive: false, roles: ['admin'] },
   { label: 'Priorização',icon: ListOrdered,href: '/priorizacao',  inactive: false, roles: ['admin'] },
   { label: 'Report',     icon: FileText, href: '/report',         inactive: false, roles: ['admin'] },
   { label: 'Monitoram.', icon: Activity,  href: '/monitoramento', inactive: false, roles: ['admin'] },
   { label: 'Cientista',  icon: Bot,       href: '/cientista',     inactive: false, roles: ['admin'] },
-  { label: 'Comunidade', icon: HeartHandshake, href: '/comunidade', inactive: false, roles: ['admin', 'executivo'] },
-  { label: 'Governança', icon: Users,     href: '/governanca',    inactive: true,  roles: ['admin', 'executivo'] },
+  { label: 'Comunidade', icon: HeartHandshake, href: '/comunidade', inactive: false, roles: ['admin'] },
+  { label: 'Governança', icon: Users,     href: '/governanca',    inactive: true,  roles: ['admin'] },
   { label: 'Admin',      icon: Settings,  href: '/admin/users',   inactive: false, roles: ['admin'] },
 ]
 
