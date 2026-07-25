@@ -7,3 +7,8 @@ build/
 .portfolio-cache.json
 .DS_Store
 .worktrees/
+
+# Test files and large assets
+test_azure.js
+test_azure2.js
+public/comunidade/

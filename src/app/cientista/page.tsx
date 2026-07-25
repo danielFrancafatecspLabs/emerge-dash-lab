@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic'
 
 export default function CientistaPage() {
   return (
-    <div className="flex h-screen">
+    <div className="flex min-h-dvh">
       <Sidebar />
       <main className="flex-1 flex flex-col overflow-hidden">
         <header className="h-14 border-b flex items-center justify-between px-6 bg-white shrink-0">
