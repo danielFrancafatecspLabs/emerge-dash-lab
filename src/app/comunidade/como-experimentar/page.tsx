@@ -637,7 +637,7 @@ const MODULES: ModuleData[] = [
 
 function ContentBlockView({ block }: { block: ContentBlock }) {
   if (block.type === 'divider') {
-    return <div className="my-8 border-t border-amber-200/50" />
+    return <div className="my-8 border-t border-red-200/50" />
   }
 
   if (block.type === 'text') {
@@ -647,14 +647,14 @@ function ContentBlockView({ block }: { block: ContentBlock }) {
   if (block.type === 'highlight') {
     const Icon = block.icon
     return (
-      <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-xl p-5">
+      <div className="bg-gradient-to-r from-red-50 to-red-100 border border-red-200 rounded-xl p-5">
         <div className="flex items-start gap-3">
-          <div className="w-9 h-9 rounded-lg bg-amber-100 flex items-center justify-center flex-shrink-0 mt-0.5">
-            <Icon className="w-5 h-5 text-amber-700" />
+          <div className="w-9 h-9 rounded-lg bg-red-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+            <Icon className="w-5 h-5 text-red-700" />
           </div>
           <div>
-            <h4 className="font-semibold text-amber-900 mb-1">{block.title}</h4>
-            <p className="text-amber-800 text-sm leading-relaxed">{block.text}</p>
+            <h4 className="font-semibold text-red-900 mb-1">{block.title}</h4>
+            <p className="text-red-800 text-sm leading-relaxed">{block.text}</p>
           </div>
         </div>
       </div>
@@ -675,12 +675,12 @@ function ContentBlockView({ block }: { block: ContentBlock }) {
 
   if (block.type === 'warning') {
     return (
-      <div className="bg-amber-50 border border-amber-300 rounded-xl p-4">
+      <div className="bg-red-50 border border-red-300 rounded-xl p-4">
         <div className="flex items-center gap-2 mb-2">
-          <AlertTriangle className="w-4 h-4 text-amber-600" />
-          <span className="font-semibold text-amber-800 text-sm">{block.title}</span>
+          <AlertTriangle className="w-4 h-4 text-red-600" />
+          <span className="font-semibold text-red-800 text-sm">{block.title}</span>
         </div>
-        <p className="text-amber-700 text-sm leading-relaxed">{block.text}</p>
+        <p className="text-red-700 text-sm leading-relaxed">{block.text}</p>
       </div>
     )
   }
@@ -695,7 +695,7 @@ function ContentBlockView({ block }: { block: ContentBlock }) {
         <div className="space-y-1.5">
           {block.vars.map((v, i) => (
             <div key={i} className="flex gap-2 text-sm">
-              <span className="font-mono font-semibold text-amber-700 min-w-[30px]">{v.symbol}</span>
+              <span className="font-mono font-semibold text-red-700 min-w-[30px]">{v.symbol}</span>
               <span className="text-slate-600">— {v.desc}</span>
             </div>
           ))}
@@ -750,9 +750,9 @@ function ContentBlockView({ block }: { block: ContentBlock }) {
 
   if (block.type === 'step') {
     return (
-      <div className="flex gap-4 bg-white border border-slate-200 rounded-xl p-4 hover:border-amber-300 transition-colors">
-        <div className="w-8 h-8 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
-          <span className="text-amber-700 font-bold text-sm">{block.num}</span>
+      <div className="flex gap-4 bg-white border border-slate-200 rounded-xl p-4 hover:border-red-300 transition-colors">
+        <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
+          <span className="text-red-700 font-bold text-sm">{block.num}</span>
         </div>
         <div>
           <h5 className="font-semibold text-slate-800 text-sm">{block.title}</h5>
@@ -765,7 +765,7 @@ function ContentBlockView({ block }: { block: ContentBlock }) {
   if (block.type === 'metricCard') {
     return (
       <div className="bg-white border border-slate-200 rounded-xl p-4 hover:shadow-md transition-shadow">
-        <h5 className="font-bold text-amber-700 mb-1">{block.metric}</h5>
+        <h5 className="font-bold text-red-700 mb-1">{block.metric}</h5>
         <div className="bg-slate-50 rounded-lg p-2 mb-2 text-center">
           <code className="text-sm font-mono text-slate-700">{block.formula}</code>
         </div>
@@ -794,11 +794,11 @@ function ContentBlockView({ block }: { block: ContentBlock }) {
           {block.steps.map((step, i) => (
             <div key={i} className="flex items-start gap-3">
               <div className="flex flex-col items-center">
-                <div className="w-7 h-7 rounded-full bg-amber-100 border-2 border-amber-300 flex items-center justify-center flex-shrink-0">
-                  <span className="text-amber-700 font-bold text-xs">{i + 1}</span>
+                <div className="w-7 h-7 rounded-full bg-red-100 border-2 border-red-300 flex items-center justify-center flex-shrink-0">
+                  <span className="text-red-700 font-bold text-xs">{i + 1}</span>
                 </div>
                 {i < block.steps.length - 1 && (
-                  <div className="w-0.5 h-6 bg-amber-200 my-0.5" />
+                  <div className="w-0.5 h-6 bg-red-200 my-0.5" />
                 )}
               </div>
               <div className="pb-1">
@@ -828,7 +828,7 @@ function ContentBlockView({ block }: { block: ContentBlock }) {
 
   if (block.type === 'quote') {
     return (
-      <div className="bg-slate-50 border-l-4 border-amber-400 rounded-r-xl p-5 my-2">
+      <div className="bg-slate-50 border-l-4 border-red-500 rounded-r-xl p-5 my-2">
         <blockquote className="text-slate-700 text-sm leading-relaxed italic mb-3">
           &ldquo;{block.text}&rdquo;
         </blockquote>
@@ -844,7 +844,7 @@ function ContentBlockView({ block }: { block: ContentBlock }) {
   if (block.type === 'concept') {
     const Icon = block.icon
     return (
-      <div className="bg-white border border-slate-200 rounded-xl p-5 hover:border-amber-300 transition-colors">
+      <div className="bg-white border border-slate-200 rounded-xl p-5 hover:border-red-300 transition-colors">
         <div className="flex items-start gap-3">
           <div className="w-9 h-9 rounded-lg bg-slate-100 flex items-center justify-center flex-shrink-0 mt-0.5">
             <Icon className="w-5 h-5 text-slate-600" />
@@ -853,7 +853,7 @@ function ContentBlockView({ block }: { block: ContentBlock }) {
             <h4 className="font-semibold text-slate-800 mb-1">{block.title}</h4>
             <p className="text-slate-600 text-sm leading-relaxed">{block.text}</p>
             {block.emphasis && (
-              <p className="mt-2 text-xs font-medium text-amber-700 bg-amber-50 rounded-lg px-3 py-1.5 inline-block">
+              <p className="mt-2 text-xs font-medium text-red-700 bg-red-50 rounded-lg px-3 py-1.5 inline-block">
                 💡 {block.emphasis}
               </p>
             )}
@@ -910,16 +910,16 @@ function ModuleCard({
       onClick={() => onSelect(index)}
       className={`w-full text-left p-3 rounded-xl transition-all duration-200 flex items-start gap-3 ${
         isActive
-          ? 'bg-amber-100 border-2 border-amber-400 shadow-md'
+          ? 'bg-red-100 border-2 border-red-400 shadow-md'
           : isCompleted
           ? 'bg-green-50 border border-green-200 hover:border-green-300'
-          : 'bg-white border border-slate-200 hover:border-amber-200 hover:shadow-sm'
+          : 'bg-white border border-slate-200 hover:border-red-200 hover:shadow-sm'
       }`}
     >
       <div
         className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
           isActive
-            ? 'bg-amber-200 text-amber-700'
+            ? 'bg-red-200 text-red-700'
             : isCompleted
             ? 'bg-green-100 text-green-600'
             : 'bg-slate-100 text-slate-500'
@@ -933,7 +933,7 @@ function ModuleCard({
       </div>
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
-          <span className={`text-xs font-bold ${isActive ? 'text-amber-700' : isCompleted ? 'text-green-600' : 'text-slate-400'}`}>
+          <span className={`text-xs font-bold ${isActive ? 'text-red-700' : isCompleted ? 'text-green-600' : 'text-slate-400'}`}>
             MÓDULO {module.num}
           </span>
           <span className="text-[10px] text-slate-400 flex items-center gap-0.5">
@@ -941,7 +941,7 @@ function ModuleCard({
             {module.duration}
           </span>
         </div>
-        <p className={`text-sm font-semibold mt-0.5 truncate ${isActive ? 'text-amber-900' : 'text-slate-700'}`}>
+        <p className={`text-sm font-semibold mt-0.5 truncate ${isActive ? 'text-red-900' : 'text-slate-700'}`}>
           {module.title}
         </p>
         {!isActive && (
@@ -1018,7 +1018,7 @@ export default function ComoExperimentarPage() {
         {/* Progress Bar */}
         <div className="h-1 bg-slate-200">
           <div
-            className="h-full bg-gradient-to-r from-amber-400 to-orange-500 transition-all duration-500 ease-out"
+            className="h-full bg-gradient-to-r from-red-700 to-red-900 transition-all duration-500 ease-out"
             style={{ width: `${progress}%` }}
           />
         </div>
@@ -1042,12 +1042,12 @@ export default function ComoExperimentarPage() {
             {/* Progress summary */}
             <div className="mt-4 pt-4 border-t border-slate-100 px-1">
               <div className="flex items-center gap-2 text-xs text-slate-500">
-                <Trophy className="w-3.5 h-3.5 text-amber-500" />
+                <Trophy className="w-3.5 h-3.5 text-red-500" />
                 <span>{completedModules.size}/{MODULES.length} módulos concluídos</span>
               </div>
               <div className="mt-2 h-1.5 bg-slate-100 rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-gradient-to-r from-amber-400 to-orange-500 rounded-full transition-all duration-500"
+                  className="h-full bg-gradient-to-r from-red-700 to-red-900 rounded-full transition-all duration-500"
                   style={{ width: `${progress}%` }}
                 />
               </div>
@@ -1063,7 +1063,7 @@ export default function ComoExperimentarPage() {
                   onClick={() => handleModuleSelect(i)}
                   className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
                     activeModule === i
-                      ? 'bg-amber-100 text-amber-800 border border-amber-300'
+                      ? 'bg-red-100 text-red-800 border border-red-300'
                       : completedModules.has(i)
                       ? 'bg-green-50 text-green-700 border border-green-200'
                       : 'bg-white text-slate-500 border border-slate-200'
@@ -1077,11 +1077,11 @@ export default function ComoExperimentarPage() {
 
           {/* Main Content */}
           <main className="flex-1 min-w-0" ref={contentRef}>
-            <div className="px-4 lg:px-8 py-6 lg:py-10 max-w-3xl mx-auto">
+            <div className="px-4 lg:px-8 py-6 lg:py-10 max-w-5xl mx-auto">
               {/* Module Header */}
               <div className="mb-8">
                 <div className="flex items-center gap-3 mb-2">
-                  <span className="text-xs font-bold text-amber-600 bg-amber-50 px-2.5 py-1 rounded-full">
+                  <span className="text-xs font-bold text-red-700 bg-red-50 px-2.5 py-1 rounded-full">
                     MÓDULO {module.num} DE {MODULES.length}
                   </span>
                   <span className="text-xs text-slate-400 flex items-center gap-1">
@@ -1090,7 +1090,7 @@ export default function ComoExperimentarPage() {
                   </span>
                 </div>
                 <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center flex-shrink-0 shadow-lg">
+                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-red-700 to-red-900 flex items-center justify-center flex-shrink-0 shadow-lg">
                     <ModuleIcon className="w-6 h-6 text-white" />
                   </div>
                   <div>
@@ -1133,7 +1133,7 @@ export default function ComoExperimentarPage() {
                 {activeModule < MODULES.length - 1 ? (
                   <button
                     onClick={handleNextModule}
-                    className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white rounded-lg text-sm font-medium transition-all shadow-md hover:shadow-lg"
+                    className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-red-700 to-red-900 hover:from-red-800 hover:to-red-950 text-white rounded-lg text-sm font-medium transition-all shadow-md hover:shadow-lg"
                   >
                     Próximo Módulo
                     <ArrowRight className="w-4 h-4" />
