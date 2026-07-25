@@ -60,3 +60,9 @@ html, body {
     page-break-inside: avoid;
   }
 }
+
+/* ── Hero particle animation ── */
+@keyframes floatUp {
+  0%, 100% { transform: translateY(0); opacity: 0.3; }
+  50% { transform: translateY(-12px); opacity: 0.8; }
+}

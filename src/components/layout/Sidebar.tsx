@@ -1,5 +1,5 @@
 'use client'
-import { Target, BarChart2, Activity, Users, FileText, Bot, Flag, ListOrdered, Settings, PanelRightOpen } from 'lucide-react'
+import { Target, BarChart2, Activity, Users, FileText, Bot, Flag, ListOrdered, Settings, PanelRightOpen, HeartHandshake } from 'lucide-react'
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
@@ -13,6 +13,7 @@ const NAV_ALL = [
   { label: 'Report',     icon: FileText, href: '/report',         inactive: false, roles: ['admin'] },
   { label: 'Monitoram.', icon: Activity,  href: '/monitoramento', inactive: false, roles: ['admin'] },
   { label: 'Cientista',  icon: Bot,       href: '/cientista',     inactive: false, roles: ['admin'] },
+  { label: 'Comunidade', icon: HeartHandshake, href: '/comunidade', inactive: false, roles: ['admin', 'executivo'] },
   { label: 'Governança', icon: Users,     href: '/governanca',    inactive: true,  roles: ['admin', 'executivo'] },
   { label: 'Admin',      icon: Settings,  href: '/admin/users',   inactive: false, roles: ['admin'] },
 ]

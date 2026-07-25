@@ -300,6 +300,118 @@
 			"label": "git-commit-zoom-ps",
 			"type": "shell",
 			"command": "git add -A; git commit -m 'fix: zoom resilience - min-h-screen to min-h-dvh, increased padding/gaps and font sizes'; git push origin main"
+		},
+		{
+			"label": "explore-zip",
+			"type": "shell",
+			"command": "c:/Users/F216409/jira-viewer/.venv/Scripts/python.exe c:/Users/F216409/jira-viewer/explore_zip.py"
+		},
+		{
+			"label": "extract-zip",
+			"type": "shell",
+			"command": "c:/Users/F216409/jira-viewer/.venv/Scripts/python.exe c:/Users/F216409/jira-viewer/extract_zip.py"
+		},
+		{
+			"label": "scan-experiments",
+			"type": "shell",
+			"command": "c:/Users/F216409/jira-viewer/.venv/Scripts/python.exe c:/Users/F216409/jira-viewer/scan_experiments.py"
+		},
+		{
+			"label": "categorize-experiments",
+			"type": "shell",
+			"command": "c:/Users/F216409/jira-viewer/.venv/Scripts/python.exe c:/Users/F216409/jira-viewer/categorize_experiments.py"
+		},
+		{
+			"label": "categorize-experiments-2",
+			"type": "shell",
+			"command": "c:/Users/F216409/jira-viewer/.venv/Scripts/python.exe c:/Users/F216409/jira-viewer/categorize_experiments.py"
+		},
+		{
+			"label": "categorize-experiments-3",
+			"type": "shell",
+			"command": "c:/Users/F216409/jira-viewer/.venv/Scripts/python.exe c:/Users/F216409/jira-viewer/categorize_experiments.py"
+		},
+		{
+			"label": "categorize-experiments-4",
+			"type": "shell",
+			"command": "c:/Users/F216409/jira-viewer/.venv/Scripts/python.exe c:/Users/F216409/jira-viewer/categorize_experiments.py"
+		},
+		{
+			"label": "categorize-experiments-5",
+			"type": "shell",
+			"command": "c:/Users/F216409/jira-viewer/.venv/Scripts/python.exe c:/Users/F216409/jira-viewer/categorize_experiments.py"
+		},
+		{
+			"label": "test-azure-openai",
+			"type": "shell",
+			"command": "cmd /c node c:/Users/F216409/jira-viewer/test_azure.js"
+		},
+		{
+			"label": "test-azure-openai2",
+			"type": "shell",
+			"command": "cmd /c node c:/Users/F216409/jira-viewer/test_azure2.js"
+		},
+		{
+			"label": "categorize-experiments-6",
+			"type": "shell",
+			"command": "c:/Users/F216409/jira-viewer/.venv/Scripts/python.exe c:/Users/F216409/jira-viewer/categorize_experiments.py"
+		},
+		{
+			"label": "categorize-experiments-7",
+			"type": "shell",
+			"command": "c:/Users/F216409/jira-viewer/.venv/Scripts/python.exe c:/Users/F216409/jira-viewer/categorize_experiments.py"
+		},
+		{
+			"label": "next-build",
+			"type": "shell",
+			"command": "cmd /c npx next build",
+			"problemMatcher": [],
+			"group": "build"
+		},
+		{
+			"label": "next-build-check",
+			"type": "shell",
+			"command": "cmd /c npx next build 2>&1",
+			"problemMatcher": []
+		},
+		{
+			"label": "next-build-final",
+			"type": "shell",
+			"command": "cmd /c npx next build 2>&1 | findstr /C:\"✓\" /C:\"error\" /C:\"Failed\" /C:\"experimentos\"",
+			"problemMatcher": []
+		},
+		{
+			"label": "next-build-check",
+			"type": "shell",
+			"command": "cmd /c npx next build 2>&1",
+			"isBackground": false
+		},
+		{
+			"label": "build-check-cientista",
+			"type": "shell",
+			"command": "cmd /c npx next build 2>&1",
+			"isBackground": false
+		},
+		{
+			"label": "next-dev",
+			"type": "shell",
+			"command": "cmd /c npx next dev",
+			"isBackground": true,
+			"problemMatcher": []
+		},
+		{
+			"label": "build-check-filosofia",
+			"type": "shell",
+			"command": "cmd /c npx next build 2>&1",
+			"isBackground": false,
+			"problemMatcher": []
+		},
+		{
+			"label": "next-dev",
+			"type": "shell",
+			"command": "cmd /c npx next dev",
+			"isBackground": true,
+			"problemMatcher": []
 		}
 	]
 }

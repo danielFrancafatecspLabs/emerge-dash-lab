@@ -1,0 +1,652 @@
+[
+  {
+    "folder_name": "Agente CORI - RAG COM MCP",
+    "categoria": "Automação & Agentes",
+    "dominio": "Operações de Rede",
+    "status": "Desconhecido",
+    "maturidade": "Desconhecido",
+    "descricao": "Experimento focado em automação de processos utilizando o agente CORI.",
+    "tags": [
+      "agente",
+      "automação",
+      "RAG"
+    ]
+  },
+  {
+    "folder_name": "Alarmes Garantia da Receita",
+    "categoria": "Outros",
+    "dominio": "Financeiro",
+    "status": "Desconhecido",
+    "maturidade": "Desconhecido",
+    "descricao": "Experimento relacionado à garantia de receita através de alarmes.",
+    "tags": [
+      "alarme",
+      "receita",
+      "financeiro"
+    ]
+  },
+  {
+    "folder_name": "Analise de Sentimentos",
+    "categoria": "NLP & Texto",
+    "dominio": "P&D",
+    "status": "Desconhecido",
+    "maturidade": "Desconhecido",
+    "descricao": "Análise de sentimentos a partir de dados coletados, visando entender a percepção do cliente.",
+    "tags": [
+      "análise de sentimentos",
+      "NPS",
+      "dados"
+    ]
+  },
+  {
+    "folder_name": "Auto-Instalação (CS)",
+    "categoria": "Automação & Agentes",
+    "dominio": "Atendimento ao Cliente",
+    "status": "Desconhecido",
+    "maturidade": "Desconhecido",
+    "descricao": "Experimento que visa facilitar a auto-instalação de serviços pelos clientes.",
+    "tags": [
+      "auto-instalação",
+      "atendimento",
+      "clientes"
+    ]
+  },
+  {
+    "folder_name": "Automação de Editais",
+    "categoria": "Automação & Agentes",
+    "dominio": "Operações de Rede",
+    "status": "Concluído",
+    "maturidade": "MVP",
+    "descricao": "Automatização do processo de criação e gestão de editais.",
+    "tags": [
+      "automação",
+      "editais",
+      "gestão"
+    ],
+    "arquivos": [
+      "/comunidade/experimentos/automacao-de-editais/Ficha Experimento - Automação de Editais.pptx",
+      "/comunidade/experimentos/automacao-de-editais/Testes-AutomacaoDeEditais.xlsx.url"
+    ],
+    "download_url": "/comunidade/experimentos/automacao-de-editais/Ficha Experimento - Automação de Editais.pptx",
+    "slug": "automacao-de-editais"
+  },
+  {
+    "folder_name": "Benchmark LLMs",
+    "categoria": "Pesquisa & Benchmark",
+    "dominio": "P&D",
+    "status": "Desconhecido",
+    "maturidade": "Desconhecido",
+    "descricao": "Benchmarking de modelos de linguagem de grande porte.",
+    "tags": [
+      "benchmark",
+      "LLMs",
+      "P&D"
+    ]
+  },
+  {
+    "folder_name": "Cientista beOn labs",
+    "categoria": "Pesquisa & Benchmark",
+    "dominio": "P&D",
+    "status": "Concluído",
+    "maturidade": "Produção",
+    "descricao": "Experimento que envolve a atuação de cientistas em projetos de IA.",
+    "tags": [
+      "cientista",
+      "P&D",
+      "IA"
+    ]
+  },
+  {
+    "folder_name": "Clarinha",
+    "categoria": "Outros",
+    "dominio": "Atendimento ao Cliente",
+    "status": "Desconhecido",
+    "maturidade": "Desconhecido",
+    "descricao": "Projeto relacionado a um assistente virtual chamado Clarinha.",
+    "tags": [
+      "assistente virtual",
+      "Clarinha",
+      "atendimento"
+    ],
+    "arquivos": [
+      "/comunidade/experimentos/clarinha/DadosExperimento_ClaroLABS - Clarinha - GPT3.xlsx",
+      "/comunidade/experimentos/clarinha/FichaExperimento_ClaroLABS - Clarinha - GPT3 - 1.0.pdf",
+      "/comunidade/experimentos/clarinha/FichaExperimento_ClaroLABS - Clarinha - GPT3 - 1.0.pptx"
+    ],
+    "download_url": "/comunidade/experimentos/clarinha/DadosExperimento_ClaroLABS - Clarinha - GPT3.xlsx",
+    "slug": "clarinha"
+  },
+  {
+    "folder_name": "Claro Box - Identificação de Fraude",
+    "categoria": "Fraude & Segurança",
+    "dominio": "Segurança",
+    "status": "Desconhecido",
+    "maturidade": "Desconhecido",
+    "descricao": "Experimento focado na identificação de fraudes em serviços de Claro Box.",
+    "tags": [
+      "fraude",
+      "segurança",
+      "Claro Box"
+    ]
+  },
+  {
+    "folder_name": "Classificação Automática de IncidenteChamado",
+    "categoria": "Automação & Agentes",
+    "dominio": "TI & Infraestrutura",
+    "status": "Desconhecido",
+    "maturidade": "Desconhecido",
+    "descricao": "Automatização da classificação de incidentes em chamados de TI.",
+    "tags": [
+      "classificação",
+      "incidentes",
+      "TI"
+    ]
+  },
+  {
+    "folder_name": "Custos Infraestrutura IA",
+    "categoria": "Infraestrutura & Custos",
+    "dominio": "TI & Infraestrutura",
+    "status": "Desconhecido",
+    "maturidade": "Desconhecido",
+    "descricao": "Estimativa de custos relacionados à infraestrutura de IA.",
+    "tags": [
+      "custos",
+      "infraestrutura",
+      "IA"
+    ]
+  },
+  {
+    "folder_name": "Experimento Reajuste Telmex",
+    "categoria": "Outros",
+    "dominio": "Financeiro",
+    "status": "Desconhecido",
+    "maturidade": "Desconhecido",
+    "descricao": "Experimento relacionado ao reajuste de tarifas da Telmex.",
+    "tags": [
+      "reajuste",
+      "Telmex",
+      "financeiro"
+    ]
+  },
+  {
+    "folder_name": "Gestão de Incidentes - Datacenter",
+    "categoria": "Automação & Agentes",
+    "dominio": "TI & Infraestrutura",
+    "status": "Desconhecido",
+    "maturidade": "Desconhecido",
+    "descricao": "Gestão automatizada de incidentes em datacenters.",
+    "tags": [
+      "gestão",
+      "incidentes",
+      "datacenter"
+    ]
+  },
+  {
+    "folder_name": "Identificação de Chamadas de Spam",
+    "categoria": "Speech & Áudio",
+    "dominio": "Atendimento ao Cliente",
+    "status": "Concluído",
+    "maturidade": "Produção",
+    "descricao": "Identificação automática de chamadas de spam para melhorar a experiência do cliente.",
+    "tags": [
+      "spam",
+      "chamadas",
+      "atendimento"
+    ]
+  },
+  {
+    "folder_name": "METAEXPERIMENTO",
+    "categoria": "Outros",
+    "dominio": "Múltiplos",
+    "status": "Desconhecido",
+    "maturidade": "Desconhecido",
+    "descricao": "Experimento que explora múltiplas tecnologias e abordagens.",
+    "tags": [
+      "metaexperimento",
+      "tecnologia",
+      "exploração"
+    ]
+  },
+  {
+    "folder_name": "Motor Tecnico (CS)",
+    "categoria": "Automação & Agentes",
+    "dominio": "Operações de Rede",
+    "status": "Desconhecido",
+    "maturidade": "Desconhecido",
+    "descricao": "Experimento focado na automação de processos técnicos.",
+    "tags": [
+      "motor técnico",
+      "automação",
+      "CS"
+    ]
+  },
+  {
+    "folder_name": "Personas Sintéticas",
+    "categoria": "IA Generativa",
+    "dominio": "P&D",
+    "status": "Desconhecido",
+    "maturidade": "Desconhecido",
+    "descricao": "Geração de personas sintéticas para simulações e testes.",
+    "tags": [
+      "personas",
+      "sintéticas",
+      "geração"
+    ]
+  },
+  {
+    "folder_name": "Previsão de Custos e Duração de Demandas de TI",
+    "categoria": "Infraestrutura & Custos",
+    "dominio": "TI & Infraestrutura",
+    "status": "Desconhecido",
+    "maturidade": "Desconhecido",
+    "descricao": "Previsão de custos e tempo para demandas de TI.",
+    "tags": [
+      "previsão",
+      "custos",
+      "TI"
+    ]
+  },
+  {
+    "folder_name": "Serviço de Biometria",
+    "categoria": "Biometria",
+    "dominio": "Segurança",
+    "status": "Desconhecido",
+    "maturidade": "Desconhecido",
+    "descricao": "Serviço que utiliza biometria para autenticação e segurança.",
+    "tags": [
+      "biometria",
+      "segurança",
+      "autenticação"
+    ]
+  },
+  {
+    "folder_name": "Speech Recognitiion",
+    "categoria": "Speech & Áudio",
+    "dominio": "Atendimento ao Cliente",
+    "status": "Desconhecido",
+    "maturidade": "Desconhecido",
+    "descricao": "Reconhecimento de fala para melhorar a interação com o cliente.",
+    "tags": [
+      "reconhecimento de fala",
+      "atendimento",
+      "IA"
+    ]
+  },
+  {
+    "folder_name": "Speech-To-Text",
+    "categoria": "Speech & Áudio",
+    "dominio": "Atendimento ao Cliente",
+    "status": "Concluído",
+    "maturidade": "Produção",
+    "descricao": "Conversão de fala em texto utilizando tecnologia avançada.",
+    "tags": [
+      "speech-to-text",
+      "whisper",
+      "IA"
+    ]
+  },
+  {
+    "folder_name": "Tabulação automática de Vendas",
+    "categoria": "Automação & Agentes",
+    "dominio": "Vendas & Marketing",
+    "status": "Desconhecido",
+    "maturidade": "Desconhecido",
+    "descricao": "Automatização da tabulação de vendas para eficiência operacional.",
+    "tags": [
+      "tabulação",
+      "vendas",
+      "automação"
+    ]
+  },
+  {
+    "folder_name": "URA Cognitiva",
+    "categoria": "Automação & Agentes",
+    "dominio": "Atendimento ao Cliente",
+    "status": "Desconhecido",
+    "maturidade": "Desconhecido",
+    "descricao": "Desenvolvimento de uma URA cognitiva para atendimento ao cliente.",
+    "tags": [
+      "URA",
+      "cognitiva",
+      "atendimento"
+    ]
+  },
+  {
+    "folder_name": "VOC - Correlação de Alarmes",
+    "categoria": "Outros",
+    "dominio": "Operações de Rede",
+    "status": "Desconhecido",
+    "maturidade": "Desconhecido",
+    "descricao": "Correlação de alarmes para otimização de operações.",
+    "tags": [
+      "VOC",
+      "alarm",
+      "correlação"
+    ]
+  },
+  {
+    "folder_name": "Video-Inspeção da Rede (CS)",
+    "categoria": "Computer Vision",
+    "dominio": "Operações de Rede",
+    "status": "Desconhecido",
+    "maturidade": "Desconhecido",
+    "descricao": "Inspeção de rede utilizando tecnologia de visão computacional.",
+    "tags": [
+      "video",
+      "inspeção",
+      "rede"
+    ]
+  },
+  {
+    "folder_name": "APP Bot - Avatar – Atendimento Técnico",
+    "slug": "app-bot-avatar-atendimento-tecnico",
+    "categoria": "Automacao & Agentes",
+    "dominio": "Atendimento ao Cliente",
+    "status": "Desconhecido",
+    "maturidade": "Desconhecido",
+    "descricao": "Experimento extraido do portfolio BeOn Labs: APP Bot - Avatar – Atendimento Técnico.",
+    "tags": [
+      "app",
+      "bot",
+      "avatar",
+      "atendimento",
+      "cnico"
+    ],
+    "arquivos": [
+      "/comunidade/experimentos/app-bot-avatar-atendimento-tecnico/Apresentacao_box_Abr_24_fechamento.pptx",
+      "/comunidade/experimentos/app-bot-avatar-atendimento-tecnico/Arvore Decisão Tela Preta.xlsx",
+      "/comunidade/experimentos/app-bot-avatar-atendimento-tecnico/Ficha Experimento - APP Bot - Avatar - Atendimento Técnico.pptx",
+      "/comunidade/experimentos/app-bot-avatar-atendimento-tecnico/Planejamento Visão Macro APP BOT.xlsx"
+    ],
+    "download_url": "/comunidade/experimentos/app-bot-avatar-atendimento-tecnico/Apresentacao_box_Abr_24_fechamento.pptx"
+  },
+  {
+    "folder_name": "Aceitação Remota Rede Móvel",
+    "slug": "aceitacao-remota-rede-movel",
+    "categoria": "Operacoes de Rede",
+    "dominio": "Operacoes de Rede",
+    "status": "Desconhecido",
+    "maturidade": "Desconhecido",
+    "descricao": "Experimento extraido do portfolio BeOn Labs: Aceitação Remota Rede Móvel.",
+    "tags": [
+      "aceita",
+      "remota",
+      "rede",
+      "vel"
+    ],
+    "arquivos": [
+      "/comunidade/experimentos/aceitacao-remota-rede-movel/8cacb00f-f653-4b45-a229-a6e4fd9741f1.png",
+      "/comunidade/experimentos/aceitacao-remota-rede-movel/d0068639-5d3c-41fb-b6f3-72024e787846.jpg"
+    ],
+    "download_url": "/comunidade/experimentos/aceitacao-remota-rede-movel/8cacb00f-f653-4b45-a229-a6e4fd9741f1.png"
+  },
+  {
+    "folder_name": "Agente CORI (COPREDE)",
+    "slug": "agente-cori-coprede",
+    "categoria": "Automacao & Agentes",
+    "dominio": "Operacoes de Rede",
+    "status": "Desconhecido",
+    "maturidade": "Desconhecido",
+    "descricao": "Experimento extraido do portfolio BeOn Labs: Agente CORI (COPREDE).",
+    "tags": [
+      "agente",
+      "cori",
+      "coprede"
+    ],
+    "arquivos": [
+      "/comunidade/experimentos/agente-cori-coprede/Agente CORI - Cronograma Detalhado.xlsx",
+      "/comunidade/experimentos/agente-cori-coprede/Agente CORI - Fluxo - Backlog - Cronongrama.xlsx",
+      "/comunidade/experimentos/agente-cori-coprede/FichaExperimento_ClaroLABS - Agente CORI.pptx",
+      "/comunidade/experimentos/agente-cori-coprede/_outras_oportunidades_brainstorm.pptx"
+    ],
+    "download_url": "/comunidade/experimentos/agente-cori-coprede/Agente CORI - Cronograma Detalhado.xlsx"
+  },
+  {
+    "folder_name": "Agente criador de SD",
+    "slug": "agente-criador-de-sd",
+    "categoria": "Automacao & Agentes",
+    "dominio": "TI & Infraestrutura",
+    "status": "Desconhecido",
+    "maturidade": "Desconhecido",
+    "descricao": "Experimento extraido do portfolio BeOn Labs: Agente criador de SD.",
+    "tags": [
+      "agente",
+      "criador"
+    ],
+    "arquivos": [
+      "/comunidade/experimentos/agente-criador-de-sd/Ficha Experimento - Agente Criador SD.pptx"
+    ],
+    "download_url": "/comunidade/experimentos/agente-criador-de-sd/Ficha Experimento - Agente Criador SD.pptx"
+  },
+  {
+    "folder_name": "Análise de Contestação da Fatura Empresarial",
+    "slug": "analise-de-contestacao-da-fatura-empresarial",
+    "categoria": "Automacao & Agentes",
+    "dominio": "Financeiro",
+    "status": "Desconhecido",
+    "maturidade": "Desconhecido",
+    "descricao": "Experimento extraido do portfolio BeOn Labs: Análise de Contestação da Fatura Empresarial.",
+    "tags": [
+      "lise",
+      "contesta",
+      "fatura",
+      "empresarial"
+    ],
+    "arquivos": [
+      "/comunidade/experimentos/analise-de-contestacao-da-fatura-empresarial/Ficha do Experimento - Contestação Empresarial.pptx"
+    ],
+    "download_url": "/comunidade/experimentos/analise-de-contestacao-da-fatura-empresarial/Ficha do Experimento - Contestação Empresarial.pptx"
+  },
+  {
+    "folder_name": "Assistente IA Ágil",
+    "slug": "assistente-ia-agil",
+    "categoria": "Automacao & Agentes",
+    "dominio": "Multiplos",
+    "status": "Desconhecido",
+    "maturidade": "Desconhecido",
+    "descricao": "Experimento extraido do portfolio BeOn Labs: Assistente IA Ágil.",
+    "tags": [
+      "assistente",
+      "gil"
+    ],
+    "arquivos": [
+      "/comunidade/experimentos/assistente-ia-agil/01 Contexto - Sincronismo entre Área de Negócio e TI.txt",
+      "/comunidade/experimentos/assistente-ia-agil/01 Contexto - Sobre o CoEE de Transformação Digita.txt",
+      "/comunidade/experimentos/assistente-ia-agil/A Importância da Distribuição do Tempo nas Organizações.pdf",
+      "/comunidade/experimentos/assistente-ia-agil/agente_maturidade_agilidade_ti_claro.json",
+      "/comunidade/experimentos/assistente-ia-agil/Agilidade Descomplicada - Uma Introdução Essencial para Começar com o Pé Direito.pdf",
+      "/comunidade/experimentos/assistente-ia-agil/Além da TI - Como a Transformação Digital está redefinindo o papel da Tecnologia na Claro.pdf",
+      "/comunidade/experimentos/assistente-ia-agil/Analise-Inicial-.txt",
+      "/comunidade/experimentos/assistente-ia-agil/Analise-Inicial-testes-Rafael.jpg",
+      "/comunidade/experimentos/assistente-ia-agil/Definição de Iniciativas - TI Claro.pdf",
+      "/comunidade/experimentos/assistente-ia-agil/Definição de Épicos - TI Claro.pdf",
+      "/comunidade/experimentos/assistente-ia-agil/EngajAÊ - Comunidade de Lideranças-ModeloOperacional_Grazi_230922-pt-BR.txt",
+      "/comunidade/experimentos/assistente-ia-agil/Ficha - Assistente Agil - Ciclo 1 - 2025.pptx",
+      "/comunidade/experimentos/assistente-ia-agil/Guia de todas as métricas e cerimonias.pdf",
+      "/comunidade/experimentos/assistente-ia-agil/Implementação das etapas do fluxo.pdf",
+      "/comunidade/experimentos/assistente-ia-agil/Implementação de Upstream e Downstream em Times Ágeis.pdf",
+      "/comunidade/experimentos/assistente-ia-agil/INFORMAÇÕES ADICIONAIS.txt",
+      "/comunidade/experimentos/assistente-ia-agil/Integração Agilistas V03 - Conteudo.pptx",
+      "/comunidade/experimentos/assistente-ia-agil/Introdução ao Cynefin.pdf",
+      "/comunidade/experimentos/assistente-ia-agil/Kanban é a declaração da incompetência – e por que isso pode ser a chave para a excelência.pdf",
+      "/comunidade/experimentos/assistente-ia-agil/KMM na Avaliação da Maturidade Ágil.pdf",
+      "/comunidade/experimentos/assistente-ia-agil/Liderança no Gemba - A Profundidade da Compreensão e a Prática do Lean Thinking.pdf",
+      "/comunidade/experimentos/assistente-ia-agil/Métricas Ágeis para Otimização de Fluxo de Trabalho.pdf",
+      "/comunidade/experimentos/assistente-ia-agil/NMG TI Ágil 2025.pdf",
+      "/comunidade/experimentos/assistente-ia-agil/PapeisEResponsabilidades.pdf",
+      "/comunidade/experimentos/assistente-ia-agil/PromptEscritaCards - TI.txt",
+      "/comunidade/experimentos/assistente-ia-agil/RelatorioAssistente-De-IA-Agil.pptx",
+      "/comunidade/experimentos/assistente-ia-agil/Serviços Transformação Digital.pdf",
+      "/comunidade/experimentos/assistente-ia-agil/Taxonomia e Tipos de Itens.pdf",
+      "/comunidade/experimentos/assistente-ia-agil/TodosOsArtigos.pdf"
+    ],
+    "download_url": "/comunidade/experimentos/assistente-ia-agil/01 Contexto - Sincronismo entre Área de Negócio e TI.txt"
+  },
+  {
+    "folder_name": "Atendimento por Voz - Resposta do KB",
+    "slug": "atendimento-por-voz-resposta-do-kb",
+    "categoria": "Speech & Audio",
+    "dominio": "Atendimento ao Cliente",
+    "status": "Desconhecido",
+    "maturidade": "Desconhecido",
+    "descricao": "Experimento extraido do portfolio BeOn Labs: Atendimento por Voz - Resposta do KB.",
+    "tags": [
+      "atendimento",
+      "por",
+      "voz",
+      "resposta"
+    ],
+    "arquivos": [
+      "/comunidade/experimentos/atendimento-por-voz-resposta-do-kb/Apresentação de Resultados - Atendimento por Voz.pptx",
+      "/comunidade/experimentos/atendimento-por-voz-resposta-do-kb/Apresentação1 Generative AI 1.1.pptx",
+      "/comunidade/experimentos/atendimento-por-voz-resposta-do-kb/Apresentação1 Generative AI.pptx",
+      "/comunidade/experimentos/atendimento-por-voz-resposta-do-kb/Atendimento por Voz v1.0.pdf",
+      "/comunidade/experimentos/atendimento-por-voz-resposta-do-kb/Atendimento por Voz v1.0.pptx",
+      "/comunidade/experimentos/atendimento-por-voz-resposta-do-kb/Atendimento por Voz v2.1.pptx",
+      "/comunidade/experimentos/atendimento-por-voz-resposta-do-kb/Atendimento por Voz v2.2.pptx",
+      "/comunidade/experimentos/atendimento-por-voz-resposta-do-kb/Atendimento por Voz v2.3.pptx",
+      "/comunidade/experimentos/atendimento-por-voz-resposta-do-kb/Atendimento por Voz v2.5 cópia.pptx",
+      "/comunidade/experimentos/atendimento-por-voz-resposta-do-kb/Atendimento por Voz v2.5.pdf",
+      "/comunidade/experimentos/atendimento-por-voz-resposta-do-kb/Atendimento por Voz v2.5.pptx",
+      "/comunidade/experimentos/atendimento-por-voz-resposta-do-kb/cronograma.xlsx",
+      "/comunidade/experimentos/atendimento-por-voz-resposta-do-kb/FichaExperimento_ClaroLABS - Speech to Speech.pptx",
+      "/comunidade/experimentos/atendimento-por-voz-resposta-do-kb/Residencial VOC.pbix"
+    ],
+    "download_url": "/comunidade/experimentos/atendimento-por-voz-resposta-do-kb/Apresentação de Resultados - Atendimento por Voz.pptx"
+  },
+  {
+    "folder_name": "Auto Inspeção Técnica",
+    "slug": "auto-inspecao-tecnica",
+    "categoria": "Outros",
+    "dominio": "Multiplos",
+    "status": "Desconhecido",
+    "maturidade": "Desconhecido",
+    "descricao": "Experimento extraido do portfolio BeOn Labs: Auto Inspeção Técnica.",
+    "tags": [
+      "auto",
+      "inspe",
+      "cnica"
+    ],
+    "arquivos": [
+      "/comunidade/experimentos/auto-inspecao-tecnica/Analise_GPT_Humano.docx",
+      "/comunidade/experimentos/auto-inspecao-tecnica/AUTO INSPEÇÃO COM INTELIGÊNCIA ARTIFICIAL.pptx",
+      "/comunidade/experimentos/auto-inspecao-tecnica/Descritivo de falhas Auto inspeção com IA 2.docx",
+      "/comunidade/experimentos/auto-inspecao-tecnica/Estatisticas_testes_autoinspeção.xlsx",
+      "/comunidade/experimentos/auto-inspecao-tecnica/Ficha Experimento - Autoinspeção com IA.pptx",
+      "/comunidade/experimentos/auto-inspecao-tecnica/relatório auto inspeção 25-24.xlsx",
+      "/comunidade/experimentos/auto-inspecao-tecnica/Resultados preliminares testes.xlsx"
+    ],
+    "download_url": "/comunidade/experimentos/auto-inspecao-tecnica/Analise_GPT_Humano.docx"
+  },
+  {
+    "folder_name": "Bot Vendedor - Hitss",
+    "slug": "bot-vendedor-hitss",
+    "categoria": "Automacao & Agentes",
+    "dominio": "Vendas & Marketing",
+    "status": "Desconhecido",
+    "maturidade": "Desconhecido",
+    "descricao": "Experimento extraido do portfolio BeOn Labs: Bot Vendedor - Hitss.",
+    "tags": [
+      "bot",
+      "vendedor",
+      "hitss"
+    ],
+    "arquivos": [
+      "/comunidade/experimentos/bot-vendedor-hitss/FichaExperimento_ClaroLABS - BOT Vendedor.pptx"
+    ],
+    "download_url": "/comunidade/experimentos/bot-vendedor-hitss/FichaExperimento_ClaroLABS - BOT Vendedor.pptx"
+  },
+  {
+    "folder_name": "Check IA",
+    "slug": "check-ia",
+    "categoria": "Qualidade & Testes",
+    "dominio": "Multiplos",
+    "status": "Desconhecido",
+    "maturidade": "Desconhecido",
+    "descricao": "Experimento extraido do portfolio BeOn Labs: Check IA.",
+    "tags": [
+      "check"
+    ],
+    "arquivos": [
+      "/comunidade/experimentos/check-ia/Ficha Experimento -Check IA.pptx"
+    ],
+    "download_url": "/comunidade/experimentos/check-ia/Ficha Experimento -Check IA.pptx"
+  },
+  {
+    "folder_name": "Clarinha 2025",
+    "slug": "clarinha-2025",
+    "categoria": "Atendimento ao Cliente",
+    "dominio": "Atendimento ao Cliente",
+    "status": "Desconhecido",
+    "maturidade": "Desconhecido",
+    "descricao": "Experimento extraido do portfolio BeOn Labs: Clarinha 2025.",
+    "tags": [
+      "clarinha"
+    ],
+    "arquivos": [
+      "/comunidade/experimentos/clarinha-2025/Clarinha Resultados 1.pptx",
+      "/comunidade/experimentos/clarinha-2025/dados-1756133373006(in).csv",
+      "/comunidade/experimentos/clarinha-2025/Ficha - Clarinha - Ciclo 1 - 2025.url",
+      "/comunidade/experimentos/clarinha-2025/Ficha - Clarinha - Ciclo 2 - 2025 - Copiar.pptx"
+    ],
+    "download_url": "/comunidade/experimentos/clarinha-2025/Clarinha Resultados 1.pptx"
+  },
+  {
+    "folder_name": "Conexão Logística RSI",
+    "slug": "conexao-logistica-rsi",
+    "categoria": "Operacoes & Logistica",
+    "dominio": "Operacoes de Rede",
+    "status": "Desconhecido",
+    "maturidade": "Desconhecido",
+    "descricao": "Experimento extraido do portfolio BeOn Labs: Conexão Logística RSI.",
+    "tags": [
+      "conex",
+      "log",
+      "stica",
+      "rsi"
+    ],
+    "arquivos": [
+      "/comunidade/experimentos/conexao-logistica-rsi/Ficha Experimento -Template (Conexão Logística RSI) 2 - Review.pptx",
+      "/comunidade/experimentos/conexao-logistica-rsi/Ficha Experimento -Template (Conexão Logística RSI) 2.pptx"
+    ],
+    "download_url": "/comunidade/experimentos/conexao-logistica-rsi/Ficha Experimento -Template (Conexão Logística RSI) 2 - Review.pptx"
+  },
+  {
+    "folder_name": "Consulta inteligente sobre os documentos de arquitetura",
+    "slug": "consulta-inteligente-sobre-os-documentos-de-arquitetura",
+    "categoria": "Automacao & Agentes",
+    "dominio": "TI & Infraestrutura",
+    "status": "Desconhecido",
+    "maturidade": "Desconhecido",
+    "descricao": "Experimento extraido do portfolio BeOn Labs: Consulta inteligente sobre os documentos de arquitetura.",
+    "tags": [
+      "consulta",
+      "inteligente",
+      "sobre",
+      "documentos",
+      "arquitetura"
+    ],
+    "arquivos": [
+      "/comunidade/experimentos/consulta-inteligente-sobre-os-documentos-de-arquitetura/ConsultaArquitetura_Avaliacao.xlsx"
+    ],
+    "download_url": "/comunidade/experimentos/consulta-inteligente-sobre-os-documentos-de-arquitetura/ConsultaArquitetura_Avaliacao.xlsx"
+  },
+  {
+    "folder_name": "Copiloto de vendas Consumo",
+    "slug": "copiloto-de-vendas-consumo",
+    "categoria": "Automacao & Agentes",
+    "dominio": "Vendas & Marketing",
+    "status": "Desconhecido",
+    "maturidade": "Desconhecido",
+    "descricao": "Experimento extraido do portfolio BeOn Labs: Copiloto de vendas Consumo.",
+    "tags": [
+      "copiloto",
+      "vendas",
+      "consumo"
+    ],
+    "arquivos": [
+      "/comunidade/experimentos/copiloto-de-vendas-consumo/Analise GPT4.docx"
+    ],
+    "download_url": "/comunidade/experimentos/copiloto-de-vendas-consumo/Analise GPT4.docx"
+  }
+]
