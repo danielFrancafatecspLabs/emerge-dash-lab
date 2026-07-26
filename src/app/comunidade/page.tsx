@@ -137,10 +137,10 @@ export default function ComunidadePage() {
   ], [])
 
   const destaques = useMemo(() => [
-    { icon: FileText, label: 'Relatórios Executivos', desc: 'Resumos gerenciais dos principais experimentos', tag: 'Novo', color: 'from-red-500 to-red-600' },
-    { icon: Zap, label: 'Tendências Tecnológicas', desc: 'O que há de mais recente em IA, automação e dados', tag: 'Trending', color: 'from-blue-500 to-blue-600' },
-    { icon: Sparkles, label: 'IA Generativa', desc: 'Casos de uso, frameworks e aprendizados em GenAI', tag: 'Destaque', color: 'from-purple-500 to-purple-600' },
-    { icon: Compass, label: 'Novos Frameworks', desc: 'Metodologias emergentes para experimentação ágil', tag: '2026', color: 'from-green-500 to-green-600' },
+    { icon: FileText, label: 'Relatórios Executivos', desc: 'Resumos gerenciais dos principais experimentos', tag: 'Novo', color: 'from-red-500 to-red-600', image: 'https://images.pexels.com/photos/3183150/pexels-photo-3183150.jpeg?auto=compress&cs=tinysrgb&w=800' },
+    { icon: Zap, label: 'Tendências Tecnológicas', desc: 'O que há de mais recente em IA, automação e dados', tag: 'Trending', color: 'from-blue-500 to-blue-600', image: 'https://images.pexels.com/photos/373543/pexels-photo-373543.jpeg?auto=compress&cs=tinysrgb&w=800' },
+    { icon: Sparkles, label: 'IA Generativa', desc: 'Casos de uso, frameworks e aprendizados em GenAI', tag: 'Destaque', color: 'from-purple-500 to-purple-600', image: 'https://images.pexels.com/photos/8386440/pexels-photo-8386440.jpeg?auto=compress&cs=tinysrgb&w=800' },
+    { icon: Compass, label: 'Novos Frameworks', desc: 'Metodologias emergentes para experimentação ágil', tag: '2026', color: 'from-green-500 to-green-600', image: 'https://images.pexels.com/photos/3184292/pexels-photo-3184292.jpeg?auto=compress&cs=tinysrgb&w=800' },
   ], [])
 
   const areas = useMemo(() => ['Todas', ...Array.from(new Set(EXPERIMENTOS_DATA.map(e => e.area))).sort()], [])
@@ -211,7 +211,7 @@ export default function ComunidadePage() {
       <main className="flex-1 flex flex-col overflow-hidden bg-gradient-to-br from-gray-50 via-white to-red-50/30">
         {/* ========== HEADER ========== */}
         <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-gray-100">
-          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between">
+          <div className="px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 rounded-lg bg-red-600 flex items-center justify-center">
                 <HeartHandshake className="w-4 h-4 text-white" />
@@ -223,35 +223,105 @@ export default function ComunidadePage() {
         </header>
 
         <div className="flex-1 overflow-y-auto">
-          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-14">
+          <div className="px-4 sm:px-6 lg:px-8 py-8 space-y-14">
 
             {/* ========== SEÇÃO 1: DESTAQUES / HERO ========== */}
             <section>
-              <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-red-600 via-red-700 to-red-900 p-8 sm:p-12 text-white">
+              {/* Hero Banner compacto */}
+              <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-red-600 via-red-700 to-red-900 p-6 sm:p-8 text-white mb-6">
                 <div className="absolute inset-0 opacity-10">
                   <div className="absolute top-0 right-0 w-96 h-96 bg-white rounded-full blur-3xl" />
                   <div className="absolute bottom-0 left-0 w-64 h-64 bg-white rounded-full blur-3xl" />
                 </div>
-                <div className="relative z-10 max-w-2xl">
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/20 text-xs font-semibold tracking-wider uppercase mb-4">
-                    <Sparkles className="w-3 h-3" /> Portal Central de Conhecimento
-                  </span>
-                  <h2 className="text-3xl sm:text-4xl font-bold mb-3 leading-tight">
-                    Bem-vindo à Comunidade de Experimentação
-                  </h2>
-                  <p className="text-red-100 text-base sm:text-lg leading-relaxed mb-6">
-                    Conecte-se com experimentadores, acesse conhecimento prático e acelere sua jornada de inovação.
-                    Explore experimentos, metodologias e cases de sucesso do ecossistema beOn Labs.
-                  </p>
-                  <div className="flex flex-wrap gap-3">
-                    <Link href="/comunidade/como-experimentar" className="inline-flex items-center gap-2 px-5 py-2.5 bg-white text-red-700 rounded-xl font-semibold text-sm hover:bg-red-50 transition-colors shadow-lg">
+                <div className="relative z-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                  <div className="max-w-xl">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/20 text-xs font-semibold tracking-wider uppercase mb-3">
+                      <Sparkles className="w-3 h-3" /> Portal Central de Conhecimento
+                    </span>
+                    <h2 className="text-2xl sm:text-3xl font-bold mb-2 leading-tight">
+                      Bem-vindo à Comunidade de Experimentação
+                    </h2>
+                    <p className="text-red-100 text-sm leading-relaxed">
+                      Conecte-se com experimentadores, acesse conhecimento prático e acelere sua jornada de inovação.
+                    </p>
+                  </div>
+                  <div className="flex gap-2 flex-shrink-0">
+                    <Link href="/comunidade/como-experimentar" className="inline-flex items-center gap-2 px-4 py-2 bg-white text-red-700 rounded-xl font-semibold text-sm hover:bg-red-50 transition-colors shadow-lg whitespace-nowrap">
                       <Compass className="w-4 h-4" /> Começar Trilha
                     </Link>
-                    <Link href="/comunidade/experimentos" className="inline-flex items-center gap-2 px-5 py-2.5 bg-white/10 text-white rounded-xl font-semibold text-sm hover:bg-white/20 transition-colors border border-white/20">
+                    <Link href="/comunidade/experimentos" className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 text-white rounded-xl font-semibold text-sm hover:bg-white/20 transition-colors border border-white/20 whitespace-nowrap">
                       <FlaskConical className="w-4 h-4" /> Ver Experimentos
                     </Link>
                   </div>
                 </div>
+              </div>
+
+              {/* Conteúdos em Destaque — Cards Cinematográficos */}
+              <h3 className="text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-red-500" /> Conteúdos em Destaque
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                {destaques.map((item, i) => (
+                  <div
+                    key={i}
+                    className="group relative overflow-hidden rounded-2xl min-h-[280px] p-6 flex flex-col justify-between cursor-pointer transition-all duration-500 hover:scale-[1.02] hover:shadow-2xl hover:shadow-red-500/20"
+                  >
+                    {/* Imagem de fundo Pexels */}
+                    <div className="absolute inset-0">
+                      <img
+                        src={item.image}
+                        alt={item.label}
+                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                        loading="lazy"
+                      />
+                    </div>
+                    {/* Overlay gradiente escuro para contraste */}
+                    <div className={`absolute inset-0 bg-gradient-to-br ${item.color} opacity-60`} />
+                    {/* Overlay inferior mais escuro para legibilidade */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+                    {/* Padrão geométrico sutil */}
+                    <div className="absolute inset-0 opacity-10" style={{
+                      backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 30px, rgba(255,255,255,0.1) 30px, rgba(255,255,255,0.1) 31px)',
+                    }} />
+                    <div className="relative z-10 flex items-start justify-between">
+                      <div className="w-12 h-12 rounded-xl bg-white/15 backdrop-blur-sm flex items-center justify-center ring-1 ring-white/20">
+                        <item.icon className="w-6 h-6 text-white" />
+                      </div>
+                      <span className="px-2.5 py-1 rounded-full bg-white/15 backdrop-blur-sm text-[10px] font-bold text-white uppercase tracking-wider ring-1 ring-white/20">{item.tag}</span>
+                    </div>
+                    <div className="relative z-10 mt-auto">
+                      <h4 className="text-white font-bold text-xl mb-1.5 drop-shadow-lg">{item.label}</h4>
+                      <p className="text-white/70 text-sm leading-relaxed">{item.desc}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Cards Destaque estilo Netflix — Cases de Sucesso */}
+              <h3 className="text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">
+                <Trophy className="w-4 h-4 text-red-500" /> Cases de Sucesso
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {SUCCESS_CASES.map((item, i) => (
+                  <div
+                    key={i}
+                    className={`group relative overflow-hidden rounded-2xl bg-gradient-to-br ${item.color} p-6 min-h-[200px] flex flex-col justify-end cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:shadow-xl`}
+                  >
+                    <div className="absolute inset-0 opacity-20">
+                      <div className="absolute -top-8 -right-8 w-40 h-40 bg-white rounded-full blur-2xl" />
+                    </div>
+                    <div className="relative z-10">
+                      <span className="text-3xl mb-2 block">{item.emoji}</span>
+                      <h4 className="text-white font-bold text-base mb-1">{item.title}</h4>
+                      <p className="text-white/80 text-xs leading-relaxed mb-3 line-clamp-2">{item.summary}</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {item.results.map((r, ri) => (
+                          <span key={ri} className="text-[10px] font-semibold text-white bg-white/15 px-2 py-0.5 rounded-full">{r}</span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
 
               {/* Search + Quick Filters */}
