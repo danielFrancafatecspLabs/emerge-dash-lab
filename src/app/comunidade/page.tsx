@@ -20,6 +20,7 @@ interface ExperimentoItem {
 interface KnowledgeItem {
   icon: string; title: string; desc: string; author: string
   date: string; readTime: string; category: string
+  href?: string
 }
 
 interface SuccessCase {
@@ -69,8 +70,8 @@ const EXPERIMENTOS_DATA: ExperimentoItem[] = [
 ]
 
 const KNOWLEDGE_ITEMS: KnowledgeItem[] = [
-  { icon: '📖', title: 'Playbook de Experimentação', desc: 'Guia completo com metodologia, templates e checklists', author: 'Marco Asterito', date: '2026-06-15', readTime: '12 min', category: 'Playbook' },
-  { icon: '🧩', title: 'Framework de Hipóteses', desc: 'Estrutura para formular e validar hipóteses com método científico', author: 'Daniel Frauches', date: '2026-05-20', readTime: '8 min', category: 'Framework' },
+  { icon: '📖', title: 'Playbook de Experimentação', desc: 'Guia completo com metodologia, templates e checklists', author: 'Daniel França Leite', date: '2026-06-15', readTime: '12 min', category: 'Playbook' },
+  { icon: '🧩', title: 'Framework de Hipóteses', desc: 'Estrutura para formular e validar hipóteses com método científico', author: 'Daniel Leite', date: '2026-05-20', readTime: '8 min', category: 'Framework', href: '/comunidade/framework-hipoteses' },
   { icon: '📋', title: 'Canvas de Experimento', desc: 'One-page canvas para planejar experimentos rapidamente', author: 'beOn Labs', date: '2026-07-01', readTime: '5 min', category: 'Canvas' },
   { icon: '❓', title: 'FAQ da Comunidade', desc: 'Perguntas frequentes sobre o processo de experimentação', author: 'COE Digital', date: '2026-07-10', readTime: '15 min', category: 'FAQ' },
   { icon: '📝', title: 'Template de Relatório', desc: 'Modelo padronizado para documentar resultados de experimentos', author: 'Engenharia', date: '2026-04-28', readTime: '3 min', category: 'Template' },
@@ -255,6 +256,52 @@ export default function ComunidadePage() {
                   </div>
                 </div>
               </div>
+
+              {/* Sweet Future — Card de destaque acima de todos os conteúdos */}
+              <a
+                href="/jira/SF_020_20260713.pdf"
+                download
+                className="group relative overflow-hidden rounded-2xl min-h-[200px] sm:min-h-[240px] flex items-center cursor-pointer transition-all duration-500 hover:scale-[1.01] hover:shadow-2xl hover:shadow-amber-500/20 mb-6"
+              >
+                {/* Imagem de fundo — capa do Sweet Future */}
+                <div className="absolute inset-0">
+                  <img
+                    src="/jira/sweet-future-cover.png"
+                    alt="Sweet Future Edição 020"
+                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                  />
+                </div>
+                {/* Overlay gradiente para legibilidade */}
+                <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/40 to-black/50" />
+                {/* Detalhe decorativo */}
+                <div className="absolute top-0 left-0 w-2 h-full bg-gradient-to-b from-amber-400 to-orange-500" />
+                {/* Conteúdo */}
+                <div className="relative z-10 px-8 sm:px-10 py-8 flex flex-col sm:flex-row items-start sm:items-center gap-6 w-full">
+                  <div className="flex-1">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 text-xs font-bold tracking-wider uppercase mb-3 border border-amber-500/30">
+                      <Star className="w-3 h-3 fill-amber-400" /> Edição Especial
+                    </span>
+                    <h2 className="text-2xl sm:text-3xl font-bold text-white mb-2 leading-tight">
+                      Sweet Future — Edição #020
+                    </h2>
+                    <p className="text-white/70 text-sm leading-relaxed max-w-2xl">
+                      Publicação oficial do beOn Labs com as principais tendências, experimentos e cases de inovação. 
+                      Baixe agora e fique por dentro de tudo que está acontecendo na comunidade.
+                    </p>
+                    <div className="flex items-center gap-3 mt-3">
+                      <span className="text-xs text-white/50 flex items-center gap-1">
+                        <Clock className="w-3 h-3" /> Julho 2026
+                      </span>
+                      <span className="text-xs text-white/50 flex items-center gap-1">
+                        <FileText className="w-3 h-3" /> PDF
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex-shrink-0 flex items-center gap-2 px-5 py-3 bg-white text-gray-900 rounded-xl font-semibold text-sm group-hover:bg-amber-50 transition-colors shadow-xl">
+                    <Download className="w-4 h-4" /> Baixar PDF
+                  </div>
+                </div>
+              </a>
 
               {/* Conteúdos em Destaque — Cards Cinematográficos */}
               <h3 className="text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">
@@ -502,17 +549,31 @@ export default function ComunidadePage() {
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {filteredKnowledge.map((item, i) => (
-                  <div key={i} className="group bg-white rounded-xl border border-gray-200 p-5 hover:border-red-200 hover:shadow-lg hover:shadow-red-500/5 hover:-translate-y-0.5 transition-all duration-200 cursor-pointer">
-                    <div className="text-2xl mb-3">{item.icon}</div>
-                    <span className="text-[10px] font-semibold text-red-600 bg-red-50 px-2 py-0.5 rounded-full">{item.category}</span>
-                    <h4 className="font-semibold text-sm text-gray-900 mt-2 group-hover:text-red-700 transition-colors">{item.title}</h4>
-                    <p className="text-xs text-gray-500 mt-1 line-clamp-2">{item.desc}</p>
-                    <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-100">
-                      <span className="text-[10px] text-gray-400">{item.author}</span>
-                      <span className="text-[10px] text-gray-300">·</span>
-                      <span className="text-[10px] text-gray-400">{item.readTime}</span>
+                  item.href ? (
+                    <Link key={i} href={item.href} className="group bg-white rounded-xl border border-gray-200 p-5 hover:border-red-200 hover:shadow-lg hover:shadow-red-500/5 hover:-translate-y-0.5 transition-all duration-200 cursor-pointer block">
+                      <div className="text-2xl mb-3">{item.icon}</div>
+                      <span className="text-[10px] font-semibold text-red-600 bg-red-50 px-2 py-0.5 rounded-full">{item.category}</span>
+                      <h4 className="font-semibold text-sm text-gray-900 mt-2 group-hover:text-red-700 transition-colors">{item.title}</h4>
+                      <p className="text-xs text-gray-500 mt-1 line-clamp-2">{item.desc}</p>
+                      <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-100">
+                        <span className="text-[10px] text-gray-400">{item.author}</span>
+                        <span className="text-[10px] text-gray-300">·</span>
+                        <span className="text-[10px] text-gray-400">{item.readTime}</span>
+                      </div>
+                    </Link>
+                  ) : (
+                    <div key={i} className="group bg-white rounded-xl border border-gray-200 p-5 hover:border-red-200 hover:shadow-lg hover:shadow-red-500/5 hover:-translate-y-0.5 transition-all duration-200 cursor-pointer">
+                      <div className="text-2xl mb-3">{item.icon}</div>
+                      <span className="text-[10px] font-semibold text-red-600 bg-red-50 px-2 py-0.5 rounded-full">{item.category}</span>
+                      <h4 className="font-semibold text-sm text-gray-900 mt-2 group-hover:text-red-700 transition-colors">{item.title}</h4>
+                      <p className="text-xs text-gray-500 mt-1 line-clamp-2">{item.desc}</p>
+                      <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-100">
+                        <span className="text-[10px] text-gray-400">{item.author}</span>
+                        <span className="text-[10px] text-gray-300">·</span>
+                        <span className="text-[10px] text-gray-400">{item.readTime}</span>
+                      </div>
                     </div>
-                  </div>
+                  )
                 ))}
               </div>
             </section>
