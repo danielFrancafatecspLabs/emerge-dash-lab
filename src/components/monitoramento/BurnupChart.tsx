@@ -55,7 +55,7 @@ export default function BurnupChart({ data, meta }: Props) {
       </div>
 
       <ResponsiveContainer width="100%" height={340}>
-        <ComposedChart data={chartData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+        <ComposedChart data={chartData} margin={{ top: 28, right: 20, left: 0, bottom: 5 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
           <XAxis dataKey="label" tick={{ fontSize: 11, fill: '#9CA3AF' }} axisLine={false} tickLine={false} />
           <YAxis yAxisId="left" tick={{ fontSize: 11, fill: '#9CA3AF' }} axisLine={false} tickLine={false} />
@@ -85,7 +85,18 @@ export default function BurnupChart({ data, meta }: Props) {
             strokeWidth={2.5}
             strokeDasharray="6 3"
             dot={{ r: 4, fill: '#F59E0B', strokeWidth: 2, stroke: '#FFFFFF' }}
-          />
+          >
+            <LabelList
+              dataKey="Benefício (R$)"
+              position="top"
+              offset={12}
+              angle={-30}
+              fontSize={9}
+              fill="#B45309"
+              fontWeight={600}
+              formatter={(v: number) => (v > 0 ? formatBRL(v) : '')}
+            />
+          </Line>
           {meta && (
             <Line yAxisId="left" type="monotone" dataKey="Meta" stroke="#D1D5DB" strokeWidth={2} dot={false} />
           )}
