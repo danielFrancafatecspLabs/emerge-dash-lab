@@ -101,7 +101,16 @@ export default function BurnupChart({ data, meta }: Props) {
               label={{ value: `Meta: ${meta}`, position: 'right', fontSize: 10, fill: '#9CA3AF' }}
             />
           )}
-          <Bar yAxisId="left" dataKey="Realizado" fill="#DC2626" radius={[4, 4, 0, 0]} barSize={28} />
+          <Bar yAxisId="left" dataKey="Realizado" fill="#DC2626" radius={[4, 4, 0, 0]} barSize={28}>
+            <LabelList
+              dataKey="Realizado"
+              position="top"
+              offset={6}
+              fontSize={11}
+              fill="#991B1B"
+              fontWeight={700}
+            />
+          </Bar>
           <Line
             yAxisId="right"
             type="monotone"
@@ -109,6 +118,15 @@ export default function BurnupChart({ data, meta }: Props) {
             stroke="#F59E0B"
             strokeWidth={2.5}
             strokeDasharray="6 3"
+            label={{
+              position: 'top',
+              offset: 12,
+              angle: -30,
+              fontSize: 9,
+              fill: '#B45309',
+              fontWeight: 600,
+              formatter: (v: number) => (v > 0 ? formatBRL(v) : ''),
+            }}
             dot={(props: { cx?: number; cy?: number; payload?: { 'Benefício (R$)': number } }) => {
               const { cx = 0, cy = 0, payload } = props
               const isOutlier = payload ? outliers.has(payload['Benefício (R$)']) : false
@@ -122,18 +140,7 @@ export default function BurnupChart({ data, meta }: Props) {
               }
               return <circle cx={cx} cy={cy} r={4} fill="#F59E0B" stroke="#FFFFFF" strokeWidth={2} />
             }}
-          >
-            <LabelList
-              dataKey="Benefício (R$)"
-              position="top"
-              offset={12}
-              angle={-30}
-              fontSize={9}
-              fill="#B45309"
-              fontWeight={600}
-              formatter={(v: number) => (v > 0 ? formatBRL(v) : '')}
-            />
-          </Line>
+          />
           {meta && (
             <Line yAxisId="left" type="monotone" dataKey="Meta" stroke="#D1D5DB" strokeWidth={2} dot={false} />
           )}
