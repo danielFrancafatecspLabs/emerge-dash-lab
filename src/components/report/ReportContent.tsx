@@ -215,7 +215,7 @@ export default function ReportContent({
       </div>
 
       {/* ═══════════════ BIG NUMBERS ═══════════════ */}
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
         <div className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
           <div className="flex items-center gap-2 mb-1">
             <Zap size={16} className="text-amber-500" />

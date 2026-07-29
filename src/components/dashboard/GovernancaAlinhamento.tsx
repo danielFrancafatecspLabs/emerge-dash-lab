@@ -109,7 +109,7 @@ export default function GovernancaAlinhamento({ data }: Props) {
 
   return (
     <>
-      <div className="bg-white rounded-lg p-4 border border-gray-200 h-full flex flex-col gap-4">
+      <div className="bg-white rounded-lg p-3 md:p-4 border border-gray-200 h-full flex flex-col gap-4 min-w-0">
         {/* Header */}
         <div className="flex items-center justify-between">
           <p className="text-xs font-semibold text-gray-500 uppercase tracking-widest">

@@ -1393,7 +1393,7 @@ export function buildMonitoramentoData(data: DashboardData, periodo: PeriodoFilt
   const beneficioNoPeriodo = epicsNoPeriodo.reduce((s, e) => s + (e.beneficioQuantitativo ?? 0), 0)
   const roi = custoTotal > 0 ? beneficioNoPeriodo / custoTotal : null
 
-  // ── Burnup: acumulado mês a mês de TODOS os experimentos (criados no período) ──
+  // ── Burnup: acumulado mês a mês apenas de experimentos CONCLUÍDOS (status 10003) ──
   // Usa criadoEm como referência para posicionar cada experimento no mês
   const meses = getMesesDoPeriodo(periodo)
   const realizado: { mes: string; ano: number; valor: number }[] = []
@@ -1404,7 +1404,7 @@ export function buildMonitoramentoData(data: DashboardData, periodo: PeriodoFilt
     const epicsNoMes = epicsNoPeriodo.filter(e => {
       if (!e.criadoEm) return false
       const d = new Date(e.criadoEm)
-      return d.getFullYear() === ano && d.getMonth() === mesIdx
+      return d.getFullYear() === ano && d.getMonth() === mesIdx && e.status.id === '10003'
     })
     acumulado += epicsNoMes.length
     realizado.push({ mes, ano, valor: acumulado })

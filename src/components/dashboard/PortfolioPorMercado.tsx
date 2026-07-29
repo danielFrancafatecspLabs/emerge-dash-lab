@@ -53,7 +53,7 @@ export default function PortfolioPorMercado({ data }: Props) {
   const items: MercadoAgregado[] = (Array.isArray(data) && data.length > 0) ? data : HARDCODED_MARKETS
 
   return (
-    <div className="bg-white rounded-lg p-4 border border-gray-200">
+    <div className="bg-white rounded-lg p-3 md:p-4 border border-gray-200 min-w-0">
       <p className="text-xs font-semibold text-gray-500 uppercase tracking-widest mb-3">
         Portfólio
       </p>

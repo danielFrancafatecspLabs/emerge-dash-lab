@@ -65,7 +65,7 @@ export default function ResumoExecutivo({ data }: Props) {
         </div>
 
         {/* ── Grid principal: 2 colunas ── */}
-        <div className="p-3 grid grid-cols-1 lg:grid-cols-2 gap-3">
+        <div className="p-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
 
           {/* ═══ COLUNA 1: METAS ESTRATÉGICAS ═══ */}
           <div className="flex flex-col gap-2">

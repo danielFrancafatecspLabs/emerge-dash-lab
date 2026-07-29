@@ -33,15 +33,15 @@ export default function FunilExperimentos({ data }: Props) {
   const maxValor = Math.max(...camadas.map(c => c.valor), 1)
 
   return (
-    <div className="bg-white rounded-lg p-4 border border-gray-200 h-full flex flex-col">
-      <div className="flex items-center gap-2 mb-3">
-        <TrendingDown className="w-4 h-4 text-gray-400" />
+    <div className="bg-white rounded-lg p-3 md:p-4 border border-gray-200 h-full flex flex-col min-w-0">
+      <div className="flex items-center gap-2 mb-3 flex-shrink-0">
+        <TrendingDown className="w-4 h-4 text-gray-400 flex-shrink-0" />
         <p className="text-xs font-semibold text-gray-500 uppercase tracking-widest">
           Funil de Experimentos
         </p>
       </div>
 
-      <div className="flex-1 flex flex-col justify-center gap-3">
+      <div className="flex-1 flex flex-col justify-center gap-3 min-h-0">
         {camadas.map((camada, i) => {
           const largura = maxValor > 0 ? (camada.valor / maxValor) * 100 : 0
 
@@ -50,13 +50,13 @@ export default function FunilExperimentos({ data }: Props) {
               {/* Barra horizontal */}
               <div className="w-full flex items-center gap-2">
                 <span
-                  className="text-xs font-medium text-gray-600 w-24 text-right flex-shrink-0"
+                  className="text-xs font-medium text-gray-600 w-20 md:w-24 text-right flex-shrink-0 truncate"
                 >
                   {camada.label}
                 </span>
-                <div className="flex-1 relative h-8">
+                <div className="flex-1 relative h-8 min-w-0">
                   <div
-                    className="absolute top-0 left-1/2 -translate-x-1/2 h-full rounded-md transition-all duration-500 flex items-center justify-center"
+                    className="absolute top-0 left-1/2 -translate-x-1/2 h-full rounded-md transition-all duration-500 flex items-center justify-center min-w-[40px]"
                     style={{
                       width: `${Math.max(largura, 8)}%`,
                       maxWidth: '100%',
@@ -64,7 +64,7 @@ export default function FunilExperimentos({ data }: Props) {
                       opacity: 0.85,
                     }}
                   >
-                    <span className="text-white font-bold text-sm drop-shadow-sm">
+                    <span className="text-white font-bold text-sm drop-shadow-sm whitespace-nowrap">
                       {camada.valor}
                     </span>
                   </div>

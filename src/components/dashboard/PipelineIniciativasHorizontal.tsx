@@ -39,13 +39,13 @@ export default function PipelineIniciativasHorizontal({ data }: Props) {
 
   return (
     <>
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-3 md:p-4 min-w-0">
         <div className="flex items-center gap-2 mb-3">
-          <Layers size={14} className="text-gray-400" />
-          <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-widest">
+          <Layers size={14} className="text-gray-400 flex-shrink-0" />
+          <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-widest truncate">
             Pipeline das Iniciativas
           </h3>
-          <span className="text-[10px] text-gray-400 ml-auto">
+          <span className="text-[10px] text-gray-400 ml-auto flex-shrink-0">
             {total} iniciativa{total !== 1 ? 's' : ''}
           </span>
         </div>
@@ -66,7 +66,7 @@ export default function PipelineIniciativasHorizontal({ data }: Props) {
                   }
                 }}
                 disabled={count === 0}
-                className="flex-1 min-w-[100px] rounded-lg border p-3 text-left transition-all duration-200 hover:shadow-md disabled:opacity-50 disabled:cursor-default"
+                className="flex-1 min-w-[90px] rounded-lg border p-2 md:p-3 text-left transition-all duration-200 hover:shadow-md disabled:opacity-50 disabled:cursor-default"
                 style={{ background: card.bg, borderColor: card.border }}
               >
                 <div className="flex items-center gap-1.5 mb-1.5">
