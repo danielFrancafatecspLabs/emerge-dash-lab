@@ -1332,10 +1332,13 @@ function getMesesDoPeriodo(periodo: PeriodoFiltro): { mes: string; ano: number; 
   const resultado: { mes: string; ano: number; mesIdx: number }[] = []
 
   if (periodo.tipo === 'tudo') {
-    // Do início de 2024 até o mês atual
-    for (let ano = 2024; ano <= hoje.getFullYear(); ano++) {
+    // De fev/2025 até o mês atual (antes disso não havia experimentos)
+    const inicioAno = 2025
+    const inicioMes = 1 // fevereiro (0-indexed)
+    for (let ano = inicioAno; ano <= hoje.getFullYear(); ano++) {
+      const minMes = ano === inicioAno ? inicioMes : 0
       const maxMes = ano === hoje.getFullYear() ? hoje.getMonth() : 11
-      for (let m = 0; m <= maxMes; m++) {
+      for (let m = minMes; m <= maxMes; m++) {
         resultado.push({ mes: MESES_ABREV[m], ano, mesIdx: m })
       }
     }
