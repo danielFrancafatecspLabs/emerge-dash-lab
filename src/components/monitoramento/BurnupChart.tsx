@@ -9,14 +9,19 @@ import { Target } from 'lucide-react'
 import type { SerieMensal } from '@/lib/types'
 import { formatBRL } from '@/lib/mappers'
 
-function detectOutliers(values: number[]): Set<number> {
-  const sorted = [...values].filter(v => v > 0).sort((a, b) => a - b)
-  if (sorted.length < 4) return new Set()
-  const q1 = sorted[Math.floor(sorted.length * 0.25)]
-  const q3 = sorted[Math.floor(sorted.length * 0.75)]
-  const iqr = q3 - q1
-  const upper = q3 + 1.5 * iqr
-  return new Set(sorted.filter(v => v > upper))
+function detectOutliersMoM(values: number[], thresholdPct: number = 100): Set<number> {
+  const outliers = new Set<number>()
+  for (let i = 1; i < values.length; i++) {
+    const prev = values[i - 1]
+    const curr = values[i]
+    if (prev > 0 && curr > 0) {
+      const pctChange = Math.abs(curr - prev) / prev * 100
+      if (pctChange > thresholdPct) {
+        outliers.add(curr)
+      }
+    }
+  }
+  return outliers
 }
 
 interface Props {
@@ -35,7 +40,7 @@ export default function BurnupChart({ data, meta }: Props) {
   }, [data, meta])
 
   const outliers = useMemo(() => {
-    return detectOutliers(data.beneficio.map(b => b?.valor ?? 0))
+    return detectOutliersMoM(data.beneficio.map(b => b?.valor ?? 0))
   }, [data])
 
   const outlierDots = useMemo(() => {
