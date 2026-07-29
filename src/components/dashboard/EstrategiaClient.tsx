@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useCallback } from 'react'
 import { PanelLeftOpen } from 'lucide-react'
 import Header from '@/components/layout/Header'
 import Sidebar from '@/components/layout/Sidebar'
@@ -11,8 +11,9 @@ import GovernancaAlinhamento from '@/components/dashboard/GovernancaAlinhamento'
 import BurnupChart from '@/components/monitoramento/BurnupChart'
 import LeadTimeJornada from '@/components/dashboard/LeadTimeJornada'
 import FunilExperimentos from '@/components/dashboard/FunilExperimentos'
+import GraficoComInsight from '@/components/dashboard/GraficoComInsight'
 import { PeriodoFiltro, isDataNoPeriodo } from '@/lib/periodo-filter'
-import { DashboardData, Iniciativa, EpicDetail, PipelineCount, MercadoAgregado, MetaCategoria, MonitoramentoData } from '@/lib/types'
+import { DashboardData, Iniciativa, EpicDetail, PipelineCount, MercadoAgregado, MetaCategoria, MonitoramentoData, InsightExecutivo } from '@/lib/types'
 import { getPipelineStage, buildMonitoramentoData } from '@/lib/mappers'
 
 /**
@@ -217,6 +218,8 @@ interface EstrategiaClientProps {
 export default function EstrategiaClient({ data, monitoramento }: EstrategiaClientProps) {
   const [periodoFiltro, setPeriodoFiltro] = useState<PeriodoFiltro>({ tipo: 'ultimos12' })
   const [modoSlide, setModoSlide] = useState(false)
+  const [insightsMap, setInsightsMap] = useState<Record<string, InsightExecutivo>>({})
+  const [insightsLoading, setInsightsLoading] = useState(false)
 
   const dadosFiltrados = useMemo(
     () => filtrarDashboardData(data, periodoFiltro),
@@ -227,6 +230,118 @@ export default function EstrategiaClient({ data, monitoramento }: EstrategiaClie
     () => buildMonitoramentoData(dadosFiltrados, periodoFiltro),
     [dadosFiltrados, periodoFiltro]
   )
+
+  // ── Buscar insights via LLM quando os dados mudam ──
+  const fetchInsights = useCallback(async () => {
+    setInsightsLoading(true)
+    try {
+      // Prepara contexto de cada gráfico para enviar ao LLM
+      const graficos = [
+        {
+          id: 'resumo',
+          titulo: 'Resumo Executivo',
+          descricao: 'KPIs de metas estratégicas (EBITDA, Receita, NPS) e pipeline de experimentos.',
+          dados: {
+            totalIniciativas: dadosFiltrados.iniciativas.length,
+            totalExperimentos: dadosFiltrados.allEpics.length,
+            concluidos: dadosFiltrados.allEpics.filter(e => e.status?.id === '10003').length,
+            emPilotoEscala: dadosFiltrados.pipeline['EM PILOTO'] + dadosFiltrados.pipeline['EM ESCALA'],
+            emEscala: dadosFiltrados.pipeline['EM ESCALA'],
+            metasAgregadas: dadosFiltrados.metasAgregadas,
+            beneficioTotal: dadosFiltrados.beneficioTotal,
+          },
+        },
+        {
+          id: 'portfolio',
+          titulo: 'Portfólio por Mercado',
+          descricao: 'Distribuição de experimentos por segmento de mercado (Consumo, Corporativo, PME/GE/GOV) com valor potencial.',
+          dados: {
+            mercados: (dadosFiltrados.mercadosSegmento ?? []).map(m => ({
+              nome: m.nome,
+              qtdExperimentos: m.qtdExperimentos,
+              valorPotencial: m.valorPotencial,
+              dominios: m.dominios,
+            })),
+          },
+        },
+        {
+          id: 'funil',
+          titulo: 'Funil de Experimentos',
+          descricao: 'Taxa de conversão do funil: Total → Concluídos → Pilotos → Escala.',
+          dados: {
+            total: dadosFiltrados.allEpics.filter(e => e.status?.id !== '10015').length,
+            concluidos: dadosFiltrados.allEpics.filter(e => e.status?.id === '10003').length,
+            emPilotoEscala: dadosFiltrados.pipeline['EM PILOTO'] + dadosFiltrados.pipeline['EM ESCALA'],
+            emEscala: dadosFiltrados.pipeline['EM ESCALA'],
+          },
+        },
+        {
+          id: 'top5',
+          titulo: 'Top 5 Experimentos por Valor Potencial',
+          descricao: 'Os 5 experimentos com maior benefício quantitativo (R$).',
+          dados: {
+            experimentos: dadosFiltrados.top5Epics.map(e => ({
+              nome: e.nome,
+              key: e.key,
+              beneficio: e.beneficioQuantitativo,
+              dominio: e.dominio,
+              timeResponsavel: e.timeResponsavel,
+              status: e.status?.name,
+            })),
+          },
+        },
+        {
+          id: 'burnup',
+          titulo: 'Crescimento da Experimentação no Período',
+          descricao: 'Acumulado mês a mês de experimentos concluídos (status 10003) e benefício quantitativo.',
+          dados: {
+            realizado: monitoramentoFiltrado.burnup.realizado,
+            beneficio: monitoramentoFiltrado.burnup.beneficio,
+            totalConcluidos: monitoramentoFiltrado.experimentosConcluidos,
+            taxaConversao: monitoramentoFiltrado.taxaConversao,
+          },
+        },
+        {
+          id: 'leadtime',
+          titulo: 'Jornada de Adoção',
+          descricao: 'Lead time total e por fase (Backlog, Refinamento, Experimentação, Piloto) com identificação de gargalo.',
+          dados: {
+            totalDias: dadosFiltrados.leadTimeJornada?.totalDias,
+            fases: dadosFiltrados.leadTimeJornada?.fases?.map(f => ({ fase: f.fase, dias: f.dias, pct: f.pct })),
+            bottleneck: dadosFiltrados.leadTimeJornada?.bottleneck,
+            cycleTimeExperimentacao: dadosFiltrados.cycleTimeExperimentacao?.map(c => ({
+              label: c.label,
+              mediaDias: c.mediaDias,
+              qtdIniciativas: c.qtdIniciativas,
+            })),
+          },
+        },
+      ]
+
+      const res = await fetch('/jira/api/estrategia/insights', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ graficos }),
+      })
+      const json = await res.json()
+      if (json.insights?.length) {
+        const map: Record<string, InsightExecutivo> = {}
+        for (const ins of json.insights) {
+          map[ins.id] = { texto: ins.texto, tipo: ins.tipo }
+        }
+        setInsightsMap(map)
+      }
+    } catch (e) {
+      console.error('Erro ao buscar insights:', e)
+    } finally {
+      setInsightsLoading(false)
+    }
+  }, [dadosFiltrados, monitoramentoFiltrado])
+
+  useEffect(() => {
+    fetchInsights()
+  }, [fetchInsights])
 
   // Escuta evento da Sidebar para alternar modo slide (toggle sidebar)
   useEffect(() => {
@@ -261,23 +376,69 @@ export default function EstrategiaClient({ data, monitoramento }: EstrategiaClie
         )}
 
         {/* Content */}
-        <main className="flex-1 p-4 md:p-5 gap-4 flex flex-col" style={{ marginTop: modoSlide ? 0 : 52 }}>
+        <main className="flex-1 p-3 md:p-4 lg:p-5 gap-3 md:gap-4 flex flex-col min-w-0" style={{ marginTop: modoSlide ? 0 : 52 }}>
 
           {/* Row 1: Resumo Executivo + Portfólio + Funil */}
-          <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-            <ResumoExecutivo data={dadosFiltrados} />
-            <PortfolioPorMercado data={dadosFiltrados.mercadosSegmento} />
-            <FunilExperimentos data={dadosFiltrados} />
+          <div className="grid gap-3 md:gap-4 grid-cols-1 lg:grid-cols-3 min-w-0">
+            <GraficoComInsight
+              titulo="Resumo Executivo"
+              subtitulo={`Metas estratégicas & pipeline • ${dadosFiltrados.iniciativas.length} iniciativas`}
+              insight={insightsMap['resumo']}
+              loading={insightsLoading}
+            >
+              <ResumoExecutivo data={dadosFiltrados} />
+            </GraficoComInsight>
+
+            <GraficoComInsight
+              titulo="Portfólio por Mercado"
+              subtitulo="Distribuição por segmento de mercado"
+              insight={insightsMap['portfolio']}
+              loading={insightsLoading}
+            >
+              <PortfolioPorMercado data={dadosFiltrados.mercadosSegmento} />
+            </GraficoComInsight>
+
+            <GraficoComInsight
+              titulo="Funil de Experimentos"
+              subtitulo="Taxa de conversão do pipeline"
+              insight={insightsMap['funil']}
+              loading={insightsLoading}
+            >
+              <FunilExperimentos data={dadosFiltrados} />
+            </GraficoComInsight>
           </div>
 
           {/* Row 2: Top 5 + Burnup + Jornada de Adoção */}
-          <div className="grid gap-4 grid-cols-1 lg:grid-cols-[20fr_45fr_35fr]" style={{ minHeight: 320, maxHeight: 420 }}>
-            <Top5Experimentos data={dadosFiltrados} />
-            <BurnupChart data={monitoramentoFiltrado.burnup} />
-            <LeadTimeJornada
-              data={dadosFiltrados.leadTimeJornada}
-              cycleTimeExperimentacao={dadosFiltrados.cycleTimeExperimentacao}
-            />
+          <div className="grid gap-3 md:gap-4 grid-cols-1 lg:grid-cols-3 min-w-0" style={{ minHeight: 300 }}>
+            <GraficoComInsight
+              titulo="Top 5 Experimentos"
+              subtitulo="Maior valor potencial (R$)"
+              insight={insightsMap['top5']}
+              loading={insightsLoading}
+            >
+              <Top5Experimentos data={dadosFiltrados} />
+            </GraficoComInsight>
+
+            <GraficoComInsight
+              titulo="Crescimento da Experimentação no Período"
+              subtitulo="Acumulado de experimentos concluídos"
+              insight={insightsMap['burnup']}
+              loading={insightsLoading}
+            >
+              <BurnupChart data={monitoramentoFiltrado.burnup} />
+            </GraficoComInsight>
+
+            <GraficoComInsight
+              titulo="Jornada de Adoção"
+              subtitulo="Lead time e gargalos do pipeline"
+              insight={insightsMap['leadtime']}
+              loading={insightsLoading}
+            >
+              <LeadTimeJornada
+                data={dadosFiltrados.leadTimeJornada}
+                cycleTimeExperimentacao={dadosFiltrados.cycleTimeExperimentacao}
+              />
+            </GraficoComInsight>
           </div>
 
         </main>

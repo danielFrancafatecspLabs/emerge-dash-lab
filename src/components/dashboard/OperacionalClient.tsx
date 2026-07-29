@@ -45,9 +45,9 @@ export default function OperacionalClient({ data, monitoramento }: Props) {
         </div>
 
         {/* Content */}
-        <main className="flex-1 p-4 md:p-5 gap-4 flex flex-col" style={{ marginTop: 52 }}>
+        <main className="flex-1 p-3 md:p-4 lg:p-5 gap-3 md:gap-4 flex flex-col min-w-0" style={{ marginTop: 52 }}>
           {/* Título */}
-          <div className="mb-1">
+          <div className="mb-1 flex-shrink-0">
             <h1 className="text-lg font-bold text-gray-900">
               Dashboard Operacional de Experimentos
             </h1>
@@ -57,7 +57,7 @@ export default function OperacionalClient({ data, monitoramento }: Props) {
           </div>
 
           {/* Row 1: Jornada de Adoção + Cycle Time + Gargalo */}
-          <div className="grid gap-4 grid-cols-1 lg:grid-cols-3">
+          <div className="grid gap-3 md:gap-4 grid-cols-1 lg:grid-cols-3 min-w-0">
             <LeadTimeJornada
               data={dados.leadTimeJornada}
               cycleTimeExperimentacao={dados.cycleTimeExperimentacao}
@@ -74,13 +74,13 @@ export default function OperacionalClient({ data, monitoramento }: Props) {
           <PipelineIniciativasHorizontal data={dados} />
 
           {/* Row 3: Situação do Portfólio + Iniciativas por Lab */}
-          <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
+          <div className="grid gap-3 md:gap-4 grid-cols-1 lg:grid-cols-2 min-w-0">
             <SituacaoPortfolioOperacional data={dados} />
             <IniciativasPorLab data={iniciativasLab} />
           </div>
 
           {/* Row 4: Top 5 Experimentos + Top 5 Domínios */}
-          <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
+          <div className="grid gap-3 md:gap-4 grid-cols-1 lg:grid-cols-2 min-w-0">
             <Top5Experimentos data={dados} />
             <Top5Dominios data={dados} />
           </div>

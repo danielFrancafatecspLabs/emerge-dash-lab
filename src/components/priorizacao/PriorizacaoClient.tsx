@@ -283,7 +283,7 @@ export default function PriorizacaoClient() {
         </div>
 
         {/* Content */}
-        <main className="flex-1 p-3 gap-3 flex flex-col" style={{ marginTop: 52 }}>
+        <main className="flex-1 p-3 md:p-4 lg:p-5 gap-3 md:gap-4 flex flex-col min-w-0" style={{ marginTop: 52 }}>
           {/* Header interno da priorização */}
           <div className="bg-white border rounded-lg shadow-sm px-6 py-4">
             <div className="flex items-center justify-between flex-wrap gap-4">
