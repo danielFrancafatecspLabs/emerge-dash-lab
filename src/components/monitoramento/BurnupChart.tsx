@@ -3,11 +3,21 @@
 import { useMemo } from 'react'
 import {
   ComposedChart, Line, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, ReferenceLine, LabelList, Legend,
+  ResponsiveContainer, ReferenceLine, ReferenceDot, LabelList, Legend,
 } from 'recharts'
 import { Target } from 'lucide-react'
 import type { SerieMensal } from '@/lib/types'
 import { formatBRL } from '@/lib/mappers'
+
+function detectOutliers(values: number[]): Set<number> {
+  const sorted = [...values].filter(v => v > 0).sort((a, b) => a - b)
+  if (sorted.length < 4) return new Set()
+  const q1 = sorted[Math.floor(sorted.length * 0.25)]
+  const q3 = sorted[Math.floor(sorted.length * 0.75)]
+  const iqr = q3 - q1
+  const upper = q3 + 1.5 * iqr
+  return new Set(sorted.filter(v => v > upper))
+}
 
 interface Props {
   data: SerieMensal
@@ -23,6 +33,16 @@ export default function BurnupChart({ data, meta }: Props) {
       ...(meta ? { Meta: meta } : {}),
     }))
   }, [data, meta])
+
+  const outliers = useMemo(() => {
+    return detectOutliers(data.beneficio.map(b => b?.valor ?? 0))
+  }, [data])
+
+  const outlierDots = useMemo(() => {
+    return chartData
+      .filter(d => outliers.has(d['Benefício (R$)']))
+      .map((d, i) => ({ ...d, idx: i }))
+  }, [chartData, outliers])
 
   const totalRealizado = data.realizado[data.realizado.length - 1]?.valor ?? 0
   const pctConclusao = meta && meta > 0 ? Math.round((totalRealizado / meta) * 100) : null
@@ -84,7 +104,19 @@ export default function BurnupChart({ data, meta }: Props) {
             stroke="#F59E0B"
             strokeWidth={2.5}
             strokeDasharray="6 3"
-            dot={{ r: 4, fill: '#F59E0B', strokeWidth: 2, stroke: '#FFFFFF' }}
+            dot={(props: { cx?: number; cy?: number; payload?: { 'Benefício (R$)': number } }) => {
+              const { cx = 0, cy = 0, payload } = props
+              const isOutlier = payload ? outliers.has(payload['Benefício (R$)']) : false
+              if (isOutlier) {
+                return (
+                  <g>
+                    <circle cx={cx} cy={cy} r={12} fill="none" stroke="#F59E0B" strokeWidth={2.5} opacity={0.35} />
+                    <circle cx={cx} cy={cy} r={6} fill="#F59E0B" stroke="#FFFFFF" strokeWidth={2} />
+                  </g>
+                )
+              }
+              return <circle cx={cx} cy={cy} r={4} fill="#F59E0B" stroke="#FFFFFF" strokeWidth={2} />
+            }}
           >
             <LabelList
               dataKey="Benefício (R$)"
