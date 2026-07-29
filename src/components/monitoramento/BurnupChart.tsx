@@ -76,9 +76,7 @@ export default function BurnupChart({ data, meta }: Props) {
               label={{ value: `Meta: ${meta}`, position: 'right', fontSize: 10, fill: '#9CA3AF' }}
             />
           )}
-          <Bar yAxisId="left" dataKey="Realizado" fill="#DC2626" radius={[4, 4, 0, 0]} barSize={28}>
-            <LabelList dataKey="Realizado" position="insideTop" fontSize={10} fill="#FFFFFF" fontWeight={600} />
-          </Bar>
+          <Bar yAxisId="left" dataKey="Realizado" fill="#DC2626" radius={[4, 4, 0, 0]} barSize={28} />
           <Line
             yAxisId="right"
             type="monotone"
@@ -86,11 +84,8 @@ export default function BurnupChart({ data, meta }: Props) {
             stroke="#F59E0B"
             strokeWidth={2.5}
             strokeDasharray="6 3"
-            dot={{ r: 3, fill: '#F59E0B' }}
-          >
-            <LabelList dataKey="Benefício (R$)" position="right" fontSize={9} fill="#F59E0B" fontWeight={500}
-              formatter={(v: number) => v > 0 ? formatBRL(v) : ''} />
-          </Line>
+            dot={{ r: 4, fill: '#F59E0B', strokeWidth: 2, stroke: '#FFFFFF' }}
+          />
           {meta && (
             <Line yAxisId="left" type="monotone" dataKey="Meta" stroke="#D1D5DB" strokeWidth={2} dot={false} />
           )}
