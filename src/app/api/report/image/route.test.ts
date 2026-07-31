@@ -1,4 +1,3 @@
-import sharp from 'sharp'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
@@ -57,11 +56,10 @@ describe('GET /api/report/image', () => {
 
     expect(response.status).toBe(200)
     expect(body.format).toBe('png')
-    await expect(sharp(png).metadata()).resolves.toMatchObject({
-      format: 'png',
-      width: 1024,
-      height: 1536,
-    })
+    expect(png.subarray(0, 8)).toEqual(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]))
+    expect(png.toString('ascii', 12, 16)).toBe('IHDR')
+    expect(png.readUInt32BE(16)).toBe(1024)
+    expect(png.readUInt32BE(20)).toBe(1536)
   })
 
   it('does not expose internal error details', async () => {

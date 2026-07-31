@@ -23,7 +23,7 @@ O contrato HTTP existente será preservado. `GET /jira/api/report/image` continu
 A chamada ao modelo será substituída por duas unidades isoladas:
 
 1. um construtor puro recebe as métricas e produz um SVG de `1024x1536`;
-2. o endpoint rasteriza esse SVG para PNG com `sharp` e devolve o contrato atual.
+2. o endpoint rasteriza esse SVG para PNG com `@resvg/resvg-js` e devolve o contrato atual.
 
 O template terá cabeçalho vermelho, resumo semanal, estágios do funil, gráfico horizontal dos cinco principais domínios e rodapé beOn Labs. Textos, números e barras serão determinísticos e escapados antes de entrar no SVG. A data será produzida explicitamente no fuso `America/Sao_Paulo`.
 
@@ -41,7 +41,7 @@ As regras numéricas atuais serão mantidas para evitar mudança de resultado ju
 - benefício como soma de `beneficioQuantitativo`;
 - cinco domínios ordenados pela contagem de experimentos.
 
-O pacote `openai` permanecerá porque outras funcionalidades dependem dele. `sharp` será declarado como dependência direta, mesmo que possa existir transitivamente em instalações do Next.js.
+O pacote `openai` permanecerá porque outras funcionalidades dependem dele. `@resvg/resvg-js` será declarado como dependência direta para rasterizar o SVG com suporte ao Node.js 18 e sem introduzir os avisos de segurança presentes na versão de `sharp` avaliada.
 
 ### Falhas
 
