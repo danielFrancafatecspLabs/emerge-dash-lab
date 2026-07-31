@@ -8,6 +8,8 @@ const nextConfig = {
     serverActions: {
       bodySizeLimit: '2mb',
     },
+    // Keep native/server-only packages out of the Next.js 14 webpack bundle.
+    serverComponentsExternalPackages: ['@react-pdf/renderer', '@resvg/resvg-js'],
   },
   webpack: (config) => {
     // @react-pdf/renderer needs these Node.js modules
@@ -18,8 +20,6 @@ const nextConfig = {
     }
     return config
   },
-  // Allow @react-pdf/renderer to use Node.js APIs
-  serverExternalPackages: ['@react-pdf/renderer'],
 }
 
 export default nextConfig

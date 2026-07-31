@@ -1,4 +1,3 @@
-import sharp from 'sharp'
 import { describe, expect, it } from 'vitest'
 import { renderReportInfographicPng } from './report-image-renderer'
 
@@ -16,10 +15,8 @@ describe('renderReportInfographicPng', () => {
     })
 
     expect(png.subarray(0, 8)).toEqual(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]))
-    await expect(sharp(png).metadata()).resolves.toMatchObject({
-      format: 'png',
-      width: 1024,
-      height: 1536,
-    })
+    expect(png.toString('ascii', 12, 16)).toBe('IHDR')
+    expect(png.readUInt32BE(16)).toBe(1024)
+    expect(png.readUInt32BE(20)).toBe(1536)
   })
 })

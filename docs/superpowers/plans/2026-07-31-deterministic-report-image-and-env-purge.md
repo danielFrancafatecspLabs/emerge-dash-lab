@@ -4,9 +4,9 @@
 
 **Goal:** Replace the `gpt-image-2` report generator with a deterministic 1024×1536 PNG renderer and purge `.env` from every known local and remote Git ref without losing the local environment file.
 
-**Architecture:** Keep `GET /jira/api/report/image` and its base64 PNG response stable. Build a pure SVG from the existing metrics, rasterize it server-side with `sharp`, and keep the current client preview/download flow. Commit an ignore rule and removal from the index, then use `git-filter-repo` in a disposable mirror to rewrite `main` and the local `ops/jira-viewer-auto-deploy` branch before publishing only `main` with a force-with-lease.
+**Architecture:** Keep `GET /jira/api/report/image` and its base64 PNG response stable. Build a pure SVG from the existing metrics, rasterize it server-side with `@resvg/resvg-js`, and keep the current client preview/download flow. Commit an ignore rule and removal from the index, then use `git-filter-repo` in a disposable mirror to rewrite `main` and the local `ops/jira-viewer-auto-deploy` branch before publishing only `main` with a force-with-lease.
 
-**Tech Stack:** Next.js 14 App Router, TypeScript, Vitest 3, Sharp 0.34, Git 2.43, git-filter-repo.
+**Tech Stack:** Next.js 14 App Router, TypeScript, Vitest 3, resvg-js 2.6, Git 2.43, git-filter-repo.
 
 ## Global Constraints
 
@@ -32,7 +32,7 @@
 - Create `src/components/report/GenerateImageButton.test.tsx`: visible-copy regression test.
 - Modify `src/app/api/report/image/route.ts`: remove Images API use and call the deterministic renderer.
 - Modify `src/components/report/GenerateImageButton.tsx`: remove AI attribution while retaining behavior.
-- Modify `package.json` and `package-lock.json`: add Vitest, Sharp, and the test script.
+- Modify `package.json` and `package-lock.json`: add Vitest, resvg-js, and the test script.
 - Modify `.gitignore`: ignore root environment files while allowing `/.env.example`.
 - Remove `.env` from the Git index but preserve and tighten the local file.
 
@@ -56,8 +56,8 @@
 Run:
 
 ```bash
-npm install sharp@0.34.3
-npm install --save-dev vitest@3.2.4
+npm install @resvg/resvg-js@2.6.2
+npm install --save-dev vitest@3.2.7
 ```
 
 Add this script to `package.json`:
@@ -313,7 +313,6 @@ git commit -m "updates"
 Create `src/lib/report-image-renderer.test.ts`:
 
 ```ts
-import sharp from 'sharp'
 import { describe, expect, it } from 'vitest'
 import { renderReportInfographicPng } from './report-image-renderer'
 
@@ -331,11 +330,9 @@ describe('renderReportInfographicPng', () => {
     })
 
     expect(png.subarray(0, 8)).toEqual(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]))
-    await expect(sharp(png).metadata()).resolves.toMatchObject({
-      format: 'png',
-      width: 1024,
-      height: 1536,
-    })
+    expect(png.toString('ascii', 12, 16)).toBe('IHDR')
+    expect(png.readUInt32BE(16)).toBe(1024)
+    expect(png.readUInt32BE(20)).toBe(1536)
   })
 })
 ```
@@ -355,7 +352,7 @@ Expected: FAIL because `src/lib/report-image-renderer.ts` does not exist.
 Create `src/lib/report-image-renderer.ts`:
 
 ```ts
-import sharp from 'sharp'
+import { Resvg } from '@resvg/resvg-js'
 import {
   REPORT_IMAGE_HEIGHT,
   REPORT_IMAGE_WIDTH,
@@ -365,13 +362,18 @@ import {
 
 export async function renderReportInfographicPng(metrics: ReportImageMetrics): Promise<Buffer> {
   const svg = buildReportInfographicSvg(metrics)
-  const png = await sharp(Buffer.from(svg)).png().toBuffer()
-  const metadata = await sharp(png).metadata()
+  const png = Buffer.from(
+    new Resvg(svg, {
+      fitTo: { mode: 'width', value: REPORT_IMAGE_WIDTH },
+      font: { loadSystemFonts: true },
+    }).render().asPng(),
+  )
 
   if (
-    metadata.format !== 'png' ||
-    metadata.width !== REPORT_IMAGE_WIDTH ||
-    metadata.height !== REPORT_IMAGE_HEIGHT
+    png.length < 24 ||
+    png.toString('ascii', 12, 16) !== 'IHDR' ||
+    png.readUInt32BE(16) !== REPORT_IMAGE_WIDTH ||
+    png.readUInt32BE(20) !== REPORT_IMAGE_HEIGHT
   ) {
     throw new Error('Invalid report image output')
   }
@@ -417,7 +419,6 @@ git commit -m "updates"
 Create `src/app/api/report/image/route.test.ts`:
 
 ```ts
-import sharp from 'sharp'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const mocks = vi.hoisted(() => ({
@@ -470,11 +471,9 @@ describe('GET /api/report/image', () => {
 
     expect(response.status).toBe(200)
     expect(body.format).toBe('png')
-    await expect(sharp(png).metadata()).resolves.toMatchObject({
-      format: 'png',
-      width: 1024,
-      height: 1536,
-    })
+    expect(png.toString('ascii', 12, 16)).toBe('IHDR')
+    expect(png.readUInt32BE(16)).toBe(1024)
+    expect(png.readUInt32BE(20)).toBe(1536)
     expect(mocks.legacyImageGenerate).not.toHaveBeenCalled()
   })
 
@@ -918,7 +917,7 @@ Do not claim credential rotation or off-repository purge was completed by this i
 - The route alone translates dashboard data into renderer metrics.
 - The endpoint and button preserve the user-visible contract.
 - Tests cover SVG escaping, timezone, PNG dimensions, route response, lack of Images API use, and generic errors.
-- The only new runtime dependency is `sharp`; Vitest is development-only.
+- The only new runtime dependency is `@resvg/resvg-js`; Vitest is development-only.
 - `.env` remains available locally while leaving the index and every rewritten ref.
 - The remote mutation is one explicit force-with-lease of `main`; no mirror push and no publication of `ops/...`.
 - Every commit command uses exactly `updates`.
