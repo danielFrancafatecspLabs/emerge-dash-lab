@@ -3,7 +3,9 @@ node-compile-cache/
 .next/
 out/
 build/
-.env*.local
+/.env
+/.env.*
+!/.env.example
 .portfolio-cache.json
 .DS_Store
 .worktrees/
