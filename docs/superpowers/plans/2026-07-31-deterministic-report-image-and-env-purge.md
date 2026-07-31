@@ -352,7 +352,7 @@ Expected: FAIL because `src/lib/report-image-renderer.ts` does not exist.
 Create `src/lib/report-image-renderer.ts`:
 
 ```ts
-import { Resvg } from '@resvg/resvg-js'
+import { renderAsync } from '@resvg/resvg-js'
 import {
   REPORT_IMAGE_HEIGHT,
   REPORT_IMAGE_WIDTH,
@@ -362,15 +362,16 @@ import {
 
 export async function renderReportInfographicPng(metrics: ReportImageMetrics): Promise<Buffer> {
   const svg = buildReportInfographicSvg(metrics)
-  const png = Buffer.from(
-    new Resvg(svg, {
-      fitTo: { mode: 'width', value: REPORT_IMAGE_WIDTH },
-      font: { loadSystemFonts: true },
-    }).render().asPng(),
-  )
+  const renderedImage = await renderAsync(svg, {
+    fitTo: { mode: 'width', value: REPORT_IMAGE_WIDTH },
+    font: { loadSystemFonts: true },
+  })
+  const png = Buffer.from(renderedImage.asPng())
 
   if (
-    png.length < 24 ||
+    renderedImage.width !== REPORT_IMAGE_WIDTH ||
+    renderedImage.height !== REPORT_IMAGE_HEIGHT ||
+    png.length < 33 ||
     png.toString('ascii', 12, 16) !== 'IHDR' ||
     png.readUInt32BE(16) !== REPORT_IMAGE_WIDTH ||
     png.readUInt32BE(20) !== REPORT_IMAGE_HEIGHT
@@ -474,6 +475,8 @@ describe('GET /api/report/image', () => {
     expect(png.toString('ascii', 12, 16)).toBe('IHDR')
     expect(png.readUInt32BE(16)).toBe(1024)
     expect(png.readUInt32BE(20)).toBe(1536)
+    expect(mocks.classifyPortfolios).not.toHaveBeenCalled()
+    expect(mocks.classifySegmentos).not.toHaveBeenCalled()
     expect(mocks.legacyImageGenerate).not.toHaveBeenCalled()
   })
 
@@ -528,8 +531,6 @@ Replace `src/app/api/report/image/route.ts` with:
 import { NextResponse } from 'next/server'
 import { fetchDashboardRaw } from '@/lib/jira'
 import { buildDashboardData } from '@/lib/mappers'
-import { classifyPortfolios } from '@/lib/portfolio-classifier'
-import { classifySegmentos } from '@/lib/segmento-classifier'
 import { formatReportImageDate, type ReportImageMetrics } from '@/lib/report-image'
 import { renderReportInfographicPng } from '@/lib/report-image-renderer'
 
@@ -538,23 +539,11 @@ export const dynamic = 'force-dynamic'
 export async function GET() {
   try {
     const raw = await fetchDashboardRaw()
-    const [classification, segmentoClassification] = await Promise.all([
-      classifyPortfolios(raw.epics.map(epic => ({
-        key: epic.key,
-        summary: epic.fields.summary,
-        dominio: epic.fields.customfield_16400?.value ?? null,
-      }))),
-      classifySegmentos(raw.epics.map(epic => ({
-        key: epic.key,
-        summary: epic.fields.summary,
-        dominio: epic.fields.customfield_11661 ?? null,
-      }))),
-    ])
     const data = buildDashboardData(
       raw.iniciativas,
       raw.epics,
-      classification,
-      segmentoClassification,
+      {},
+      {},
       raw.board2706Config,
     )
     const dominioCount: Record<string, number> = {}

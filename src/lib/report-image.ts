@@ -30,6 +30,11 @@ const formatMillions = (value: number): string =>
     maximumFractionDigits: 1,
   })} MM`
 
+const truncateLabel = (value: string, maximumLength: number): string => {
+  if (value.length <= maximumLength) return value
+  return `${value.slice(0, maximumLength - 1).trimEnd()}…`
+}
+
 const scaledBarWidth = (value: number, maximum: number, width: number): number => {
   if (value <= 0 || maximum <= 0) return 0
   return Math.max(12, Math.round((value / maximum) * width))
@@ -45,6 +50,11 @@ export function formatReportImageDate(date: Date): string {
 }
 
 export function buildReportInfographicSvg(metrics: ReportImageMetrics): string {
+  const benefitLabel = formatMillions(metrics.beneficio)
+  const benefitFontSize = Math.min(
+    54,
+    Math.max(24, Math.floor(280 / (Math.max(1, benefitLabel.length) * 0.55))),
+  )
   const funnel = [
     { label: 'Em andamento', value: metrics.emAndamento, color: '#B91C1C' },
     { label: 'Em Piloto', value: metrics.emPiloto, color: '#DC2626' },
@@ -54,16 +64,17 @@ export function buildReportInfographicSvg(metrics: ReportImageMetrics): string {
   const domainMaximum = Math.max(1, ...metrics.topDominios.map(domain => domain.count))
   const funnelRows = funnel.map((stage, index) => {
     const y = 748 + index * 82
-    const width = scaledBarWidth(stage.value, funnelMaximum, 610)
+    const width = scaledBarWidth(stage.value, funnelMaximum, 560)
     return `<text x="126" y="${y}" class="label">${stage.label}</text>
-      <rect x="300" y="${y - 25}" width="610" height="32" rx="16" fill="#F3F4F6"/>
+      <rect x="300" y="${y - 25}" width="560" height="32" rx="16" fill="#F3F4F6"/>
       <rect x="300" y="${y - 25}" width="${width}" height="32" rx="16" fill="${stage.color}"/>
       <text x="930" y="${y}" text-anchor="end" class="value-small">${stage.value}</text>`
   }).join('')
   const domainRows = metrics.topDominios.slice(0, 5).map((domain, index) => {
     const y = 1135 + index * 58
     const width = scaledBarWidth(domain.count, domainMaximum, 520)
-    return `<text x="126" y="${y}" class="domain">${escapeXml(domain.name)}</text>
+    const label = truncateLabel(domain.name, 18)
+    return `<text x="126" y="${y}" class="domain">${escapeXml(label)}</text>
       <rect x="340" y="${y - 20}" width="520" height="24" rx="12" fill="#F3F4F6"/>
       <rect x="340" y="${y - 20}" width="${width}" height="24" rx="12" fill="#991B1B"/>
       <text x="930" y="${y}" text-anchor="end" class="value-small">${domain.count}</text>`
@@ -98,7 +109,7 @@ export function buildReportInfographicSvg(metrics: ReportImageMetrics): string {
     <text x="112" y="474" class="metric-label">iniciativas</text>
     <text x="390" y="438" class="metric">${metrics.totalExperimentos}</text>
     <text x="390" y="474" class="metric-label">experimentos</text>
-    <text x="650" y="430" class="metric">${escapeXml(formatMillions(metrics.beneficio))}</text>
+    <text x="932" y="430" text-anchor="end" class="metric" style="font-size: ${benefitFontSize}px">${escapeXml(benefitLabel)}</text>
     <text x="650" y="474" class="metric-label">potencial financeiro bruto</text>
     <text x="112" y="535" class="body">${metrics.totalIniciativas} iniciativas e ${metrics.totalExperimentos} experimentos no portfólio.</text>
     <rect x="64" y="620" width="896" height="380" rx="26" fill="#FFFFFF"/>

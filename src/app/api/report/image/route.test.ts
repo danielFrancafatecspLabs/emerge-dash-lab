@@ -60,6 +60,9 @@ describe('GET /api/report/image', () => {
     expect(png.toString('ascii', 12, 16)).toBe('IHDR')
     expect(png.readUInt32BE(16)).toBe(1024)
     expect(png.readUInt32BE(20)).toBe(1536)
+    expect(mocks.classifyPortfolios).not.toHaveBeenCalled()
+    expect(mocks.classifySegmentos).not.toHaveBeenCalled()
+    expect(mocks.legacyImageGenerate).not.toHaveBeenCalled()
   })
 
   it('does not expose internal error details', async () => {

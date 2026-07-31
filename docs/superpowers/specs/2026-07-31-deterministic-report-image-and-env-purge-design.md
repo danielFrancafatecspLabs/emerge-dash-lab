@@ -25,7 +25,7 @@ A chamada ao modelo será substituída por duas unidades isoladas:
 1. um construtor puro recebe as métricas e produz um SVG de `1024x1536`;
 2. o endpoint rasteriza esse SVG para PNG com `@resvg/resvg-js` e devolve o contrato atual.
 
-O template terá cabeçalho vermelho, resumo semanal, estágios do funil, gráfico horizontal dos cinco principais domínios e rodapé beOn Labs. Textos, números e barras serão determinísticos e escapados antes de entrar no SVG. A data será produzida explicitamente no fuso `America/Sao_Paulo`.
+O template terá cabeçalho vermelho, resumo semanal, estágios do funil, gráfico horizontal dos cinco principais domínios e rodapé beOn Labs. Textos, números e barras serão determinísticos e escapados antes de entrar no SVG; rótulos longos serão truncados e valores financeiros terão tamanho adaptativo para permanecer dentro dos cartões. A data será produzida explicitamente no fuso `America/Sao_Paulo`.
 
 O componente do botão conservará seu fluxo atual. Apenas referências visíveis a IA serão neutralizadas: `Gerar Imagem IA` passa a `Gerar Imagem`, e o texto alternativo deixa de afirmar que a imagem foi criada por IA.
 
@@ -42,6 +42,8 @@ As regras numéricas atuais serão mantidas para evitar mudança de resultado ju
 - cinco domínios ordenados pela contagem de experimentos.
 
 O pacote `openai` permanecerá porque outras funcionalidades dependem dele. `@resvg/resvg-js` será declarado como dependência direta para rasterizar o SVG com suporte ao Node.js 18 e sem introduzir os avisos de segurança presentes na versão de `sharp` avaliada.
+
+A rota da imagem não executará os classificadores OpenAI de texto, porque `metaCategoria` e `mercado` não participam de nenhuma métrica renderizada. O mapper receberá classificações vazias, preservando os demais campos e evitando latência e custo sem efeito no relatório.
 
 ### Falhas
 
