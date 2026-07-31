@@ -1,8 +1,6 @@
 import { NextResponse } from 'next/server'
 import { fetchDashboardRaw } from '@/lib/jira'
 import { buildDashboardData } from '@/lib/mappers'
-import { classifyPortfolios } from '@/lib/portfolio-classifier'
-import { classifySegmentos } from '@/lib/segmento-classifier'
 import { formatReportImageDate, type ReportImageMetrics } from '@/lib/report-image'
 import { renderReportInfographicPng } from '@/lib/report-image-renderer'
 
@@ -11,23 +9,11 @@ export const dynamic = 'force-dynamic'
 export async function GET() {
   try {
     const raw = await fetchDashboardRaw()
-    const [classification, segmentoClassification] = await Promise.all([
-      classifyPortfolios(raw.epics.map(epic => ({
-        key: epic.key,
-        summary: epic.fields.summary,
-        dominio: epic.fields.customfield_16400?.value ?? null,
-      }))),
-      classifySegmentos(raw.epics.map(epic => ({
-        key: epic.key,
-        summary: epic.fields.summary,
-        dominio: epic.fields.customfield_11661 ?? null,
-      }))),
-    ])
     const data = buildDashboardData(
       raw.iniciativas,
       raw.epics,
-      classification,
-      segmentoClassification,
+      {},
+      {},
       raw.board2706Config,
     )
     const dominioCount: Record<string, number> = {}

@@ -44,6 +44,24 @@ describe('buildReportInfographicSvg', () => {
     expect(svg).toContain('&lt;Rede &amp; IA&gt;')
     expect(svg).not.toContain('<Rede & IA>')
   })
+
+  it('bounds long domain labels and large financial values', () => {
+    const svg = buildReportInfographicSvg({
+      ...metrics,
+      beneficio: 9_876_543_210,
+      topDominios: [{ name: 'Experiência do Cliente e Operações', count: 99 }],
+    })
+
+    expect(svg).toContain('Experiência do Cl…')
+    expect(svg).not.toContain('Experiência do Cliente e Operações')
+    expect(svg).toContain('<rect x="300" y="723" width="560" height="32"')
+
+    const benefitTag = svg.match(/<text x="932" y="430"[^>]*>R\$ 9\.876,5 MM<\/text>/)?.[0]
+    const fontSize = Number(benefitTag?.match(/font-size: (\d+)px/)?.[1])
+
+    expect(benefitTag).toContain('text-anchor="end"')
+    expect(fontSize).toBeLessThan(54)
+  })
 })
 
 describe('formatReportImageDate', () => {
