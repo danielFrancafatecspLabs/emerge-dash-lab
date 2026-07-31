@@ -42,7 +42,7 @@ export default function GenerateImageButton() {
           style={{ background: '#8B0000' }}
         >
           {loading ? <Loader2 size={13} className="animate-spin" /> : <ImageIcon size={13} />}
-          {loading ? 'Gerando imagem...' : 'Gerar Imagem IA'}
+          {loading ? 'Gerando imagem...' : 'Gerar Imagem'}
         </button>
         {imageB64 && (
           <button
@@ -57,7 +57,7 @@ export default function GenerateImageButton() {
       {imageB64 && (
         <img
           src={`data:image/png;base64,${imageB64}`}
-          alt="Report gerado por IA"
+          alt="Prévia do relatório em imagem"
           className="rounded-xl border border-gray-200 shadow-sm max-w-sm"
         />
       )}
