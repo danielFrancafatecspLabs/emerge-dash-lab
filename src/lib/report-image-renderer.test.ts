@@ -18,5 +18,8 @@ describe('renderReportInfographicPng', () => {
     expect(png.toString('ascii', 12, 16)).toBe('IHDR')
     expect(png.readUInt32BE(16)).toBe(1024)
     expect(png.readUInt32BE(20)).toBe(1536)
+    expect(png.subarray(-12)).toEqual(
+      Buffer.from([0, 0, 0, 0, 73, 69, 78, 68, 174, 66, 96, 130]),
+    )
   })
 })
