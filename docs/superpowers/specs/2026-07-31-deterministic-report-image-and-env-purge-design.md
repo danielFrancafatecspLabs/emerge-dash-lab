@@ -87,7 +87,7 @@ Reescrever o Git não revoga credenciais nem remove cópias em forks, clones de 
 - Teste de integração do renderizador confirma assinatura PNG e metadados `1024x1536`.
 - Teste do endpoint confirma o contrato `{ image, format: "png" }` sem invocar a API de imagens.
 - `npm run build` confirma compatibilidade com o Next.js atual.
-- Uma busca no worktree, excluindo metadados Git e artefatos, não encontra `gpt-image-2`, `AZURE_OPENAI_DEPLOYMENT_IMAGE`, `images.generate` nem textos que atribuam o PNG à IA.
+- Uma busca nos arquivos ativos da aplicação e de configuração, excluindo documentação histórica e testes de regressão, não encontra `gpt-image-2`, `AZURE_OPENAI_DEPLOYMENT_IMAGE`, `images.generate` nem textos que atribuam o PNG à IA.
 
 ### Git
 
