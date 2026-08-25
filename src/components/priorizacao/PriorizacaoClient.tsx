@@ -233,7 +233,7 @@ export default function PriorizacaoClient() {
       <div className="flex min-h-dvh items-center justify-center" style={{ background: '#f0f0f0' }}>
         <div className="text-center">
           <div className="animate-spin rounded-full h-10 w-10 border-b-2 mx-auto mb-4" style={{ borderColor: '#CC0000' }} />
-          <p className="text-gray-600">Carregando experimentos do board 2707...</p>
+          <p className="text-gray-600">Carregando experimentos do board 2735...</p>
         </div>
       </div>
     )
@@ -290,7 +290,7 @@ export default function PriorizacaoClient() {
               <div>
                 <h1 className="text-2xl font-bold" style={{ color: '#8B0000' }}>Priorização de Experimentos</h1>
                 <p className="text-sm text-gray-500 mt-1">
-                  Board 2707 — {experimentos.length} experimentos em backlog/refinamento/andamento
+                  Board 2735 — {experimentos.length} experimentos em backlog/refinamento/andamento
                 </p>
               </div>
           <div className="flex items-center gap-3 flex-wrap">

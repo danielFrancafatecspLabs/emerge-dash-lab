@@ -4,7 +4,7 @@ import { getAzureOpenAIClient, DEPLOYMENT } from './llm'
 
 export type SegmentoMercado = 'Consumo' | 'Corporativo' | 'PME/GE/GOV'
 
-// Valores de customfield_11661 que vão direto para PME/GE/GOV (sem LLM)
+// Valores de customfield_30014 (was customfield_11661) que vão direto para PME/GE/GOV (sem LLM)
 const PME_GOV_DOMINIOS = ['empresarial', 'pme']
 
 const VALID_LLM: ('Consumo' | 'Corporativo')[] = ['Consumo', 'Corporativo']
@@ -14,7 +14,7 @@ const CACHE_FILE = path.resolve(process.cwd(), '.segmento-cache-v2.json')
 export interface EpicInput {
   key: string
   summary: string
-  dominio?: string | null   // customfield_11661 — "Empresarial" | "PME" | outros
+  dominio?: string | null   // customfield_30014 (was customfield_11661) — "Empresarial" | "PME" | outros
 }
 
 function loadCache(): Record<string, SegmentoMercado> {
@@ -64,7 +64,7 @@ Responda SOMENTE com uma das opções: Consumo ou Corporativo.`,
 /**
  * Classifica epics em: PME/GE/GOV (regra fixa) | Consumo | Corporativo (LLM).
  *
- * Regra fixa: se customfield_11661 (dominio) for 'Empresarial' ou 'PME' → 'PME/GE/GOV'.
+ * Regra fixa: se customfield_30014 (dominio, was customfield_11661) for 'Empresarial' ou 'PME' → 'PME/GE/GOV'.
  * Demais epics → LLM classifica como 'Consumo' ou 'Corporativo'.
  *
  * Cache em .segmento-cache-v2.json — só chama LLM para epics novos não-PME/GOV.

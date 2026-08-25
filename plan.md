@@ -19,15 +19,15 @@
 ## Hierarquia de Issues Confirmada
 
 ```
-Iniciativa  (board 2706 — "P&D - Ideação")
-    └── Epic  (board 2707 — "P&D - Experimentação/Piloto")
+Iniciativa  (board 2734 — "P&D - Ideação")
+  └── Epic  (board 2735 — "P&D - Experimentação/Piloto")
                   └── (Stories/Tasks — não usadas no dashboard)
 ```
 
-- **Board 2706** contém apenas issues do tipo **`Iniciativa`** (186 total)
+- **Board 2734** contém apenas issues do tipo **`Iniciativa`** (186 total)
   → define a **posição no pipeline** (coluna/status)
 
-- **Board 2707** contém apenas issues do tipo **`Epic`** (199 total)
+- **Board 2735** contém apenas issues do tipo **`Epic`** (199 total)
   → cada Epic tem `fields.parent.key` apontando para a Iniciativa-mãe do board 2706
   → carrega os **dados ricos**: Domínio, Sponsor, Benefícios, Custo, etc.
 
@@ -38,8 +38,8 @@ Iniciativa  (board 2706 — "P&D - Ideação")
 
 ## Fontes de Dados
 
-### Board 2706 — "P&D - Ideação" (Iniciativas)
-- **Endpoint**: `GET /rest/agile/1.0/board/2706/issue`
+### Board 2734 — "P&D - Ideação" (Iniciativas)
+- **Endpoint**: `GET /rest/agile/1.0/board/2734/issue`
 - **Total**: 186 issues
 - **Paginação**: `maxResults=50` → 4 páginas
 
@@ -56,8 +56,8 @@ Iniciativa  (board 2706 — "P&D - Ideação")
 | FINALIZADO | `10003` | CONCLUÍDO |
 | CANCELADO | `10015` | CANCELADO |
 
-### Board 2707 — "P&D - Experimentação/Piloto" (Epics)
-- **Endpoint**: `GET /rest/agile/1.0/board/2707/issue`
+### Board 2735 — "P&D - Experimentação/Piloto" (Epics)
+- **Endpoint**: `GET /rest/agile/1.0/board/2735/issue`
 - **Total**: 199 issues
 - **Paginação**: `maxResults=50` → 4 páginas
 
@@ -77,26 +77,26 @@ Iniciativa  (board 2706 — "P&D - Ideação")
 
 ## Campos a Buscar
 
-### Em toda chamada ao board 2706 (Iniciativas)
+### Em toda chamada ao board 2734 (Iniciativas)
 ```
 summary, status, issuetype, created, updated
 ```
 
-### Em toda chamada ao board 2707 (Epics)
+### Em toda chamada ao board 2735 (Epics)
 ```
 summary, status, issuetype, parent,
-customfield_11662,  // Sponsor
-customfield_11663,  // BO (Business Owner)
-customfield_11664,  // Complexidade
-customfield_11665,  // Time Responsável
+customfield_30394,  // Sponsor (was customfield_11662)
+customfield_30340,  // BO (Business Owner) (was customfield_11663)
+customfield_30358,  // Complexidade (was customfield_11664)
+customfield_11665,  // Time Responsável (mantido — campo do próprio épico)
 customfield_13242,  // Benefício Quantitativo (number, R$)
 customfield_13243,  // Benefício Qualitativo (string)
-customfield_16400,  // Domínio (option → .value)
-customfield_13571,  // Custo Estimado Experimento (number, R$)
-customfield_11668,  // Custo Realizado Experimento (string)
-customfield_11378,  // Segmento (option → .value)
-customfield_15919,  // Portfólio (option → .value)
-customfield_10904   // Diretoria (string)
+customfield_11987,  // Domínio (option → .value) (was customfield_16400)
+customfield_30402,  // Custo Estimado Experimento (number, R$) (was customfield_13571)
+customfield_30453,  // Custo Realizado Experimento (string) (was customfield_11668)
+customfield_30445,  // Segmento (option → .value) (was customfield_11378)
+customfield_30110,  // Portfólio (option → .value) (was customfield_15919)
+customfield_21499   // Diretoria (string) (was customfield_10904)
 ```
 
 > O campo `parent` retorna `{ key, fields: { summary, issuetype: { name } } }` e é a chave do join.
@@ -107,20 +107,20 @@ customfield_10904   // Diretoria (string)
 
 | Campo no Dashboard | customfield ID | Tipo | Exemplo real |
 |---|---|---|---|
-| Sponsor | `customfield_11662` | string | `"Celso Tonet"`, `"Gustavo Leite"` |
-| BO (Business Owner) | `customfield_11663` | string | `"Renato Fagundes"` |
-| Complexidade | `customfield_11664` | string | `"Baixa"`, `"Alta"` |
-| Time Responsável | `customfield_11665` | string | `"BCC"`, `"P&D Tech"`, `"BeOn Labs"` |
+| Sponsor | `customfield_30394` | string | `"Celso Tonet"`, `"Gustavo Leite"` (was `customfield_11662`) |
+| BO (Business Owner) | `customfield_30340` | string | `"Renato Fagundes"` (was `customfield_11663`) |
+| Complexidade | `customfield_30358` | string | `"Baixa"`, `"Alta"` (was `customfield_11664`) |
+| Time Responsável | `customfield_11665` | string | `"BCC"`, `"P&D Tech"`, `"BeOn Labs"` (mantido) |
 | Benefício Quantitativo | `customfield_13242` | number | `9600000.0`, `603000.0` |
 | Benefício Qualitativo | `customfield_13243` | string | `"Redução de custo de análise"` |
-| Domínio | `customfield_16400` | option (`.value`) | `"Atendimento"`, `"Rede"` |
-| Custo Estimado | `customfield_13571` | number | em R$ |
-| Custo Realizado | `customfield_11668` | string | em R$ |
-| Segmento | `customfield_11378` | option (`.value`) | |
-| Portfólio | `customfield_15919` | option (`.value`) | |
-| Diretoria | `customfield_10904` | string | |
+| Domínio | `customfield_11987` | option (`.value`) | `"Atendimento"`, `"Rede"` (was `customfield_16400`) |
+| Custo Estimado | `customfield_30402` | number | em R$ (was `customfield_13571`) |
+| Custo Realizado | `customfield_30453` | string | em R$ (was `customfield_11668`) |
+| Segmento | `customfield_30445` | option (`.value`) | (was `customfield_11378`) |
+| Portfólio | `customfield_30110` | option (`.value`) | (was `customfield_15919`) |
+| Diretoria | `customfield_21499` | string | (was `customfield_10904`) |
 
-> `customfield_10900` (Dominio, string) é campo legado — ignorar, usar `customfield_16400`.
+> `customfield_10900` (Dominio, string) é campo legado — ignorar, usar `customfield_11987`.
 
 ---
 

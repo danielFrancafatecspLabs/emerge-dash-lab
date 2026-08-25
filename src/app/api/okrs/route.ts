@@ -1,4 +1,5 @@
 import type { ChangelogEntry } from '@/lib/jira'
+import { IDEACAO_BOARD_ID, EXPERIMENTACAO_BOARD_ID } from '@/lib/jira'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 300
@@ -31,8 +32,8 @@ interface JiraIssueLight {
     created?: string
     summary?: string
     status: { id: string; name: string }
-    customfield_13242?: number
-    customfield_16400?: { value: string } | null
+    customfield_30216?: number  // Benefício Quantitativo (was customfield_13242)
+    customfield_11987?: { value: string } | null  // was customfield_16400
   }
 }
 
@@ -217,7 +218,7 @@ function calcPctCasosIA(epics: JiraIssueLight[]): { pct: number; countIA: number
     'automação inteligente', 'nlp', 'computer vision', 'deep learning', 'rede neural']
   let count = 0
   for (const e of epics) {
-    const texto = `${e.fields.customfield_16400?.value ?? ''} ${e.fields.summary ?? ''}`.toLowerCase()
+    const texto = `${e.fields.customfield_11987?.value ?? ''} ${e.fields.summary ?? ''}`.toLowerCase()
     if (KW.some(kw => texto.includes(kw))) count++
   }
   const total = epics.length
@@ -231,12 +232,12 @@ function calcPctCasosIA(epics: JiraIssueLight[]): { pct: number; countIA: number
 export async function GET(): Promise<Response> {
   try {
     // Buscar apenas os campos necessários em paralelo
-    const EPIC_FIELDS = 'status,summary,customfield_13242,customfield_16400'
+    const EPIC_FIELDS = 'status,summary,customfield_30216,customfield_11987'
     const INI_FIELDS = 'status,created'
 
     const [epics, iniciativas] = await Promise.all([
-      fetchBoardIssues(2707, EPIC_FIELDS),
-      fetchBoardIssues(2706, INI_FIELDS),
+      fetchBoardIssues(EXPERIMENTACAO_BOARD_ID, EPIC_FIELDS),
+      fetchBoardIssues(IDEACAO_BOARD_ID, INI_FIELDS),
     ])
 
     // Buscar changelogs apenas das iniciativas (para tempo médio ideação→piloto)
@@ -247,8 +248,8 @@ export async function GET(): Promise<Response> {
     const tempoPiloto = calcTempoMedioIdeacaoPiloto(iniciativaChangelogs, iniciativas)
     const experimentosIniciados = epics.length
     const taxaPiloto = calcTaxaEvolucaoPiloto(iniciativas)
-    const aprovadosProducao = epics.filter(e => e.fields.status.id === '10003').length
-    const valorFinanceiro = epics.reduce((s, e) => s + (e.fields.customfield_13242 ?? 0), 0)
+    const aprovadosProducao = epics.filter(e => e.fields.status.id === '10019').length
+    const valorFinanceiro = epics.reduce((s, e) => s + (e.fields.customfield_30216 ?? 0), 0)
     const casosIA = calcPctCasosIA(epics)
 
     const objetivos: Objetivo[] = [

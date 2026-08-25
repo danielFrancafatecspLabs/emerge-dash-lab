@@ -65,7 +65,7 @@ function filtrarDashboardData(data: DashboardData, periodo: PeriodoFiltro): Dash
 
   // ── Epics ativos ──
   const epicsAtivos = allEpicsFiltrados.filter(
-    e => e.status.id !== '10015' && e.status.id !== '10003'
+    e => e.status.id !== '10015' && e.status.id !== '10019'
   )
 
   // ── Top 5 epics ──
@@ -97,7 +97,7 @@ function filtrarDashboardData(data: DashboardData, periodo: PeriodoFiltro): Dash
   const STATUS_DISPLAY_NAME: Partial<Record<keyof PipelineCount, string>> = {
     'CANCELADO': 'DESCONTINUADO', 'FINALIZADO': 'CONCLUÍDO',
   }
-  // ── Status distribuição (donut) — baseado nos Epics do board 2707 ──
+  // ── Status distribuição (donut) — baseado nos Epics do board 2735 ──
   const statusDistribuicao = STATUS_DONUT_ORDER
     .map(key => ({
       name: STATUS_DISPLAY_NAME[key] ?? key,
@@ -244,7 +244,7 @@ export default function EstrategiaClient({ data, monitoramento }: EstrategiaClie
           dados: {
             totalIniciativas: dadosFiltrados.iniciativas.length,
             totalExperimentos: dadosFiltrados.allEpics.length,
-            concluidos: dadosFiltrados.allEpics.filter(e => e.status?.id === '10003').length,
+            concluidos: dadosFiltrados.allEpics.filter(e => e.status?.id === '10019').length,
             emPilotoEscala: dadosFiltrados.pipeline['EM PILOTO'] + dadosFiltrados.pipeline['EM ESCALA'],
             emEscala: dadosFiltrados.pipeline['EM ESCALA'],
             metasAgregadas: dadosFiltrados.metasAgregadas,
@@ -270,7 +270,7 @@ export default function EstrategiaClient({ data, monitoramento }: EstrategiaClie
           descricao: 'Taxa de conversão do funil: Total → Concluídos → Pilotos → Escala.',
           dados: {
             total: dadosFiltrados.allEpics.filter(e => e.status?.id !== '10015').length,
-            concluidos: dadosFiltrados.allEpics.filter(e => e.status?.id === '10003').length,
+            concluidos: dadosFiltrados.allEpics.filter(e => e.status?.id === '10019').length,
             emPilotoEscala: dadosFiltrados.pipeline['EM PILOTO'] + dadosFiltrados.pipeline['EM ESCALA'],
             emEscala: dadosFiltrados.pipeline['EM ESCALA'],
           },
@@ -351,12 +351,12 @@ export default function EstrategiaClient({ data, monitoramento }: EstrategiaClie
   }, [])
 
   return (
-    <div className="flex min-h-dvh" style={{ background: '#f0f0f0' }}>
+    <div className="flex min-h-dvh bg-gray-50">
       {/* Sidebar — oculta no modo slide */}
       {!modoSlide && (
-        <div className="flex-shrink-0" style={{ width: 72 }}>
-          <div className="fixed top-0 left-0 h-full" style={{ width: 72 }}>
-            <div style={{ background: '#8B0000', paddingTop: 52, height: '100%' }}>
+        <div className="flex-shrink-0" style={{ width: 64 }}>
+          <div className="fixed top-0 left-0 h-full z-20" style={{ width: 64 }}>
+            <div className="h-full bg-gradient-to-b from-[#8B0000] to-[#6B0000]">
               <Sidebar />
             </div>
           </div>
@@ -367,7 +367,7 @@ export default function EstrategiaClient({ data, monitoramento }: EstrategiaClie
       <div className="flex-1 flex flex-col min-w-0">
         {/* Header — oculto no modo slide */}
         {!modoSlide && (
-          <div className="fixed top-0 z-10" style={{ left: 72, right: 0 }}>
+          <div className="fixed top-0 z-10" style={{ left: 64, right: 0 }}>
             <Header
               periodoSelecionado={periodoFiltro}
               onPeriodoChange={setPeriodoFiltro}
@@ -376,18 +376,23 @@ export default function EstrategiaClient({ data, monitoramento }: EstrategiaClie
         )}
 
         {/* Content */}
-        <main className="flex-1 p-3 md:p-4 lg:p-5 gap-3 md:gap-4 flex flex-col min-w-0" style={{ marginTop: modoSlide ? 0 : 52 }}>
-
-          {/* Row 1: Resumo Executivo + Portfólio + Funil */}
-          <div className="grid gap-3 md:gap-4 grid-cols-1 lg:grid-cols-3 min-w-0">
-            <GraficoComInsight
-              titulo="Resumo Executivo"
-              subtitulo={`Metas estratégicas & pipeline • ${dadosFiltrados.iniciativas.length} iniciativas`}
-              insight={insightsMap['resumo']}
-              loading={insightsLoading}
-            >
-              <ResumoExecutivo data={dadosFiltrados} />
-            </GraficoComInsight>
+        <main
+          className="flex-1 p-4 md:p-5 lg:p-6 gap-4 md:gap-5 flex flex-col min-w-0"
+          style={{ marginTop: modoSlide ? 0 : 52 }}
+        >
+          {/* Grid: Resumo no topo (full width) + 5 cards em 3 colunas */}
+          <div className="grid gap-4 md:gap-5 grid-cols-1 lg:grid-cols-3 min-w-0">
+            {/* Resumo Executivo ocupa linha inteira */}
+            <div className="lg:col-span-3">
+              <GraficoComInsight
+                titulo="Resumo Executivo"
+                subtitulo={`Metas estratégicas & pipeline • ${dadosFiltrados.iniciativas.length} iniciativas (board 2734)`}
+                insight={insightsMap['resumo']}
+                loading={insightsLoading}
+              >
+                <ResumoExecutivo data={dadosFiltrados} />
+              </GraficoComInsight>
+            </div>
 
             <GraficoComInsight
               titulo="Portfólio por Mercado"
@@ -406,10 +411,7 @@ export default function EstrategiaClient({ data, monitoramento }: EstrategiaClie
             >
               <FunilExperimentos data={dadosFiltrados} />
             </GraficoComInsight>
-          </div>
 
-          {/* Row 2: Top 5 + Burnup + Jornada de Adoção */}
-          <div className="grid gap-3 md:gap-4 grid-cols-1 lg:grid-cols-3 min-w-0" style={{ minHeight: 300 }}>
             <GraficoComInsight
               titulo="Top 5 Experimentos"
               subtitulo="Maior valor potencial (R$)"
@@ -448,7 +450,7 @@ export default function EstrategiaClient({ data, monitoramento }: EstrategiaClie
       {modoSlide && (
         <button
           onClick={() => setModoSlide(false)}
-          className="fixed bottom-4 left-4 z-20 flex items-center gap-1.5 px-3 py-2 rounded-lg shadow-lg border border-gray-300 bg-white text-gray-600 hover:bg-gray-50 transition-colors text-xs font-medium"
+          className="fixed bottom-4 left-4 z-30 flex items-center gap-1.5 px-3 py-2 rounded-lg shadow-lg border border-gray-300 bg-white text-gray-600 hover:bg-gray-50 transition-colors text-xs font-medium"
           title="Mostrar menu lateral"
         >
           <PanelLeftOpen size={14} />
