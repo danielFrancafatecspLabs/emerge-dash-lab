@@ -10,6 +10,7 @@ interface Props {
   children: ReactNode
   insight?: InsightExecutivo | null
   loading?: boolean
+  step?: number
 }
 
 const iconMap: Record<string, ReactNode> = {
@@ -21,17 +22,27 @@ const iconMap: Record<string, ReactNode> = {
 /**
  * Wrapper que adiciona header + insight LLM abaixo de qualquer gráfico/card.
  */
-export default function GraficoComInsight({ titulo, subtitulo, children, insight, loading }: Props) {
+export default function GraficoComInsight({ titulo, subtitulo, children, insight, loading, step }: Props) {
   return (
     <div className="flex flex-col min-w-0 h-full">
       {/* Card wrapper */}
-      <div className="flex flex-col bg-white rounded-xl shadow-sm border border-gray-200/80 overflow-hidden h-full">
+      <div className="flex flex-col bg-white rounded-xl shadow-sm border border-gray-200/80 overflow-hidden h-full transition-shadow hover:shadow-md">
         {/* Header do card */}
-        <div className="px-4 md:px-5 pt-4 pb-3 border-b border-gray-100">
-          <h3 className="text-sm font-semibold text-gray-800 leading-tight">{titulo}</h3>
-          {subtitulo && (
-            <p className="text-[11px] text-gray-400 mt-0.5 leading-tight">{subtitulo}</p>
+        <div className="px-4 md:px-5 pt-4 pb-3 border-b border-gray-100 flex items-start gap-2.5">
+          {step !== undefined && (
+            <span
+              className="flex-shrink-0 flex items-center justify-center rounded-full font-bold text-white"
+              style={{ width: 20, height: 20, fontSize: 10, background: '#CC0000', marginTop: 1 }}
+            >
+              {step}
+            </span>
           )}
+          <div className="min-w-0">
+            <h3 className="text-sm font-semibold text-gray-800 leading-tight">{titulo}</h3>
+            {subtitulo && (
+              <p className="text-[11px] text-gray-400 mt-0.5 leading-tight">{subtitulo}</p>
+            )}
+          </div>
         </div>
 
         {/* Conteúdo */}
