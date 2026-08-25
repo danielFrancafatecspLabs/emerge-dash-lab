@@ -43,19 +43,19 @@ export default function FunilExperimentos({ data }: Props) {
   const maxValor = Math.max(...camadas.map(c => c.valor), 1)
 
   return (
-    <div className="flex flex-col gap-2 min-w-0">
+    <div className="flex flex-col gap-1 min-w-0 justify-center h-full">
       {camadas.map((camada, i) => {
         const largura = maxValor > 0 ? (camada.valor / maxValor) * 100 : 0
 
         return (
-          <div key={camada.label} className="w-full flex items-center gap-2">
-            <span className="text-[11px] font-medium text-gray-600 w-28 md:w-32 text-right flex-shrink-0 leading-tight">
+          <div key={camada.label} className="w-full flex items-center gap-1.5">
+            <span className="text-[10px] font-medium text-gray-600 w-24 md:w-28 text-right flex-shrink-0 leading-tight">
               {camada.label}
-              {camada.nota && <span className="block text-gray-300" style={{ fontSize: 9 }}>({camada.nota})</span>}
+              {camada.nota && <span className="block text-gray-300" style={{ fontSize: 8 }}>({camada.nota})</span>}
             </span>
-            <div className="flex-1 relative h-6 min-w-0">
+            <div className="flex-1 relative h-4 min-w-0">
               <div
-                className="absolute top-0 left-1/2 -translate-x-1/2 h-full rounded-md transition-all duration-500 flex items-center justify-center min-w-[30px]"
+                className="absolute top-0 left-1/2 -translate-x-1/2 h-full rounded transition-all duration-500 flex items-center justify-center min-w-[26px]"
                 style={{
                   width: `${Math.max(largura, 6)}%`,
                   maxWidth: '100%',
@@ -63,18 +63,18 @@ export default function FunilExperimentos({ data }: Props) {
                   opacity: i === 0 ? 1 : 0.85,
                 }}
               >
-                <span className="text-white font-bold text-xs drop-shadow-sm whitespace-nowrap">
+                <span className="text-white font-bold drop-shadow-sm whitespace-nowrap" style={{ fontSize: 10 }}>
                   {camada.valor}
                 </span>
               </div>
             </div>
-            <span className="text-[10px] font-semibold text-gray-400 w-9 text-right flex-shrink-0 tabular-nums">
+            <span className="text-[9px] font-semibold text-gray-400 w-8 text-right flex-shrink-0 tabular-nums">
               {i === 0 ? '' : `${camada.pct}%`}
             </span>
           </div>
         )
       })}
-      <p className="text-gray-300 mt-1" style={{ fontSize: 9 }}>% em relação ao total de experimentos no período</p>
+      <p className="text-gray-300 mt-0.5" style={{ fontSize: 8 }}>% em relação ao total de experimentos no período</p>
     </div>
   )
 }

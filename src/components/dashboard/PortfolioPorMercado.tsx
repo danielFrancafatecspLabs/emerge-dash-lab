@@ -55,14 +55,14 @@ export default function PortfolioPorMercado({ data }: Props) {
   const maxValor = Math.max(...ordenados.map(m => m.valorPotencial), 1)
 
   return (
-    <div className="flex flex-col gap-2.5">
+    <div className="flex flex-col gap-1.5">
       {ordenados.map((m, i) => {
         const icon = SEGMENTO_ICONS[m.nome] ?? '📦'
         const barPct = Math.round((m.valorPotencial / maxValor) * 100)
         return (
           <div
             key={m.nome}
-            className="rounded-lg p-2.5 border flex flex-col gap-1.5 overflow-hidden"
+            className="rounded-lg p-2 border flex flex-col gap-1 overflow-hidden"
             style={{ borderColor: '#f0e0e0', background: '#FFF8F8' }}
           >
             <div className="flex items-center justify-between gap-2">

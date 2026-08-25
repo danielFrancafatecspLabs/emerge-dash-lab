@@ -27,7 +27,7 @@ export default function Top5Experimentos({ data }: Props) {
           <tbody>
             {data.top5Epics.map((e, i) => (
               <tr key={e.key} className="border-b border-gray-100 hover:bg-gray-50">
-                <td className="py-2 pr-1 md:pr-2">
+                <td className="py-1.5 pr-1 md:pr-2">
                   <div className="flex items-center gap-1.5 min-w-0">
                     <span
                       className="rounded-full text-white flex items-center justify-center font-bold flex-shrink-0"
@@ -40,12 +40,12 @@ export default function Top5Experimentos({ data }: Props) {
                     </span>
                   </div>
                 </td>
-                <td className="py-2 pr-1 md:pr-2 text-gray-600 truncate max-w-[80px] md:max-w-[120px]">{e.timeResponsavel ?? '—'}</td>
-                <td className="py-2 pr-1 md:pr-2 text-gray-600 truncate max-w-[70px] md:max-w-[100px]">{e.dominio ?? '—'}</td>
-                <td className="py-2 font-semibold whitespace-nowrap" style={{ color: '#CC0000' }}>
+                <td className="py-1.5 pr-1 md:pr-2 text-gray-600 truncate max-w-[80px] md:max-w-[120px]">{e.timeResponsavel ?? '—'}</td>
+                <td className="py-1.5 pr-1 md:pr-2 text-gray-600 truncate max-w-[70px] md:max-w-[100px]">{e.dominio ?? '—'}</td>
+                <td className="py-1.5 font-semibold whitespace-nowrap" style={{ color: '#CC0000' }}>
                   {e.beneficioQuantitativo ? formatBRL(e.beneficioQuantitativo) : '—'}
                 </td>
-                <td className="py-2 pl-1">
+                <td className="py-1.5 pl-1">
                   <button
                     onClick={() => setSelected(e)}
                     className="rounded p-1 hover:bg-gray-100 transition-colors text-gray-400 hover:text-gray-600"
