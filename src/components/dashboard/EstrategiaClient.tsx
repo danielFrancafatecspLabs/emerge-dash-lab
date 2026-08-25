@@ -392,13 +392,13 @@ export default function EstrategiaClient({ data, monitoramento }: EstrategiaClie
             </div>
           </div>
 
-          {/* ── Linha 1: Panorama Estratégico ── */}
+          {/* ── Linha 1: Impacto Entregue ── */}
           <section className="flex flex-col gap-3 min-w-0">
             <div>
               <p className="text-[11px] font-bold uppercase tracking-widest" style={{ color: '#CC0000' }}>
-                Panorama Estratégico
+                1 · Impacto Entregue
               </p>
-              <p className="text-[11px] text-gray-400 mt-0.5">Onde estamos: metas, portfólio e conversão do funil</p>
+              <p className="text-[11px] text-gray-400 mt-0.5">O que o laboratório já gerou de resultado — o valor, a tendência e as provas concretas</p>
             </div>
             <div className="grid gap-4 md:gap-5 grid-cols-1 lg:grid-cols-3 auto-rows-fr min-w-0">
               <GraficoComInsight
@@ -413,47 +413,6 @@ export default function EstrategiaClient({ data, monitoramento }: EstrategiaClie
 
               <GraficoComInsight
                 step={2}
-                titulo="Portfólio por Mercado"
-                subtitulo="Distribuição por segmento de mercado"
-                insight={insightsMap['portfolio']}
-                loading={insightsLoading}
-              >
-                <PortfolioPorMercado data={dadosFiltrados.mercadosSegmento} />
-              </GraficoComInsight>
-
-              <GraficoComInsight
-                step={3}
-                titulo="Funil de Experimentos"
-                subtitulo="Taxa de conversão do pipeline"
-                insight={insightsMap['funil']}
-                loading={insightsLoading}
-              >
-                <FunilExperimentos data={dadosFiltrados} />
-              </GraficoComInsight>
-            </div>
-          </section>
-
-          {/* ── Linha 2: Resultados & Performance ── */}
-          <section className="flex flex-col gap-3 min-w-0">
-            <div>
-              <p className="text-[11px] font-bold uppercase tracking-widest" style={{ color: '#CC0000' }}>
-                Resultados & Performance
-              </p>
-              <p className="text-[11px] text-gray-400 mt-0.5">O que estamos entregando: valor gerado, crescimento e velocidade</p>
-            </div>
-            <div className="grid gap-4 md:gap-5 grid-cols-1 lg:grid-cols-3 auto-rows-fr min-w-0">
-              <GraficoComInsight
-                step={4}
-                titulo="Top 5 Experimentos"
-                subtitulo="Maior valor potencial (R$)"
-                insight={insightsMap['top5']}
-                loading={insightsLoading}
-              >
-                <Top5Experimentos data={dadosFiltrados} />
-              </GraficoComInsight>
-
-              <GraficoComInsight
-                step={5}
                 titulo="Crescimento da Experimentação"
                 subtitulo="Acumulado de experimentos concluídos no período"
                 insight={insightsMap['burnup']}
@@ -463,7 +422,38 @@ export default function EstrategiaClient({ data, monitoramento }: EstrategiaClie
               </GraficoComInsight>
 
               <GraficoComInsight
-                step={6}
+                step={3}
+                titulo="Top 5 Experimentos"
+                subtitulo="Maior valor potencial (R$)"
+                insight={insightsMap['top5']}
+                loading={insightsLoading}
+              >
+                <Top5Experimentos data={dadosFiltrados} />
+              </GraficoComInsight>
+            </div>
+          </section>
+
+          {/* ── Linha 2: Como Chegamos Lá ── */}
+          <section className="flex flex-col gap-3 min-w-0">
+            <div>
+              <p className="text-[11px] font-bold uppercase tracking-widest" style={{ color: '#CC0000' }}>
+                2 · Como Chegamos Lá
+              </p>
+              <p className="text-[11px] text-gray-400 mt-0.5">O motor por trás do resultado — conversão, velocidade e onde estamos apostando</p>
+            </div>
+            <div className="grid gap-4 md:gap-5 grid-cols-1 lg:grid-cols-3 auto-rows-fr min-w-0">
+              <GraficoComInsight
+                step={4}
+                titulo="Funil de Experimentos"
+                subtitulo="Distribuição por etapa do pipeline"
+                insight={insightsMap['funil']}
+                loading={insightsLoading}
+              >
+                <FunilExperimentos data={dadosFiltrados} />
+              </GraficoComInsight>
+
+              <GraficoComInsight
+                step={5}
                 titulo="Jornada de Adoção"
                 subtitulo="Lead time e gargalos do pipeline"
                 insight={insightsMap['leadtime']}
@@ -473,6 +463,16 @@ export default function EstrategiaClient({ data, monitoramento }: EstrategiaClie
                   data={dadosFiltrados.leadTimeJornada}
                   cycleTimeExperimentacao={dadosFiltrados.cycleTimeExperimentacao}
                 />
+              </GraficoComInsight>
+
+              <GraficoComInsight
+                step={6}
+                titulo="Portfólio por Mercado"
+                subtitulo="Onde estamos investindo por segmento"
+                insight={insightsMap['portfolio']}
+                loading={insightsLoading}
+              >
+                <PortfolioPorMercado data={dadosFiltrados.mercadosSegmento} />
               </GraficoComInsight>
             </div>
           </section>
