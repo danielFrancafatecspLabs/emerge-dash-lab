@@ -171,8 +171,8 @@ export default function NaoClassificadosList({
                         </div>
                       )}
                       <div className="mt-2 text-xs text-gray-400">
-                        {!temBeneficio && '⚠️ Preencha o Benefício Quantitativo (customfield_13242) no Jira. '}
-                        {!temComplexidade && '⚠️ Preencha a Complexidade (customfield_11664) no Jira. '}
+                        {!temBeneficio && '⚠️ Preencha o Benefício Quantitativo (customfield_30216) no Jira. '}
+                        {!temComplexidade && '⚠️ Preencha a Complexidade (customfield_30358) no Jira. '}
                         {faltamVotos && temBeneficio && temComplexidade && 'Precisa de pelo menos 2 votos para ser classificado.'}
                       </div>
                     </div>

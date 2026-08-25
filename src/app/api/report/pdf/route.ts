@@ -19,18 +19,18 @@ export async function GET() {
     const epicInputs = raw.epics.map(e => ({
       key: e.key,
       summary: e.fields.summary,
-      dominio: e.fields.customfield_16400?.value ?? null,
+      dominio: e.fields.customfield_11987?.value ?? null,
     }))
     const segmentoInputs = raw.epics.map(e => ({
       key: e.key,
       summary: e.fields.summary,
-      dominio: e.fields.customfield_11661 ?? null,
+      dominio: e.fields.customfield_30014 ?? null,
     }))
     const [classification, segmentoClassification] = await Promise.all([
       classifyPortfolios(epicInputs),
       classifySegmentos(segmentoInputs),
     ])
-    const data = buildDashboardData(raw.iniciativas, raw.epics, classification, segmentoClassification, raw.board2706Config)
+    const data = buildDashboardData(raw.iniciativas, raw.epics, classification, segmentoClassification, raw.board2734Config)
 
     // 2. Compute derived data
     const emAndamento = data.allEpics
@@ -42,13 +42,13 @@ export async function GET() {
       })
 
     // ── Funil de Inovação ──
-    // Em Andamento: Experimentos (Epics do board 2707) com status "Em andamento"
-    // Em Piloto: Iniciativas (board 2706) na coluna "EM PILOTO"
-    // Concluídos: Experimentos (Epics do board 2707) com status "Concluído"
-    // Em Escala: Iniciativas (board 2706) na coluna "EM ESCALA"
+    // Em Andamento: Experimentos (Epics do board 2735) com status "Em andamento"
+    // Em Piloto: Iniciativas (board 2734) na coluna "EM PILOTO"
+    // Concluídos: Experimentos (Epics do board 2735) com status "Concluído"
+    // Em Escala: Iniciativas (board 2734) na coluna "EM ESCALA"
     const emAndamentoCount = data.allEpics.filter(e => e.status.id === '3').length
     const emPilotoCount = data.pipeline['EM PILOTO']
-    const concluidosCount = data.allEpics.filter(e => e.status.id === '10003').length
+    const concluidosCount = data.allEpics.filter(e => e.status.id === '10019').length
     const emEscalaCount = data.pipeline['EM ESCALA']
 
     const funilStages = [

@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 /**
  * POST /api/complexidade
  *
- * Atualiza o campo customfield_11664 (Complexidade) de uma issue Jira.
+ * Atualiza o campo customfield_30358 (Complexidade) de uma issue Jira. (was customfield_11664)
  *
  * Body: { key: string, complexidade: "Baixa" | "Média" | "Alta" }
  *
@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
       },
       body: JSON.stringify({
         fields: {
-          customfield_11664: complexidade,
+          customfield_30358: complexidade,
         },
       }),
     })

@@ -22,13 +22,13 @@ const DONUT_ORDER = ['CONCLUÍDO', 'EM ANDAMENTO', 'EM REFINAMENTO', 'BACKLOG', 
 function buildDonutData(data: DashboardData) {
   const epics = data.allEpics
 
-  const concluido = epics.filter(e => e.status?.id === '10003').length
+  const concluido = epics.filter(e => e.status?.id === '10019').length
   const descontinuado = epics.filter(e => e.status?.id === '10015').length
   const emRefinamento = epics.filter(e => e.status?.id === '10139').length
   const backlog = epics.filter(e => e.status?.id === '10004').length
   // Em andamento: tudo que não é concluído, cancelado, backlog, refinamento
   const emAndamento = epics.filter(e =>
-    e.status?.id !== '10003' &&
+    e.status?.id !== '10019' &&
     e.status?.id !== '10015' &&
     e.status?.id !== '10139' &&
     e.status?.id !== '10004'
@@ -48,12 +48,12 @@ function buildDonutData(data: DashboardData) {
 function getEpicsForDonutSlice(data: DashboardData, name: string): EpicDetail[] {
   const epics = data.allEpics
   switch (name) {
-    case 'CONCLUÍDO':      return epics.filter(e => e.status?.id === '10003')
+    case 'CONCLUÍDO':      return epics.filter(e => e.status?.id === '10019')
     case 'DESCONTINUADO':  return epics.filter(e => e.status?.id === '10015')
     case 'EM REFINAMENTO': return epics.filter(e => e.status?.id === '10139')
     case 'BACKLOG':        return epics.filter(e => e.status?.id === '10004')
     case 'EM ANDAMENTO':   return epics.filter(e =>
-      e.status?.id !== '10003' && e.status?.id !== '10015' &&
+      e.status?.id !== '10019' && e.status?.id !== '10015' &&
       e.status?.id !== '10139' && e.status?.id !== '10004'
     )
     default: return []

@@ -448,11 +448,11 @@ describe('GET /api/report/image', () => {
         key: 'GL-1',
         fields: {
           summary: 'Experimento de rede',
-          customfield_16400: { value: 'Rede' },
-          customfield_11661: 'Consumo',
+          customfield_11987: { value: 'Rede' },
+          customfield_30014: 'Consumo',
         },
       }],
-      board2706Config: {},
+      board2734Config: {},
     })
     mocks.classifyPortfolios.mockResolvedValue({})
     mocks.classifySegmentos.mockResolvedValue({})
@@ -544,7 +544,7 @@ export async function GET() {
       raw.epics,
       {},
       {},
-      raw.board2706Config,
+      raw.board2734Config,
     )
     const dominioCount: Record<string, number> = {}
 

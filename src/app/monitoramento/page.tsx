@@ -51,12 +51,12 @@ export default async function MonitoramentoPage({
     const epicInputs = raw.epics.map(e => ({
       key: e.key,
       summary: e.fields.summary,
-      dominio: e.fields.customfield_16400?.value ?? null,
+      dominio: e.fields.customfield_11987?.value ?? null,
     }))
     const segmentoInputs = raw.epics.map(e => ({
       key: e.key,
       summary: e.fields.summary,
-      dominio: e.fields.customfield_11661 ?? null,
+      dominio: e.fields.customfield_30014 ?? null,
     }))
     const [classification, segmentoClassification] = await Promise.all([
       classifyPortfolios(epicInputs),
@@ -64,7 +64,7 @@ export default async function MonitoramentoPage({
     ])
     data = buildDashboardData(
       raw.iniciativas, raw.epics, classification, segmentoClassification,
-      raw.board2706Config, raw.epicChangelogs, raw.iniciativaChangelogs
+      raw.board2734Config, raw.epicChangelogs, raw.iniciativaChangelogs
     )
     monitoramento = buildMonitoramentoData(data, periodo)
   } catch (e) {

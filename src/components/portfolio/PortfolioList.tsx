@@ -160,7 +160,7 @@ export default function PortfolioList({ data }: Props) {
               <Layers size={22} className="text-blue-700" />
             </div>
             <div className="min-w-0">
-              <p className="text-xs text-blue-500 font-semibold uppercase tracking-wider">Experimentos (board 2707) <span className="font-normal lowercase normal-case tracking-normal text-blue-400">— Iniciativas que já passaram por aqui</span></p>
+              <p className="text-xs text-blue-500 font-semibold uppercase tracking-wider">Experimentos (board 2735) <span className="font-normal lowercase normal-case tracking-normal text-blue-400">— Iniciativas que já passaram por aqui</span></p>
               <p className="text-2xl font-extrabold text-gray-900">{epics.length}</p>
               {hasFilter && (
                 <p className="text-xs text-amber-600 mt-0.5">{filtered.length} exibidos com filtros</p>

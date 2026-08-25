@@ -29,7 +29,7 @@ export default function Loading() {
 
         <div className="flex flex-col gap-1.5 w-full">
           {[
-            '📡  Conectando ao Jira (boards 2706 e 2707)',
+            '📡  Conectando ao Jira (boards 2734 e 2735)',
             '🤖  Classificando segmentos via LLM',
             '📊  Compilando estatísticas do portfólio',
           ].map(step => (

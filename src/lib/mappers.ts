@@ -37,20 +37,27 @@ function getSegmento(dominio: string | null | undefined): SegmentoMercado {
   return 'Consumo'
 }
 
-// Status IDs confirmados via API (board 2706 — Iniciativas, board 2707 — Experimentos)
+// Status IDs confirmados via API (board 2734 — Iniciativas, board 2735 — Experimentos)
 export const STATUS_PIPELINE: Record<string, keyof PipelineCount> = {
   '10004': 'BACKLOG',
   '10139': 'EM REFINAMENTO',
   '10067': 'PRONTO PARA EXECUÇÃO',
   '13045': 'AGUARDANDO PILOTO',
+  '14468': 'AGUARDANDO PILOTO', // Board 2734 — Aguardando Piloto (atual)
   '12848': 'EM EXPERIMENTAÇÃO',
-  '12847': 'EM PILOTO',
+  '14460': 'EM EXPERIMENTAÇÃO', // Board 2734 — Em experimentação (atual)
+  '14459': 'EM PILOTO',         // Board 2734 — EM PILOTO (atual)
+  '12847': 'EM PILOTO',         // Board 2734 — EM PILOTO (legado)
   '10504': 'EM ESCALA',
-  '10003': 'FINALIZADO',
+  '13562': 'EM ESCALA',         // Board 2734 — coluna "EM ESCALA" usa status "Finalizado" (13562)
+  '10019': 'FINALIZADO',        // Concluído (board 2734 Iniciativas e 2735 Epics)
   '10015': 'CANCELADO',
-  // Board 2707 (Experimentos/Epics) — status específicos
+  // Board 2735 (Experimentos/Epics) — status específicos
   '3': 'EM EXPERIMENTAÇÃO',     // "Em andamento"
   '10204': 'EM EXPERIMENTAÇÃO', // "EM VALIDAÇÃO"
+  '11201': 'EM EXPERIMENTAÇÃO', // "Em validação"
+  '10057': 'BACKLOG',           // "Backlog"
+  '14538': 'EM REFINAMENTO',    // "Em refinamento (migrated)"
 }
 
 // Aliases de sponsors — nomes parciais ou com typo mapeados para o nome canônico
@@ -80,7 +87,7 @@ function mapEpicToDetail(epic: JiraIssue, changelog?: ChangelogEntry[]): EpicDet
     )
     for (const entry of sorted) {
       for (const item of entry.items) {
-        if (item.field === 'status' && item.toString === '10003') {
+        if (item.field === 'status' && (item.toString === '10003' || item.toString === '10019')) {
           concluidoEm = entry.created
           break
         }
@@ -93,21 +100,21 @@ function mapEpicToDetail(epic: JiraIssue, changelog?: ChangelogEntry[]): EpicDet
     key: epic.key,
     nome: f.summary,
     status: f.status,
-    sponsor: f.customfield_11662 ? normalizeSponsor(f.customfield_11662) : null,
-    bo: f.customfield_11663 ?? null,
-    complexidade: f.customfield_11664 ?? null,
-    timeResponsavel: f.customfield_16911?.value ?? null,
-    beneficioQuantitativo: f.customfield_13242 ?? null,
-    beneficioQualitativo: f.customfield_13243 ?? null,
-    dominio: f.customfield_16400?.value ?? null,
-    custoEstimado: f.customfield_13571 ?? null,
-    custoRealizado: f.customfield_11668 ?? null,
-    segmento: f.customfield_11378?.value ?? null,
-    portfolio: f.customfield_15919?.value ?? null,
-    diretoria: f.customfield_10904 ?? null,
+    sponsor: f.customfield_30394 ? normalizeSponsor(f.customfield_30394) : null,
+    bo: f.customfield_30340 ?? null,
+    complexidade: f.customfield_30358 ?? null,
+    timeResponsavel: f.customfield_31438?.value ?? f.customfield_30357 ?? null,
+    beneficioQuantitativo: f.customfield_30216 ?? null,
+    beneficioQualitativo: f.customfield_30222 ?? null,
+    dominio: f.customfield_30021?.value ?? f.customfield_11987?.value ?? f.customfield_11991?.value ?? null,
+    custoEstimado: f.customfield_30402 ?? null,
+    custoRealizado: f.customfield_30453 ?? null,
+    segmento: f.customfield_30445?.value ?? null,
+    portfolio: f.customfield_30110?.value ?? null,
+    diretoria: f.customfield_21499 ?? null,
     metaCategoria: null,
     tipo: f.issuetype?.name ?? null,
-    mercado: getSegmento(f.customfield_11661),
+    mercado: getSegmento(f.customfield_30014),
     descricao: f.description ?? null,
     motivoBloqueio: f.customfield_13406?.value ?? null,
     statusDetalhado: f.lastComment ?? null,
@@ -177,19 +184,22 @@ export function buildDashboardData(
     epicsByParent.get(parentKey)!.push(epic)
   }
 
-  // 2.1 Propagar timeResponsavel da Iniciativa (pai) para os Epics filhos
-  const iniciativaTimeMap = new Map<string, string | null>()
+  // 2.1 Propagar timeResponsavel e dominio da Iniciativa (pai) para os Epics filhos
+  const iniciativaParentMap = new Map<string, JiraIssue>()
   for (const ini of iniciativasRaw) {
-    iniciativaTimeMap.set(ini.key, ini.fields.customfield_16911?.value ?? null)
+    iniciativaParentMap.set(ini.key, ini)
   }
   for (const [parentKey, epics] of epicsByParent) {
-    const timeResp = iniciativaTimeMap.get(parentKey)
-    if (timeResp) {
-      for (const epic of epics) {
-        const detail = epicDetailMap.get(epic.key)
-        if (detail && !detail.timeResponsavel) {
-          detail.timeResponsavel = timeResp
-        }
+    const parent = iniciativaParentMap.get(parentKey)
+    if (!parent) continue
+    const parentFields = parent.fields
+    const timeResp = parentFields.customfield_31438?.value ?? parentFields.customfield_30357 ?? null
+    const dominio = parentFields.customfield_30021?.value ?? parentFields.customfield_11987?.value ?? parentFields.customfield_11991?.value ?? null
+    for (const epic of epics) {
+      const detail = epicDetailMap.get(epic.key)
+      if (detail) {
+        if (!detail.timeResponsavel && timeResp) detail.timeResponsavel = timeResp
+        if (!detail.dominio && dominio) detail.dominio = dominio
       }
     }
   }
@@ -218,21 +228,21 @@ export function buildDashboardData(
       status: ini.fields.status,
       metaCategoria,
       epics: myEpics,
-      beneficioQuantitativo: ini.fields.customfield_13242 ?? null,
+      beneficioQuantitativo: ini.fields.customfield_30216 ?? null,
       beneficioQuantitativoTotal: myEpics.reduce(
         (s, e) => s + (e.beneficioQuantitativo ?? 0), 0
       ),
       dominios: Array.from(new Set(myEpics.map(e => e.dominio).filter(Boolean) as string[])),
       sponsors: Array.from(new Set(myEpics.map(e => e.sponsor).filter(Boolean) as string[])),
       segmentos: Array.from(new Set(myEpics.map(e => e.segmento).filter(Boolean) as string[])),
-      timeResponsavel: ini.fields.customfield_16911?.value ?? null,
-      sponsor: ini.fields.customfield_11662 ? normalizeSponsor(ini.fields.customfield_11662) : null,
+      timeResponsavel: ini.fields.customfield_31438?.value ?? ini.fields.customfield_30357 ?? null,
+      sponsor: ini.fields.customfield_30394 ? normalizeSponsor(ini.fields.customfield_30394) : null,
       criadoEm: ini.fields.created ?? null,
     }
   })
 
   // 3. Pipeline — contagem por coluna (Iniciativas)
-  // Extrai os status IDs de cada coluna do board 2706 a partir do boardConfig
+  // Extrai os status IDs de cada coluna do board 2734 a partir do boardConfig
   const colunaStatusIds = new Map<string, string[]>()
   const colunaNomeNormalizado = new Map<string, string>()
   if (boardConfig?.columnConfig?.columns) {
@@ -295,7 +305,7 @@ export function buildDashboardData(
 
   // 4. Métricas de Epics ativos
   const epicsAtivos = epicsRaw.filter(e =>
-    e.fields.status.id !== '10015' && e.fields.status.id !== '10003'
+    e.fields.status.id !== '10015' && e.fields.status.id !== '10019'
   )
   const allEpicDetails = Array.from(epicDetailMap.values())
 
@@ -312,7 +322,7 @@ export function buildDashboardData(
     return (b.beneficioQuantitativo ?? 0) - (a.beneficioQuantitativo ?? 0)
   })
 
-  // Benefício vem dos Epics (customfield_13242 preenchido no board 2707)
+  // Benefício vem dos Epics (customfield_30216 preenchido no board 2735)
   const epicsComBeneficio = allEpicDetails.filter(e => (e.beneficioQuantitativo ?? 0) > 0)
   const beneficioTotal = epicsComBeneficio.reduce((s, e) => s + (e.beneficioQuantitativo ?? 0), 0)
   const beneficioMedio = epicsComBeneficio.length ? beneficioTotal / epicsComBeneficio.length : 0
@@ -350,7 +360,7 @@ export function buildDashboardData(
   }).sort((a, b) => b.qtdExperimentos - a.qtdExperimentos)
 
   // 6. Portfólio por segmento de mercado (Consumo / Corporativo / PME/GE/GOV)
-  const dominioByKey = new Map(epicsRaw.map(e => [e.key, e.fields.customfield_11661 ?? null]))
+  const dominioByKey = new Map(epicsRaw.map(e => [e.key, e.fields.customfield_30014 ?? null]))
   const SEGMENTOS: SegmentoMercado[] = ['Consumo', 'Corporativo', 'PME/GE/GOV']
   const segMap = new Map<SegmentoMercado, EpicDetail[]>(SEGMENTOS.map(s => [s, []]))
   for (const e of allEpicDetails) {
@@ -622,7 +632,7 @@ function calculateLeadTimeJornada(
   }
 
   // ── Blocked Time: média de dias bloqueados dos experimentos concluídos ──
-  const CONCLUIDO_ID = '10003'
+  const CONCLUIDO_ID = '10019'
   const epicsConcluidos = epicsRaw.filter(e => e.fields.status.id === CONCLUIDO_ID)
   const blockedTotals: number[] = []
   const lifecycleTotals: number[] = []
@@ -706,7 +716,7 @@ function calculateLeadTimeJornada(
 }
 
 /**
- * Calcula o cycle time médio de experimentação (board 2707).
+ * Calcula o cycle time médio de experimentação (board 2735).
  * Para cada Epic, analisa o changelog e encontra períodos em que o status era
  * "Em andamento" (id=3) ou "EM VALIDAÇÃO" (id=10204).
  * Calcula a diferença entre a data de entrada e saída desse status.
@@ -716,7 +726,7 @@ function calculateCycleTimeExperimentacao(
   epicsRaw: JiraIssue[]
 ): number {
   const EXPERIMENTACAO_NAMES = new Set(['Em andamento', 'In Progress', 'EM VALIDAÇÃO'])
-  const CONCLUIDO_ID = '10003'
+  const CONCLUIDO_ID = '10019'
   const todosCycleTimes: number[] = []
 
   // Apenas Epics CONCLUÍDOS
@@ -772,7 +782,7 @@ function calculateCycleTimeExperimentacao(
 /**
  * Versão detalhada do cycle time de experimentação.
  * Retorna um CycleTimeEstagio[] com média, mediana e quantidade de Epics
- * que passaram pelo status "Em andamento" / "EM VALIDAÇÃO" (board 2707).
+ * que passaram pelo status "Em andamento" / "EM VALIDAÇÃO" (board 2735).
  * Considera APENAS Epics CONCLUÍDOS (status 10003).
  * Quebra por porte (complexidade): P (Baixa), M (Média), G (Alta).
  */
@@ -781,7 +791,7 @@ function calculateCycleTimeExperimentacaoDetalhado(
   epicsRaw: JiraIssue[]
 ): { ciclos: CycleTimeEstagio[]; diagnostico: CycleTimeDiagnostico } {
   const EXPERIMENTACAO_NAMES = new Set(['Em andamento', 'In Progress', 'EM VALIDAÇÃO'])
-  const CONCLUIDO_ID = '10003'
+  const CONCLUIDO_ID = '10019'
 
   // Mapeia complexidade → label de porte
   // O Jira retorna diretamente "P", "M", "G" (valores abreviados)
@@ -857,8 +867,8 @@ function calculateCycleTimeExperimentacaoDetalhado(
 
     if (epicCycleTime > 0) {
       // Determinar o porte pela complexidade do Epic
-      // customfield_11664 pode vir como string "Baixa" ou objeto {value: "Baixa"}
-      const raw = epic.fields.customfield_11664
+      // customfield_30358 (was 11664) pode vir como string "Baixa" ou objeto {value: "Baixa"}
+      const raw = epic.fields.customfield_30358
       const complexidadeRaw: string = (typeof raw === 'object' && raw !== null && 'value' in raw)
         ? (raw as { value: string }).value
         : (typeof raw === 'string' ? raw : 'Sem porte')
@@ -1087,7 +1097,7 @@ function calculateBlockedTime(
   epicChangelogs: Record<string, ChangelogEntry[]>,
   epicsRaw: JiraIssue[]
 ): number {
-  const STATUS_FINAIS = new Set(['10015', '10003'])
+  const STATUS_FINAIS = new Set(['10015', '10019', '13562'])
   const diasPorEpic: number[] = []
 
   for (const epic of epicsRaw) {
@@ -1132,7 +1142,7 @@ function calculateBlockedTimeExperimentacao(
 }
 
 /**
- * Calcula o cycle time por etapa do board de ideação (2706).
+ * Calcula o cycle time por etapa do board de ideação (2734).
  * Para cada Iniciativa, analisa o changelog e mede quanto tempo ficou em cada status.
  * Retorna um array ordenado pela ordem do pipeline.
  */
@@ -1163,9 +1173,9 @@ function calculateCycleTimeIdeacao(
     'Done': 'FINALIZADO',  // "Done" aparece em algumas transições como nome de status
   }
 
-  // Status ID 10504 = EM ESCALA (coluna "EM ESCALA" no board 2706, reusa nome "Finalizado")
+  // Status ID 10504 = EM ESCALA (coluna "EM ESCALA" no board 2734, reusa nome "Finalizado")
   const EM_ESCALA_STATUS_ID = '10504'
-  const FINALIZADO_STATUS_ID = '10003'
+  const FINALIZADO_STATUS_ID = '10019'
 
   /**
    * Resolve o estágio do pipeline a partir do nome do status e do contexto da iniciativa.
@@ -1384,7 +1394,7 @@ export function buildMonitoramentoData(data: DashboardData, periodo: PeriodoFilt
 
   // ── KPIs ──
   const experimentosConcluidos = epicsNoPeriodo.filter(e =>
-    e.status.id === '10003'
+    e.status.id === '10019'
   ).length
 
   const totalPipeline = Object.values(data.pipeline).reduce((s, v) => s + v, 0)
@@ -1407,7 +1417,7 @@ export function buildMonitoramentoData(data: DashboardData, periodo: PeriodoFilt
     const epicsNoMes = epicsNoPeriodo.filter(e => {
       if (!e.criadoEm) return false
       const d = new Date(e.criadoEm)
-      return d.getFullYear() === ano && d.getMonth() === mesIdx && e.status.id === '10003'
+      return d.getFullYear() === ano && d.getMonth() === mesIdx && e.status.id === '10019'
     })
     acumulado += epicsNoMes.length
     realizado.push({ mes, ano, valor: acumulado })
@@ -1444,7 +1454,7 @@ export function buildMonitoramentoData(data: DashboardData, periodo: PeriodoFilt
       const dataRef = e.concluidoEm ?? e.criadoEm
       if (!dataRef) return false
       const d = new Date(dataRef)
-      return d.getFullYear() === ano && d.getMonth() === mesIdx && e.status.id === '10003'
+      return d.getFullYear() === ano && d.getMonth() === mesIdx && e.status.id === '10019'
     })
     return {
       mes: periodo.tipo === 'tudo' ? `${mes}/${String(ano).slice(2)}` : mes,

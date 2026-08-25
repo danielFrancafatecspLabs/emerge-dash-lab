@@ -13,11 +13,7 @@ export default function Top5Experimentos({ data }: Props) {
 
   return (
     <>
-      <div className="bg-white rounded-lg p-3 md:p-4 border border-gray-200 h-full flex flex-col min-w-0 overflow-hidden">
-        <p className="text-xs font-semibold text-gray-500 uppercase tracking-widest mb-3 flex-shrink-0">
-          Top 5 Experimentos por Valor Potencial
-        </p>
-        <div className="flex-1 overflow-auto min-h-0">
+      <div className="overflow-auto min-h-0">
         <table className="w-full" style={{ fontSize: 11 }}>
           <thead>
             <tr className="border-b border-gray-200">
@@ -69,7 +65,6 @@ export default function Top5Experimentos({ data }: Props) {
             )}
           </tbody>
         </table>
-        </div>
       </div>
 
       {selected && (

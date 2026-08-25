@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { JiraIssue } from '@/lib/types'
+import { EXPERIMENTACAO_BOARD_ID } from '@/lib/jira'
 
 const BASE_URL = process.env.JIRA_BASE_URL
 const EMAIL = process.env.JIRA_EMAIL
@@ -16,16 +17,17 @@ function getHeaders(): HeadersInit {
 
 const FIELDS = [
   'summary', 'status', 'issuetype', 'parent', 'priority', 'created',
-  'customfield_11664',  // Complexidade
-  'customfield_13242',  // Benefício Quantitativo (R$)
-  'customfield_13243',  // Benefício Qualitativo
-  'customfield_11662',  // Sponsor
-  'customfield_11663',  // BO
-  'customfield_11665',  // Time Responsável (próprio épico)
-  'customfield_16911',  // Time Responsável (Lab) — campo da iniciativa (pai)
-  'customfield_16400',  // Domínio
-  'customfield_11378',  // Segmento
-  'customfield_15919',  // Portfólio
+  'customfield_30216',  // Benefício Quantitativo (R$) (was customfield_13242)
+  'customfield_30222',  // Benefício Qualitativo (was customfield_13243)
+  'customfield_30358',  // Complexidade (was customfield_11664)
+  'customfield_30394',  // Sponsor (was customfield_11662)
+  'customfield_30340',  // BO (was customfield_11663)
+  'customfield_30357',  // Time Responsável (Lab) — campo da iniciativa (pai) e do próprio épico (was customfield_16911 / customfield_11665)
+  'customfield_31438',  // Lab Responsável (option select, NOVO)
+  'customfield_11987',  // Domínio (was customfield_16400)
+  'customfield_30021',  // Domínio (option select) — NOVO
+  'customfield_30445',  // Segmento (was customfield_11378)
+  'customfield_30110',  // Portfólio (was customfield_15919)
   'customfield_13406',  // Motivo de Bloqueio
 ].join(',')
 
@@ -68,15 +70,15 @@ function mapToPriorizacao(issue: JiraIssue): ExperimentoPriorizacao {
     statusNome: f.status.name,
     parentKey: f.parent?.key ?? null,
     parentNome: f.parent?.fields?.summary ?? null,
-    complexidade: f.customfield_11664 ?? null,
-    beneficioQuantitativo: f.customfield_13242 ?? null,
-    beneficioQualitativo: f.customfield_13243 ?? null,
-    sponsor: f.customfield_11662 ?? null,
-    bo: f.customfield_11663 ?? null,
-    timeResponsavel: f.parent?.fields?.customfield_16911?.value ?? f.customfield_11665 ?? null,
-    dominio: f.customfield_16400?.value ?? null,
-    segmento: f.customfield_11378?.value ?? null,
-    portfolio: f.customfield_15919?.value ?? null,
+    complexidade: f.customfield_30358 ?? null,
+    beneficioQuantitativo: f.customfield_30216 ?? null,
+    beneficioQualitativo: f.customfield_30222 ?? null,
+    sponsor: f.customfield_30394 ?? null,
+    bo: f.customfield_30340 ?? null,
+    timeResponsavel: f.parent?.fields?.customfield_31438?.value ?? f.parent?.fields?.customfield_30357 ?? f.customfield_31438?.value ?? f.customfield_30357 ?? null,
+    dominio: f.customfield_30021?.value ?? f.customfield_11987?.value ?? null,
+    segmento: f.customfield_30445?.value ?? null,
+    portfolio: f.customfield_30110?.value ?? null,
     motivoBloqueio: f.customfield_13406?.value ?? null,
     prioridade: f.priority?.name ?? null,
     criadoEm: f.created ?? null,
@@ -90,14 +92,14 @@ export async function GET() {
   try {
     if (!BASE_URL) throw new Error('JIRA_BASE_URL é obrigatório')
 
-    // Buscar todos os Epics do board 2707
+    // Buscar todos os Epics do board 2735
     const allIssues: JiraIssue[] = []
     const maxResults = 50
     let startAt = 0
     let total = Infinity
 
     while (startAt < total) {
-      const url = `${BASE_URL}/rest/agile/1.0/board/2707/issue?maxResults=${maxResults}&startAt=${startAt}&fields=${FIELDS}`
+      const url = `${BASE_URL}/rest/agile/1.0/board/${EXPERIMENTACAO_BOARD_ID}/issue?maxResults=${maxResults}&startAt=${startAt}&fields=${FIELDS}`
       const res = await fetch(url, { headers: getHeaders(), next: { revalidate: 300 } })
       if (!res.ok) throw new Error(`Jira API erro ${res.status}`)
       const data = await res.json()

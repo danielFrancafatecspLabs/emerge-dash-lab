@@ -23,9 +23,9 @@ const META_COLORS: Record<string, { bg: string; bar: string; text: string; glow:
 export default function ResumoExecutivo({ data }: Props) {
   const [modal, setModal] = useState<{ title: string; items: Iniciativa[] } | null>(null)
 
-  // ── Pipeline stats (base: experimentos do board 2707, mesma lógica do funil) ──
+  // ── Pipeline stats (base: experimentos do board 2735, mesma lógica do funil) ──
   const totalExperimentos = data.allEpics.filter(e => e.status?.id !== '10015').length
-  const concluidos = data.allEpics.filter(e => e.status?.id === '10003').length
+  const concluidos = data.allEpics.filter(e => e.status?.id === '10019').length
   const emPilotoEscala = data.pipeline['EM PILOTO'] + data.pipeline['EM ESCALA']
   const emEscala = data.pipeline['EM ESCALA']
 
@@ -39,33 +39,9 @@ export default function ResumoExecutivo({ data }: Props) {
 
   return (
     <>
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-        {/* ── Cabeçalho ── */}
-        <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-gray-50 to-white">
-          <div className="flex items-center gap-2.5">
-            <div className="flex -space-x-1">
-              <div className="w-2 h-5 rounded-full bg-red-500" />
-              <div className="w-2 h-5 rounded-full bg-blue-500" />
-              <div className="w-2 h-5 rounded-full bg-pink-500" />
-            </div>
-            <div>
-              <h2 className="text-sm font-bold text-gray-900">Resumo Executivo</h2>
-              <p className="text-xs text-gray-400">
-                Metas estratégicas & pipeline • {data.iniciativas.length} iniciativas (board 2706)
-              </p>
-            </div>
-          </div>
-          <button
-            onClick={() => setModal({ title: 'Todas as Iniciativas', items: data.iniciativas })}
-            className="flex items-center gap-1 text-xs font-semibold text-gray-500 hover:text-gray-800 transition-colors px-2.5 py-1.5 rounded-lg hover:bg-gray-100"
-          >
-            <Eye size={13} />
-            Ver todas
-          </button>
-        </div>
-
+      <div className="flex flex-col gap-3">
         {/* ── Grid principal: 2 colunas ── */}
-        <div className="p-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
 
           {/* ═══ COLUNA 1: METAS ESTRATÉGICAS ═══ */}
           <div className="flex flex-col gap-2">

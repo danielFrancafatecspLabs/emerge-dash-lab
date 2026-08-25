@@ -9,20 +9,20 @@ export const maxDuration = 60 // 60 segundos para acomodar fetch de changelogs
 
 export async function GET() {
   try {
-    const { iniciativas, epics, board2706Config, epicChangelogs, iniciativaChangelogs } = await fetchDashboardRaw()
+    const { iniciativas, epics, board2734Config, epicChangelogs, iniciativaChangelogs } = await fetchDashboardRaw()
 
-    // Inputs para classificação de portfólio (usa customfield_16400 — Domínio estruturado)
+    // Inputs para classificação de portfólio (usa customfield_11987 — Domínio estruturado) (was customfield_16400)
     const epicInputs = epics.map(e => ({
       key: e.key,
       summary: e.fields.summary,
-      dominio: e.fields.customfield_16400?.value ?? null,
+      dominio: e.fields.customfield_11987?.value ?? null,
     }))
 
-    // Inputs para classificação de segmento (usa customfield_11661 — Domínio string: Empresarial/PME/outros)
+    // Inputs para classificação de segmento (usa customfield_30014 — Domínio string: Empresarial/PME/outros, was customfield_11661)
     const segmentoInputs = epics.map(e => ({
       key: e.key,
       summary: e.fields.summary,
-      dominio: e.fields.customfield_11661 ?? null,
+      dominio: e.fields.customfield_30014 ?? null,
     }))
 
     const [portfolioClassification, segmentoClassification] = await Promise.all([
@@ -32,7 +32,7 @@ export async function GET() {
 
     const data = buildDashboardData(
       iniciativas, epics, portfolioClassification, segmentoClassification,
-      board2706Config, epicChangelogs, iniciativaChangelogs
+      board2734Config, epicChangelogs, iniciativaChangelogs
     )
     return NextResponse.json(data)
   } catch (err) {

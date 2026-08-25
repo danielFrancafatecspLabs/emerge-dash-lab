@@ -16,7 +16,7 @@ export default function LeadTimeJornadaComponent({ data, cycleTimeExperimentacao
 
   if (totalDias <= 0 || fasesVisiveis.length === 0) {
     return (
-      <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5 flex items-center justify-center h-full">
+      <div className="flex items-center justify-center h-full">
         <div className="text-center text-gray-400">
           <p className="text-sm font-medium">Jornada de Adoção</p>
           <p className="text-xs mt-1">Dados insuficientes</p>
@@ -26,21 +26,9 @@ export default function LeadTimeJornadaComponent({ data, cycleTimeExperimentacao
   }
 
   return (
-    <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-3 md:p-5 flex flex-col min-w-0 overflow-hidden" style={{ fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif" }}>
-      {/* ── Header do card (padrão) ── */}
-      <div className="flex items-center justify-between mb-3 flex-shrink-0">
-        <div className="flex items-center gap-2 min-w-0">
-          <div className="w-1 h-5 rounded-full bg-red-500 flex-shrink-0" />
-          <h3 className="text-sm font-bold text-gray-800 truncate">Jornada de Adoção</h3>
-        </div>
-        <div className="flex items-center gap-2 text-xs text-gray-400 flex-shrink-0 ml-2">
-          <Clock size={14} />
-          <span>Lead Time: <strong className="text-gray-700">{totalDias}d</strong></span>
-        </div>
-      </div>
-
+    <div className="flex flex-col min-w-0 overflow-hidden gap-3">
       {/* ── Timeline compacta ── */}
-      <div className="mb-3 flex-shrink-0">
+      <div className="flex-shrink-0">
         {/* Blocos da timeline */}
         <div className="flex rounded-full overflow-hidden" style={{ height: 22 }}>
           {fasesVisiveis.map((fase, i) => {
@@ -92,7 +80,7 @@ export default function LeadTimeJornadaComponent({ data, cycleTimeExperimentacao
       </div>
 
       {/* ── Grid inferior: 3 colunas ── */}
-      <div className="grid gap-2 mb-2 grid-cols-1 sm:grid-cols-3 min-w-0">
+      <div className="grid gap-2 grid-cols-1 sm:grid-cols-3 min-w-0">
         {/* Cycle Time por Complexidade */}
         <div className="rounded-lg p-2.5" style={{ background: '#FFFBEB', border: '1px solid #FDE68A' }}>
           <div className="flex items-center gap-1 mb-1.5">
