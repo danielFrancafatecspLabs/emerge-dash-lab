@@ -24,86 +24,57 @@ export default function FunilExperimentos({ data }: Props) {
   const pilotos = data.pipeline['EM PILOTO']
   const escala = data.pipeline['EM ESCALA']
 
-  // ── Conversão entre etapas (taxa de avanço) ──
-  const taxaCancelamento = totalExperimentos > 0
-    ? Math.round((cancelados / totalExperimentos) * 100)
-    : 0
-  const taxaAndamento = totalExperimentos > 0
-    ? Math.round((emAndamento / totalExperimentos) * 100)
-    : 0
-  const taxaValidacao = emAndamento > 0
-    ? Math.round((emValidacao / emAndamento) * 100)
-    : 0
-  const taxaConclusao = emValidacao > 0
-    ? Math.round((concluidos / emValidacao) * 100)
-    : 0
-  const taxaPiloto = concluidos > 0
-    ? Math.round((pilotos / concluidos) * 100)
-    : 0
-  const taxaEscala = pilotos > 0
-    ? Math.round((escala / pilotos) * 100)
-    : 0
+  // ── % sobre o total de experimentos (mesma base para todas as camadas) ──
+  // Nota: Pilotos/Escala vêm do board de Iniciativas (2734), não do de Experimentos
+  // (2735) — por isso são apresentados como % do total de experimentos, e não como
+  // conversão sequencial entre etapas (que misturaria duas populações diferentes).
+  const pct = (v: number) => totalExperimentos > 0 ? Math.round((v / totalExperimentos) * 100) : 0
 
   const camadas = [
     { label: 'Total de Experimentos', valor: totalExperimentos, pct: 100, cor: '#3B82F6' },
-    { label: 'Cancelados', valor: cancelados, pct: taxaCancelamento, cor: '#EF4444' },
-    { label: 'Em Andamento', valor: emAndamento, pct: taxaAndamento, cor: '#F59E0B' },
-    { label: 'Em Validação', valor: emValidacao, pct: taxaValidacao, cor: '#8B5CF6' },
-    { label: 'Concluídos', valor: concluidos, pct: taxaConclusao, cor: '#6B7280' },
-    { label: 'Pilotos', valor: pilotos, pct: taxaPiloto, cor: '#16A34A' },
-    { label: 'Escala', valor: escala, pct: taxaEscala, cor: '#22C55E' },
+    { label: 'Cancelados', valor: cancelados, pct: pct(cancelados), cor: '#EF4444' },
+    { label: 'Em Andamento', valor: emAndamento, pct: pct(emAndamento), cor: '#F59E0B' },
+    { label: 'Em Validação', valor: emValidacao, pct: pct(emValidacao), cor: '#8B5CF6' },
+    { label: 'Concluídos', valor: concluidos, pct: pct(concluidos), cor: '#6B7280' },
+    { label: 'Pilotos', valor: pilotos, pct: pct(pilotos), cor: '#16A34A', nota: 'iniciativas' },
+    { label: 'Escala', valor: escala, pct: pct(escala), cor: '#22C55E', nota: 'iniciativas' },
   ]
 
   const maxValor = Math.max(...camadas.map(c => c.valor), 1)
 
   return (
-    <div className="flex flex-col gap-2.5 min-w-0">
+    <div className="flex flex-col gap-2 min-w-0">
       {camadas.map((camada, i) => {
         const largura = maxValor > 0 ? (camada.valor / maxValor) * 100 : 0
 
         return (
-          <div key={camada.label} className="flex flex-col items-center">
-            {/* Barra horizontal */}
-            <div className="w-full flex items-center gap-2">
-              <span
-                className="text-[11px] font-medium text-gray-600 w-28 md:w-32 text-right flex-shrink-0 leading-tight"
+          <div key={camada.label} className="w-full flex items-center gap-2">
+            <span className="text-[11px] font-medium text-gray-600 w-28 md:w-32 text-right flex-shrink-0 leading-tight">
+              {camada.label}
+              {camada.nota && <span className="block text-gray-300" style={{ fontSize: 9 }}>({camada.nota})</span>}
+            </span>
+            <div className="flex-1 relative h-6 min-w-0">
+              <div
+                className="absolute top-0 left-1/2 -translate-x-1/2 h-full rounded-md transition-all duration-500 flex items-center justify-center min-w-[30px]"
+                style={{
+                  width: `${Math.max(largura, 6)}%`,
+                  maxWidth: '100%',
+                  background: camada.cor,
+                  opacity: i === 0 ? 1 : 0.85,
+                }}
               >
-                {camada.label}
-              </span>
-              <div className="flex-1 relative h-7 min-w-0">
-                <div
-                  className="absolute top-0 left-1/2 -translate-x-1/2 h-full rounded-md transition-all duration-500 flex items-center justify-center min-w-[36px]"
-                  style={{
-                    width: `${Math.max(largura, 8)}%`,
-                    maxWidth: '100%',
-                    background: camada.cor,
-                    opacity: 0.85,
-                  }}
-                >
-                  <span className="text-white font-bold text-xs drop-shadow-sm whitespace-nowrap">
-                    {camada.valor}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Seta de conversão entre camadas */}
-            {i < camadas.length - 1 && (
-              <div className="flex items-center gap-1 py-0.5">
-                <svg width="10" height="10" viewBox="0 0 12 12" className="text-gray-400">
-                  <path d="M6 1 L6 9 M3 7 L6 10 L9 7" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-                <span className="text-[10px] text-gray-400 font-medium">
-                  {camada.valor > 0
-                    ? `${camadas[i + 1].pct}% → ${camadas[i + 1].label}`
-                    : '—'
-                  }
+                <span className="text-white font-bold text-xs drop-shadow-sm whitespace-nowrap">
+                  {camada.valor}
                 </span>
               </div>
-            )}
+            </div>
+            <span className="text-[10px] font-semibold text-gray-400 w-9 text-right flex-shrink-0 tabular-nums">
+              {i === 0 ? '' : `${camada.pct}%`}
+            </span>
           </div>
         )
       })}
+      <p className="text-gray-300 mt-1" style={{ fontSize: 9 }}>% em relação ao total de experimentos no período</p>
     </div>
   )
 }
