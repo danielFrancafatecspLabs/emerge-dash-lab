@@ -45,3 +45,6 @@ build/
 test_azure.js
 test_azure2.js
 public/comunidade/
+
+# Temporary debug files
+.tmp/
