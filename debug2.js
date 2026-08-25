@@ -1,4 +1,4 @@
-// Script para inspecionar customfield_11664
+// Script para inspecionar customfield_30358 (was customfield_11664)
 const https = require('https');
 
 const BASE_URL = 'clarobr-jsw-tecnologia.atlassian.net';
@@ -29,14 +29,14 @@ function jiraGet(path) {
 }
 
 async function main() {
-  const fields = 'summary,status,customfield_11664';
+  const fields = 'summary,status,customfield_30358';
   const url = `/rest/agile/1.0/board/2707/issue?fields=${fields}&maxResults=5&startAt=0`;
   const data = await jiraGet(url);
   if (!data) { console.log('FAILED'); return; }
   
   const result = {};
   for (const issue of data.issues) {
-    const raw = issue.fields.customfield_11664;
+    const raw = issue.fields.customfield_30358;
     const tipo = typeof raw;
     const key = tipo === 'object' ? `[obj] ${JSON.stringify(raw)}` : `[${tipo}] ${raw}`;
     result[issue.key] = key;

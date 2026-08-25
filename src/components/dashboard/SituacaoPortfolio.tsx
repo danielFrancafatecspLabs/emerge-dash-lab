@@ -21,7 +21,7 @@ const NAME_TO_KEY: Record<string, keyof PipelineCount> = {
   'PRONTO PARA EXECUÇÃO': 'PRONTO PARA EXECUÇÃO',
 }
 
-// Retorna os Epics filtrados pelo estágio de pipeline (board 2707)
+// Retorna os Epics filtrados pelo estágio de pipeline (board 2735)
 function getEpicsForStage(data: DashboardData, stage: string): EpicDetail[] {
   // Mapeia o nome de exibição de volta para a chave do pipeline
   const DISPLAY_TO_KEY: Record<string, string> = {

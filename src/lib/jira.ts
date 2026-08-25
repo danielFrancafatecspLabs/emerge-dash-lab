@@ -1,29 +1,40 @@
 import { JiraIssue, JiraBoardConfiguration } from './types'
 
+// Board IDs (use env vars if present, otherwise fall back to the correct defaults)
+export const IDEACAO_BOARD_ID = Number(process.env.JIRA_BOARD_IDEACAO_ID ?? 2734)
+export const EXPERIMENTACAO_BOARD_ID = Number(process.env.JIRA_BOARD_INICIATIVAS_ID ?? 2735)
+
 const FIELDS_INICIATIVA = [
   'summary', 'status', 'issuetype', 'created', 'updated',
-  'customfield_13242', // Benefício Quantitativo (R$) — campo preenchido na Iniciativa
-  'customfield_11662', // Sponsor
-  'customfield_16911', // Time Responsável (Lab)
-  'customfield_11661', // Domínio
+  'customfield_30216', // Benefício Quantitativo (R$) (was customfield_13242)
+  'customfield_30394', // Sponsor (was customfield_11662)
+  'customfield_30357', // Time Responsável (Lab) (was customfield_16911)
+  'customfield_31438', // Lab Responsável (option select, NOVO)
+  'customfield_11987', // Domínio (was customfield_16400)
+  'customfield_11991', // PROP DOMINIO 01
+  'customfield_30014', // Domínio (was customfield_11661)
+  'customfield_30021', // Domínio (option select) — NOVO
 ].join(',')
 
 const FIELDS_EPIC = [
   'summary', 'status', 'issuetype', 'parent', 'description', 'priority', 'created',
-  'customfield_11661', // Domínio (Empresarial / PME / outros)
+  'customfield_30014', // Domínio (Empresarial / PME / outros) (was customfield_11661)
   'customfield_13406', // Motivo de Bloqueio
-  'customfield_11662', // Sponsor
-  'customfield_11663', // BO
-  'customfield_11664', // Complexidade
-  'customfield_16911', // Time Responsável (Lab)
-  'customfield_13242', // Benefício Quantitativo
-  'customfield_13243', // Benefício Qualitativo
-  'customfield_16400', // Domínio
-  'customfield_13571', // Custo Estimado
-  'customfield_11668', // Custo Realizado
-  'customfield_11378', // Segmento
-  'customfield_15919', // Portfólio
-  'customfield_10904', // Diretoria
+  'customfield_30394', // Sponsor (was customfield_11662)
+  'customfield_30340', // BO (was customfield_11663)
+  'customfield_30358', // Complexidade (was customfield_11664)
+  'customfield_30357', // Time Responsável (Lab) (was customfield_16911)
+  'customfield_31438', // Lab Responsável (option select, NOVO)
+  'customfield_30216', // Benefício Quantitativo (was customfield_13242)
+  'customfield_30222', // Benefício Qualitativo (was customfield_13243)
+  'customfield_11987', // Domínio (was customfield_16400)
+  'customfield_11991', // PROP DOMINIO 01
+  'customfield_30021', // Domínio (option select) — NOVO
+  'customfield_30402', // Custo Estimado (was customfield_13571)
+  'customfield_30453', // Custo Realizado (was customfield_11668)
+  'customfield_30445', // Segmento (was customfield_11378)
+  'customfield_30110', // Portfólio (was customfield_15919)
+  'customfield_21499', // Diretoria (was customfield_10904)
   'attachment',          // Anexos
 ].join(',')
 
@@ -94,14 +105,14 @@ async function getAllBoardIssues(boardId: number, fields: string): Promise<JiraI
 export async function fetchDashboardRaw(): Promise<{
   iniciativas: JiraIssue[]
   epics: JiraIssue[]
-  board2706Config: JiraBoardConfiguration
+  board2734Config: JiraBoardConfiguration
   epicChangelogs: Record<string, ChangelogEntry[]>
   iniciativaChangelogs: Record<string, ChangelogEntry[]>
 }> {
-  const [iniciativas, epics, board2706Config] = await Promise.all([
-    getAllBoardIssues(2706, FIELDS_INICIATIVA),
-    getAllBoardIssues(2707, FIELDS_EPIC),
-    getBoardConfiguration(2706),
+  const [iniciativas, epics, board2734Config] = await Promise.all([
+    getAllBoardIssues(IDEACAO_BOARD_ID, FIELDS_INICIATIVA),
+    getAllBoardIssues(EXPERIMENTACAO_BOARD_ID, FIELDS_EPIC),
+    getBoardConfiguration(IDEACAO_BOARD_ID),
   ])
 
   // Buscar último comentário (texto plano) apenas para Epics em andamento (status.id === '3')
@@ -153,8 +164,8 @@ export async function fetchDashboardRaw(): Promise<{
     epicsWithComments.push(copy)
   }
 
-  // Buscar changelogs para TODOS os Epics (board 2707) — necessário para calcular cycle time de experimentação
-  // e para TODAS as Iniciativas (board 2706) — necessário para cycle time por etapa.
+  // Buscar changelogs para TODOS os Epics (board 2735) — necessário para calcular cycle time de experimentação
+  // e para TODAS as Iniciativas (board 2734) — necessário para cycle time por etapa.
   // Rodamos ambos em paralelo com timeout individual de 8s por chamada.
   const BATCH_SIZE = 8
   const CHANGELOG_TIMEOUT_MS = 8000
@@ -180,7 +191,7 @@ export async function fetchDashboardRaw(): Promise<{
     fetchChangelogsBatch(iniciativas),
   ])
 
-  return { iniciativas, epics: epicsWithComments, board2706Config, epicChangelogs, iniciativaChangelogs }
+  return { iniciativas, epics: epicsWithComments, board2734Config, epicChangelogs, iniciativaChangelogs }
 }
 
 export interface ChangelogEntry {

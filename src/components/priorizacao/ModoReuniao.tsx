@@ -225,8 +225,8 @@ export default function ModoReuniao({ experimentos, votos, onVotar, onVoltar }: 
               <div className="flex items-start gap-2 text-sm text-yellow-700">
                 <span>⚠️</span>
                 <div>
-                  {!temBeneficio && <p>Benefício Quantitativo não preenchido (customfield_13242)</p>}
-                  {!temComplexidade && <p>Complexidade não preenchida (customfield_11664)</p>}
+                  {!temBeneficio && <p>Benefício Quantitativo não preenchido (customfield_30216)</p>}
+                  {!temComplexidade && <p>Complexidade não preenchida (customfield_30358)</p>}
                 </div>
               </div>
             </div>

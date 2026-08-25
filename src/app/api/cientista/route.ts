@@ -8,18 +8,18 @@ export const dynamic = 'force-dynamic'
 
 export async function GET() {
   try {
-    const { iniciativas, epics, board2706Config, epicChangelogs, iniciativaChangelogs } = await fetchDashboardRaw()
+    const { iniciativas, epics, board2734Config, epicChangelogs, iniciativaChangelogs } = await fetchDashboardRaw()
 
     const epicInputs = epics.map(e => ({
       key: e.key,
       summary: e.fields.summary,
-      dominio: e.fields.customfield_16400?.value ?? null,
+      dominio: e.fields.customfield_11987?.value ?? null,
     }))
 
     const segmentoInputs = epics.map(e => ({
       key: e.key,
       summary: e.fields.summary,
-      dominio: e.fields.customfield_11661 ?? null,
+      dominio: e.fields.customfield_30014 ?? null,
     }))
 
     const [portfolioClassification, segmentoClassification] = await Promise.all([
@@ -29,7 +29,7 @@ export async function GET() {
 
     const data = buildDashboardData(
       iniciativas, epics, portfolioClassification, segmentoClassification,
-      board2706Config, epicChangelogs, iniciativaChangelogs
+      board2734Config, epicChangelogs, iniciativaChangelogs
     )
     return NextResponse.json(data)
   } catch (err) {

@@ -1,4 +1,4 @@
-// Script temporário para inspecionar customfield_11664
+// Script temporário para inspecionar customfield_30358 (was customfield_11664)
 const https = require('https');
 
 const BASE_URL = 'clarobr-jsw-tecnologia.atlassian.net';
@@ -30,7 +30,7 @@ function jiraGet(path) {
 
 async function main() {
   // Buscar Epics concluídos (status=10003) do board 2707
-  const fields = 'summary,status,customfield_11664';
+  const fields = 'summary,status,customfield_30358';
   let allIssues = [];
   let startAt = 0;
   const maxResults = 50;
@@ -51,10 +51,10 @@ async function main() {
   const concluidos = allIssues.filter(i => i.fields.status.id === '10003');
   console.error(`Concluídos: ${concluidos.length}`);
   
-  // Agrupar por valor de customfield_11664
+  // Agrupar por valor de customfield_30358
   const grupos = {};
   for (const issue of concluidos) {
-    const raw = issue.fields.customfield_11664;
+    const raw = issue.fields.customfield_30358;
     const tipo = typeof raw;
     const key = tipo === 'object' ? `[obj] ${JSON.stringify(raw)}` : `[${tipo}] ${raw}`;
     if (!grupos[key]) grupos[key] = [];
