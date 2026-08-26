@@ -260,7 +260,7 @@ export default function ReportContent({
       <div>
         <div className="flex items-center gap-2 mb-2">
           <span className="text-xs font-semibold text-gray-400 uppercase tracking-widest">
-            Slides para Apresentação — Iniciativas Gerais
+            Slides para Apresentação — Todos os Experimentos Ativos
           </span>
           <span className="bg-red-100 text-red-700 text-xs font-bold px-2 py-0.5 rounded-full">
             {iniciativasSlides.length}
