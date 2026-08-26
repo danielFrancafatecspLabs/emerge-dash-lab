@@ -3,68 +3,61 @@
 import { useState } from 'react'
 import { DashboardData, EpicDetail } from '@/lib/types'
 import { formatBRL } from '@/lib/mappers'
-import { List } from 'lucide-react'
 import EpicModal from './EpicModal'
 
 interface Props { data: DashboardData }
 
 export default function Top5Experimentos({ data }: Props) {
   const [selected, setSelected] = useState<EpicDetail | null>(null)
+  const top5 = data.top5Epics
+  const maxValor = Math.max(...top5.map(e => e.beneficioQuantitativo ?? 0), 1)
+
+  if (top5.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-full py-6 text-center text-gray-400" style={{ fontSize: 11 }}>
+        Nenhum experimento com valor potencial informado
+      </div>
+    )
+  }
 
   return (
     <>
-      <div className="overflow-auto min-h-0">
-        <table className="w-full" style={{ fontSize: 11 }}>
-          <thead>
-            <tr className="border-b border-gray-200">
-              {['Experimento', 'Lab Responsável', 'Domínio', 'Valor Potencial', ''].map(h => (
-                <th key={h} className="text-left pb-2 text-gray-500 font-semibold pr-1 md:pr-2 whitespace-nowrap" style={{ fontSize: 10 }}>
-                  {h.toUpperCase()}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {data.top5Epics.map((e, i) => (
-              <tr key={e.key} className="border-b border-gray-100 hover:bg-gray-50">
-                <td className="py-1.5 pr-1 md:pr-2">
-                  <div className="flex items-center gap-1.5 min-w-0">
-                    <span
-                      className="rounded-full text-white flex items-center justify-center font-bold flex-shrink-0"
-                      style={{ width: 20, height: 20, fontSize: 10, background: '#CC0000' }}
-                    >
-                      {i + 1}
-                    </span>
-                    <span className="font-medium text-gray-800 truncate max-w-[100px] md:max-w-[160px]">
-                      {e.nome}
-                    </span>
-                  </div>
-                </td>
-                <td className="py-1.5 pr-1 md:pr-2 text-gray-600 truncate max-w-[80px] md:max-w-[120px]">{e.timeResponsavel ?? '—'}</td>
-                <td className="py-1.5 pr-1 md:pr-2 text-gray-600 truncate max-w-[70px] md:max-w-[100px]">{e.dominio ?? '—'}</td>
-                <td className="py-1.5 font-semibold whitespace-nowrap" style={{ color: '#CC0000' }}>
-                  {e.beneficioQuantitativo ? formatBRL(e.beneficioQuantitativo) : '—'}
-                </td>
-                <td className="py-1.5 pl-1">
-                  <button
-                    onClick={() => setSelected(e)}
-                    className="rounded p-1 hover:bg-gray-100 transition-colors text-gray-400 hover:text-gray-600"
-                    title="Ver detalhe"
-                  >
-                    <List size={12} />
-                  </button>
-                </td>
-              </tr>
-            ))}
-            {data.top5Epics.length === 0 && (
-              <tr>
-                <td colSpan={5} className="py-4 text-center text-gray-400 text-xs">
-                  Nenhum experimento com valor potencial informado
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+      <div className="flex flex-col gap-1.5">
+        {top5.map((e, i) => {
+          const barPct = Math.round(((e.beneficioQuantitativo ?? 0) / maxValor) * 100)
+          return (
+            <div
+              key={e.key}
+              onClick={() => setSelected(e)}
+              className="flex items-start gap-2 rounded-lg px-2 py-1.5 -mx-2 cursor-pointer hover:bg-gray-50 transition-colors"
+              title="Ver detalhe"
+            >
+              <span
+                className="rounded-full text-white flex items-center justify-center font-bold flex-shrink-0"
+                style={{ width: 18, height: 18, fontSize: 9, background: '#CC0000', marginTop: 1 }}
+              >
+                {i + 1}
+              </span>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-semibold text-gray-800 truncate" style={{ fontSize: 11.5 }}>{e.nome}</span>
+                  <span className="font-bold flex-shrink-0" style={{ fontSize: 11.5, color: '#CC0000' }}>
+                    {e.beneficioQuantitativo ? formatBRL(e.beneficioQuantitativo) : '—'}
+                  </span>
+                </div>
+                <div className="h-1 bg-gray-100 rounded-full overflow-hidden mt-1">
+                  <div
+                    className="h-full rounded-full transition-all duration-700"
+                    style={{ width: `${Math.max(barPct, 3)}%`, background: 'linear-gradient(90deg, #CC0000, #EF4444)' }}
+                  />
+                </div>
+                <p className="text-gray-400 truncate mt-1" style={{ fontSize: 10 }}>
+                  {e.timeResponsavel ?? '—'} · {e.dominio ?? '—'}
+                </p>
+              </div>
+            </div>
+          )
+        })}
       </div>
 
       {selected && (
