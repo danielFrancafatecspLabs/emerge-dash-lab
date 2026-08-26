@@ -8,6 +8,7 @@ import LogoutButton from '@/components/layout/LogoutButton'
 import GenerateImageButton from '@/components/report/GenerateImageButton'
 import ReportContent from '@/components/report/ReportContent'
 import type { IniciativaSlideRow } from '@/components/report/IniciativasSlides'
+import type { IniciativaCandidataRow } from '@/components/report/IniciativasCandidatasSlides'
 
 export const dynamic = 'force-dynamic'
 
@@ -185,6 +186,30 @@ export default async function ReportPage() {
       labResponsavel: labResponsavelPorEpic.get(e.key) ?? '—',
     }))
 
+  // ── Slides "Iniciativas Concluídas / Candidatas a Delivery" ──
+  // Base: Iniciativas (board 2734) na coluna "Aguardando Piloto". Não existe campo
+  // estruturado de "Situação Atual" / "Próximos Passos" nesse board, então esses
+  // valores partem de uma inferência a partir dos Epics filhos e ficam 100%
+  // editáveis na tela (todos os campos, inclusive nome/sponsor/diretoria).
+  const iniciativasCandidatas: IniciativaCandidataRow[] = data.iniciativas
+    .filter(ini => getPipelineStage(ini.status) === 'AGUARDANDO PILOTO')
+    .map(ini => {
+      const concluida = ini.epics.some(e => e.status.id === '10019' || e.status.id === '10003')
+      const situacaoBadge: IniciativaCandidataRow['situacaoBadge'] =
+        concluida ? 'CONCLUÍDO' : ini.epics.length === 0 ? 'N/A' : 'EM ANDAMENTO'
+      const situacaoTexto = ini.epics.find(e => e.statusDetalhado)?.statusDetalhado ?? ''
+      return {
+        key: ini.key,
+        nome: ini.nome,
+        experimento: ini.epics.length > 0 ? 'Sim' : 'Não',
+        situacaoBadge,
+        situacaoTexto,
+        proximosPassos: '',
+        sponsor: ini.sponsor ?? ini.sponsors[0] ?? '—',
+        diretoria: ini.dominios[0] ?? '—',
+      }
+    })
+
   // New entries in the pipeline — last 30 days
   // Lists INITIATIVES (not experiments) that entered the pipeline recently
   const agora = new Date()
@@ -360,6 +385,7 @@ export default async function ReportPage() {
 
         <ReportContent
           iniciativasSlides={iniciativasSlides}
+          iniciativasCandidatas={iniciativasCandidatas}
           emAndamento={emAndamento}
           novosNaEsteira={novosNaEsteira}
           iniciativasDelivery={iniciativasDelivery}
