@@ -5,6 +5,7 @@ import { FileDown, Pencil, Check, X, TrendingUp, AlertTriangle, Target, Zap, Loa
 import type { EpicDetail } from '@/lib/types'
 import DominioCard from './DominioCard'
 import IniciativasSlides, { type IniciativaSlideRow } from './IniciativasSlides'
+import IniciativasCandidatasSlides, { type IniciativaCandidataRow } from './IniciativasCandidatasSlides'
 
 interface NovoNaEsteira {
   key: string
@@ -44,6 +45,7 @@ interface DominioSummary {
 
 interface ReportContentProps {
   iniciativasSlides: IniciativaSlideRow[]
+  iniciativasCandidatas: IniciativaCandidataRow[]
   emAndamento: EpicDetail[]
   novosNaEsteira: NovoNaEsteira[]
   iniciativasDelivery: IniciativaDelivery[]
@@ -72,6 +74,7 @@ const accentColors = [
 
 export default function ReportContent({
   iniciativasSlides,
+  iniciativasCandidatas,
   emAndamento,
   novosNaEsteira,
   iniciativasDelivery: initialDelivery,
@@ -265,6 +268,22 @@ export default function ReportContent({
         </div>
         <div className="overflow-x-auto">
           <IniciativasSlides iniciativas={iniciativasSlides} />
+        </div>
+      </div>
+
+      {/* ═══════════════ SLIDES — CANDIDATAS A DELIVERY ═══════════════ */}
+      <div>
+        <div className="flex items-center gap-2 mb-2">
+          <span className="text-xs font-semibold text-gray-400 uppercase tracking-widest">
+            Slides para Apresentação — Concluídas / Candidatas a Delivery
+          </span>
+          <span className="bg-red-100 text-red-700 text-xs font-bold px-2 py-0.5 rounded-full">
+            {iniciativasCandidatas.length}
+          </span>
+          <span className="text-[11px] text-gray-400">Aguardando Piloto (board 2734) · todos os campos editáveis</span>
+        </div>
+        <div className="overflow-x-auto">
+          <IniciativasCandidatasSlides iniciativas={iniciativasCandidatas} />
         </div>
       </div>
 
