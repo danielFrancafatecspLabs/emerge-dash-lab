@@ -1,5 +1,5 @@
 import { fetchDashboardRaw } from '@/lib/jira'
-import { buildDashboardData } from '@/lib/mappers'
+import { buildDashboardData, getPipelineStage } from '@/lib/mappers'
 import { classifyPortfolios } from '@/lib/portfolio-classifier'
 import { classifySegmentos } from '@/lib/segmento-classifier'
 import Sidebar from '@/components/layout/Sidebar'
@@ -7,6 +7,8 @@ import Link from 'next/link'
 import LogoutButton from '@/components/layout/LogoutButton'
 import GenerateImageButton from '@/components/report/GenerateImageButton'
 import ReportContent from '@/components/report/ReportContent'
+import type { IniciativaSlideRow } from '@/components/report/IniciativasSlides'
+import type { IniciativaCandidataRow } from '@/components/report/IniciativasCandidatasSlides'
 
 export const dynamic = 'force-dynamic'
 
@@ -130,13 +132,79 @@ export default async function ReportPage() {
     )
   }
 
-  // Filter only "Em andamento" experiments, sorted by priority (High → Low)
+  // ── TODOS os experimentos ativos (não concluídos nem cancelados), ordenados por prioridade ──
+  // Inclui: Em andamento, EM VALIDAÇÃO, EM REFINAMENTO, PRONTO PARA EXECUÇÃO, BACKLOG, etc.
+  // Exclui apenas: Concluído, Cancelado, FINALIZADO
   const emAndamento = data.allEpics
-    .filter(e => e.status.name === 'Em andamento')
+    .filter(e => {
+      const nome = e.status.name ?? ''
+      return nome !== 'Concluído' && nome !== 'Cancelado' && nome !== 'FINALIZADO'
+    })
     .sort((a, b) => {
       const pa = PRIORITY_ORDER[a.prioridade ?? ''] ?? 99
       const pb = PRIORITY_ORDER[b.prioridade ?? ''] ?? 99
       return pa - pb
+    })
+
+  // ── Slides "Experimentos em Andamento" (Iniciativas Gerais) ──
+  // Nome da iniciativa = nome do Epic (board 2735) em Refinamento, Em andamento ou
+  // Em validação. Lab Responsável vem sempre da Iniciativa-mãe (não do próprio Epic —
+  // o Epic pode ter o campo vazio ou divergente, a Iniciativa é a fonte confiável aqui).
+  const labResponsavelPorEpic = new Map<string, string>()
+  for (const ini of data.iniciativas) {
+    for (const epic of ini.epics) {
+      labResponsavelPorEpic.set(epic.key, ini.timeResponsavel ?? '—')
+    }
+  }
+
+  const PRIORIDADE_LABEL: Record<string, IniciativaSlideRow['prioridade']> = {
+    'Highest': 'Alta', 'High': 'Alta',
+    'Medium': 'Média',
+    'Low': 'Baixa', 'Lowest': 'Baixa',
+  }
+
+  function formatBeneficioMM(valor: number | null): string {
+    if (!valor) return 'Não Mapeado'
+    const mm = valor / 1_000_000
+    const casas = mm >= 10 || Number.isInteger(mm) ? 0 : 1
+    return `R$ ${mm.toFixed(casas)} MM`
+  }
+
+  // Usa a MESMA lista de emAndamento (todos os experimentos ativos) para os slides
+  const iniciativasSlides: IniciativaSlideRow[] = emAndamento
+    .map(e => ({
+      key: e.key,
+      nome: e.nome,
+      prioridade: PRIORIDADE_LABEL[e.prioridade ?? ''] ?? '—',
+      statusDetalhado: e.statusDetalhado ?? '—',
+      sponsor: e.sponsor ?? '—',
+      diretoria: e.dominio ?? '—',
+      beneficioLabel: formatBeneficioMM(e.beneficioQuantitativo),
+      labResponsavel: labResponsavelPorEpic.get(e.key) ?? '—',
+    }))
+
+  // ── Slides "Iniciativas Concluídas / Candidatas a Delivery" ──
+  // Base: Iniciativas (board 2734) na coluna "Aguardando Piloto". Não existe campo
+  // estruturado de "Situação Atual" / "Próximos Passos" nesse board, então esses
+  // valores partem de uma inferência a partir dos Epics filhos e ficam 100%
+  // editáveis na tela (todos os campos, inclusive nome/sponsor/diretoria).
+  const iniciativasCandidatas: IniciativaCandidataRow[] = data.iniciativas
+    .filter(ini => getPipelineStage(ini.status) === 'AGUARDANDO PILOTO')
+    .map(ini => {
+      const concluida = ini.epics.some(e => e.status.id === '10019' || e.status.id === '10003')
+      const situacaoBadge: IniciativaCandidataRow['situacaoBadge'] =
+        concluida ? 'CONCLUÍDO' : ini.epics.length === 0 ? 'N/A' : 'EM ANDAMENTO'
+      const situacaoTexto = ini.epics.find(e => e.statusDetalhado)?.statusDetalhado ?? ''
+      return {
+        key: ini.key,
+        nome: ini.nome,
+        experimento: ini.epics.length > 0 ? 'Sim' : 'Não',
+        situacaoBadge,
+        situacaoTexto,
+        proximosPassos: '',
+        sponsor: ini.sponsor ?? ini.sponsors[0] ?? '—',
+        diretoria: ini.dominios[0] ?? '—',
+      }
     })
 
   // New entries in the pipeline — last 30 days
@@ -299,8 +367,8 @@ export default async function ReportPage() {
           <div className="flex items-center gap-3">
             <img src="/jira/logobeonlabs.png" alt="BeOn Labs" className="h-8 w-auto" />
             <div>
-              <h1 className="text-lg font-bold text-gray-900">Report — Em Andamento</h1>
-              <p className="text-xs text-gray-500">Experimentos em execução ordenados por prioridade</p>
+              <h1 className="text-lg font-bold text-gray-900">Report — Todos os Experimentos Ativos</h1>
+              <p className="text-xs text-gray-500">{emAndamento.length} experimentos ordenados por prioridade (maior → menor)</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
@@ -313,6 +381,8 @@ export default async function ReportPage() {
         </header>
 
         <ReportContent
+          iniciativasSlides={iniciativasSlides}
+          iniciativasCandidatas={iniciativasCandidatas}
           emAndamento={emAndamento}
           novosNaEsteira={novosNaEsteira}
           iniciativasDelivery={iniciativasDelivery}

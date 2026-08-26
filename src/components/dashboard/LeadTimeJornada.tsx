@@ -26,11 +26,11 @@ export default function LeadTimeJornadaComponent({ data, cycleTimeExperimentacao
   }
 
   return (
-    <div className="flex flex-col min-w-0 overflow-hidden gap-3">
+    <div className="flex flex-col min-w-0 overflow-hidden gap-2">
       {/* ── Timeline compacta ── */}
       <div className="flex-shrink-0">
         {/* Blocos da timeline */}
-        <div className="flex rounded-full overflow-hidden" style={{ height: 22 }}>
+        <div className="flex rounded-full overflow-hidden" style={{ height: 18 }}>
           {fasesVisiveis.map((fase, i) => {
             const widthPct = totalDias > 0 ? (fase.dias / totalDias) * 100 : 0
             return (
@@ -80,10 +80,10 @@ export default function LeadTimeJornadaComponent({ data, cycleTimeExperimentacao
       </div>
 
       {/* ── Grid inferior: 3 colunas ── */}
-      <div className="grid gap-2 grid-cols-1 sm:grid-cols-3 min-w-0">
+      <div className="grid gap-1.5 grid-cols-1 sm:grid-cols-3 min-w-0">
         {/* Cycle Time por Complexidade */}
-        <div className="rounded-lg p-2.5" style={{ background: '#FFFBEB', border: '1px solid #FDE68A' }}>
-          <div className="flex items-center gap-1 mb-1.5">
+        <div className="rounded-lg p-2" style={{ background: '#FFFBEB', border: '1px solid #FDE68A' }}>
+          <div className="flex items-center gap-1 mb-1">
             <Zap size={11} style={{ color: '#F59E0B' }} />
             <p className="font-semibold text-gray-700" style={{ fontSize: 10 }}>Cycle Time de Experimentação</p>
           </div>
@@ -114,8 +114,8 @@ export default function LeadTimeJornadaComponent({ data, cycleTimeExperimentacao
         </div>
 
         {/* Blocked Time */}
-        <div className="rounded-lg p-2.5" style={{ background: '#F3F4F6', border: '1px solid #D1D5DB' }}>
-          <div className="flex items-center gap-1 mb-1.5">
+        <div className="rounded-lg p-2" style={{ background: '#F3F4F6', border: '1px solid #D1D5DB' }}>
+          <div className="flex items-center gap-1 mb-1">
             <Lock size={11} style={{ color: '#6B7280' }} />
             <p className="font-semibold text-gray-700" style={{ fontSize: 10 }}>Tempo Bloqueado</p>
           </div>
@@ -138,8 +138,8 @@ export default function LeadTimeJornadaComponent({ data, cycleTimeExperimentacao
         </div>
 
         {/* Bottleneck */}
-        <div className="rounded-lg p-2.5" style={{ background: '#FEF2F2', border: '1px solid #FECACA' }}>
-          <div className="flex items-center gap-1 mb-1.5">
+        <div className="rounded-lg p-2" style={{ background: '#FEF2F2', border: '1px solid #FECACA' }}>
+          <div className="flex items-center gap-1 mb-1">
             <AlertTriangle size={11} style={{ color: '#EF4444' }} />
             <p className="font-semibold text-gray-700" style={{ fontSize: 10 }}>Gargalo</p>
           </div>
@@ -160,9 +160,9 @@ export default function LeadTimeJornadaComponent({ data, cycleTimeExperimentacao
       </div>
 
       {/* ── Observação ── */}
-      <div className="mt-auto pt-2 border-t border-gray-100">
-        <p className="text-gray-400 italic" style={{ fontSize: 9, lineHeight: 1.4 }}>
-          Os resultados apresentados consideram os dados consolidados dos últimos 12 meses e ainda estão em processo de refinamento, podendo sofrer ajustes à medida que novas análises forem concluídas.
+      <div className="mt-auto pt-1.5 border-t border-gray-100">
+        <p className="text-gray-400 italic" style={{ fontSize: 9, lineHeight: 1.3 }}>
+          Dados consolidados dos últimos 12 meses, em processo de refinamento.
         </p>
       </div>
     </div>

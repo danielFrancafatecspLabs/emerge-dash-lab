@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<style>
+  @page { margin: 2cm; }
+  * { box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    font-size: 11pt;
+    color: #1f2937;
+    line-height: 1.5;
+  }
+  h1 {
+    font-size: 22pt;
+    color: #8B0000;
+    border-bottom: 3px solid #8B0000;
+    padding-bottom: 8px;
+    margin-bottom: 6px;
+  }
+  .subtitle {
+    font-size: 10pt;
+    color: #6b7280;
+    margin-bottom: 24px;
+  }
+  h2 {
+    font-size: 14pt;
+    color: #8B0000;
+    margin-top: 28px;
+    margin-bottom: 10px;
+    padding-left: 8px;
+    border-left: 4px solid #8B0000;
+  }
+  h3 {
+    font-size: 12pt;
+    color: #374151;
+    margin-top: 18px;
+    margin-bottom: 6px;
+  }
+  p { margin: 4px 0 8px 0; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 10px 0 16px 0;
+    font-size: 10pt;
+  }
+  th {
+    background: #8B0000;
+    color: white;
+    padding: 6px 10px;
+    text-align: left;
+    font-weight: 600;
+  }
+  td {
+    padding: 5px 10px;
+    border-bottom: 1px solid #e5e7eb;
+  }
+  tr:nth-child(even) td { background: #fafafa; }
+  .tag {
+    display: inline-block;
+    background: #8B0000;
+    color: white;
+    font-size: 8pt;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 10px;
+    margin-right: 4px;
+  }
+  .tag-blue { background: #3B82F6; }
+  .tag-green { background: #16A34A; }
+  .tag-amber { background: #F59E0B; }
+  .tag-gray { background: #6B7280; }
+  .card {
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin: 10px 0;
+    background: #f9fafb;
+  }
+  .card-title {
+    font-weight: 700;
+    font-size: 10pt;
+    color: #374151;
+    margin-bottom: 6px;
+  }
+  .funil-row {
+    display: flex;
+    align-items: center;
+    margin: 4px 0;
+  }
+  .funil-label { width: 160px; font-size: 10pt; color: #4b5563; }
+  .funil-bar {
+    flex: 1;
+    height: 22px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 700;
+    font-size: 9pt;
+    min-width: 40px;
+  }
+  .funil-pct { width: 60px; font-size: 9pt; color: #9ca3af; text-align: right; }
+  .footer {
+    margin-top: 32px;
+    padding-top: 12px;
+    border-top: 1px solid #d1d5db;
+    font-size: 9pt;
+    color: #9ca3af;
+    text-align: center;
+  }
+  .highlight {
+    background: #FFFBEB;
+    border-left: 3px solid #F59E0B;
+    padding: 8px 12px;
+    margin: 8px 0;
+    font-size: 10pt;
+  }
+  ul { margin: 4px 0 8px 0; padding-left: 20px; }
+  li { margin: 2px 0; }
+  code {
+    background: #f3f4f6;
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-size: 9pt;
+    font-family: 'Consolas', 'Courier New', monospace;
+  }
+</style>
+</head>
+<body>
+
+<h1>📊 Dashboard Estratégico — BeOn Lab</h1>
+<p class="subtitle">Sumário de métricas da aba Estratégia • Pipeline de Inovação • Experimentos • Lead Time</p>
+
+<!-- ============================================================ -->
+<h2>1️⃣ Resumo Executivo</h2>
+
+<h3>Metas Estratégicas</h3>
+<p>Classificação via <strong>LLM</strong> — cada Epic recebe uma <code>metaCategoria</code> (EBITDA, Receita ou NPS) analisando seu <code>summary</code> e <code>dominio</code>.</p>
+
+<table>
+  <tr><th>Meta</th><th>Cálculo</th><th>Exibição</th></tr>
+  <tr>
+    <td><span class="tag">EBITDA</span></td>
+    <td>Conta Iniciativas com pelo menos 1 Epic classificado como EBITDA. Soma o <code>beneficioQuantitativoTotal</code> dessas Iniciativas.</td>
+    <td>Barra de proporção: <code>pct = (valor da meta ÷ total das 3 metas) × 100</code></td>
+  </tr>
+  <tr>
+    <td><span class="tag tag-blue">Receita</span></td>
+    <td>Mesmo cálculo, filtrando por metaCategoria = Receita</td>
+    <td>Barra + valor em R$</td>
+  </tr>
+  <tr>
+    <td><span class="tag tag-amber">NPS</span></td>
+    <td>Mesmo cálculo, filtrando por metaCategoria = NPS</td>
+    <td>Barra + valor em R$</td>
+  </tr>
+</table>
+
+<h3>Pipeline de Conversão</h3>
+<table>
+  <tr><th>Métrica</th><th>Fonte</th><th>Cálculo</th></tr>
+  <tr>
+    <td>Benefício Potencial Total</td>
+    <td><code>customfield_30216</code> dos Epics</td>
+    <td><code>SUM(beneficioQuantitativo)</code> de todos os Epics com valor &gt; 0</td>
+  </tr>
+  <tr>
+    <td>Conversão p/ Escala</td>
+    <td>Board 2734 — coluna EM ESCALA</td>
+    <td><code>(EM ESCALA ÷ total não-cancelados) × 100</code></td>
+  </tr>
+  <tr>
+    <td>Conversão p/ Piloto</td>
+    <td>Board 2734 — colunas EM PILOTO + EM ESCALA</td>
+    <td><code>((EM PILOTO + EM ESCALA) ÷ total não-cancelados) × 100</code></td>
+  </tr>
+</table>
+
+<!-- ============================================================ -->
+<h2>2️⃣ Portfólio por Mercado</h2>
+
+<p>Classificação via <strong>LLM</strong> do campo <code>dominio</code> de cada Epic em 3 segmentos:</p>
+
+<table>
+  <tr><th>Segmento</th><th>Métrica</th><th>Cálculo</th></tr>
+  <tr>
+    <td><span class="tag">Consumo</span></td>
+    <td rowspan="3"><code>qtdExperimentos</code><br><code>valorPotencial</code><br><code>dominios</code> (top 4)<br><code>alertas</code></td>
+    <td rowspan="3">
+      <strong>qtd:</strong> total de Epics no segmento<br>
+      <strong>valor:</strong> <code>SUM(beneficioQuantitativo)</code> dos Epics<br>
+      <strong>dominios:</strong> top 4 mais frequentes, <code>pct = (count ÷ total) × 100</code><br>
+      <strong>alertas:</strong> bloqueadosIA (motivoBloqueio preenchido) | aguardandoDelivery (status 10067) | semSponsor
+    </td>
+  </tr>
+  <tr><td><span class="tag tag-blue">Corporativo</span></td></tr>
+  <tr><td><span class="tag tag-green">PME/GE/GOV</span></td></tr>
+</table>
+
+<!-- ============================================================ -->
+<h2>3️⃣ Funil de Experimentos</h2>
+
+<p>7 camadas de conversão, cada uma com taxa percentual para a próxima etapa:</p>
+
+<table>
+  <tr><th>#</th><th>Camada</th><th>Fonte (status ID)</th><th>Taxa de conversão</th></tr>
+  <tr><td>1</td><td>Total de Experimentos</td><td><code>allEpics.length</code></td><td>100% (base)</td></tr>
+  <tr><td>2</td><td>Cancelados</td><td><code>10015</code></td><td><code>cancelados ÷ total × 100</code></td></tr>
+  <tr><td>3</td><td>Em Andamento</td><td><code>3</code></td><td><code>emAndamento ÷ total × 100</code></td></tr>
+  <tr><td>4</td><td>Em Validação</td><td><code>10204</code></td><td><code>emValidacao ÷ emAndamento × 100</code></td></tr>
+  <tr><td>5</td><td>Concluídos</td><td><code>10003 / 10019</code></td><td><code>concluidos ÷ emValidacao × 100</code></td></tr>
+  <tr><td>6</td><td>Pilotos</td><td>Board 2734 — EM PILOTO</td><td><code>pilotos ÷ concluidos × 100</code></td></tr>
+  <tr><td>7</td><td>Escala</td><td>Board 2734 — EM ESCALA</td><td><code>escala ÷ pilotos × 100</code></td></tr>
+</table>
+
+<div class="highlight">
+  <strong>💡 Exemplo:</strong> Se há 100 experimentos, 20 em andamento, 5 em validação, 3 concluídos, 1 piloto e 0 escala:<br>
+  Taxa andamento = 20% | Taxa validação = 25% | Taxa conclusão = 60% | Taxa piloto = 33% | Taxa escala = 0%
+</div>
+
+<!-- ============================================================ -->
+<h2>4️⃣ Top 5 Experimentos</h2>
+
+<table>
+  <tr><th>Métrica</th><th>Cálculo</th></tr>
+  <tr>
+    <td>Seleção</td>
+    <td>Todos os Epics com <code>beneficioQuantitativo &gt; 0</code></td>
+  </tr>
+  <tr>
+    <td>Ordenação</td>
+    <td><code>ORDER BY beneficioQuantitativo DESC</code></td>
+  </tr>
+  <tr>
+    <td>Limite</td>
+    <td>Top 5</td>
+  </tr>
+  <tr>
+    <td>Colunas exibidas</td>
+    <td>Nome, Lab Responsável, Domínio, Valor Potencial (R$)</td>
+  </tr>
+</table>
+
+<!-- ============================================================ -->
+<h2>5️⃣ Crescimento da Experimentação (Burnup)</h2>
+
+<table>
+  <tr><th>Métrica</th><th>Cálculo</th></tr>
+  <tr>
+    <td>Realizado</td>
+    <td>Acumulado mês a mês de experimentos concluídos (status <code>10003</code>)</td>
+  </tr>
+  <tr>
+    <td>Benefício</td>
+    <td>Acumulado mês a mês da soma dos <code>beneficioQuantitativo</code> dos concluídos</td>
+  </tr>
+  <tr>
+    <td>Total Concluídos</td>
+    <td><code>COUNT</code> de Epics com status <code>10003</code> no período</td>
+  </tr>
+  <tr>
+    <td>Taxa de Conversão</td>
+    <td><code>concluidos ÷ total de experimentos × 100</code></td>
+  </tr>
+</table>
+
+<!-- ============================================================ -->
+<h2>6️⃣ Jornada de Adoção (Lead Time)</h2>
+
+<h3>Timeline — 4 fases</h3>
+<p>O Backlog é excluído do total. O lead time começa na Experimentação.</p>
+
+<table>
+  <tr><th>Fase</th><th>Cálculo</th><th>Fonte</th></tr>
+  <tr>
+    <td><span class="tag tag-amber">Experimentação</span></td>
+    <td>Cycle time geral dos Epics concluídos — média de dias em "Em andamento" + "EM VALIDAÇÃO", <strong>descontando</strong> períodos bloqueados</td>
+    <td>Changelog dos Epics (board 2735)</td>
+  </tr>
+  <tr>
+    <td><span class="tag tag-gray">Transição p/ Piloto</span></td>
+    <td>Média de dias das Iniciativas no status AGUARDANDO PILOTO</td>
+    <td>Changelog das Iniciativas (board 2734)</td>
+  </tr>
+  <tr>
+    <td><span class="tag tag-gray">Piloto</span></td>
+    <td>Média de dias das Iniciativas no status EM PILOTO</td>
+    <td>Changelog das Iniciativas (board 2734)</td>
+  </tr>
+  <tr>
+    <td><span class="tag tag-green">Escala</span></td>
+    <td>Média de dias das Iniciativas no status EM ESCALA</td>
+    <td>Changelog das Iniciativas (board 2734)</td>
+  </tr>
+</table>
+
+<p><strong>Total:</strong> <code>Experimentação + Transição + Piloto + Escala</code></p>
+<p><strong>Bottleneck:</strong> fase com maior número de dias (destacada em laranja na timeline)</p>
+
+<h3>Cycle Time por Complexidade</h3>
+<table>
+  <tr><th>Porte</th><th>Complexidade</th><th>Cálculo</th></tr>
+  <tr><td><span class="tag tag-green">P</span></td><td>Baixa</td><td rowspan="3">Média de dias em experimentação dos Epics concluídos, agrupados pelo campo <code>complexidade</code> (customfield_30358)</td></tr>
+  <tr><td><span class="tag tag-amber">M</span></td><td>Média</td></tr>
+  <tr><td><span class="tag">G</span></td><td>Alta</td></tr>
+</table>
+
+<h3>Blocked Time</h3>
+<p>Média de dias bloqueados dos experimentos concluídos, calculado via <strong>changelog</strong>:</p>
+<div class="card">
+  <div class="card-title">📋 Algoritmo de Blocked Time</div>
+  <ol style="margin: 4px 0; padding-left: 18px; font-size: 10pt;">
+    <li>Para cada Epic concluído, varre o changelog cronologicamente</li>
+    <li>Quando <code>motivoBloqueio</code> passa de <strong>vazio → preenchido</strong>: marca início do bloqueio</li>
+    <li>Quando passa de <strong>preenchido → vazio</strong>: soma os dias ao total bloqueado</li>
+    <li>Ao final: <code>blockedTimeDias = SUM(dias bloqueados) ÷ qtd de Epics com bloqueio</code></li>
+    <li><code>blockedTimePct = (blockedTimeDias ÷ mediaTotalDias) × 100</code></li>
+  </ol>
+</div>
+
+<!-- ============================================================ -->
+<h2>🔍 Filtro por Período</h2>
+<p>Todos os cards respeitam o filtro de período selecionado no Header. O filtro refaz todos os cálculos:</p>
+<ul>
+  <li>Filtra <code>iniciativas</code> e <code>epics</code> pela data de criação (<code>criadoEm</code>)</li>
+  <li>Reagrega todas as métricas (benefícios, pipeline, mercados, etc.) apenas com os dados do período</li>
+  <li>Opções: Tudo, Últimos 12 meses, Últimos 6 meses, Últimos 3 meses, Último mês, Personalizado</li>
+</ul>
+
+<!-- ============================================================ -->
+<h2>📌 Origem dos Dados</h2>
+<table>
+  <tr><th>Board</th><th>ID</th><th>Issue Type</th><th>Qtd</th></tr>
+  <tr><td>P&D - Ideação</td><td>2734</td><td>Iniciativa</td><td>~186</td></tr>
+  <tr><td>P&D - Experimentação/Piloto</td><td>2735</td><td>Epic</td><td>~199</td></tr>
+</table>
+
+<p><strong>Classificação LLM:</strong> Portfólio (EBITDA/Receita/NPS) e Segmento (Consumo/Corporativo/PME) são classificados via Azure OpenAI com base no <code>summary</code> e <code>dominio</code> de cada Epic.</p>
+
+<div class="footer">
+  Gerado em 25/08/2026 • BeOn Lab — Claro Brasil • Projeto jira-viewer
+</div>
+
+</body>
+</html>
