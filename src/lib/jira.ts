@@ -115,7 +115,7 @@ export async function fetchDashboardRaw(): Promise<{
     getBoardConfiguration(IDEACAO_BOARD_ID),
   ])
 
-  // Buscar último comentário (texto plano) apenas para Epics em andamento (status.id === '3')
+  // Buscar último comentário (texto plano) apenas para Epics em refinamento/andamento/validação
   async function getIssueLastComment(issueKey: string): Promise<string | null> {
     const base = process.env.JIRA_BASE_URL
     if (!base) throw new Error('JIRA_BASE_URL é obrigatório')
@@ -150,19 +150,24 @@ export async function fetchDashboardRaw(): Promise<{
     return String(body).trim()
   }
 
-  const epicsWithComments: JiraIssue[] = []
-  for (const e of epics) {
-    const copy = { ...e }
-    try {
-      if (copy.fields?.status?.id === '3') {
+  // Status IDs de Epic para os quais buscamos o último comentário (usado como "status
+  // detalhado" no Report): Em refinamento, Em andamento e Em validação — inclui aliases
+  // legados/migrados vistos no board 2735 (ver STATUS_PIPELINE em mappers.ts).
+  const EPIC_STATUS_NEEDS_COMMENT = new Set(['10139', '14538', '3', '10204', '11201'])
+
+  const epicsWithComments: JiraIssue[] = await Promise.all(
+    epics.map(async e => {
+      const copy = { ...e }
+      if (!EPIC_STATUS_NEEDS_COMMENT.has(copy.fields?.status?.id ?? '')) return copy
+      try {
         copy.fields = { ...copy.fields, lastComment: await getIssueLastComment(copy.key) }
+      } catch {
+        // silencioso — preferimos continuar mesmo se um fetch falhar
+        copy.fields = { ...copy.fields, lastComment: null }
       }
-    } catch (err) {
-      // silencioso — preferimos continuar mesmo se um fetch falhar
-      copy.fields = { ...copy.fields, lastComment: null }
-    }
-    epicsWithComments.push(copy)
-  }
+      return copy
+    })
+  )
 
   // Buscar changelogs para TODOS os Epics (board 2735) — necessário para calcular cycle time de experimentação
   // e para TODAS as Iniciativas (board 2734) — necessário para cycle time por etapa.

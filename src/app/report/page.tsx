@@ -1,5 +1,5 @@
 import { fetchDashboardRaw } from '@/lib/jira'
-import { buildDashboardData } from '@/lib/mappers'
+import { buildDashboardData, getPipelineStage } from '@/lib/mappers'
 import { classifyPortfolios } from '@/lib/portfolio-classifier'
 import { classifySegmentos } from '@/lib/segmento-classifier'
 import Sidebar from '@/components/layout/Sidebar'
@@ -7,6 +7,7 @@ import Link from 'next/link'
 import LogoutButton from '@/components/layout/LogoutButton'
 import GenerateImageButton from '@/components/report/GenerateImageButton'
 import ReportContent from '@/components/report/ReportContent'
+import type { IniciativaSlideRow } from '@/components/report/IniciativasSlides'
 
 export const dynamic = 'force-dynamic'
 
@@ -138,6 +139,51 @@ export default async function ReportPage() {
       const pb = PRIORITY_ORDER[b.prioridade ?? ''] ?? 99
       return pa - pb
     })
+
+  // ── Slides "Experimentos em Andamento" (Iniciativas Gerais) ──
+  // Nome da iniciativa = nome do Epic (board 2735) em Refinamento, Em andamento ou
+  // Em validação. Lab Responsável vem sempre da Iniciativa-mãe (não do próprio Epic —
+  // o Epic pode ter o campo vazio ou divergente, a Iniciativa é a fonte confiável aqui).
+  const labResponsavelPorEpic = new Map<string, string>()
+  for (const ini of data.iniciativas) {
+    for (const epic of ini.epics) {
+      labResponsavelPorEpic.set(epic.key, ini.timeResponsavel ?? '—')
+    }
+  }
+
+  const PRIORIDADE_LABEL: Record<string, IniciativaSlideRow['prioridade']> = {
+    'Highest': 'Alta', 'High': 'Alta',
+    'Medium': 'Média',
+    'Low': 'Baixa', 'Lowest': 'Baixa',
+  }
+
+  function formatBeneficioMM(valor: number | null): string {
+    if (!valor) return 'Não Mapeado'
+    const mm = valor / 1_000_000
+    const casas = mm >= 10 || Number.isInteger(mm) ? 0 : 1
+    return `R$ ${mm.toFixed(casas)} MM`
+  }
+
+  const iniciativasSlides: IniciativaSlideRow[] = data.allEpics
+    .filter(e => {
+      const stage = getPipelineStage(e.status)
+      return stage === 'EM REFINAMENTO' || stage === 'EM EXPERIMENTAÇÃO'
+    })
+    .sort((a, b) => {
+      const pa = PRIORITY_ORDER[a.prioridade ?? ''] ?? 99
+      const pb = PRIORITY_ORDER[b.prioridade ?? ''] ?? 99
+      return pa - pb
+    })
+    .map(e => ({
+      key: e.key,
+      nome: e.nome,
+      prioridade: PRIORIDADE_LABEL[e.prioridade ?? ''] ?? '—',
+      statusDetalhado: e.statusDetalhado ?? '—',
+      sponsor: e.sponsor ?? '—',
+      diretoria: e.dominio ?? '—',
+      beneficioLabel: formatBeneficioMM(e.beneficioQuantitativo),
+      labResponsavel: labResponsavelPorEpic.get(e.key) ?? '—',
+    }))
 
   // New entries in the pipeline — last 30 days
   // Lists INITIATIVES (not experiments) that entered the pipeline recently
@@ -313,6 +359,7 @@ export default async function ReportPage() {
         </header>
 
         <ReportContent
+          iniciativasSlides={iniciativasSlides}
           emAndamento={emAndamento}
           novosNaEsteira={novosNaEsteira}
           iniciativasDelivery={iniciativasDelivery}
