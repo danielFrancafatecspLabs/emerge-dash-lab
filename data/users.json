@@ -42,7 +42,7 @@
   {
     "id": "6",
     "username": "admin",
-    "passwordHash": "4097a9f8e762916dba733d17c283a079:77e97f2cbc97f83b7491d11514c258ed4b14f24f8ce33cd625f9dfe5ea19ba0a64aaf39086ca7504cad6f12a67b3382849a3c5a641ecc128b780c2401fb29a91",
+    "passwordHash": "513aed177386fa9fe1476a58c482c0ac:1a99d467698fce2ebef5048c35ddb11816d18d196b83964090c4a4ec169fcc6af5a2167fb9023da5353c876a18bbe97a2f98c573b353c3cd05fb7c008ee3c058",
     "role": "admin",
     "createdAt": "2026-08-12T00:00:00.000Z",
     "active": true
