@@ -377,72 +377,105 @@ export default function EstrategiaClient({ data, monitoramento }: EstrategiaClie
 
         {/* Content */}
         <main
-          className="flex-1 p-4 md:p-5 lg:p-6 gap-4 md:gap-5 flex flex-col min-w-0"
+          className="flex-1 p-3 md:p-4 gap-3 flex flex-col min-w-0"
           style={{ marginTop: modoSlide ? 0 : 52 }}
         >
-          {/* Grid: Resumo no topo (full width) + 5 cards em 3 colunas */}
-          <div className="grid gap-4 md:gap-5 grid-cols-1 lg:grid-cols-3 min-w-0">
-            {/* Resumo Executivo ocupa linha inteira */}
-            <div className="lg:col-span-3">
+          {/* ── Cabeçalho executivo ── */}
+          <div className="flex items-end justify-between flex-wrap gap-2">
+            <div>
+              <h2 className="text-base font-bold text-gray-900 tracking-tight">
+                Resultados da Experimentação
+              </h2>
+              <p className="text-[11px] text-gray-500 mt-0.5">
+                Panorama estratégico do portfólio de inovação BeOn Lab — de onde partimos ao valor entregue, em {dadosFiltrados.iniciativas.length} iniciativas.
+              </p>
+            </div>
+          </div>
+
+          {/* ── Linha 1: Impacto Entregue ── */}
+          <section className="flex flex-col gap-2 min-w-0">
+            <div>
+              <p className="text-[11px] font-bold uppercase tracking-widest" style={{ color: '#CC0000' }}>
+                1 · Impacto Entregue
+              </p>
+              <p className="text-[10px] text-gray-400 mt-0.5">O que o laboratório já gerou de resultado — o valor, a tendência e as provas concretas</p>
+            </div>
+            <div className="grid gap-3 grid-cols-1 lg:grid-cols-3 auto-rows-fr min-w-0">
               <GraficoComInsight
+                step={1}
                 titulo="Resumo Executivo"
-                subtitulo={`Metas estratégicas & pipeline • ${dadosFiltrados.iniciativas.length} iniciativas (board 2734)`}
+                subtitulo="Metas estratégicas & pipeline (board 2734)"
                 insight={insightsMap['resumo']}
                 loading={insightsLoading}
               >
                 <ResumoExecutivo data={dadosFiltrados} />
               </GraficoComInsight>
+
+              <GraficoComInsight
+                step={2}
+                titulo="Crescimento da Experimentação"
+                subtitulo="Acumulado de experimentos concluídos no período"
+                insight={insightsMap['burnup']}
+                loading={insightsLoading}
+              >
+                <BurnupChart data={monitoramentoFiltrado.burnup} height={170} />
+              </GraficoComInsight>
+
+              <GraficoComInsight
+                step={3}
+                titulo="Top 5 Experimentos"
+                subtitulo="Maior valor potencial (R$)"
+                insight={insightsMap['top5']}
+                loading={insightsLoading}
+              >
+                <Top5Experimentos data={dadosFiltrados} />
+              </GraficoComInsight>
             </div>
+          </section>
 
-            <GraficoComInsight
-              titulo="Portfólio por Mercado"
-              subtitulo="Distribuição por segmento de mercado"
-              insight={insightsMap['portfolio']}
-              loading={insightsLoading}
-            >
-              <PortfolioPorMercado data={dadosFiltrados.mercadosSegmento} />
-            </GraficoComInsight>
+          {/* ── Linha 2: Como Chegamos Lá ── */}
+          <section className="flex flex-col gap-2 min-w-0">
+            <div>
+              <p className="text-[11px] font-bold uppercase tracking-widest" style={{ color: '#CC0000' }}>
+                2 · Como Chegamos Lá
+              </p>
+              <p className="text-[10px] text-gray-400 mt-0.5">O motor por trás do resultado — conversão, velocidade e onde estamos apostando</p>
+            </div>
+            <div className="grid gap-3 grid-cols-1 lg:grid-cols-3 auto-rows-fr min-w-0">
+              <GraficoComInsight
+                step={4}
+                titulo="Funil de Experimentos"
+                subtitulo="Distribuição por etapa do pipeline"
+                insight={insightsMap['funil']}
+                loading={insightsLoading}
+              >
+                <FunilExperimentos data={dadosFiltrados} />
+              </GraficoComInsight>
 
-            <GraficoComInsight
-              titulo="Funil de Experimentos"
-              subtitulo="Taxa de conversão do pipeline"
-              insight={insightsMap['funil']}
-              loading={insightsLoading}
-            >
-              <FunilExperimentos data={dadosFiltrados} />
-            </GraficoComInsight>
+              <GraficoComInsight
+                step={5}
+                titulo="Jornada de Adoção"
+                subtitulo="Lead time e gargalos do pipeline"
+                insight={insightsMap['leadtime']}
+                loading={insightsLoading}
+              >
+                <LeadTimeJornada
+                  data={dadosFiltrados.leadTimeJornada}
+                  cycleTimeExperimentacao={dadosFiltrados.cycleTimeExperimentacao}
+                />
+              </GraficoComInsight>
 
-            <GraficoComInsight
-              titulo="Top 5 Experimentos"
-              subtitulo="Maior valor potencial (R$)"
-              insight={insightsMap['top5']}
-              loading={insightsLoading}
-            >
-              <Top5Experimentos data={dadosFiltrados} />
-            </GraficoComInsight>
-
-            <GraficoComInsight
-              titulo="Crescimento da Experimentação no Período"
-              subtitulo="Acumulado de experimentos concluídos"
-              insight={insightsMap['burnup']}
-              loading={insightsLoading}
-            >
-              <BurnupChart data={monitoramentoFiltrado.burnup} />
-            </GraficoComInsight>
-
-            <GraficoComInsight
-              titulo="Jornada de Adoção"
-              subtitulo="Lead time e gargalos do pipeline"
-              insight={insightsMap['leadtime']}
-              loading={insightsLoading}
-            >
-              <LeadTimeJornada
-                data={dadosFiltrados.leadTimeJornada}
-                cycleTimeExperimentacao={dadosFiltrados.cycleTimeExperimentacao}
-              />
-            </GraficoComInsight>
-          </div>
-
+              <GraficoComInsight
+                step={6}
+                titulo="Portfólio por Mercado"
+                subtitulo="Onde estamos investindo por segmento"
+                insight={insightsMap['portfolio']}
+                loading={insightsLoading}
+              >
+                <PortfolioPorMercado data={dadosFiltrados.mercadosSegmento} />
+              </GraficoComInsight>
+            </div>
+          </section>
         </main>
       </div>
 
