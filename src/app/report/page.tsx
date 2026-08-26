@@ -132,9 +132,14 @@ export default async function ReportPage() {
     )
   }
 
-  // Filter only "Em andamento" experiments, sorted by priority (High → Low)
+  // ── TODOS os experimentos ativos (não concluídos nem cancelados), ordenados por prioridade ──
+  // Inclui: Em andamento, EM VALIDAÇÃO, EM REFINAMENTO, PRONTO PARA EXECUÇÃO, BACKLOG, etc.
+  // Exclui apenas: Concluído, Cancelado, FINALIZADO
   const emAndamento = data.allEpics
-    .filter(e => e.status.name === 'Em andamento')
+    .filter(e => {
+      const nome = e.status.name ?? ''
+      return nome !== 'Concluído' && nome !== 'Cancelado' && nome !== 'FINALIZADO'
+    })
     .sort((a, b) => {
       const pa = PRIORITY_ORDER[a.prioridade ?? ''] ?? 99
       const pb = PRIORITY_ORDER[b.prioridade ?? ''] ?? 99
@@ -165,16 +170,8 @@ export default async function ReportPage() {
     return `R$ ${mm.toFixed(casas)} MM`
   }
 
-  const iniciativasSlides: IniciativaSlideRow[] = data.allEpics
-    .filter(e => {
-      const stage = getPipelineStage(e.status)
-      return stage === 'EM REFINAMENTO' || stage === 'EM EXPERIMENTAÇÃO'
-    })
-    .sort((a, b) => {
-      const pa = PRIORITY_ORDER[a.prioridade ?? ''] ?? 99
-      const pb = PRIORITY_ORDER[b.prioridade ?? ''] ?? 99
-      return pa - pb
-    })
+  // Usa a MESMA lista de emAndamento (todos os experimentos ativos) para os slides
+  const iniciativasSlides: IniciativaSlideRow[] = emAndamento
     .map(e => ({
       key: e.key,
       nome: e.nome,
@@ -370,8 +367,8 @@ export default async function ReportPage() {
           <div className="flex items-center gap-3">
             <img src="/jira/logobeonlabs.png" alt="BeOn Labs" className="h-8 w-auto" />
             <div>
-              <h1 className="text-lg font-bold text-gray-900">Report — Em Andamento</h1>
-              <p className="text-xs text-gray-500">Experimentos em execução ordenados por prioridade</p>
+              <h1 className="text-lg font-bold text-gray-900">Report — Todos os Experimentos Ativos</h1>
+              <p className="text-xs text-gray-500">{emAndamento.length} experimentos ordenados por prioridade (maior → menor)</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
