@@ -79,7 +79,11 @@ function normalizeSponsor(raw: string): string {
 function mapEpicToDetail(epic: JiraIssue, changelog?: ChangelogEntry[]): EpicDetail {
   const f = epic.fields
 
-  // Extrai data de conclusão do changelog: primeira vez que status mudou para "Concluído" (10003)
+  // Extrai data de conclusão do changelog: primeira vez que status mudou para um status de conclusão
+  // O changelog da API retorna toString como o NOME do status (ex: "Done", "Concluído", "FINALIZADO")
+  // e também pode retornar o ID numérico. Verificamos ambos.
+  const STATUS_CONCLUIDO_IDS = new Set(['10003', '10019'])
+  const STATUS_CONCLUIDO_NOMES = new Set(['Done', 'Concluído', 'FINALIZADO', 'Concluido'])
   let concluidoEm: string | null = null
   if (changelog && changelog.length > 0) {
     const sorted = [...changelog].sort(
@@ -87,9 +91,12 @@ function mapEpicToDetail(epic: JiraIssue, changelog?: ChangelogEntry[]): EpicDet
     )
     for (const entry of sorted) {
       for (const item of entry.items) {
-        if (item.field === 'status' && (item.toString === '10003' || item.toString === '10019')) {
-          concluidoEm = entry.created
-          break
+        if (item.field === 'status') {
+          const toStr = item.toString?.trim() ?? ''
+          if (STATUS_CONCLUIDO_IDS.has(toStr) || STATUS_CONCLUIDO_NOMES.has(toStr)) {
+            concluidoEm = entry.created
+            break
+          }
         }
       }
       if (concluidoEm) break
