@@ -1,11 +1,14 @@
 'use client'
 
 import { useCallback, useState } from 'react'
-import { FileDown, Pencil, Check, X, TrendingUp, AlertTriangle, Target, Zap, Loader2 } from 'lucide-react'
+import { FileDown, Pencil, Check, X, TrendingUp, AlertTriangle, Target, Zap, Loader2, Sparkles, Lightbulb, CheckCircle2, FlaskConical } from 'lucide-react'
 import type { EpicDetail } from '@/lib/types'
 import DominioCard from './DominioCard'
 import IniciativasSlides, { type IniciativaSlideRow } from './IniciativasSlides'
 import IniciativasCandidatasSlides, { type IniciativaCandidataRow } from './IniciativasCandidatasSlides'
+import NovosExperimentosSlides from './NovosExperimentosSlides'
+import DestaquesSlide from './DestaquesSlide'
+import ReviewsSlide from './ReviewsSlide'
 
 interface NovoNaEsteira {
   key: string
@@ -15,6 +18,8 @@ interface NovoNaEsteira {
   dominios: string[]
   criadoEm: string | null
   qtdExperimentos: number
+  resumo: string
+  bo: string
 }
 
 interface IniciativaDelivery {
@@ -256,6 +261,12 @@ export default function ReportContent({
         </div>
       </div>
 
+      {/* ═══════════════ SLIDES — REVIEWS ÚLTIMOS 15 DIAS ═══════════════ */}
+      <ReviewsSlide />
+
+      {/* ═══════════════ SLIDES — DESTAQUES DA SEMANA ═══════════════ */}
+      <DestaquesSlide />
+
       {/* ═══════════════ SLIDES — EXPERIMENTOS EM ANDAMENTO ═══════════════ */}
       <div>
         <div className="flex items-center gap-2 mb-2">
@@ -284,6 +295,31 @@ export default function ReportContent({
         </div>
         <div className="overflow-x-auto">
           <IniciativasCandidatasSlides iniciativas={iniciativasCandidatas} />
+        </div>
+      </div>
+
+      {/* ═══════════════ 3. NOVOS EXPERIMENTOS (ÚLTIMOS 15 DIAS) ═══════════════ */}
+      <div>
+        <div className="flex items-center gap-2 mb-2">
+          <span className="text-xs font-semibold text-gray-400 uppercase tracking-widest">
+            Slides para Apresentação — Novos Experimentos
+          </span>
+          <span className="bg-green-100 text-green-700 text-xs font-bold px-2 py-0.5 rounded-full">
+            {novosNaEsteira.length}
+          </span>
+          <span className="text-[11px] text-gray-400">Criados nos últimos 15 dias</span>
+        </div>
+        <div className="overflow-x-auto">
+          <NovosExperimentosSlides
+            iniciativas={novosNaEsteira.map(ini => ({
+              key: ini.key,
+              nome: ini.nome,
+              resumo: ini.resumo,
+              bo: ini.bo,
+              sponsor: ini.sponsors.length > 0 ? ini.sponsors.join(', ') : '—',
+              criadoEm: ini.criadoEm ?? '',
+            }))}
+          />
         </div>
       </div>
 
@@ -443,69 +479,6 @@ export default function ReportContent({
             })}
             {emAndamento.length === 0 && (
               <tr><td colSpan={5} className="px-4 py-8 text-center text-gray-400 text-sm">Nenhum experimento em andamento.</td></tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-
-      {/* ═══════════════ 3. NOVOS NA ESTEIRA ═══════════════ */}
-      <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
-        <div className="px-5 py-3 border-b border-gray-100">
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-semibold text-gray-400 uppercase tracking-widest">
-              Novos na Esteira (últimos 30 dias)
-            </span>
-            <span className="bg-green-100 text-green-700 text-xs font-bold px-2 py-0.5 rounded-full">
-              {novosNaEsteira.length}
-            </span>
-          </div>
-        </div>
-        <table className="w-full">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-3 py-2 text-left text-gray-400 font-semibold uppercase" style={{ fontSize: 9, letterSpacing: '0.06em', minWidth: 220 }}>Iniciativa</th>
-              <th className="px-3 py-2 text-center text-gray-400 font-semibold uppercase" style={{ fontSize: 9 }}>Status</th>
-              <th className="px-3 py-2 text-left text-gray-400 font-semibold uppercase" style={{ fontSize: 9 }}>Sponsor</th>
-              <th className="px-3 py-2 text-left text-gray-400 font-semibold uppercase" style={{ fontSize: 9 }}>Domínio</th>
-              <th className="px-3 py-2 text-center text-gray-400 font-semibold uppercase" style={{ fontSize: 9 }}>Exp.</th>
-              <th className="px-3 py-2 text-left text-gray-400 font-semibold uppercase" style={{ fontSize: 9 }}>Criado em</th>
-            </tr>
-          </thead>
-          <tbody>
-            {novosNaEsteira.map((ini, i) => {
-              const statusColor = statusColors[ini.status] ?? { bg: '#F3F4F6', text: '#374151' }
-              return (
-                <tr
-                  key={ini.key}
-                  className="border-b border-gray-50 hover:bg-green-50/50 transition-colors"
-                  style={{ background: i % 2 === 1 ? 'rgba(249,250,251,0.5)' : undefined }}
-                >
-                  <td className="px-3 py-2">
-                    <p className="font-medium text-gray-900" style={{ fontSize: 11 }}>{ini.nome}</p>
-                    <p className="text-gray-400" style={{ fontSize: 9 }}>#{ini.key}</p>
-                  </td>
-                  <td className="px-3 py-2 text-center">
-                    <span className="px-1.5 py-0.5 rounded font-semibold" style={{ fontSize: 10, color: statusColor.text, background: statusColor.bg }}>
-                      {ini.status}
-                    </span>
-                  </td>
-                  <td className="px-3 py-2 text-gray-600" style={{ fontSize: 11 }}>
-                    {ini.sponsors.length > 0 ? ini.sponsors.join(', ') : '—'}
-                  </td>
-                  <td className="px-3 py-2 text-gray-600" style={{ fontSize: 11 }}>
-                    {ini.dominios.length > 0 ? ini.dominios.join(', ') : '—'}
-                  </td>
-                  <td className="px-3 py-2 text-center text-gray-600" style={{ fontSize: 11 }}>
-                    {ini.qtdExperimentos}
-                  </td>
-                  <td className="px-3 py-2 text-gray-500" style={{ fontSize: 10 }}>
-                    {formatDate(ini.criadoEm)}
-                  </td>
-                </tr>
-              )
-            })}
-            {novosNaEsteira.length === 0 && (
-              <tr><td colSpan={6} className="px-4 py-8 text-center text-gray-400 text-sm">Nenhuma iniciativa nova nos últimos 30 dias.</td></tr>
             )}
           </tbody>
         </table>

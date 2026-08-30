@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
-const PUBLIC_PATHS = ['/login', '/bem-vindo', '/api/auth']
+const PUBLIC_PATHS = ['/login', '/bem-vindo', '/api/auth', '/api/pesquisas']
 const BASE = '/jira'
 
 export function middleware(request: NextRequest) {
