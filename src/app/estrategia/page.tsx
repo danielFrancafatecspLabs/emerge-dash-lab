@@ -2,6 +2,7 @@ import { fetchDashboardRaw } from '@/lib/jira'
 import { buildDashboardData, buildMonitoramentoData } from '@/lib/mappers'
 import { classifyPortfolios } from '@/lib/portfolio-classifier'
 import { classifySegmentos } from '@/lib/segmento-classifier'
+import { loadValidacoes } from '@/lib/beneficios'
 import EstrategiaClient from '@/components/dashboard/EstrategiaClient'
 import type { MonitoramentoData } from '@/lib/types'
 
@@ -50,5 +51,14 @@ export default async function PortfolioPage() {
     )
   }
 
-  return <EstrategiaClient data={data} monitoramento={monitoramento} />
+  // Benefício já validado pelo Financeiro (controle em /beneficios) — cruza os
+  // Epics do board de Experimentação com os registros de validação persistidos.
+  const validacoes = loadValidacoes()
+  const beneficioValidadoTotal = data.allEpics.reduce((sum, e) => {
+    const v = validacoes[e.key]
+    if (v?.statusValidacao !== 'validado') return sum
+    return sum + (v.beneficioValidado ?? e.beneficioQuantitativo ?? 0)
+  }, 0)
+
+  return <EstrategiaClient data={data} monitoramento={monitoramento} beneficioValidadoTotal={beneficioValidadoTotal} />
 }

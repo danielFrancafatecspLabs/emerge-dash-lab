@@ -116,7 +116,7 @@ export default async function ReportPage() {
       classifyPortfolios(epicInputs),
       classifySegmentos(segmentoInputs),
     ])
-    data = buildDashboardData(raw.iniciativas, raw.epics, classification, segmentoClassification, raw.board2734Config)
+    data = buildDashboardData(raw.iniciativas, raw.epics, classification, segmentoClassification, raw.board2734Config, raw.epicChangelogs, raw.iniciativaChangelogs)
   } catch (e) {
     error = String(e)
   }
@@ -132,14 +132,14 @@ export default async function ReportPage() {
     )
   }
 
-  // ── TODOS os experimentos ativos (não concluídos nem cancelados), ordenados por prioridade ──
-  // Inclui: Em andamento, EM VALIDAÇÃO, EM REFINAMENTO, PRONTO PARA EXECUÇÃO, BACKLOG, etc.
-  // Exclui apenas: Concluído, Cancelado, FINALIZADO
+  // ── Experimentos em Andamento ou Validação, ordenados por prioridade ──
+  // Inclui apenas: Em andamento, EM VALIDAÇÃO, Em validação
+  // Exclui: BACKLOG, Em refinamento, PRONTO PARA EXECUÇÃO, Concluído, Cancelado, FINALIZADO
+  const STATUS_ANDAMENTO_VALIDACAO = new Set([
+    'Em andamento', 'EM VALIDAÇÃO', 'Em validação',
+  ])
   const emAndamento = data.allEpics
-    .filter(e => {
-      const nome = e.status.name ?? ''
-      return nome !== 'Concluído' && nome !== 'Cancelado' && nome !== 'FINALIZADO'
-    })
+    .filter(e => STATUS_ANDAMENTO_VALIDACAO.has(e.status.name ?? ''))
     .sort((a, b) => {
       const pa = PRIORITY_ORDER[a.prioridade ?? ''] ?? 99
       const pb = PRIORITY_ORDER[b.prioridade ?? ''] ?? 99
@@ -170,13 +170,23 @@ export default async function ReportPage() {
     return `R$ ${mm.toFixed(casas)} MM`
   }
 
+  // Limpa a descrição: remove emojis e a palavra "Objetivo" (ou "**Objetivo**") do início
+  function limparDescricao(raw: string | null): string {
+    if (!raw) return '—'
+    // Remove emojis (unicode pictographs, symbols, etc.)
+    let texto = raw.replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{FE00}-\u{FE0F}\u{1F900}-\u{1F9FF}\u{1FA00}-\u{1FA6F}\u{1FA70}-\u{1FAFF}\u{200D}\u{20E3}\u{231A}-\u{23FF}]/gu, '').trim()
+    // Remove "Objetivo" ou "**Objetivo**" do início (com ou sem markdown, case insensitive)
+    texto = texto.replace(/^(?:\*\*)?Objetivo(?:\*\*)?:?\s*/i, '').trim()
+    return texto || '—'
+  }
+
   // Usa a MESMA lista de emAndamento (todos os experimentos ativos) para os slides
   const iniciativasSlides: IniciativaSlideRow[] = emAndamento
     .map(e => ({
       key: e.key,
       nome: e.nome,
       prioridade: PRIORIDADE_LABEL[e.prioridade ?? ''] ?? '—',
-      statusDetalhado: e.statusDetalhado ?? '—',
+      descricao: limparDescricao(e.descricao),
       sponsor: e.sponsor ?? '—',
       diretoria: e.dominio ?? '—',
       beneficioLabel: formatBeneficioMM(e.beneficioQuantitativo),
@@ -184,14 +194,42 @@ export default async function ReportPage() {
     }))
 
   // ── Slides "Iniciativas Concluídas / Candidatas a Delivery" ──
-  // Base: Iniciativas (board 2734) na coluna "Aguardando Piloto". Não existe campo
-  // estruturado de "Situação Atual" / "Próximos Passos" nesse board, então esses
-  // valores partem de uma inferência a partir dos Epics filhos e ficam 100%
-  // editáveis na tela (todos os campos, inclusive nome/sponsor/diretoria).
+  // Lista fixa de iniciativas definida pelo time beOn Labs.
+  // Para cada uma, busca o Epic filho concluído (status 10019 ou 10003) e extrai
+  // benefício quantitativo, lab responsável (da iniciativa-mãe) e lead time pós-conclusão.
+  const CANDIDATAS_DELIVERY_NOMES = new Set([
+    'ARI Juridico',
+    'Zelador',
+    'Reajuste Telmex',
+    'OCR do Solar',
+    'Processamento de Manifestos',
+    'Identificação de Chamadas de Spam',
+    'Automação de Editais',
+    'Qualificações de Segurança',
+    'Tabulação Automática em Leitura de Contexto',
+  ])
+
+  function formatTempoDesdeConclusao(concluidoEm: string | null): string {
+    if (!concluidoEm) return '—'
+    const agora = new Date()
+    const conclusao = new Date(concluidoEm)
+    const diffMs = agora.getTime() - conclusao.getTime()
+    if (diffMs < 0) return '—'
+    const diffDias = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+    if (diffDias < 1) return 'Hoje'
+    if (diffDias === 1) return '1 dia'
+    if (diffDias < 30) return `${diffDias} dias`
+    const diffMeses = Math.floor(diffDias / 30)
+    const diasResto = diffDias % 30
+    if (diffMeses === 1) return diasResto > 0 ? `1 mês e ${diasResto}d` : '1 mês'
+    return diasResto > 0 ? `${diffMeses} meses e ${diasResto}d` : `${diffMeses} meses`
+  }
+
   const iniciativasCandidatas: IniciativaCandidataRow[] = data.iniciativas
-    .filter(ini => getPipelineStage(ini.status) === 'AGUARDANDO PILOTO')
+    .filter(ini => CANDIDATAS_DELIVERY_NOMES.has(ini.nome.trim()))
     .map(ini => {
-      const concluida = ini.epics.some(e => e.status.id === '10019' || e.status.id === '10003')
+      const epicConcluido = ini.epics.find(e => e.status.id === '10019' || e.status.id === '10003')
+      const concluida = !!epicConcluido
       const situacaoBadge: IniciativaCandidataRow['situacaoBadge'] =
         concluida ? 'CONCLUÍDO' : ini.epics.length === 0 ? 'N/A' : 'EM ANDAMENTO'
       const situacaoTexto = ini.epics.find(e => e.statusDetalhado)?.statusDetalhado ?? ''
@@ -204,13 +242,16 @@ export default async function ReportPage() {
         proximosPassos: '',
         sponsor: ini.sponsor ?? ini.sponsors[0] ?? '—',
         diretoria: ini.dominios[0] ?? '—',
+        beneficioQuantitativo: epicConcluido?.beneficioQuantitativo ?? null,
+        labResponsavel: labResponsavelPorEpic.get(epicConcluido?.key ?? '') ?? ini.timeResponsavel ?? '—',
+        concluidoEm: epicConcluido?.concluidoEm ?? null,
       }
     })
 
-  // New entries in the pipeline — last 30 days
-  // Lists INITIATIVES (not experiments) that entered the pipeline recently
+  // ── Novos Experimentos (últimos 15 dias) ──
+  // Lista INICIATIVAS criadas nos últimos 15 dias com nome, resumo, BO, Sponsor e data de criação
   const agora = new Date()
-  const corte = new Date(agora.getTime() - 30 * 24 * 60 * 60 * 1000)
+  const corte = new Date(agora.getTime() - 15 * 24 * 60 * 60 * 1000)
 
   interface NovoNaEsteira {
     key: string
@@ -220,12 +261,14 @@ export default async function ReportPage() {
     dominios: string[]
     criadoEm: string | null
     qtdExperimentos: number
+    resumo: string
+    bo: string
   }
 
   const seen = new Set<string>()
   const novosNaEsteira: NovoNaEsteira[] = []
 
-  // Initiatives created in the last 30 days
+  // Initiatives created in the last 15 days
   for (const ini of data.iniciativas) {
     if (!ini.criadoEm) continue
     const d = new Date(ini.criadoEm)
@@ -236,6 +279,10 @@ export default async function ReportPage() {
     const sponsors = ini.sponsors.length > 0
       ? ini.sponsors
       : (ini.sponsor ? [ini.sponsor] : [])
+    // Pega o BO do primeiro epic que tiver, ou '—'
+    const bo = ini.epics.find(e => e.bo)?.bo ?? '—'
+    // Pega o resumo da descrição do primeiro epic, ou '—'
+    const resumo = ini.epics.find(e => e.descricao)?.descricao ?? '—'
     novosNaEsteira.push({
       key: ini.key,
       nome: ini.nome,
@@ -244,6 +291,8 @@ export default async function ReportPage() {
       dominios: ini.dominios,
       criadoEm: ini.criadoEm,
       qtdExperimentos: ini.epics.length,
+      resumo,
+      bo,
     })
   }
 

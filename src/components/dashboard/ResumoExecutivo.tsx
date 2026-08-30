@@ -3,10 +3,11 @@
 import { useState } from 'react'
 import { DashboardData, Iniciativa } from '@/lib/types'
 import { formatBRL, getPipelineStage, META_LABELS } from '@/lib/mappers'
-import { TrendingUp, DollarSign, Heart, Rocket, Target } from 'lucide-react'
+import { TrendingUp, DollarSign, Heart, Rocket, Target, Wallet } from 'lucide-react'
+import Link from 'next/link'
 import IniciativaModal from './IniciativaModal'
 
-interface Props { data: DashboardData }
+interface Props { data: DashboardData; beneficioValidadoTotal: number }
 
 const META_ICONS: Record<string, React.ComponentType<{ size?: number; color?: string }>> = {
   EBITDA:  TrendingUp,
@@ -20,8 +21,9 @@ const META_COLORS: Record<string, { bg: string; bar: string; text: string; glow:
   NPS:     { bg: 'bg-pink-50',  bar: 'bg-pink-500',  text: 'text-pink-700',  glow: 'shadow-pink-200' },
 }
 
-export default function ResumoExecutivo({ data }: Props) {
+export default function ResumoExecutivo({ data, beneficioValidadoTotal }: Props) {
   const [modal, setModal] = useState<{ title: string; items: Iniciativa[] } | null>(null)
+  const pctValidado = data.beneficioTotal > 0 ? Math.round((beneficioValidadoTotal / data.beneficioTotal) * 100) : 0
 
   // ── Pipeline stats (base: experimentos do board 2735, mesma lógica do funil) ──
   const totalExperimentos = data.allEpics.filter(e => e.status?.id !== '10015').length
@@ -52,14 +54,34 @@ export default function ResumoExecutivo({ data }: Props) {
             <div className="rounded-md p-1.5 bg-gradient-to-br from-emerald-500 to-teal-600 shadow-sm flex-shrink-0">
               <TrendingUp size={12} color="white" />
             </div>
-            <div className="min-w-0">
-              <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Benefício Potencial</p>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Benefício Potencial</p>
+                <Link
+                  href="/beneficios"
+                  onClick={e => e.stopPropagation()}
+                  className="flex items-center gap-1 text-[10px] font-semibold text-emerald-700 hover:text-emerald-800 flex-shrink-0"
+                  title="Abrir Controle Financeiro de Benefícios"
+                >
+                  <Wallet size={10} /> Financeiro
+                </Link>
+              </div>
               <p
                 className="text-lg font-extrabold text-gray-900 tracking-tight leading-tight"
                 title="Os números de benefícios exibidos consideram as estimativas fornecidas pelos usuários na etapa de cadastro do experimento."
               >
                 {formatBRL(data.beneficioTotal)}
               </p>
+              <Link
+                href="/beneficios"
+                onClick={e => e.stopPropagation()}
+                className="flex items-center gap-1 mt-0.5 hover:underline"
+                title="Ver detalhamento no Controle Financeiro"
+              >
+                <span className="text-[10px] text-gray-400">
+                  <strong className="text-emerald-700">{formatBRL(beneficioValidadoTotal)}</strong> validado pelo financeiro ({pctValidado}%)
+                </span>
+              </Link>
             </div>
           </div>
           <div className="mt-1.5 pt-1.5 border-t border-emerald-100/60 flex items-center justify-between">
