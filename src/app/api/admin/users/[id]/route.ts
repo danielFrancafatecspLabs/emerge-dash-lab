@@ -22,7 +22,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     if (idx === -1) return NextResponse.json({ error: 'Usuário não encontrado' }, { status: 404 })
 
     if (body.username !== undefined) users[idx].username = body.username
-    if (body.role !== undefined && ['admin', 'viewer'].includes(body.role)) users[idx].role = body.role
+    if (body.role !== undefined && ['admin', 'viewer', 'financeiro'].includes(body.role)) users[idx].role = body.role
     if (body.active !== undefined) users[idx].active = Boolean(body.active)
     if (body.password) users[idx].passwordHash = hashPassword(body.password)
 
