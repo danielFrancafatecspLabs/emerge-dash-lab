@@ -4,9 +4,9 @@ import { useState, useEffect, useCallback } from 'react'
 import Sidebar from '@/components/layout/Sidebar'
 import LogoutButton from '@/components/layout/LogoutButton'
 import { UserPublic } from '@/lib/users'
-import { Users, Plus, Pencil, Trash2, X, Check, Shield, Eye } from 'lucide-react'
+import { Users, Plus, Pencil, Trash2, X, Check, Shield, Eye, Wallet } from 'lucide-react'
 
-type FormState = { username: string; password: string; role: 'admin' | 'viewer' }
+type FormState = { username: string; password: string; role: 'admin' | 'executivo' | 'viewer' | 'financeiro' }
 const EMPTY_FORM: FormState = { username: '', password: '', role: 'viewer' }
 
 export default function AdminUsersPage() {
@@ -167,9 +167,10 @@ export default function AdminUsersPage() {
                   <select
                     className="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-red-600"
                     value={form.role}
-                    onChange={e => setForm(f => ({ ...f, role: e.target.value as 'admin' | 'viewer' }))}
+                    onChange={e => setForm(f => ({ ...f, role: e.target.value as 'admin' | 'viewer' | 'financeiro' }))}
                   >
                     <option value="viewer">Viewer</option>
+                    <option value="financeiro">Financeiro</option>
                     <option value="admin">Admin</option>
                   </select>
                 </div>
@@ -214,10 +215,12 @@ export default function AdminUsersPage() {
                         <span className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full ${
                           u.role === 'admin'
                             ? 'bg-red-50 text-red-700'
-                            : 'bg-gray-100 text-gray-600'
+                            : u.role === 'financeiro'
+                              ? 'bg-emerald-50 text-emerald-700'
+                              : 'bg-gray-100 text-gray-600'
                         }`}>
-                          {u.role === 'admin' ? <Shield size={10} /> : <Eye size={10} />}
-                          {u.role === 'admin' ? 'Admin' : 'Viewer'}
+                          {u.role === 'admin' ? <Shield size={10} /> : u.role === 'financeiro' ? <Wallet size={10} /> : <Eye size={10} />}
+                          {u.role === 'admin' ? 'Admin' : u.role === 'financeiro' ? 'Financeiro' : 'Viewer'}
                         </span>
                       </td>
                       <td className="px-4 py-3">

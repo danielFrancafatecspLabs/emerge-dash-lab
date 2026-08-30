@@ -213,9 +213,10 @@ function filtrarDashboardData(data: DashboardData, periodo: PeriodoFiltro): Dash
 interface EstrategiaClientProps {
   data: DashboardData
   monitoramento: MonitoramentoData
+  beneficioValidadoTotal: number
 }
 
-export default function EstrategiaClient({ data, monitoramento }: EstrategiaClientProps) {
+export default function EstrategiaClient({ data, monitoramento, beneficioValidadoTotal }: EstrategiaClientProps) {
   const [periodoFiltro, setPeriodoFiltro] = useState<PeriodoFiltro>({ tipo: 'ultimos12' })
   const [modoSlide, setModoSlide] = useState(false)
   const [insightsMap, setInsightsMap] = useState<Record<string, InsightExecutivo>>({})
@@ -408,7 +409,7 @@ export default function EstrategiaClient({ data, monitoramento }: EstrategiaClie
                 insight={insightsMap['resumo']}
                 loading={insightsLoading}
               >
-                <ResumoExecutivo data={dadosFiltrados} />
+                <ResumoExecutivo data={dadosFiltrados} beneficioValidadoTotal={beneficioValidadoTotal} />
               </GraficoComInsight>
 
               <GraficoComInsight
