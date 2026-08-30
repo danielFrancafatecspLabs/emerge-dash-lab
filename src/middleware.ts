@@ -19,7 +19,21 @@ export function middleware(request: NextRequest) {
 
   const token = request.cookies.get('auth_token')?.value
   const secret = process.env.AUTH_SECRET
-  if (secret && token === secret) return NextResponse.next()
+  if (secret && token === secret) {
+    // Proteger rotas que só admin pode acessar
+    const ADMIN_ONLY = ['/beneficios', '/pesquisas']
+    const isAdminOnly = ADMIN_ONLY.some(p => stripped.startsWith(p))
+    if (isAdminOnly) {
+      const role = request.cookies.get('user_role')?.value
+      if (role !== 'admin') {
+        if (stripped.startsWith('/api/')) {
+          return NextResponse.json({ error: 'Acesso restrito a admin' }, { status: 403 })
+        }
+        return NextResponse.redirect(new URL(`${BASE}/estrategia`, request.url))
+      }
+    }
+    return NextResponse.next()
+  }
 
   // Para rotas de API, retorna 401 JSON em vez de redirecionar para HTML
   if (stripped.startsWith('/api/')) {
