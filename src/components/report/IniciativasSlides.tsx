@@ -8,7 +8,7 @@ export interface IniciativaSlideRow {
   key: string
   nome: string
   prioridade: 'Alta' | 'Média' | 'Baixa' | '—'
-  statusDetalhado: string
+  descricao: string
   sponsor: string
   diretoria: string
   beneficioLabel: string
@@ -100,19 +100,19 @@ export default function IniciativasSlides({ iniciativas }: Props) {
 
               <table className="w-full border-collapse" style={{ tableLayout: 'fixed' }}>
                 <colgroup>
-                  <col style={{ width: '20%' }} />
-                  <col style={{ width: '8%' }} />
-                  <col style={{ width: '11%' }} />
-                  <col style={{ width: '23%' }} />
-                  <col style={{ width: '15%' }} />
+                  <col style={{ width: '18%' }} />
+                  <col style={{ width: '7%' }} />
+                  <col style={{ width: '10%' }} />
+                  <col style={{ width: '30%' }} />
                   <col style={{ width: '13%' }} />
+                  <col style={{ width: '12%' }} />
                   <col style={{ width: '10%' }} />
                 </colgroup>
                 <thead>
                   <tr className="align-bottom">
                     {[
                       'Nome da Iniciativa', 'Prioridade', 'Previsão de Conclusão',
-                      'Status Detalhado', 'Sponsor & Diretoria', 'Benefício Potencial', 'Lab Resp.',
+                      'Descrição', 'Sponsor & Diretoria', 'Benefício Potencial', 'Lab Resp.',
                     ].map((h, i) => (
                       <th
                         key={h}
@@ -165,7 +165,9 @@ export default function IniciativasSlides({ iniciativas }: Props) {
                           )}
                         </td>
                         <td className="py-3 pr-3 align-top">
-                          <p className="text-gray-600" style={{ fontSize: 11.5, lineHeight: 1.35 }}>{row.statusDetalhado}</p>
+                          <p className="text-gray-600" style={{ fontSize: 11.5, lineHeight: 1.35 }} title={row.descricao}>
+                            {row.descricao.length > 200 ? row.descricao.slice(0, 200) + '…' : row.descricao}
+                          </p>
                         </td>
                         <td className="py-3 pr-3 align-top">
                           <p className="text-gray-700" style={{ fontSize: 11.5, lineHeight: 1.3 }}>{row.sponsor}</p>
