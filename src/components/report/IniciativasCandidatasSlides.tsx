@@ -12,6 +12,9 @@ export interface IniciativaCandidataRow {
   proximosPassos: string
   sponsor: string
   diretoria: string
+  beneficioQuantitativo: number | null
+  labResponsavel: string
+  concluidoEm: string | null
 }
 
 interface Props {
@@ -32,6 +35,22 @@ const SITUACAO_COLOR: Record<string, { bg: string; text: string }> = {
 // Iniciativas, então esses campos nascem em branco/inferidos e são só um ponto
 // de partida.
 type RowState = Omit<IniciativaCandidataRow, 'key'>
+
+function formatTempoDesdeConclusao(concluidoEm: string | null): string {
+  if (!concluidoEm) return '—'
+  const agora = new Date()
+  const conclusao = new Date(concluidoEm)
+  const diffMs = agora.getTime() - conclusao.getTime()
+  if (diffMs < 0) return '—'
+  const diffDias = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+  if (diffDias < 1) return 'Hoje'
+  if (diffDias === 1) return '1 dia'
+  if (diffDias < 30) return `${diffDias} dias`
+  const diffMeses = Math.floor(diffDias / 30)
+  const diasResto = diffDias % 30
+  if (diffMeses === 1) return diasResto > 0 ? `1 mês e ${diasResto}d` : '1 mês'
+  return diasResto > 0 ? `${diffMeses} meses e ${diasResto}d` : `${diffMeses} meses`
+}
 
 export default function IniciativasCandidatasSlides({ iniciativas }: Props) {
   const paginas = useMemo(() => chunk(iniciativas, SLIDE_PAGE_SIZE), [iniciativas])
@@ -96,15 +115,17 @@ export default function IniciativasCandidatasSlides({ iniciativas }: Props) {
 
               <table className="w-full border-collapse" style={{ tableLayout: 'fixed' }}>
                 <colgroup>
-                  <col style={{ width: '17%' }} />
-                  <col style={{ width: '9%' }} />
-                  <col style={{ width: '30%' }} />
-                  <col style={{ width: '28%' }} />
-                  <col style={{ width: '16%' }} />
+                  <col style={{ width: '14%' }} />
+                  <col style={{ width: '7%' }} />
+                  <col style={{ width: '22%' }} />
+                  <col style={{ width: '22%' }} />
+                  <col style={{ width: '13%' }} />
+                  <col style={{ width: '11%' }} />
+                  <col style={{ width: '11%' }} />
                 </colgroup>
                 <thead>
                   <tr className="align-bottom">
-                    {['Nome da Iniciativa', 'Experimento', 'Situação Atual do Experimento', 'Próximos Passos', 'Sponsor & Diretoria'].map(h => (
+                    {['Nome da Iniciativa', 'Exp.', 'Situação Atual do Experimento', 'Próximos Passos', 'Sponsor & Diretoria', 'Benefício Potencial', 'Concluído há'].map(h => (
                       <th
                         key={h}
                         className="pb-2.5 text-left font-bold text-gray-500 uppercase"
@@ -190,6 +211,21 @@ export default function IniciativasCandidatasSlides({ iniciativas }: Props) {
                               textStyle={{ color: '#111827', fontWeight: 700, fontSize: 11.5, lineHeight: 1.3 }}
                             />
                           </div>
+                        </td>
+                        <td className="py-3 pr-3 align-top">
+                          <p className={!row.beneficioQuantitativo ? 'italic text-gray-400' : 'font-bold text-gray-900'} style={{ fontSize: 12 }}>
+                            {row.beneficioQuantitativo
+                              ? `R$ ${(row.beneficioQuantitativo / 1_000_000).toFixed(row.beneficioQuantitativo >= 10_000_000 ? 0 : 1)} MM`
+                              : 'Não Mapeado'}
+                          </p>
+                          <p className="text-gray-500 mt-1" style={{ fontSize: 10 }}>
+                            {row.labResponsavel}
+                          </p>
+                        </td>
+                        <td className="py-3 align-top">
+                          <p className="text-gray-700 font-semibold" style={{ fontSize: 12 }}>
+                            {row.concluidoEm ? formatTempoDesdeConclusao(row.concluidoEm) : '—'}
+                          </p>
                         </td>
                       </tr>
                     )
