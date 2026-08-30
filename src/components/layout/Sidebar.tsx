@@ -7,8 +7,8 @@ import { useEffect, useState } from 'react'
 const NAV_ALL = [
   { label: 'OKRs',      icon: Flag,     href: '/okrs',          inactive: false, roles: ['admin'] },
   { label: 'Estratégia', icon: Target,   href: '/estrategia',    inactive: false, roles: ['admin', 'executivo'] },
-  { label: 'Benefícios', icon: Wallet,   href: '/beneficios',    inactive: false, roles: ['admin', 'executivo', 'financeiro'] },
   { label: 'Operacional',icon: Activity,  href: '/operacional',   inactive: false, roles: ['admin'] },
+  { label: 'Benefícios', icon: Wallet,   href: '/beneficios',    inactive: false, roles: ['admin', 'executivo', 'financeiro'] },
   { label: 'Portfólio',  icon: BarChart2, href: '/portfolio',     inactive: false, roles: ['admin'] },
   { label: 'Priorização',icon: ListOrdered,href: '/priorizacao',  inactive: false, roles: ['admin'] },
   { label: 'Report',     icon: FileText, href: '/report',         inactive: false, roles: ['admin'] },
