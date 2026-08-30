@@ -6,7 +6,7 @@ export interface User {
   id: string
   username: string
   passwordHash: string
-  role: 'admin' | 'executivo'
+  role: 'admin' | 'executivo' | 'viewer' | 'financeiro'
   createdAt: string
   active: boolean
 }
@@ -14,7 +14,7 @@ export interface User {
 export interface UserPublic {
   id: string
   username: string
-  role: 'admin' | 'executivo'
+  role: 'admin' | 'executivo' | 'viewer' | 'financeiro'
   createdAt: string
   active: boolean
 }
