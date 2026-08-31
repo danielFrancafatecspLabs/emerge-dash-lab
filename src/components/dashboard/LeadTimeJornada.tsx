@@ -1,5 +1,9 @@
 'use client'
 
+import {
+  AreaChart, Area, XAxis, YAxis, Tooltip, ReferenceLine,
+  ResponsiveContainer, Label,
+} from 'recharts'
 import { LeadTimeJornada, CycleTimeEstagio } from '@/lib/types'
 import { Clock, AlertTriangle, Zap, Lock, TrendingDown, TrendingUp } from 'lucide-react'
 
@@ -22,6 +26,17 @@ function gerarLeadTimeMensal(totalDias: number) {
     resultado.push({ mes: meses[idx], dias: Math.round(totalDias * variacao) })
   }
   return resultado
+}
+
+/** Tooltip customizado para o gráfico de lead time */
+function LeadTimeTooltip({ active, payload, label }: any) {
+  if (!active || !payload?.length) return null
+  return (
+    <div className="rounded-lg px-2.5 py-1.5 shadow-lg text-xs" style={{ background: '#1E293B', color: '#F8FAFC' }}>
+      <p className="font-medium mb-0.5" style={{ color: '#94A3B8' }}>{label}</p>
+      <p><strong>{payload[0].value}d</strong></p>
+    </div>
+  )
 }
 
 export default function LeadTimeJornadaComponent({ data, cycleTimeExperimentacao }: Props) {
@@ -53,7 +68,7 @@ export default function LeadTimeJornadaComponent({ data, cycleTimeExperimentacao
 
   return (
     <div className="flex flex-col min-w-0 overflow-hidden gap-3 h-full">
-      {/* ── Timeline compacta ── */}
+      {/* Timeline compacta */}
       <div className="flex-shrink-0">
         {/* Blocos da timeline */}
         <div className="flex rounded-full overflow-hidden" style={{ height: 22 }}>
@@ -105,7 +120,7 @@ export default function LeadTimeJornadaComponent({ data, cycleTimeExperimentacao
         </div>
       </div>
 
-      {/* ── Grid inferior: 3 colunas ── */}
+      {/* Grid inferior: 3 colunas */}
       <div className="grid gap-2 grid-cols-1 sm:grid-cols-3 min-w-0">
         {/* Cycle Time por Complexidade */}
         <div className="rounded-lg p-2.5" style={{ background: '#FFFBEB', border: '1px solid #FDE68A' }}>
@@ -185,56 +200,99 @@ export default function LeadTimeJornadaComponent({ data, cycleTimeExperimentacao
         </div>
       </div>
 
-      {/* ── Sparkline de lead time mensal + linha comparativa ── */}
-      <div className="rounded-lg p-2.5" style={{ background: '#FAFAFA', border: '1px solid #E5E7EB' }}>
-        <div className="flex items-center justify-between mb-1.5">
-          <p className="font-semibold text-gray-600" style={{ fontSize: 9 }}>Lead Time de Experimentação (últimos 6 meses)</p>
-          <div className="flex items-center gap-1">
+      {/* Grafico de Lead Time (AreaChart Recharts) */}
+      <div className="rounded-lg p-3" style={{ background: '#FAFAFA', border: '1px solid #E5E7EB' }}>
+        {/* Header com título e badge */}
+        <div className="flex items-center justify-between mb-2">
+          <p className="font-semibold" style={{ fontSize: 11, fontWeight: 500, color: '#64748B' }}>
+            Lead Time de Experimentação (últimos 6 meses)
+          </p>
+          <div className="flex items-center gap-1.5">
             {tendencia <= 0 ? (
-              <TrendingDown size={10} className="text-green-600" />
+              <TrendingDown size={12} className="text-green-600" />
             ) : (
-              <TrendingUp size={10} className="text-red-600" />
+              <TrendingUp size={12} className="text-red-600" />
             )}
-            <span className={`font-bold ${tendencia <= 0 ? 'text-green-600' : 'text-red-600'}`} style={{ fontSize: 9 }}>
+            <span className={`font-bold ${tendencia <= 0 ? 'text-green-600' : 'text-red-600'}`} style={{ fontSize: 10 }}>
               {tendencia <= 0 ? '−' : '+'}{Math.abs(tendencia)}d
             </span>
           </div>
         </div>
 
-        {/* Sparkline como mini barras */}
-        <div className="flex items-end gap-[2px]" style={{ height: 32 }}>
-          {leadTimeMensal.map((m, i) => {
-            const altura = (m.dias / maxDias) * 100
-            return (
-              <div key={m.mes} className="flex-1 flex flex-col items-center gap-0.5">
-                <div
-                  className="w-full rounded-t-sm transition-all"
-                  style={{
-                    height: `${Math.max(altura, 5)}%`,
-                    background: i === leadTimeMensal.length - 1
-                      ? 'linear-gradient(180deg, #DC2626, #EF4444)'
-                      : 'linear-gradient(180deg, #FCA5A5, #FEE2E2)',
-                    opacity: 0.85,
-                  }}
-                  title={`${m.mes}: ${m.dias}d`}
+        {/* Área do gráfico */}
+        <div style={{ height: 140 }}>
+          <ResponsiveContainer width="100%" height={140}>
+            <AreaChart data={leadTimeMensal} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
+              <defs>
+                <linearGradient id="leadTimeGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#2563EB" stopOpacity={0.2} />
+                  <stop offset="100%" stopColor="#2563EB" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <XAxis
+                dataKey="mes"
+                axisLine={false}
+                tickLine={false}
+                tick={{ fontSize: 11, fontWeight: 500, fill: '#64748B' }}
+                dy={4}
+              />
+              <YAxis hide domain={['dataMin - 5', 'dataMax + 5']} />
+              <Tooltip content={<LeadTimeTooltip />} />
+              <ReferenceLine
+                y={90}
+                stroke="#EF4444"
+                strokeDasharray="4 3"
+                strokeWidth={1.5}
+              >
+                <Label
+                  value="Meta 90d"
+                  position="insideTopRight"
+                  fill="#EF4444"
+                  fontSize={9}
+                  fontWeight={600}
                 />
-                <span className="text-gray-400" style={{ fontSize: 7 }}>{m.mes}</span>
-              </div>
-            )
-          })}
+              </ReferenceLine>
+              <Area
+                type="monotone"
+                dataKey="dias"
+                stroke="#2563EB"
+                strokeWidth={2}
+                fill="url(#leadTimeGradient)"
+                dot={false}
+                activeDot={{ r: 4, fill: '#2563EB', stroke: '#fff', strokeWidth: 2 }}
+              />
+              {/* Último ponto destacado */}
+              <Area
+                type="monotone"
+                dataKey="dias"
+                stroke="none"
+                fill="none"
+                dot={false}
+                activeDot={false}
+                connectNulls={false}
+              />
+            </AreaChart>
+          </ResponsiveContainer>
         </div>
 
-        {/* Linha comparativa */}
-        <div className="flex items-center justify-between mt-1.5 pt-1.5 border-t border-gray-200">
+        {/* Último ponto com label (renderizado manualmente abaixo do gráfico) */}
+        <div className="flex justify-center -mt-1 mb-1">
+          <span className="font-bold" style={{ fontSize: 11, color: '#2563EB' }}>
+            {leadTimeMensal[leadTimeMensal.length - 1]?.dias}d
+          </span>
+        </div>
+
+        {/* Rodapé com indicadores */}
+        <div className="flex items-center justify-between pt-1.5 border-t border-gray-200">
           <div className="flex items-center gap-2">
-            <span className="text-gray-700 font-bold" style={{ fontSize: 10 }}>
-              Experimentação: <strong className="text-red-700">{experimentacaoDias}d</strong>
+            <span className="font-bold" style={{ fontSize: 10, color: '#334155' }}>
+              Experimentação: <strong style={{ color: '#2563EB' }}>{experimentacaoDias}d</strong>
             </span>
-            <span className="text-gray-400" style={{ fontSize: 9 }}>·</span>
-            <span className="text-gray-500" style={{ fontSize: 9 }}>
-              Meta: <strong className="text-gray-700">90d</strong>
+            <span style={{ fontSize: 9, color: '#94A3B8' }}>·</span>
+            <span style={{ fontSize: 9, color: '#64748B' }}>
+              Meta: <strong style={{ color: '#EF4444' }}>90d</strong>
             </span>
-            <span className="text-gray-400" style={{ fontSize: 9 }}>·</span>
+            <span style={{ fontSize: 9, color: '#94A3B8' }}>·</span>
             <span className={`font-medium ${tendencia <= 0 ? 'text-green-600' : 'text-red-600'}`} style={{ fontSize: 9 }}>
               {tendencia <= 0 ? '↘ acelerando' : '↗ desacelerando'} vs. semestre anterior
             </span>
@@ -242,7 +300,7 @@ export default function LeadTimeJornadaComponent({ data, cycleTimeExperimentacao
         </div>
       </div>
 
-      {/* ── Observação ── */}
+      {/* Observacao */}
       <div className="mt-auto pt-2 border-t border-gray-100">
         <p className="text-gray-400 italic" style={{ fontSize: 9, lineHeight: 1.4 }}>
           Os resultados apresentados consideram os dados consolidados dos últimos 12 meses e ainda estão em processo de refinamento, podendo sofrer ajustes à medida que novas análises forem concluídas.
