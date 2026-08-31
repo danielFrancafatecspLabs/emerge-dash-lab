@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
-const PUBLIC_PATHS = ['/login', '/bem-vindo', '/api/auth', '/api/pesquisas']
+const PUBLIC_PATHS = ['/login', '/bem-vindo', '/api/auth']
 const BASE = '/jira'
 
 export function middleware(request: NextRequest) {
@@ -21,7 +21,7 @@ export function middleware(request: NextRequest) {
   const secret = process.env.AUTH_SECRET
   if (secret && token === secret) {
     // Proteger rotas que só admin pode acessar
-    const ADMIN_ONLY = ['/beneficios', '/pesquisas']
+    const ADMIN_ONLY = ['/beneficios', '/pesquisas', '/api/pesquisas']
     const isAdminOnly = ADMIN_ONLY.some(p => stripped.startsWith(p))
     if (isAdminOnly) {
       const role = request.cookies.get('user_role')?.value
