@@ -3,12 +3,14 @@
 import { useCallback, useState } from 'react'
 import { FileDown, Pencil, Check, X, TrendingUp, AlertTriangle, Target, Zap, Loader2, Sparkles, Lightbulb, CheckCircle2, FlaskConical } from 'lucide-react'
 import type { EpicDetail } from '@/lib/types'
+import ErrorBoundary from '@/components/ErrorBoundary'
 import DominioCard from './DominioCard'
 import IniciativasSlides, { type IniciativaSlideRow } from './IniciativasSlides'
 import IniciativasCandidatasSlides, { type IniciativaCandidataRow } from './IniciativasCandidatasSlides'
 import NovosExperimentosSlides from './NovosExperimentosSlides'
 import DestaquesSlide from './DestaquesSlide'
 import ReviewsSlide from './ReviewsSlide'
+import BloqueadosSlide, { type BloqueadoSlideRow } from './BloqueadosSlide'
 
 interface NovoNaEsteira {
   key: string
@@ -52,6 +54,7 @@ interface ReportContentProps {
   iniciativasSlides: IniciativaSlideRow[]
   iniciativasCandidatas: IniciativaCandidataRow[]
   emAndamento: EpicDetail[]
+  bloqueados: BloqueadoSlideRow[]
   novosNaEsteira: NovoNaEsteira[]
   iniciativasDelivery: IniciativaDelivery[]
   funilStages: FunilStage[]
@@ -81,6 +84,7 @@ export default function ReportContent({
   iniciativasSlides,
   iniciativasCandidatas,
   emAndamento,
+  bloqueados = [],
   novosNaEsteira,
   iniciativasDelivery: initialDelivery,
   funilStages,
@@ -262,10 +266,33 @@ export default function ReportContent({
       </div>
 
       {/* ═══════════════ SLIDES — REVIEWS ÚLTIMOS 15 DIAS ═══════════════ */}
-      <ReviewsSlide />
+      <ErrorBoundary>
+        <ReviewsSlide />
+      </ErrorBoundary>
 
       {/* ═══════════════ SLIDES — DESTAQUES DA SEMANA ═══════════════ */}
-      <DestaquesSlide />
+      <ErrorBoundary>
+        <DestaquesSlide />
+      </ErrorBoundary>
+
+      {/* ═══════════════ SLIDES — EXPERIMENTOS BLOQUEADOS ═══════════════ */}
+      {bloqueados.length > 0 && (
+        <div>
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-xs font-semibold text-gray-400 uppercase tracking-widest">
+              Slides para Apresentação — Experimentos Bloqueados
+            </span>
+            <span className="bg-amber-100 text-amber-700 text-xs font-bold px-2 py-0.5 rounded-full">
+              {bloqueados.length}
+            </span>
+          </div>
+          <div className="overflow-x-auto">
+            <ErrorBoundary>
+              <BloqueadosSlide bloqueados={bloqueados} />
+            </ErrorBoundary>
+          </div>
+        </div>
+      )}
 
       {/* ═══════════════ SLIDES — EXPERIMENTOS EM ANDAMENTO ═══════════════ */}
       <div>
@@ -278,7 +305,9 @@ export default function ReportContent({
           </span>
         </div>
         <div className="overflow-x-auto">
-          <IniciativasSlides iniciativas={iniciativasSlides} />
+          <ErrorBoundary>
+            <IniciativasSlides iniciativas={iniciativasSlides} />
+          </ErrorBoundary>
         </div>
       </div>
 
@@ -294,7 +323,9 @@ export default function ReportContent({
           <span className="text-[11px] text-gray-400">Aguardando Piloto (board 2734) · todos os campos editáveis</span>
         </div>
         <div className="overflow-x-auto">
-          <IniciativasCandidatasSlides iniciativas={iniciativasCandidatas} />
+          <ErrorBoundary>
+            <IniciativasCandidatasSlides iniciativas={iniciativasCandidatas} />
+          </ErrorBoundary>
         </div>
       </div>
 
@@ -310,7 +341,8 @@ export default function ReportContent({
           <span className="text-[11px] text-gray-400">Criados nos últimos 15 dias</span>
         </div>
         <div className="overflow-x-auto">
-          <NovosExperimentosSlides
+          <ErrorBoundary>
+            <NovosExperimentosSlides
             iniciativas={novosNaEsteira.map(ini => ({
               key: ini.key,
               nome: ini.nome,
@@ -320,6 +352,7 @@ export default function ReportContent({
               criadoEm: ini.criadoEm ?? '',
             }))}
           />
+          </ErrorBoundary>
         </div>
       </div>
 

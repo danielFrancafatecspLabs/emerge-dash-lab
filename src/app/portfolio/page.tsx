@@ -24,7 +24,7 @@ export default async function PortfolioPage() {
     const segmentoInputs = raw.epics.map(e => ({
       key: e.key,
       summary: e.fields.summary,
-      dominio: e.fields.customfield_30014 ?? null,
+      dominio: e.fields.customfield_11987?.value ?? null,
     }))
     const [classification, segmentoClassification] = await Promise.all([
       classifyPortfolios(epicInputs),

@@ -1,5 +1,5 @@
 import { fetchDashboardRaw } from '@/lib/jira'
-import { buildDashboardData, getPipelineStage } from '@/lib/mappers'
+import { buildDashboardData } from '@/lib/mappers'
 import { classifyPortfolios } from '@/lib/portfolio-classifier'
 import { classifySegmentos } from '@/lib/segmento-classifier'
 import Sidebar from '@/components/layout/Sidebar'
@@ -7,101 +7,33 @@ import Link from 'next/link'
 import LogoutButton from '@/components/layout/LogoutButton'
 import GenerateImageButton from '@/components/report/GenerateImageButton'
 import ReportContent from '@/components/report/ReportContent'
-import type { IniciativaSlideRow } from '@/components/report/IniciativasSlides'
-import type { IniciativaCandidataRow } from '@/components/report/IniciativasCandidatasSlides'
+import { iniciativasDelivery } from '@/lib/report-data'
+import {
+  formatBeneficioMM,
+  limparDescricao,
+  estaBloqueadoAgora,
+  PRIORIDADE_LABEL,
+  PRIORITY_ORDER,
+  CANDIDATAS_DELIVERY_NOMES,
+  STATUS_ANDAMENTO_VALIDACAO,
+} from '@/lib/report-utils'
+import type {
+  IniciativaSlideRow,
+  IniciativaCandidataRow,
+  BloqueadoSlideRow,
+} from '@/lib/types'
+import type { ChangelogEntry } from '@/lib/jira'
 
 export const dynamic = 'force-dynamic'
-
-const PRIORITY_ORDER: Record<string, number> = {
-  'Highest': 0,
-  'High': 1,
-  'Medium': 2,
-  'Low': 3,
-  'Lowest': 4,
-}
-
-interface IniciativaDelivery {
-  nome: string
-  experimento: string
-  situacaoAtual: string
-  proximosPassos: string
-  sponsor: string
-  dominio: string
-}
-
-const iniciativasDelivery: IniciativaDelivery[] = [
-  {
-    nome: 'Reajuste Telmex',
-    experimento: 'Sim',
-    situacaoAtual: 'Experimento Concluído. Aguardando GO/No Go para OK de Delivery com recurso da Carla Tiemi.',
-    proximosPassos: 'Tomar decisão para delivery, estimar custos de infra e subir a iniciativa para produção.',
-    sponsor: 'Carla Tiemi',
-    dominio: 'Empresarial',
-  },
-  {
-    nome: 'Smart Capex',
-    experimento: 'Sim',
-    situacaoAtual: 'Experimento Concluído. Aguardando GO/No Go para OK de Delivery com recurso da Carla Tiemi.',
-    proximosPassos: 'Tomar decisão para delivery, estimar custos de infra e subir a iniciativa para produção.',
-    sponsor: 'Heloisa Ubrig',
-    dominio: 'Diretoria Estratégia',
-  },
-  {
-    nome: 'Integridade do Produto',
-    experimento: 'Sim',
-    situacaoAtual: 'Contratação de Recursos e definição do plano em conjunto a Kamila Tairine.',
-    proximosPassos: 'Começar o desenvolvimento a partir da segunda semana de Agosto.',
-    sponsor: 'Patricia Mofato',
-    dominio: 'Financeiro',
-  },
-  {
-    nome: 'Logoff para WhatsApp',
-    experimento: 'Sim',
-    situacaoAtual: 'Execução de testes.',
-    proximosPassos: 'Adquirir um hub USB de melhor qualidade; Contratar uma solução VPN; Aquisição de mais 22 aparelhos; Alocação de um desenvolvedor dedicado.',
-    sponsor: 'Rodrigo Assad',
-    dominio: 'TI',
-  },
-  {
-    nome: 'Processamento de Manifestos',
-    experimento: 'Sim',
-    situacaoAtual: 'Experimento Concluído. Aguardando Go/No Go para Delivery.',
-    proximosPassos: 'Executar Piloto.',
-    sponsor: 'Felipe Takashi',
-    dominio: 'Ouvidoria',
-  },
-  {
-    nome: 'Automação para Resposta de Editais',
-    experimento: 'Sim',
-    situacaoAtual: 'Experimento Concluído. Decisão de Go para Delivery.',
-    proximosPassos: 'Definir plano para rodar no Delivery.',
-    sponsor: 'Heloisa Vieira',
-    dominio: 'Engenharia',
-  },
-  {
-    nome: 'Antispam',
-    experimento: 'Sim',
-    situacaoAtual: 'Realizar ajustes no App a partir da segunda quinzena de agosto.',
-    proximosPassos: 'Realizar testes em conjunto ao Imusica.',
-    sponsor: 'Gabriel Portugal',
-    dominio: 'SVA',
-  },
-  {
-    nome: 'Controle Parental',
-    experimento: 'Não',
-    situacaoAtual: 'Não definido plano para desenvolvimento.',
-    proximosPassos: 'Definir plano para desenvolver em Delivery.',
-    sponsor: 'Gabriel Portugal',
-    dominio: 'SVA',
-  },
-]
 
 export default async function ReportPage() {
   let data
   let error: string | null = null
+  let epicChangelogs: Record<string, ChangelogEntry[]> = {}
 
   try {
     const raw = await fetchDashboardRaw()
+    epicChangelogs = raw.epicChangelogs
     const epicInputs = raw.epics.map(e => ({
       key: e.key,
       summary: e.fields.summary,
@@ -110,7 +42,7 @@ export default async function ReportPage() {
     const segmentoInputs = raw.epics.map(e => ({
       key: e.key,
       summary: e.fields.summary,
-      dominio: e.fields.customfield_30014 ?? null,
+      dominio: e.fields.customfield_11987?.value ?? null,
     }))
     const [classification, segmentoClassification] = await Promise.all([
       classifyPortfolios(epicInputs),
@@ -133,11 +65,6 @@ export default async function ReportPage() {
   }
 
   // ── Experimentos em Andamento ou Validação, ordenados por prioridade ──
-  // Inclui apenas: Em andamento, EM VALIDAÇÃO, Em validação
-  // Exclui: BACKLOG, Em refinamento, PRONTO PARA EXECUÇÃO, Concluído, Cancelado, FINALIZADO
-  const STATUS_ANDAMENTO_VALIDACAO = new Set([
-    'Em andamento', 'EM VALIDAÇÃO', 'Em validação',
-  ])
   const emAndamento = data.allEpics
     .filter(e => STATUS_ANDAMENTO_VALIDACAO.has(e.status.name ?? ''))
     .sort((a, b) => {
@@ -147,37 +74,12 @@ export default async function ReportPage() {
     })
 
   // ── Slides "Experimentos em Andamento" (Iniciativas Gerais) ──
-  // Nome da iniciativa = nome do Epic (board 2735) em Refinamento, Em andamento ou
-  // Em validação. Lab Responsável vem sempre da Iniciativa-mãe (não do próprio Epic —
-  // o Epic pode ter o campo vazio ou divergente, a Iniciativa é a fonte confiável aqui).
+  // Lab Responsável vem sempre da Iniciativa-mãe (não do próprio Epic).
   const labResponsavelPorEpic = new Map<string, string>()
   for (const ini of data.iniciativas) {
     for (const epic of ini.epics) {
       labResponsavelPorEpic.set(epic.key, ini.timeResponsavel ?? '—')
     }
-  }
-
-  const PRIORIDADE_LABEL: Record<string, IniciativaSlideRow['prioridade']> = {
-    'Highest': 'Alta', 'High': 'Alta',
-    'Medium': 'Média',
-    'Low': 'Baixa', 'Lowest': 'Baixa',
-  }
-
-  function formatBeneficioMM(valor: number | null): string {
-    if (!valor) return 'Não Mapeado'
-    const mm = valor / 1_000_000
-    const casas = mm >= 10 || Number.isInteger(mm) ? 0 : 1
-    return `R$ ${mm.toFixed(casas)} MM`
-  }
-
-  // Limpa a descrição: remove emojis e a palavra "Objetivo" (ou "**Objetivo**") do início
-  function limparDescricao(raw: string | null): string {
-    if (!raw) return '—'
-    // Remove emojis (unicode pictographs, symbols, etc.)
-    let texto = raw.replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{FE00}-\u{FE0F}\u{1F900}-\u{1F9FF}\u{1FA00}-\u{1FA6F}\u{1FA70}-\u{1FAFF}\u{200D}\u{20E3}\u{231A}-\u{23FF}]/gu, '').trim()
-    // Remove "Objetivo" ou "**Objetivo**" do início (com ou sem markdown, case insensitive)
-    texto = texto.replace(/^(?:\*\*)?Objetivo(?:\*\*)?:?\s*/i, '').trim()
-    return texto || '—'
   }
 
   // Usa a MESMA lista de emAndamento (todos os experimentos ativos) para os slides
@@ -193,38 +95,22 @@ export default async function ReportPage() {
       labResponsavel: labResponsavelPorEpic.get(e.key) ?? '—',
     }))
 
+  // ── Slides "Experimentos Bloqueados" ──
+  const bloqueados: BloqueadoSlideRow[] = emAndamento
+    .filter(e => !!e.motivoBloqueio || estaBloqueadoAgora(e.key, epicChangelogs))
+    .map(e => ({
+      key: e.key,
+      nome: e.nome,
+      motivoBloqueio: e.motivoBloqueio ?? '—',
+      prioridade: PRIORIDADE_LABEL[e.prioridade ?? ''] ?? '—',
+      descricao: limparDescricao(e.descricao),
+      sponsor: e.sponsor ?? '—',
+      diretoria: e.dominio ?? '—',
+      beneficioLabel: formatBeneficioMM(e.beneficioQuantitativo),
+      labResponsavel: labResponsavelPorEpic.get(e.key) ?? '—',
+    }))
+
   // ── Slides "Iniciativas Concluídas / Candidatas a Delivery" ──
-  // Lista fixa de iniciativas definida pelo time beOn Labs.
-  // Para cada uma, busca o Epic filho concluído (status 10019 ou 10003) e extrai
-  // benefício quantitativo, lab responsável (da iniciativa-mãe) e lead time pós-conclusão.
-  const CANDIDATAS_DELIVERY_NOMES = new Set([
-    'ARI Juridico',
-    'Zelador',
-    'Reajuste Telmex',
-    'OCR do Solar',
-    'Processamento de Manifestos',
-    'Identificação de Chamadas de Spam',
-    'Automação de Editais',
-    'Qualificações de Segurança',
-    'Tabulação Automática em Leitura de Contexto',
-  ])
-
-  function formatTempoDesdeConclusao(concluidoEm: string | null): string {
-    if (!concluidoEm) return '—'
-    const agora = new Date()
-    const conclusao = new Date(concluidoEm)
-    const diffMs = agora.getTime() - conclusao.getTime()
-    if (diffMs < 0) return '—'
-    const diffDias = Math.floor(diffMs / (1000 * 60 * 60 * 24))
-    if (diffDias < 1) return 'Hoje'
-    if (diffDias === 1) return '1 dia'
-    if (diffDias < 30) return `${diffDias} dias`
-    const diffMeses = Math.floor(diffDias / 30)
-    const diasResto = diffDias % 30
-    if (diffMeses === 1) return diasResto > 0 ? `1 mês e ${diasResto}d` : '1 mês'
-    return diasResto > 0 ? `${diffMeses} meses e ${diasResto}d` : `${diffMeses} meses`
-  }
-
   const iniciativasCandidatas: IniciativaCandidataRow[] = data.iniciativas
     .filter(ini => CANDIDATAS_DELIVERY_NOMES.has(ini.nome.trim()))
     .map(ini => {
@@ -433,6 +319,7 @@ export default async function ReportPage() {
           iniciativasSlides={iniciativasSlides}
           iniciativasCandidatas={iniciativasCandidatas}
           emAndamento={emAndamento}
+          bloqueados={bloqueados}
           novosNaEsteira={novosNaEsteira}
           iniciativasDelivery={iniciativasDelivery}
           funilStages={funilStages}
