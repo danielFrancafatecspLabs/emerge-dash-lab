@@ -61,7 +61,7 @@ export function layoutResearchGraph(
     })
     .sort((left, right) => left.id.localeCompare(right.id, 'en'))
 
-  const categories = [...completedCategories].sort((left, right) => left.localeCompare(right, 'pt-BR'))
+  const categories = Array.from(completedCategories).sort((left, right) => left.localeCompare(right, 'pt-BR'))
   const minimumDimension = Math.min(width, height)
   const centerX = width / 2
   const centerY = height / 2
