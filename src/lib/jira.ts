@@ -49,6 +49,21 @@ function getHeaders(): HeadersInit {
   }
 }
 
+/**
+ * Valida a estrutura básica de uma resposta da API Jira.
+ * Previne que dados malformados propaguem erros obscuros.
+ */
+function validateJiraResponse(data: unknown, context: string): void {
+  if (!data || typeof data !== 'object') {
+    throw new Error(`Resposta inválida da API Jira (${context}): resposta não é um objeto`)
+  }
+  const obj = data as Record<string, unknown>
+  // Apenas respostas de listas de issues têm campo "total"
+  if (context.includes('issues') && typeof obj.total !== 'number') {
+    throw new Error(`Resposta inválida da API Jira (${context}): campo "total" ausente`)
+  }
+}
+
 async function getBoardConfiguration(boardId: number): Promise<JiraBoardConfiguration> {
   const base = process.env.JIRA_BASE_URL
   if (!base) throw new Error('JIRA_BASE_URL é obrigatório')
@@ -63,7 +78,9 @@ async function getBoardConfiguration(boardId: number): Promise<JiraBoardConfigur
     throw new Error(`Jira API erro ${res.status} — board ${boardId} configuration`)
   }
 
-  return res.json()
+  const data = await res.json()
+  validateJiraResponse(data, `board ${boardId} configuration`)
+  return data
 }
 
 async function getAllBoardIssues(boardId: number, fields: string): Promise<JiraIssue[]> {
@@ -74,6 +91,7 @@ async function getAllBoardIssues(boardId: number, fields: string): Promise<JiraI
   const maxResults = 50
   let startAt = 0
   let total = Infinity
+  let emptyPageCount = 0
 
   while (startAt < total) {
     const url =
@@ -90,13 +108,20 @@ async function getAllBoardIssues(boardId: number, fields: string): Promise<JiraI
     }
 
     const data = await res.json()
+    validateJiraResponse(data, `board ${boardId} issues`)
+
     total = data.total ?? 0
     const issues: JiraIssue[] = data.issues ?? []
     all.push(...issues)
     startAt += issues.length
 
     // Proteção contra loop infinito
-    if (issues.length === 0) break
+    if (issues.length === 0) {
+      emptyPageCount++
+      if (emptyPageCount >= 3) break // 3 páginas vazias consecutivas = algo errado
+    } else {
+      emptyPageCount = 0
+    }
   }
 
   return all

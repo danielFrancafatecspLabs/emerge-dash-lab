@@ -11,6 +11,7 @@ interface Props {
   insight?: InsightExecutivo | null
   loading?: boolean
   step?: number
+  ocultarInsight?: boolean
 }
 
 const iconMap: Record<string, ReactNode> = {
@@ -22,7 +23,7 @@ const iconMap: Record<string, ReactNode> = {
 /**
  * Wrapper que adiciona header + insight LLM abaixo de qualquer gráfico/card.
  */
-export default function GraficoComInsight({ titulo, subtitulo, children, insight, loading, step }: Props) {
+export default function GraficoComInsight({ titulo, subtitulo, children, insight, loading, step, ocultarInsight }: Props) {
   return (
     <div className="flex flex-col min-w-0 h-full">
       {/* Card wrapper */}
@@ -51,24 +52,26 @@ export default function GraficoComInsight({ titulo, subtitulo, children, insight
         </div>
 
         {/* Insight LLM */}
-        <div className="shrink-0 px-3 md:px-4 py-1.5 bg-gray-50/80 border-t border-gray-100">
-          {loading ? (
-            <div className="flex items-center gap-1.5 text-[11px] text-gray-400 animate-pulse">
-              <Sparkles size={11} className="flex-shrink-0" />
-              <span className="truncate">Gerando insight...</span>
-            </div>
-          ) : insight ? (
-            <div className="flex items-start gap-1.5 text-[11px] text-gray-500 leading-snug">
-              {iconMap[insight.tipo] ?? iconMap.neutro}
-              <span className="min-w-0 line-clamp-2">{insight.texto}</span>
-            </div>
-          ) : (
-            <div className="flex items-center gap-1.5 text-[11px] text-gray-300">
-              <Sparkles size={11} className="flex-shrink-0" />
-              <span>Insight indisponível</span>
-            </div>
-          )}
-        </div>
+        {!ocultarInsight && (
+          <div className="shrink-0 px-3 md:px-4 py-1.5 bg-gray-50/80 border-t border-gray-100">
+            {loading ? (
+              <div className="flex items-center gap-1.5 text-[11px] text-gray-400 animate-pulse">
+                <Sparkles size={11} className="flex-shrink-0" />
+                <span className="truncate">Gerando insight...</span>
+              </div>
+            ) : insight ? (
+              <div className="flex items-start gap-1.5 text-[11px] text-gray-500 leading-snug">
+                {iconMap[insight.tipo] ?? iconMap.neutro}
+                <span className="min-w-0 line-clamp-2">{insight.texto}</span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1.5 text-[11px] text-gray-300">
+                <Sparkles size={11} className="flex-shrink-0" />
+                <span>Insight indisponível</span>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   )
