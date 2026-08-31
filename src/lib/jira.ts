@@ -1,29 +1,40 @@
 import { JiraIssue, JiraBoardConfiguration } from './types'
 
+// Board IDs (use env vars if present, otherwise fall back to the correct defaults)
+export const IDEACAO_BOARD_ID = Number(process.env.JIRA_BOARD_IDEACAO_ID ?? 2734)
+export const EXPERIMENTACAO_BOARD_ID = Number(process.env.JIRA_BOARD_INICIATIVAS_ID ?? 2735)
+
 const FIELDS_INICIATIVA = [
   'summary', 'status', 'issuetype', 'created', 'updated',
-  'customfield_13242', // Benefício Quantitativo (R$) — campo preenchido na Iniciativa
-  'customfield_11662', // Sponsor
-  'customfield_16911', // Time Responsável (Lab)
-  'customfield_11661', // Domínio
+  'customfield_30216', // Benefício Quantitativo (R$) (was customfield_13242)
+  'customfield_30394', // Sponsor (was customfield_11662)
+  'customfield_30357', // Time Responsável (Lab) (was customfield_16911)
+  'customfield_31438', // Lab Responsável (option select, NOVO)
+  'customfield_11987', // Domínio (was customfield_16400)
+  'customfield_11991', // PROP DOMINIO 01
+  'customfield_30014', // Domínio (was customfield_11661)
+  'customfield_30021', // Domínio (option select) — NOVO
 ].join(',')
 
 const FIELDS_EPIC = [
   'summary', 'status', 'issuetype', 'parent', 'description', 'priority', 'created',
-  'customfield_11661', // Domínio (Empresarial / PME / outros)
+  'customfield_30014', // Domínio (Empresarial / PME / outros) (was customfield_11661)
   'customfield_13406', // Motivo de Bloqueio
-  'customfield_11662', // Sponsor
-  'customfield_11663', // BO
-  'customfield_11664', // Complexidade
-  'customfield_16911', // Time Responsável (Lab)
-  'customfield_13242', // Benefício Quantitativo
-  'customfield_13243', // Benefício Qualitativo
-  'customfield_16400', // Domínio
-  'customfield_13571', // Custo Estimado
-  'customfield_11668', // Custo Realizado
-  'customfield_11378', // Segmento
-  'customfield_15919', // Portfólio
-  'customfield_10904', // Diretoria
+  'customfield_30394', // Sponsor (was customfield_11662)
+  'customfield_30340', // BO (was customfield_11663)
+  'customfield_30358', // Complexidade (was customfield_11664)
+  'customfield_30357', // Time Responsável (Lab) (was customfield_16911)
+  'customfield_31438', // Lab Responsável (option select, NOVO)
+  'customfield_30216', // Benefício Quantitativo (was customfield_13242)
+  'customfield_30222', // Benefício Qualitativo (was customfield_13243)
+  'customfield_11987', // Domínio (was customfield_16400)
+  'customfield_11991', // PROP DOMINIO 01
+  'customfield_30021', // Domínio (option select) — NOVO
+  'customfield_30402', // Custo Estimado (was customfield_13571)
+  'customfield_30453', // Custo Realizado (was customfield_11668)
+  'customfield_30445', // Segmento (was customfield_11378)
+  'customfield_30110', // Portfólio (was customfield_15919)
+  'customfield_21499', // Diretoria (was customfield_10904)
   'attachment',          // Anexos
 ].join(',')
 
@@ -35,6 +46,21 @@ function getHeaders(): HeadersInit {
   return {
     Authorization: `Basic ${credentials}`,
     Accept: 'application/json',
+  }
+}
+
+/**
+ * Valida a estrutura básica de uma resposta da API Jira.
+ * Previne que dados malformados propaguem erros obscuros.
+ */
+function validateJiraResponse(data: unknown, context: string): void {
+  if (!data || typeof data !== 'object') {
+    throw new Error(`Resposta inválida da API Jira (${context}): resposta não é um objeto`)
+  }
+  const obj = data as Record<string, unknown>
+  // Apenas respostas de listas de issues têm campo "total"
+  if (context.includes('issues') && typeof obj.total !== 'number') {
+    throw new Error(`Resposta inválida da API Jira (${context}): campo "total" ausente`)
   }
 }
 
@@ -52,7 +78,9 @@ async function getBoardConfiguration(boardId: number): Promise<JiraBoardConfigur
     throw new Error(`Jira API erro ${res.status} — board ${boardId} configuration`)
   }
 
-  return res.json()
+  const data = await res.json()
+  validateJiraResponse(data, `board ${boardId} configuration`)
+  return data
 }
 
 async function getAllBoardIssues(boardId: number, fields: string): Promise<JiraIssue[]> {
@@ -63,6 +91,7 @@ async function getAllBoardIssues(boardId: number, fields: string): Promise<JiraI
   const maxResults = 50
   let startAt = 0
   let total = Infinity
+  let emptyPageCount = 0
 
   while (startAt < total) {
     const url =
@@ -79,13 +108,20 @@ async function getAllBoardIssues(boardId: number, fields: string): Promise<JiraI
     }
 
     const data = await res.json()
+    validateJiraResponse(data, `board ${boardId} issues`)
+
     total = data.total ?? 0
     const issues: JiraIssue[] = data.issues ?? []
     all.push(...issues)
     startAt += issues.length
 
     // Proteção contra loop infinito
-    if (issues.length === 0) break
+    if (issues.length === 0) {
+      emptyPageCount++
+      if (emptyPageCount >= 3) break // 3 páginas vazias consecutivas = algo errado
+    } else {
+      emptyPageCount = 0
+    }
   }
 
   return all
@@ -94,17 +130,17 @@ async function getAllBoardIssues(boardId: number, fields: string): Promise<JiraI
 export async function fetchDashboardRaw(): Promise<{
   iniciativas: JiraIssue[]
   epics: JiraIssue[]
-  board2706Config: JiraBoardConfiguration
+  board2734Config: JiraBoardConfiguration
   epicChangelogs: Record<string, ChangelogEntry[]>
   iniciativaChangelogs: Record<string, ChangelogEntry[]>
 }> {
-  const [iniciativas, epics, board2706Config] = await Promise.all([
-    getAllBoardIssues(2706, FIELDS_INICIATIVA),
-    getAllBoardIssues(2707, FIELDS_EPIC),
-    getBoardConfiguration(2706),
+  const [iniciativas, epics, board2734Config] = await Promise.all([
+    getAllBoardIssues(IDEACAO_BOARD_ID, FIELDS_INICIATIVA),
+    getAllBoardIssues(EXPERIMENTACAO_BOARD_ID, FIELDS_EPIC),
+    getBoardConfiguration(IDEACAO_BOARD_ID),
   ])
 
-  // Buscar último comentário (texto plano) apenas para Epics em andamento (status.id === '3')
+  // Buscar último comentário (texto plano) apenas para Epics em refinamento/andamento/validação
   async function getIssueLastComment(issueKey: string): Promise<string | null> {
     const base = process.env.JIRA_BASE_URL
     if (!base) throw new Error('JIRA_BASE_URL é obrigatório')
@@ -139,22 +175,27 @@ export async function fetchDashboardRaw(): Promise<{
     return String(body).trim()
   }
 
-  const epicsWithComments: JiraIssue[] = []
-  for (const e of epics) {
-    const copy = { ...e }
-    try {
-      if (copy.fields?.status?.id === '3') {
-        copy.fields = { ...copy.fields, lastComment: await getIssueLastComment(copy.key) }
-      }
-    } catch (err) {
-      // silencioso — preferimos continuar mesmo se um fetch falhar
-      copy.fields = { ...copy.fields, lastComment: null }
-    }
-    epicsWithComments.push(copy)
-  }
+  // Status IDs de Epic para os quais buscamos o último comentário (usado como "status
+  // detalhado" no Report): Em refinamento, Em andamento e Em validação — inclui aliases
+  // legados/migrados vistos no board 2735 (ver STATUS_PIPELINE em mappers.ts).
+  const EPIC_STATUS_NEEDS_COMMENT = new Set(['10139', '14538', '3', '10204', '11201'])
 
-  // Buscar changelogs para TODOS os Epics (board 2707) — necessário para calcular cycle time de experimentação
-  // e para TODAS as Iniciativas (board 2706) — necessário para cycle time por etapa.
+  const epicsWithComments: JiraIssue[] = await Promise.all(
+    epics.map(async e => {
+      const copy = { ...e }
+      if (!EPIC_STATUS_NEEDS_COMMENT.has(copy.fields?.status?.id ?? '')) return copy
+      try {
+        copy.fields = { ...copy.fields, lastComment: await getIssueLastComment(copy.key) }
+      } catch {
+        // silencioso — preferimos continuar mesmo se um fetch falhar
+        copy.fields = { ...copy.fields, lastComment: null }
+      }
+      return copy
+    })
+  )
+
+  // Buscar changelogs para TODOS os Epics (board 2735) — necessário para calcular cycle time de experimentação
+  // e para TODAS as Iniciativas (board 2734) — necessário para cycle time por etapa.
   // Rodamos ambos em paralelo com timeout individual de 8s por chamada.
   const BATCH_SIZE = 8
   const CHANGELOG_TIMEOUT_MS = 8000
@@ -180,7 +221,7 @@ export async function fetchDashboardRaw(): Promise<{
     fetchChangelogsBatch(iniciativas),
   ])
 
-  return { iniciativas, epics: epicsWithComments, board2706Config, epicChangelogs, iniciativaChangelogs }
+  return { iniciativas, epics: epicsWithComments, board2734Config, epicChangelogs, iniciativaChangelogs }
 }
 
 export interface ChangelogEntry {

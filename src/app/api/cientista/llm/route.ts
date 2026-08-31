@@ -189,10 +189,10 @@ export async function POST(request: NextRequest) {
 
     const raw = await fetchDashboardRaw()
     const [cls, seg] = await Promise.all([
-      classifyPortfolios(raw.epics.map(e => ({ key: e.key, summary: e.fields.summary, dominio: e.fields.customfield_16400?.value ?? null }))),
-      classifySegmentos(raw.epics.map(e => ({ key: e.key, summary: e.fields.summary, dominio: e.fields.customfield_11661 ?? null }))),
+      classifyPortfolios(raw.epics.map(e => ({ key: e.key, summary: e.fields.summary, dominio: e.fields.customfield_11987?.value ?? null }))),
+      classifySegmentos(raw.epics.map(e => ({ key: e.key, summary: e.fields.summary, dominio: e.fields.customfield_30014 ?? null }))),
     ])
-    const data = buildDashboardData(raw.iniciativas, raw.epics, cls, seg, raw.board2706Config)
+    const data = buildDashboardData(raw.iniciativas, raw.epics, cls, seg, raw.board2734Config)
 
     const systemPrompt = buildContext(data)
 

@@ -17,21 +17,24 @@ export interface JiraIssueFields {
   created?: string
   updated?: string
   description?: string                                // Descrição (texto livre)
-  // Epics — board 2707
-  customfield_11661?: string                          // Domínio (Empresarial / PME / outros)
+  // Epics — board 2735
+  customfield_30014?: string                          // Domínio (Empresarial / PME / outros) (was customfield_11661)
   customfield_13406?: { value: string }               // Motivo de Bloqueio
-  customfield_11662?: string                          // Sponsor
-  customfield_11663?: string                          // BO (Business Owner)
-  customfield_11664?: string | { value: string }        // Complexidade (pode vir como string ou objeto)
-  customfield_16911?: { value: string; id: string }    // Time Responsável (Lab)
-  customfield_13242?: number                          // Benefício Quantitativo (R$)
-  customfield_13243?: string                          // Benefício Qualitativo
-  customfield_16400?: { value: string; id: string }   // Domínio
-  customfield_13571?: number                          // Custo Estimado Experimento (R$)
-  customfield_11668?: string                          // Custo Realizado Experimento
-  customfield_11378?: { value: string }               // Segmento
-  customfield_15919?: { value: string }               // Portfólio
-  customfield_10904?: string                          // Diretoria
+  customfield_30394?: string                          // Sponsor (was customfield_11662)
+  customfield_30340?: string                          // BO (Business Owner) (was customfield_11663)
+  customfield_30358?: string | { value: string }        // Complexidade (was customfield_11664)
+  customfield_30357?: string                          // Time Responsável (Lab) (was customfield_16911, now textfield)
+  customfield_31438?: { value: string }                 // Lab Responsável (option select, NOVO)
+  customfield_30216?: number                          // Benefício Quantitativo (R$) (was customfield_13242)
+  customfield_30222?: string                          // Benefício Qualitativo (was customfield_13243)
+  customfield_11987?: { value: string; id: string }   // Domínio (was customfield_16400)
+  customfield_11991?: { value: string }                 // PROP DOMINIO 01
+  customfield_30021?: { value: string }                 // Domínio (option select) — NOVO
+  customfield_30402?: number                          // Custo Estimado Experimento (R$) (was customfield_13571)
+  customfield_30453?: string                          // Custo Realizado Experimento (was customfield_11668)
+  customfield_30445?: { value: string }               // Segmento (was customfield_11378)
+  customfield_30110?: { value: string }               // Portfólio (was customfield_15919)
+  customfield_21499?: string                          // Diretoria (was customfield_10904)
   // Preenchido pelo backend com o último comentário (texto plano)
   lastComment?: string | null
   // Prioridade padrão do Jira
@@ -100,7 +103,7 @@ export interface Iniciativa {
   status: JiraStatus
   metaCategoria: MetaCategoria | null
   epics: EpicDetail[]
-  beneficioQuantitativo: number | null     // da própria Iniciativa (customfield_13242)
+  beneficioQuantitativo: number | null     // da própria Iniciativa (customfield_30216)
   beneficioQuantitativoTotal: number       // soma dos Epics filhos
   dominios: string[]
   sponsors: string[]
@@ -203,9 +206,9 @@ export interface DashboardData {
   cycleTimeExperimentacaoGeral: CycleTimeEstagio    // agregado geral (visão antiga)
   cycleTimeDiagnostico: CycleTimeDiagnostico
   leadTimeJornada: LeadTimeJornada
-  /** Status IDs da coluna "EM PILOTO" no board 2706 */
+  /** Status IDs da coluna "EM PILOTO" no board 2734 */
   pilotoStatusIds: string[]
-  /** Status IDs da coluna "EM ESCALA" no board 2706 */
+  /** Status IDs da coluna "EM ESCALA" no board 2734 */
   escalaStatusIds: string[]
 }
 
@@ -284,3 +287,51 @@ export type PeriodoFiltro =
   | { tipo: 'ultimos12' }
   | { tipo: 'semestre'; ano: number; semestre: 1 | 2 }
   | { tipo: 'tudo' }
+
+// ── Tipos para os Slides do Report ──
+
+export interface IniciativaSlideRow {
+  key: string
+  nome: string
+  prioridade: 'Alta' | 'Média' | 'Baixa' | '—'
+  descricao: string
+  sponsor: string
+  diretoria: string
+  beneficioLabel: string
+  labResponsavel: string
+}
+
+export interface IniciativaCandidataRow {
+  key: string
+  nome: string
+  experimento: 'Sim' | 'Não'
+  situacaoBadge: 'CONCLUÍDO' | 'EM ANDAMENTO' | 'NOVO CICLO' | 'N/A'
+  situacaoTexto: string
+  proximosPassos: string
+  sponsor: string
+  diretoria: string
+  beneficioQuantitativo: number | null
+  labResponsavel: string
+  concluidoEm: string | null
+}
+
+export interface BloqueadoSlideRow {
+  key: string
+  nome: string
+  motivoBloqueio: string
+  prioridade: string
+  descricao: string
+  sponsor: string
+  diretoria: string
+  beneficioLabel: string
+  labResponsavel: string
+}
+
+export interface IniciativaDelivery {
+  nome: string
+  experimento: string
+  situacaoAtual: string
+  proximosPassos: string
+  sponsor: string
+  dominio: string
+}
