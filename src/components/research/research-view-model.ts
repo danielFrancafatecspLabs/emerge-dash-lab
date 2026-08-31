@@ -68,7 +68,7 @@ export function buildResearchTree(documents: ResearchDocument[]): ResearchTreeNo
   }
 
   const tree: ResearchTreeNode[] = []
-  for (const [categoryName, categoryDocument] of categories) {
+  for (const [categoryName, categoryDocument] of Array.from(categories.entries())) {
     const topicNodes = completedTopics
       .filter(document => document.category === categoryName)
       .map(topic => {
