@@ -1,0 +1,12 @@
+[Unit]
+Description=Check research-obsidian main every five minutes
+
+[Timer]
+OnCalendar=*:0/5
+Persistent=true
+RandomizedDelaySec=20
+AccuracySec=1s
+Unit=research-vault-deploy.service
+
+[Install]
+WantedBy=timers.target
