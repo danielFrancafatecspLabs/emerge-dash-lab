@@ -1,11 +1,11 @@
 'use client'
 
-import { useState, useMemo, useEffect, useCallback } from 'react'
-import { PanelLeftOpen } from 'lucide-react'
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react'
+import { PanelLeftOpen, Download, Loader2 } from 'lucide-react'
 import Header from '@/components/layout/Header'
 import Sidebar from '@/components/layout/Sidebar'
 import ResumoExecutivo from '@/components/dashboard/ResumoExecutivo'
-import PortfolioPorMercado from '@/components/dashboard/PortfolioPorMercado'
+import MapaDiretorias from '@/components/dashboard/MapaDiretorias'
 import Top5Experimentos from '@/components/dashboard/Top5Experimentos'
 import GovernancaAlinhamento from '@/components/dashboard/GovernancaAlinhamento'
 import BurnupChart from '@/components/monitoramento/BurnupChart'
@@ -221,6 +221,8 @@ export default function EstrategiaClient({ data, monitoramento, beneficioValidad
   const [modoSlide, setModoSlide] = useState(false)
   const [insightsMap, setInsightsMap] = useState<Record<string, InsightExecutivo>>({})
   const [insightsLoading, setInsightsLoading] = useState(false)
+  const [exportingImage, setExportingImage] = useState(false)
+  const mainContentRef = useRef<HTMLDivElement>(null)
 
   const dadosFiltrados = useMemo(
     () => filtrarDashboardData(data, periodoFiltro),
@@ -351,6 +353,31 @@ export default function EstrategiaClient({ data, monitoramento, beneficioValidad
     return () => window.removeEventListener('open-slide-mode', handler)
   }, [])
 
+  // ── Exportar dashboard como imagem ──
+  async function exportarComoImagem() {
+    if (!mainContentRef.current || exportingImage) return
+    setExportingImage(true)
+    try {
+      const html2canvas = (await import('html2canvas')).default
+      const canvas = await html2canvas(mainContentRef.current, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: '#ffffff',
+        logging: false,
+      })
+      const dataUrl = canvas.toDataURL('image/png')
+      const a = document.createElement('a')
+      a.href = dataUrl
+      a.download = `estrategia-beon-${new Date().toISOString().slice(0, 10)}.png`
+      a.click()
+    } catch (err) {
+      console.error('Erro ao exportar imagem:', err)
+      alert('Erro ao gerar imagem. Tente novamente.')
+    } finally {
+      setExportingImage(false)
+    }
+  }
+
   return (
     <div className="flex min-h-dvh bg-gray-50">
       {/* Sidebar — oculta no modo slide */}
@@ -378,6 +405,7 @@ export default function EstrategiaClient({ data, monitoramento, beneficioValidad
 
         {/* Content */}
         <main
+          ref={mainContentRef}
           className="flex-1 p-3 md:p-4 gap-3 flex flex-col min-w-0"
           style={{ marginTop: modoSlide ? 0 : 52 }}
         >
@@ -391,6 +419,16 @@ export default function EstrategiaClient({ data, monitoramento, beneficioValidad
                 Panorama estratégico do portfólio de inovação BeOn Lab — de onde partimos ao valor entregue, em {dadosFiltrados.iniciativas.length} iniciativas.
               </p>
             </div>
+            <button
+              onClick={exportarComoImagem}
+              disabled={exportingImage}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-white disabled:opacity-60 transition-colors"
+              style={{ background: '#8B0000' }}
+              title="Baixar dashboard como imagem PNG"
+            >
+              {exportingImage ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />}
+              {exportingImage ? 'Gerando...' : 'Baixar Imagem'}
+            </button>
           </div>
 
           {/* ── Linha 1: Impacto Entregue ── */}
@@ -405,9 +443,10 @@ export default function EstrategiaClient({ data, monitoramento, beneficioValidad
               <GraficoComInsight
                 step={1}
                 titulo="Resumo Executivo"
-                subtitulo="Metas estratégicas & pipeline (board 2734)"
+                subtitulo="Metas estratégicas & pipeline"
                 insight={insightsMap['resumo']}
                 loading={insightsLoading}
+                ocultarInsight
               >
                 <ResumoExecutivo data={dadosFiltrados} beneficioValidadoTotal={beneficioValidadoTotal} />
               </GraficoComInsight>
@@ -418,18 +457,23 @@ export default function EstrategiaClient({ data, monitoramento, beneficioValidad
                 subtitulo="Acumulado de experimentos concluídos no período"
                 insight={insightsMap['burnup']}
                 loading={insightsLoading}
+                ocultarInsight
               >
-                <BurnupChart data={monitoramentoFiltrado.burnup} height={170} />
+                <BurnupChart data={monitoramentoFiltrado.burnup} />
               </GraficoComInsight>
 
               <GraficoComInsight
                 step={3}
-                titulo="Top 5 Experimentos"
-                subtitulo="Maior valor potencial (R$)"
-                insight={insightsMap['top5']}
+                titulo="Jornada de Adoção"
+                subtitulo="Lead time e gargalos do pipeline"
+                insight={insightsMap['leadtime']}
                 loading={insightsLoading}
+                ocultarInsight
               >
-                <Top5Experimentos data={dadosFiltrados} />
+                <LeadTimeJornada
+                  data={dadosFiltrados.leadTimeJornada}
+                  cycleTimeExperimentacao={dadosFiltrados.cycleTimeExperimentacao}
+                />
               </GraficoComInsight>
             </div>
           </section>
@@ -449,31 +493,31 @@ export default function EstrategiaClient({ data, monitoramento, beneficioValidad
                 subtitulo="Distribuição por etapa do pipeline"
                 insight={insightsMap['funil']}
                 loading={insightsLoading}
+                ocultarInsight
               >
                 <FunilExperimentos data={dadosFiltrados} />
               </GraficoComInsight>
 
               <GraficoComInsight
                 step={5}
-                titulo="Jornada de Adoção"
-                subtitulo="Lead time e gargalos do pipeline"
-                insight={insightsMap['leadtime']}
+                titulo="Top 5 Experimentos"
+                subtitulo="Maior valor potencial (R$)"
+                insight={insightsMap['top5']}
                 loading={insightsLoading}
+                ocultarInsight
               >
-                <LeadTimeJornada
-                  data={dadosFiltrados.leadTimeJornada}
-                  cycleTimeExperimentacao={dadosFiltrados.cycleTimeExperimentacao}
-                />
+                <Top5Experimentos data={dadosFiltrados} />
               </GraficoComInsight>
 
               <GraficoComInsight
                 step={6}
-                titulo="Portfólio por Mercado"
-                subtitulo="Onde estamos investindo por segmento"
+                titulo="Diretorias por Experimentos"
+                subtitulo="Ordenado por volume de experimentos · benefício potencial"
                 insight={insightsMap['portfolio']}
                 loading={insightsLoading}
+                ocultarInsight
               >
-                <PortfolioPorMercado data={dadosFiltrados.mercadosSegmento} />
+                <MapaDiretorias epics={dadosFiltrados.allEpics} />
               </GraficoComInsight>
             </div>
           </section>
