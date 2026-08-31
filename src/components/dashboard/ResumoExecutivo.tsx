@@ -1,12 +1,17 @@
 'use client'
 
 import { useState } from 'react'
-import { DashboardData, Iniciativa } from '@/lib/types'
+import { DashboardData, Iniciativa, EpicDetail } from '@/lib/types'
 import { formatBRL, getPipelineStage, META_LABELS } from '@/lib/mappers'
-import { TrendingUp, DollarSign, Heart, Zap, Rocket, ArrowUpRight, Target, Eye } from 'lucide-react'
+import {
+  TrendingUp, DollarSign, Heart, Wallet, List,
+  Beaker, BarChart3, ExternalLink, ArrowUpRight
+} from 'lucide-react'
+import Link from 'next/link'
 import IniciativaModal from './IniciativaModal'
+import EpicModal from './EpicModal'
 
-interface Props { data: DashboardData }
+interface Props { data: DashboardData; beneficioValidadoTotal: number }
 
 const META_ICONS: Record<string, React.ComponentType<{ size?: number; color?: string }>> = {
   EBITDA:  TrendingUp,
@@ -14,236 +19,223 @@ const META_ICONS: Record<string, React.ComponentType<{ size?: number; color?: st
   NPS:     Heart,
 }
 
-const META_COLORS: Record<string, { bg: string; bar: string; text: string; glow: string }> = {
-  EBITDA:  { bg: 'bg-red-50',   bar: 'bg-red-500',   text: 'text-red-700',   glow: 'shadow-red-200' },
-  Receita: { bg: 'bg-blue-50',  bar: 'bg-blue-500',  text: 'text-blue-700',  glow: 'shadow-blue-200' },
-  NPS:     { bg: 'bg-pink-50',  bar: 'bg-pink-500',  text: 'text-pink-700',  glow: 'shadow-pink-200' },
+const META_STYLE: Record<string, { bar: string; dot: string; from: string; via: string; label: string }> = {
+  EBITDA:  { bar: 'bg-gradient-to-r from-red-700 to-red-500', dot: 'bg-red-700', from: 'from-red-700/10', via: 'via-red-500/5', label: 'text-red-800' },
+  Receita: { bar: 'bg-gradient-to-r from-red-600 to-red-400', dot: 'bg-red-600', from: 'from-red-600/10', via: 'via-red-400/5', label: 'text-red-700' },
+  NPS:     { bar: 'bg-gradient-to-r from-red-500 to-red-300', dot: 'bg-red-500', from: 'from-red-500/10', via: 'via-red-300/5', label: 'text-red-600' },
 }
 
-export default function ResumoExecutivo({ data }: Props) {
+export default function ResumoExecutivo({ data, beneficioValidadoTotal }: Props) {
   const [modal, setModal] = useState<{ title: string; items: Iniciativa[] } | null>(null)
+  const [epicModal, setEpicModal] = useState<{ title: string; epics: EpicDetail[] } | null>(null)
+  const pctValidado = data.beneficioTotal > 0 ? Math.round((beneficioValidadoTotal / data.beneficioTotal) * 100) : 0
 
-  // ── Pipeline stats (base: experimentos do board 2707, mesma lógica do funil) ──
-  const totalExperimentos = data.allEpics.filter(e => e.status?.id !== '10015').length
-  const concluidos = data.allEpics.filter(e => e.status?.id === '10003').length
-  const emPilotoEscala = data.pipeline['EM PILOTO'] + data.pipeline['EM ESCALA']
-  const emEscala = data.pipeline['EM ESCALA']
-
-  const taxaEscala = totalExperimentos > 0 ? Math.round((emEscala / totalExperimentos) * 100) : 0
-  const taxaPiloto = totalExperimentos > 0 ? Math.round((emPilotoEscala / totalExperimentos) * 100) : 0
-
-  // ── Metas stats ──
   const metasKeys = ['EBITDA', 'Receita', 'NPS'] as const
   const metasAgregadas = data.metasAgregadas
   const totalMetasValor = metasKeys.reduce((s, k) => s + metasAgregadas[k].valor, 0)
 
   return (
     <>
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-        {/* ── Cabeçalho ── */}
-        <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-gray-50 to-white">
-          <div className="flex items-center gap-2.5">
-            <div className="flex -space-x-1">
-              <div className="w-2 h-5 rounded-full bg-red-500" />
-              <div className="w-2 h-5 rounded-full bg-blue-500" />
-              <div className="w-2 h-5 rounded-full bg-pink-500" />
+      <div className="flex flex-col gap-2.5 h-full select-none">
+        {/* ════════════════════════════════════════
+            CARD PRINCIPAL — Benefício Potencial
+            ════════════════════════════════════════ */}
+        <div
+          className="relative rounded-xl border border-gray-100 bg-gradient-to-br from-gray-50 via-white to-gray-50/50 p-3 cursor-pointer hover:shadow-lg hover:border-gray-200 transition-all duration-300 group overflow-hidden"
+          onClick={() => {
+            const items = data.iniciativas.filter(i => getPipelineStage(i.status) === 'EM ESCALA')
+            if (items.length > 0) setModal({ title: 'Iniciativas em escala', items })
+          }}
+        >
+          {/* Glow decorativo */}
+          <div className="absolute -top-6 -right-6 w-24 h-24 bg-red-400/10 rounded-full blur-2xl pointer-events-none group-hover:bg-red-400/20 transition-all duration-500" />
+          <div className="absolute -bottom-4 -left-4 w-16 h-16 bg-red-300/10 rounded-full blur-xl pointer-events-none" />
+
+          {/* Linha superior: label + ações */}
+          <div className="flex items-center justify-between gap-2 relative z-10">
+            <div className="flex items-center gap-2">
+              <div className="rounded-lg p-1.5 bg-gradient-to-br from-red-600 to-red-800 shadow-md shadow-red-200/50 flex-shrink-0 group-hover:scale-105 transition-transform duration-300">
+                <TrendingUp size={13} color="white" />
+              </div>
+              <div>
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.15em]">
+                  Benefício Potencial
+                </p>
+              </div>
             </div>
-            <div>
-              <h2 className="text-sm font-bold text-gray-900">Resumo Executivo</h2>
-              <p className="text-xs text-gray-400">
-                Metas estratégicas & pipeline • {data.iniciativas.length} iniciativas (board 2706)
-              </p>
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={e => { e.stopPropagation(); setEpicModal({ title: 'Experimentos que contribuem para o Benefício Potencial', epics: data.allEpics.filter(e => (e.beneficioQuantitativo ?? 0) > 0) }) }}
+                className="flex items-center gap-1 px-2 py-1 rounded-md text-[9px] font-semibold text-red-700 bg-red-50 border border-red-200 hover:bg-red-100 hover:border-red-300 transition-all flex-shrink-0"
+                title="Ver experimentos que contribuem para o benefício potencial"
+              >
+                <List size={9} /> Ver experimentos
+              </button>
+              <Link
+                href="/beneficios"
+                onClick={e => e.stopPropagation()}
+                className="flex items-center gap-1 px-2 py-1 rounded-md text-[9px] font-semibold text-gray-500 bg-gray-50 border border-gray-200 hover:bg-gray-100 hover:border-gray-300 transition-all flex-shrink-0"
+                title="Abrir Controle Financeiro de Benefícios"
+              >
+                <Wallet size={9} /> Financeiro
+              </Link>
             </div>
           </div>
-          <button
-            onClick={() => setModal({ title: 'Todas as Iniciativas', items: data.iniciativas })}
-            className="flex items-center gap-1 text-xs font-semibold text-gray-500 hover:text-gray-800 transition-colors px-2.5 py-1.5 rounded-lg hover:bg-gray-100"
-          >
-            <Eye size={13} />
-            Ver todas
-          </button>
+
+          {/* Valor principal */}
+          <div className="mt-2 relative z-10">
+            <p
+              className="text-xl font-black text-gray-900 tracking-tight leading-none"
+              title="Os números de benefícios exibidos consideram as estimativas fornecidas pelos usuários na etapa de cadastro do experimento."
+            >
+              {formatBRL(data.beneficioTotal)}
+            </p>
+            <Link
+              href="/beneficios"
+              onClick={e => e.stopPropagation()}
+              className="inline-flex items-center gap-1 mt-1 group/link"
+              title="Ver detalhamento no Controle Financeiro"
+            >
+              <span className="text-[9px] text-gray-400 group-hover/link:text-gray-600 transition-colors">
+                <strong className="text-red-600 font-bold">{formatBRL(beneficioValidadoTotal)}</strong> validado pelo financeiro
+              </span>
+              <span className="text-[9px] text-gray-300 group-hover/link:text-red-500 transition-colors">
+                ({pctValidado}%)
+              </span>
+              <ExternalLink size={8} className="text-gray-300 group-hover/link:text-red-500 transition-colors" />
+            </Link>
+          </div>
+
+          {/* Barra de progresso validação */}
+          <div className="mt-2.5 relative z-10">
+            <div className="h-1 bg-gray-100 rounded-full overflow-hidden">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-red-400 to-red-600 transition-all duration-700"
+                style={{ width: `${Math.max(pctValidado, 2)}%` }}
+              />
+            </div>
+            <div className="flex justify-between mt-0.5">
+              <span className="text-[7px] text-gray-300">0%</span>
+              <span className="text-[7px] text-gray-300">100%</span>
+            </div>
+          </div>
+
+          {/* Separador */}
+          <div className="my-2.5 border-t border-gray-100 relative z-10" />
+
+          {/* Apenas: experimentos com benefício potencial identificado */}
+          <div className="relative z-10">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="rounded-lg p-1.5 bg-gradient-to-br from-red-500 to-red-700 shadow-sm flex-shrink-0">
+                  <Beaker size={11} color="white" />
+                </div>
+                <div>
+                  <p className="text-[9px] font-medium text-gray-500">
+                    Experimentos com benefício potencial
+                  </p>
+                  <p className="text-lg font-black text-gray-900 tracking-tight leading-none mt-0.5">
+                    {data.allEpics.filter(e => (e.beneficioQuantitativo ?? 0) > 0 && e.status?.id !== '10015').length}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={e => { e.stopPropagation(); setEpicModal({ title: 'Experimentos com Benefício Potencial Identificado', epics: data.allEpics.filter(e => (e.beneficioQuantitativo ?? 0) > 0 && e.status?.id !== '10015') }) }}
+                className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[9px] font-semibold text-red-700 bg-red-50 border border-red-200 hover:bg-red-100 hover:border-red-300 transition-all flex-shrink-0"
+              >
+                <List size={10} /> Listar
+              </button>
+            </div>
+          </div>
         </div>
 
-        {/* ── Grid principal: 2 colunas ── */}
-        <div className="p-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
+        {/* ════════════════════════════════════════
+            METAS ESTRATÉGICAS
+            ════════════════════════════════════════ */}
+        <div className="flex items-center gap-2 pt-0.5">
+          <div className="h-3 w-0.5 rounded-full bg-gradient-to-b from-gray-300 to-gray-200" />
+          <BarChart3 size={10} className="text-gray-400" />
+          <p className="text-[9px] font-bold text-gray-400 uppercase tracking-[0.15em]">
+            Metas Estratégicas
+          </p>
+          <div className="flex-1 h-px bg-gradient-to-r from-gray-100 to-transparent" />
+        </div>
 
-          {/* ═══ COLUNA 1: METAS ESTRATÉGICAS ═══ */}
-          <div className="flex flex-col gap-2">
-            <div className="flex items-center gap-1.5">
-              <Target size={12} className="text-gray-400" />
-              <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-widest">
-                Metas Estratégicas
-              </p>
-            </div>
+        <div className="flex flex-col gap-1.5 flex-1">
+          {metasKeys.map(meta => {
+            const style = META_STYLE[meta]
+            const stats = metasAgregadas[meta]
+            const pct = totalMetasValor > 0 ? Math.round((stats.valor / totalMetasValor) * 100) : 0
+            const Icon = META_ICONS[meta]
+            const temValor = stats.valor > 0
+            return (
+              <div
+                key={meta}
+                className="group relative rounded-xl border border-gray-100 bg-white px-2.5 py-2 cursor-pointer hover:shadow-md hover:border-gray-200 transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0"
+                onClick={() => {
+                  const items = data.iniciativasPorMeta[meta] ?? []
+                  if (items.length > 0) setModal({ title: META_LABELS[meta] ?? meta, items })
+                }}
+              >
+                {/* Faixa decorativa lateral */}
+                <div className={`absolute left-0 top-1 bottom-1 w-0.5 rounded-full ${style.bar} opacity-0 group-hover:opacity-100 transition-opacity duration-300`} />
 
-            <div className="flex flex-col gap-1.5 flex-1">
-              {metasKeys.map(meta => {
-                const color = META_COLORS[meta]
-                const stats = metasAgregadas[meta]
-                const pct = totalMetasValor > 0 ? Math.round((stats.valor / totalMetasValor) * 100) : 0
-                const Icon = META_ICONS[meta]
-                return (
-                  <div
-                    key={meta}
-                    className={`rounded-lg border p-2.5 cursor-pointer transition-all duration-200 hover:shadow-sm group ${color.bg} border-gray-100`}
-                    onClick={() => {
-                      const items = data.iniciativasPorMeta[meta] ?? []
-                      if (items.length > 0) setModal({ title: META_LABELS[meta] ?? meta, items })
-                    }}
-                  >
-                    <div className="flex items-center justify-between mb-1">
-                      <div className="flex items-center gap-2">
-                        <div className="rounded-md p-1 bg-white shadow-sm">
-                          <Icon size={11} className={color.text} />
-                        </div>
-                        <span className="text-xs font-bold text-gray-800">{META_LABELS[meta] ?? meta}</span>
-                      </div>
-                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <span className="text-[10px] font-semibold text-gray-500">{stats.count}</span>
-                        <ArrowUpRight size={10} className="text-gray-400" />
-                      </div>
-                    </div>
+                <div className="flex items-center gap-2.5">
+                  {/* Ícone */}
+                  <div className={`rounded-lg p-1.5 flex-shrink-0 bg-gradient-to-br ${style.from} ${style.via} border border-gray-100 group-hover:scale-105 transition-transform duration-200`}>
+                    <Icon size={11} className={style.label} />
+                  </div>
 
-                    <div className="flex items-center gap-1.5 mb-1">
-                      <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                        <div
-                          className={`h-full rounded-full transition-all duration-700 ${color.bar}`}
-                          style={{ width: `${Math.max(pct, 3)}%` }}
-                        />
-                      </div>
-                      <span className="text-[10px] font-bold text-gray-400 w-7 text-right">{pct}%</span>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <span className="text-[10px] text-gray-400">Iniciativas <strong className="text-gray-700">{stats.count}</strong></span>
-                      <span className="text-[10px] text-gray-300">|</span>
-                      <span className={`text-[10px] font-semibold ${color.text}`}>
-                        {stats.valor > 0 ? formatBRL(stats.valor) : '—'}
+                  {/* Label + barra */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-[10px] font-bold text-gray-700 truncate">
+                        {META_LABELS[meta] ?? meta}
+                      </span>
+                      <span className={`text-[9px] font-extrabold flex-shrink-0 ${temValor ? style.label : 'text-gray-300'}`}>
+                        {temValor ? formatBRL(stats.valor) : '—'}
                       </span>
                     </div>
-                  </div>
-                )
-              })}
-            </div>
-          </div>
-
-          {/* ═══ COLUNA 2: PIPELINE DE CONVERSÃO ═══ */}
-          <div className="flex flex-col gap-2">
-            <div className="flex items-center gap-1.5">
-              <Rocket size={12} className="text-gray-400" />
-              <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-widest">
-                Pipeline de Conversão
-              </p>
-            </div>
-
-            <div className="flex flex-col gap-1.5 flex-1">
-
-              {/* Card: Benefício Total */}
-              <div
-                className="rounded-lg border border-emerald-100 bg-gradient-to-br from-emerald-50 to-white p-2.5 cursor-pointer hover:shadow-sm transition-all duration-200 group"
-                onClick={() => {
-                  const items = data.iniciativas.filter(i => getPipelineStage(i.status) === 'EM ESCALA')
-                  if (items.length > 0) setModal({ title: 'Iniciativas em escala', items })
-                }}
-              >
-                <div className="flex items-center gap-2.5">
-                  <div className="rounded-md p-1.5 bg-gradient-to-br from-emerald-500 to-teal-600 shadow-sm">
-                    <TrendingUp size={12} color="white" />
-                  </div>
-                  <div>
-                    <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Benefício Potencial</p>
-                    <p className="text-base font-extrabold text-gray-900 tracking-tight">{formatBRL(data.beneficioTotal)}</p>
-                    <p className="text-[10px] text-gray-400 mt-0.5 leading-tight">Os números de benefícios exibidos consideram as estimativas fornecidas pelos usuários na etapa de cadastro do experimento.</p>
-                  </div>
-                </div>
-                <div className="mt-2 pt-2 border-t border-emerald-100/60 flex gap-3">
-                  {[
-                    { label: 'Exp.', count: data.iniciativas.filter(i => getPipelineStage(i.status) === 'EM EXPERIMENTAÇÃO').length, color: 'text-emerald-700' },
-                    { label: 'Piloto', count: data.pipeline['EM PILOTO'], color: 'text-amber-700' },
-                    { label: 'Escala', count: data.pipeline['EM ESCALA'], color: 'text-red-700' },
-                  ].map(s => (
-                    <div key={s.label} className="flex items-center gap-1">
-                      <span className="text-[10px] text-gray-400">{s.label}</span>
-                      <span className={`text-xs font-bold ${s.color}`}>{s.count}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Card: Conversão p/ Escala */}
-              <div
-                className="rounded-lg border border-red-100 bg-gradient-to-br from-red-50 to-white p-2.5 cursor-pointer hover:shadow-sm transition-all duration-200 group"
-                onClick={() => {
-                  const items = data.iniciativas.filter(i => getPipelineStage(i.status) === 'EM ESCALA')
-                  if (items.length > 0) setModal({ title: 'Iniciativas em escala', items })
-                }}
-              >
-                <div className="flex items-center gap-2.5">
-                  <div className="rounded-md p-1.5 bg-gradient-to-br from-red-500 to-red-700 shadow-sm">
-                    <Rocket size={12} color="white" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between">
-                      <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Conversão p/ Escala</p>
-                      <span className="text-sm font-extrabold text-gray-900">{taxaEscala}%</span>
+                    <div className="mt-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all duration-700 ${style.bar}`}
+                        style={{ width: `${Math.max(pct, 2)}%` }}
+                      />
                     </div>
                     <div className="flex items-center justify-between mt-0.5">
-                      <span className="text-[10px] text-gray-400">{emEscala} de {totalExperimentos}</span>
-                      <div className="w-20 h-1.5 bg-red-100 rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-gradient-to-r from-red-500 to-red-600 rounded-full transition-all duration-700"
-                          style={{ width: `${Math.max(taxaEscala, 2)}%` }}
-                        />
-                      </div>
+                      <span className="text-[8px] text-gray-400 font-medium">
+                        {stats.count} {stats.count === 1 ? 'iniciativa' : 'iniciativas'}
+                      </span>
+                      <span className="text-[8px] font-bold text-gray-400">{pct}%</span>
                     </div>
+                  </div>
+
+                  {/* Seta indicadora */}
+                  <div className="flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                    <ArrowUpRight size={10} className="text-gray-300" />
                   </div>
                 </div>
               </div>
-
-              {/* Card: Conversão p/ Piloto */}
-              <div
-                className="rounded-lg border border-amber-100 bg-gradient-to-br from-amber-50 to-white p-2.5 cursor-pointer hover:shadow-sm transition-all duration-200 group"
-                onClick={() => {
-                  const items = data.iniciativas.filter(i => {
-                    const s = getPipelineStage(i.status)
-                    return s === 'EM PILOTO' || s === 'EM ESCALA'
-                  })
-                  if (items.length > 0) setModal({ title: 'Iniciativas em piloto/escala', items })
-                }}
-              >
-                <div className="flex items-center gap-2.5">
-                  <div className="rounded-md p-1.5 bg-gradient-to-br from-amber-500 to-orange-600 shadow-sm">
-                    <Zap size={12} color="white" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between">
-                      <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider">Conversão p/ Piloto</p>
-                      <span className="text-sm font-extrabold text-gray-900">{taxaPiloto}%</span>
-                    </div>
-                    <div className="flex items-center justify-between mt-0.5">
-                      <span className="text-[10px] text-gray-400">{emPilotoEscala} de {totalExperimentos}</span>
-                      <div className="w-20 h-1.5 bg-amber-100 rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-gradient-to-r from-amber-500 to-orange-500 rounded-full transition-all duration-700"
-                          style={{ width: `${Math.max(taxaPiloto, 2)}%` }}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-            </div>
-          </div>
+            )
+          })}
         </div>
       </div>
 
-      {/* ── Modal ── */}
+      {/* ── Modal de Iniciativas ── */}
       {modal && (
         <IniciativaModal
           title={modal.title}
           iniciativas={modal.items}
           onClose={() => setModal(null)}
+        />
+      )}
+
+      {/* ── Modal de Experimentos ── */}
+      {epicModal && (
+        <EpicModal
+          title={epicModal.title}
+          epics={epicModal.epics}
+          onClose={() => setEpicModal(null)}
         />
       )}
     </>

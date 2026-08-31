@@ -1,6 +1,6 @@
 # Dashboard Executivo de Experimentos — Telecom
 
-Aplicação web que consome dados do Jira (boards 2706 e 2707) e exibe um dashboard executivo do portfólio de inovação BeOn Lab / GL.
+Aplicação web que consome dados do Jira (boards 2734 e 2735) e exibe um dashboard executivo do portfólio de inovação BeOn Lab / GL.
 
 ---
 
@@ -117,8 +117,8 @@ O arquivo `.env.local` já está configurado. Caso precise ajustar:
 | `JIRA_BASE_URL` | URL base do Jira Cloud |
 | `JIRA_EMAIL` | E-mail da conta dona do token API |
 | `JIRA_API_TOKEN` | Token de API gerado em id.atlassian.com |
-| `JIRA_BOARD_IDEACAO_ID` | ID do board de Ideação (2706) |
-| `JIRA_BOARD_INICIATIVAS_ID` | ID do board de Iniciativas (2707) |
+| `JIRA_BOARD_IDEACAO_ID` | ID do board de Ideação (2734) |
+| `JIRA_BOARD_INICIATIVAS_ID` | ID do board de Iniciativas (2735) |
 
 > As credenciais ficam **apenas no servidor** — o token nunca é exposto ao navegador.
 
@@ -128,8 +128,8 @@ O arquivo `.env.local` já está configurado. Caso precise ajustar:
 
 | Board | Nome | Tipo de issue | O que traz |
 |---|---|---|---|
-| **2706** | P&D - Ideação | Iniciativa | Posição no pipeline (coluna/status) |
-| **2707** | P&D - Experimentação/Piloto | Epic | Domínio, Sponsor, Benefícios, Custo |
+| **2734** | P&D - Ideação | Iniciativa | Posição no pipeline (coluna/status) |
+| **2735** | P&D - Experimentação/Piloto | Epic | Domínio, Sponsor, Benefícios, Custo |
 
 Cada **Epic** do board 2707 aponta para sua **Iniciativa-mãe** no board 2706 via `parent.key`. O dashboard faz esse join automaticamente.
 

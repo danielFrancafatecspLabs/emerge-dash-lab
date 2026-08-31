@@ -1,0 +1,34 @@
+{
+  "GL-539": {
+    "epicKey": "GL-539",
+    "statusValidacao": "validado",
+    "beneficioValidado": null,
+    "observacoes": null,
+    "validadoPor": "admin",
+    "dataValidacao": "2026-08-30T19:23:34.053Z",
+    "historico": [
+      {
+        "data": "2026-08-30T19:23:34.053Z",
+        "autor": "admin",
+        "acao": "validou o benefício"
+      }
+    ],
+    "atualizadoEm": "2026-08-30T19:23:34.053Z"
+  },
+  "GL-140": {
+    "epicKey": "GL-140",
+    "statusValidacao": "validado",
+    "beneficioValidado": null,
+    "observacoes": null,
+    "validadoPor": "admin",
+    "dataValidacao": "2026-08-30T19:23:57.677Z",
+    "historico": [
+      {
+        "data": "2026-08-30T19:23:57.677Z",
+        "autor": "admin",
+        "acao": "validou o benefício"
+      }
+    ],
+    "atualizadoEm": "2026-08-30T19:23:57.677Z"
+  }
+}

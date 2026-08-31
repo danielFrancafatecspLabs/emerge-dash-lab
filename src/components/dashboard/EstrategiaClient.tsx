@@ -1,11 +1,11 @@
 'use client'
 
-import { useState, useMemo, useEffect, useCallback } from 'react'
-import { PanelLeftOpen } from 'lucide-react'
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react'
+import { PanelLeftOpen, Download, Loader2 } from 'lucide-react'
 import Header from '@/components/layout/Header'
 import Sidebar from '@/components/layout/Sidebar'
 import ResumoExecutivo from '@/components/dashboard/ResumoExecutivo'
-import PortfolioPorMercado from '@/components/dashboard/PortfolioPorMercado'
+import MapaDiretorias from '@/components/dashboard/MapaDiretorias'
 import Top5Experimentos from '@/components/dashboard/Top5Experimentos'
 import GovernancaAlinhamento from '@/components/dashboard/GovernancaAlinhamento'
 import BurnupChart from '@/components/monitoramento/BurnupChart'
@@ -65,7 +65,7 @@ function filtrarDashboardData(data: DashboardData, periodo: PeriodoFiltro): Dash
 
   // ── Epics ativos ──
   const epicsAtivos = allEpicsFiltrados.filter(
-    e => e.status.id !== '10015' && e.status.id !== '10003'
+    e => e.status.id !== '10015' && e.status.id !== '10019'
   )
 
   // ── Top 5 epics ──
@@ -97,7 +97,7 @@ function filtrarDashboardData(data: DashboardData, periodo: PeriodoFiltro): Dash
   const STATUS_DISPLAY_NAME: Partial<Record<keyof PipelineCount, string>> = {
     'CANCELADO': 'DESCONTINUADO', 'FINALIZADO': 'CONCLUÍDO',
   }
-  // ── Status distribuição (donut) — baseado nos Epics do board 2707 ──
+  // ── Status distribuição (donut) — baseado nos Epics do board 2735 ──
   const statusDistribuicao = STATUS_DONUT_ORDER
     .map(key => ({
       name: STATUS_DISPLAY_NAME[key] ?? key,
@@ -213,13 +213,16 @@ function filtrarDashboardData(data: DashboardData, periodo: PeriodoFiltro): Dash
 interface EstrategiaClientProps {
   data: DashboardData
   monitoramento: MonitoramentoData
+  beneficioValidadoTotal: number
 }
 
-export default function EstrategiaClient({ data, monitoramento }: EstrategiaClientProps) {
+export default function EstrategiaClient({ data, monitoramento, beneficioValidadoTotal }: EstrategiaClientProps) {
   const [periodoFiltro, setPeriodoFiltro] = useState<PeriodoFiltro>({ tipo: 'ultimos12' })
   const [modoSlide, setModoSlide] = useState(false)
   const [insightsMap, setInsightsMap] = useState<Record<string, InsightExecutivo>>({})
   const [insightsLoading, setInsightsLoading] = useState(false)
+  const [exportingImage, setExportingImage] = useState(false)
+  const mainContentRef = useRef<HTMLDivElement>(null)
 
   const dadosFiltrados = useMemo(
     () => filtrarDashboardData(data, periodoFiltro),
@@ -244,7 +247,7 @@ export default function EstrategiaClient({ data, monitoramento }: EstrategiaClie
           dados: {
             totalIniciativas: dadosFiltrados.iniciativas.length,
             totalExperimentos: dadosFiltrados.allEpics.length,
-            concluidos: dadosFiltrados.allEpics.filter(e => e.status?.id === '10003').length,
+            concluidos: dadosFiltrados.allEpics.filter(e => e.status?.id === '10019').length,
             emPilotoEscala: dadosFiltrados.pipeline['EM PILOTO'] + dadosFiltrados.pipeline['EM ESCALA'],
             emEscala: dadosFiltrados.pipeline['EM ESCALA'],
             metasAgregadas: dadosFiltrados.metasAgregadas,
@@ -270,7 +273,7 @@ export default function EstrategiaClient({ data, monitoramento }: EstrategiaClie
           descricao: 'Taxa de conversão do funil: Total → Concluídos → Pilotos → Escala.',
           dados: {
             total: dadosFiltrados.allEpics.filter(e => e.status?.id !== '10015').length,
-            concluidos: dadosFiltrados.allEpics.filter(e => e.status?.id === '10003').length,
+            concluidos: dadosFiltrados.allEpics.filter(e => e.status?.id === '10019').length,
             emPilotoEscala: dadosFiltrados.pipeline['EM PILOTO'] + dadosFiltrados.pipeline['EM ESCALA'],
             emEscala: dadosFiltrados.pipeline['EM ESCALA'],
           },
@@ -350,13 +353,38 @@ export default function EstrategiaClient({ data, monitoramento }: EstrategiaClie
     return () => window.removeEventListener('open-slide-mode', handler)
   }, [])
 
+  // ── Exportar dashboard como imagem ──
+  async function exportarComoImagem() {
+    if (!mainContentRef.current || exportingImage) return
+    setExportingImage(true)
+    try {
+      const html2canvas = (await import('html2canvas')).default
+      const canvas = await html2canvas(mainContentRef.current, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: '#ffffff',
+        logging: false,
+      })
+      const dataUrl = canvas.toDataURL('image/png')
+      const a = document.createElement('a')
+      a.href = dataUrl
+      a.download = `estrategia-beon-${new Date().toISOString().slice(0, 10)}.png`
+      a.click()
+    } catch (err) {
+      console.error('Erro ao exportar imagem:', err)
+      alert('Erro ao gerar imagem. Tente novamente.')
+    } finally {
+      setExportingImage(false)
+    }
+  }
+
   return (
-    <div className="flex min-h-dvh" style={{ background: '#f0f0f0' }}>
+    <div className="flex min-h-dvh bg-gray-50">
       {/* Sidebar — oculta no modo slide */}
       {!modoSlide && (
-        <div className="flex-shrink-0" style={{ width: 72 }}>
-          <div className="fixed top-0 left-0 h-full" style={{ width: 72 }}>
-            <div style={{ background: '#8B0000', paddingTop: 52, height: '100%' }}>
+        <div className="flex-shrink-0" style={{ width: 64 }}>
+          <div className="fixed top-0 left-0 h-full z-20" style={{ width: 64 }}>
+            <div className="h-full bg-gradient-to-b from-[#8B0000] to-[#6B0000]">
               <Sidebar />
             </div>
           </div>
@@ -367,7 +395,7 @@ export default function EstrategiaClient({ data, monitoramento }: EstrategiaClie
       <div className="flex-1 flex flex-col min-w-0">
         {/* Header — oculto no modo slide */}
         {!modoSlide && (
-          <div className="fixed top-0 z-10" style={{ left: 72, right: 0 }}>
+          <div className="fixed top-0 z-10" style={{ left: 64, right: 0 }}>
             <Header
               periodoSelecionado={periodoFiltro}
               onPeriodoChange={setPeriodoFiltro}
@@ -376,71 +404,123 @@ export default function EstrategiaClient({ data, monitoramento }: EstrategiaClie
         )}
 
         {/* Content */}
-        <main className="flex-1 p-3 md:p-4 lg:p-5 gap-3 md:gap-4 flex flex-col min-w-0" style={{ marginTop: modoSlide ? 0 : 52 }}>
-
-          {/* Row 1: Resumo Executivo + Portfólio + Funil */}
-          <div className="grid gap-3 md:gap-4 grid-cols-1 lg:grid-cols-3 min-w-0">
-            <GraficoComInsight
-              titulo="Resumo Executivo"
-              subtitulo={`Metas estratégicas & pipeline • ${dadosFiltrados.iniciativas.length} iniciativas`}
-              insight={insightsMap['resumo']}
-              loading={insightsLoading}
+        <main
+          ref={mainContentRef}
+          className="flex-1 p-3 md:p-4 gap-3 flex flex-col min-w-0"
+          style={{ marginTop: modoSlide ? 0 : 52 }}
+        >
+          {/* ── Cabeçalho executivo ── */}
+          <div className="flex items-end justify-between flex-wrap gap-2">
+            <div>
+              <h2 className="text-base font-bold text-gray-900 tracking-tight">
+                Resultados da Experimentação
+              </h2>
+              <p className="text-[11px] text-gray-500 mt-0.5">
+                Panorama estratégico do portfólio de inovação BeOn Lab — de onde partimos ao valor entregue, em {dadosFiltrados.iniciativas.length} iniciativas.
+              </p>
+            </div>
+            <button
+              onClick={exportarComoImagem}
+              disabled={exportingImage}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-white disabled:opacity-60 transition-colors"
+              style={{ background: '#8B0000' }}
+              title="Baixar dashboard como imagem PNG"
             >
-              <ResumoExecutivo data={dadosFiltrados} />
-            </GraficoComInsight>
-
-            <GraficoComInsight
-              titulo="Portfólio por Mercado"
-              subtitulo="Distribuição por segmento de mercado"
-              insight={insightsMap['portfolio']}
-              loading={insightsLoading}
-            >
-              <PortfolioPorMercado data={dadosFiltrados.mercadosSegmento} />
-            </GraficoComInsight>
-
-            <GraficoComInsight
-              titulo="Funil de Experimentos"
-              subtitulo="Taxa de conversão do pipeline"
-              insight={insightsMap['funil']}
-              loading={insightsLoading}
-            >
-              <FunilExperimentos data={dadosFiltrados} />
-            </GraficoComInsight>
+              {exportingImage ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />}
+              {exportingImage ? 'Gerando...' : 'Baixar Imagem'}
+            </button>
           </div>
 
-          {/* Row 2: Top 5 + Burnup + Jornada de Adoção */}
-          <div className="grid gap-3 md:gap-4 grid-cols-1 lg:grid-cols-3 min-w-0" style={{ minHeight: 300 }}>
-            <GraficoComInsight
-              titulo="Top 5 Experimentos"
-              subtitulo="Maior valor potencial (R$)"
-              insight={insightsMap['top5']}
-              loading={insightsLoading}
-            >
-              <Top5Experimentos data={dadosFiltrados} />
-            </GraficoComInsight>
+          {/* ── Linha 1: Impacto Entregue ── */}
+          <section className="flex flex-col gap-2 min-w-0">
+            <div>
+              <p className="text-[11px] font-bold uppercase tracking-widest" style={{ color: '#CC0000' }}>
+                1 · Impacto Entregue
+              </p>
+              <p className="text-[10px] text-gray-400 mt-0.5">O que o laboratório já gerou de resultado — o valor, a tendência e as provas concretas</p>
+            </div>
+            <div className="grid gap-3 grid-cols-1 lg:grid-cols-3 auto-rows-fr min-w-0">
+              <GraficoComInsight
+                step={1}
+                titulo="Resumo Executivo"
+                subtitulo="Metas estratégicas & pipeline"
+                insight={insightsMap['resumo']}
+                loading={insightsLoading}
+                ocultarInsight
+              >
+                <ResumoExecutivo data={dadosFiltrados} beneficioValidadoTotal={beneficioValidadoTotal} />
+              </GraficoComInsight>
 
-            <GraficoComInsight
-              titulo="Crescimento da Experimentação no Período"
-              subtitulo="Acumulado de experimentos concluídos"
-              insight={insightsMap['burnup']}
-              loading={insightsLoading}
-            >
-              <BurnupChart data={monitoramentoFiltrado.burnup} />
-            </GraficoComInsight>
+              <GraficoComInsight
+                step={2}
+                titulo="Crescimento da Experimentação"
+                subtitulo="Acumulado de experimentos concluídos no período"
+                insight={insightsMap['burnup']}
+                loading={insightsLoading}
+                ocultarInsight
+              >
+                <BurnupChart data={monitoramentoFiltrado.burnup} />
+              </GraficoComInsight>
 
-            <GraficoComInsight
-              titulo="Jornada de Adoção"
-              subtitulo="Lead time e gargalos do pipeline"
-              insight={insightsMap['leadtime']}
-              loading={insightsLoading}
-            >
-              <LeadTimeJornada
-                data={dadosFiltrados.leadTimeJornada}
-                cycleTimeExperimentacao={dadosFiltrados.cycleTimeExperimentacao}
-              />
-            </GraficoComInsight>
-          </div>
+              <GraficoComInsight
+                step={3}
+                titulo="Jornada de Adoção"
+                subtitulo="Lead time e gargalos do pipeline"
+                insight={insightsMap['leadtime']}
+                loading={insightsLoading}
+                ocultarInsight
+              >
+                <LeadTimeJornada
+                  data={dadosFiltrados.leadTimeJornada}
+                  cycleTimeExperimentacao={dadosFiltrados.cycleTimeExperimentacao}
+                />
+              </GraficoComInsight>
+            </div>
+          </section>
 
+          {/* ── Linha 2: Como Chegamos Lá ── */}
+          <section className="flex flex-col gap-2 min-w-0">
+            <div>
+              <p className="text-[11px] font-bold uppercase tracking-widest" style={{ color: '#CC0000' }}>
+                2 · Como Chegamos Lá
+              </p>
+              <p className="text-[10px] text-gray-400 mt-0.5">O motor por trás do resultado — conversão, velocidade e onde estamos apostando</p>
+            </div>
+            <div className="grid gap-3 grid-cols-1 lg:grid-cols-3 auto-rows-fr min-w-0">
+              <GraficoComInsight
+                step={4}
+                titulo="Funil de Experimentos"
+                subtitulo="Distribuição por etapa do pipeline"
+                insight={insightsMap['funil']}
+                loading={insightsLoading}
+                ocultarInsight
+              >
+                <FunilExperimentos data={dadosFiltrados} />
+              </GraficoComInsight>
+
+              <GraficoComInsight
+                step={5}
+                titulo="Top 5 Experimentos"
+                subtitulo="Maior valor potencial (R$)"
+                insight={insightsMap['top5']}
+                loading={insightsLoading}
+                ocultarInsight
+              >
+                <Top5Experimentos data={dadosFiltrados} />
+              </GraficoComInsight>
+
+              <GraficoComInsight
+                step={6}
+                titulo="Diretorias por Experimentos"
+                subtitulo="Ordenado por volume de experimentos · benefício potencial"
+                insight={insightsMap['portfolio']}
+                loading={insightsLoading}
+                ocultarInsight
+              >
+                <MapaDiretorias epics={dadosFiltrados.allEpics} />
+              </GraficoComInsight>
+            </div>
+          </section>
         </main>
       </div>
 
@@ -448,7 +528,7 @@ export default function EstrategiaClient({ data, monitoramento }: EstrategiaClie
       {modoSlide && (
         <button
           onClick={() => setModoSlide(false)}
-          className="fixed bottom-4 left-4 z-20 flex items-center gap-1.5 px-3 py-2 rounded-lg shadow-lg border border-gray-300 bg-white text-gray-600 hover:bg-gray-50 transition-colors text-xs font-medium"
+          className="fixed bottom-4 left-4 z-30 flex items-center gap-1.5 px-3 py-2 rounded-lg shadow-lg border border-gray-300 bg-white text-gray-600 hover:bg-gray-50 transition-colors text-xs font-medium"
           title="Mostrar menu lateral"
         >
           <PanelLeftOpen size={14} />

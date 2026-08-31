@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
   }
   try {
     const { username, password, role } = await request.json()
-    if (!username || !password || !['admin', 'viewer'].includes(role)) {
+    if (!username || !password || !['admin', 'viewer', 'financeiro'].includes(role)) {
       return NextResponse.json({ error: 'Dados inválidos' }, { status: 400 })
     }
 
@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
       id: randomUUID(),
       username,
       passwordHash: hashPassword(password),
-      role: role as 'admin' | 'viewer',
+      role: role as 'admin' | 'viewer' | 'financeiro',
       createdAt: new Date().toISOString(),
       active: true,
     }

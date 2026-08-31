@@ -14,7 +14,7 @@ export async function GET() {
       raw.epics,
       {},
       {},
-      raw.board2706Config,
+      raw.board2734Config,
     )
     const dominioCount: Record<string, number> = {}
 

@@ -7,106 +7,48 @@ import Link from 'next/link'
 import LogoutButton from '@/components/layout/LogoutButton'
 import GenerateImageButton from '@/components/report/GenerateImageButton'
 import ReportContent from '@/components/report/ReportContent'
+import { iniciativasDelivery } from '@/lib/report-data'
+import {
+  formatBeneficioMM,
+  limparDescricao,
+  estaBloqueadoAgora,
+  PRIORIDADE_LABEL,
+  PRIORITY_ORDER,
+  CANDIDATAS_DELIVERY_NOMES,
+  STATUS_ANDAMENTO_VALIDACAO,
+} from '@/lib/report-utils'
+import type {
+  IniciativaSlideRow,
+  IniciativaCandidataRow,
+  BloqueadoSlideRow,
+} from '@/lib/types'
+import type { ChangelogEntry } from '@/lib/jira'
 
 export const dynamic = 'force-dynamic'
-
-const PRIORITY_ORDER: Record<string, number> = {
-  'Highest': 0,
-  'High': 1,
-  'Medium': 2,
-  'Low': 3,
-  'Lowest': 4,
-}
-
-interface IniciativaDelivery {
-  nome: string
-  experimento: string
-  situacaoAtual: string
-  proximosPassos: string
-  sponsor: string
-  dominio: string
-}
-
-const iniciativasDelivery: IniciativaDelivery[] = [
-  {
-    nome: 'Reajuste Telmex',
-    experimento: 'Sim',
-    situacaoAtual: 'Experimento Concluído. Aguardando GO/No Go para OK de Delivery com recurso da Carla Tiemi.',
-    proximosPassos: 'Tomar decisão para delivery, estimar custos de infra e subir a iniciativa para produção.',
-    sponsor: 'Carla Tiemi',
-    dominio: 'Empresarial',
-  },
-  {
-    nome: 'Integridade do Produto',
-    experimento: 'Sim',
-    situacaoAtual: 'Contratação de Recursos e definição do plano em conjunto a Kamila Tairine.',
-    proximosPassos: 'Começar o desenvolvimento a partir da segunda semana de Agosto.',
-    sponsor: 'Patricia Mofato',
-    dominio: 'Financeiro',
-  },
-  {
-    nome: 'Logoff para WhatsApp',
-    experimento: 'Sim',
-    situacaoAtual: 'Execução de testes.',
-    proximosPassos: 'Adquirir um hub USB de melhor qualidade; Contratar uma solução VPN; Aquisição de mais 22 aparelhos; Alocação de um desenvolvedor dedicado.',
-    sponsor: 'Rodrigo Assad',
-    dominio: 'TI',
-  },
-  {
-    nome: 'Processamento de Manifestos',
-    experimento: 'Sim',
-    situacaoAtual: 'Experimento Concluído. Aguardando Go/No Go para Delivery.',
-    proximosPassos: 'Executar Piloto.',
-    sponsor: 'Felipe Takashi',
-    dominio: 'Ouvidoria',
-  },
-  {
-    nome: 'Automação para Resposta de Editais',
-    experimento: 'Sim',
-    situacaoAtual: 'Experimento Concluído. Decisão de Go para Delivery.',
-    proximosPassos: 'Definir plano para rodar no Delivery.',
-    sponsor: 'Heloisa Vieira',
-    dominio: 'Engenharia',
-  },
-  {
-    nome: 'Antispam',
-    experimento: 'Sim',
-    situacaoAtual: 'Realizar ajustes no App a partir da segunda quinzena de agosto.',
-    proximosPassos: 'Realizar testes em conjunto ao Imusica.',
-    sponsor: 'Gabriel Portugal',
-    dominio: 'SVA',
-  },
-  {
-    nome: 'Controle Parental',
-    experimento: 'Não',
-    situacaoAtual: 'Não definido plano para desenvolvimento.',
-    proximosPassos: 'Definir plano para desenvolver em Delivery.',
-    sponsor: 'Gabriel Portugal',
-    dominio: 'SVA',
-  },
-]
 
 export default async function ReportPage() {
   let data
   let error: string | null = null
+  let epicChangelogs: Record<string, ChangelogEntry[]> = {}
 
   try {
     const raw = await fetchDashboardRaw()
+    epicChangelogs = raw.epicChangelogs
     const epicInputs = raw.epics.map(e => ({
       key: e.key,
       summary: e.fields.summary,
-      dominio: e.fields.customfield_16400?.value ?? null,
+      dominio: e.fields.customfield_11987?.value ?? null,
     }))
     const segmentoInputs = raw.epics.map(e => ({
       key: e.key,
       summary: e.fields.summary,
-      dominio: e.fields.customfield_11661 ?? null,
+      dominio: e.fields.customfield_11987?.value ?? null,
     }))
     const [classification, segmentoClassification] = await Promise.all([
       classifyPortfolios(epicInputs),
       classifySegmentos(segmentoInputs),
     ])
-    data = buildDashboardData(raw.iniciativas, raw.epics, classification, segmentoClassification, raw.board2706Config)
+    data = buildDashboardData(raw.iniciativas, raw.epics, classification, segmentoClassification, raw.board2734Config, raw.epicChangelogs, raw.iniciativaChangelogs)
   } catch (e) {
     error = String(e)
   }
@@ -122,19 +64,80 @@ export default async function ReportPage() {
     )
   }
 
-  // Filter only "Em andamento" experiments, sorted by priority (High → Low)
+  // ── Experimentos em Andamento ou Validação, ordenados por prioridade ──
   const emAndamento = data.allEpics
-    .filter(e => e.status.name === 'Em andamento')
+    .filter(e => STATUS_ANDAMENTO_VALIDACAO.has(e.status.name ?? ''))
     .sort((a, b) => {
       const pa = PRIORITY_ORDER[a.prioridade ?? ''] ?? 99
       const pb = PRIORITY_ORDER[b.prioridade ?? ''] ?? 99
       return pa - pb
     })
 
-  // New entries in the pipeline — last 30 days
-  // Lists INITIATIVES (not experiments) that entered the pipeline recently
+  // ── Slides "Experimentos em Andamento" (Iniciativas Gerais) ──
+  // Lab Responsável vem sempre da Iniciativa-mãe (não do próprio Epic).
+  const labResponsavelPorEpic = new Map<string, string>()
+  for (const ini of data.iniciativas) {
+    for (const epic of ini.epics) {
+      labResponsavelPorEpic.set(epic.key, ini.timeResponsavel ?? '—')
+    }
+  }
+
+  // Usa a MESMA lista de emAndamento (todos os experimentos ativos) para os slides
+  const iniciativasSlides: IniciativaSlideRow[] = emAndamento
+    .map(e => ({
+      key: e.key,
+      nome: e.nome,
+      prioridade: PRIORIDADE_LABEL[e.prioridade ?? ''] ?? '—',
+      descricao: limparDescricao(e.descricao),
+      sponsor: e.sponsor ?? '—',
+      diretoria: e.dominio ?? '—',
+      beneficioLabel: formatBeneficioMM(e.beneficioQuantitativo),
+      labResponsavel: labResponsavelPorEpic.get(e.key) ?? '—',
+    }))
+
+  // ── Slides "Experimentos Bloqueados" ──
+  const bloqueados: BloqueadoSlideRow[] = emAndamento
+    .filter(e => !!e.motivoBloqueio || estaBloqueadoAgora(e.key, epicChangelogs))
+    .map(e => ({
+      key: e.key,
+      nome: e.nome,
+      motivoBloqueio: e.motivoBloqueio ?? '—',
+      prioridade: PRIORIDADE_LABEL[e.prioridade ?? ''] ?? '—',
+      descricao: limparDescricao(e.descricao),
+      sponsor: e.sponsor ?? '—',
+      diretoria: e.dominio ?? '—',
+      beneficioLabel: formatBeneficioMM(e.beneficioQuantitativo),
+      labResponsavel: labResponsavelPorEpic.get(e.key) ?? '—',
+    }))
+
+  // ── Slides "Iniciativas Concluídas / Candidatas a Delivery" ──
+  const iniciativasCandidatas: IniciativaCandidataRow[] = data.iniciativas
+    .filter(ini => CANDIDATAS_DELIVERY_NOMES.has(ini.nome.trim()))
+    .map(ini => {
+      const epicConcluido = ini.epics.find(e => e.status.id === '10019' || e.status.id === '10003')
+      const concluida = !!epicConcluido
+      const situacaoBadge: IniciativaCandidataRow['situacaoBadge'] =
+        concluida ? 'CONCLUÍDO' : ini.epics.length === 0 ? 'N/A' : 'EM ANDAMENTO'
+      const situacaoTexto = ini.epics.find(e => e.statusDetalhado)?.statusDetalhado ?? ''
+      return {
+        key: ini.key,
+        nome: ini.nome,
+        experimento: ini.epics.length > 0 ? 'Sim' : 'Não',
+        situacaoBadge,
+        situacaoTexto,
+        proximosPassos: '',
+        sponsor: ini.sponsor ?? ini.sponsors[0] ?? '—',
+        diretoria: ini.dominios[0] ?? '—',
+        beneficioQuantitativo: epicConcluido?.beneficioQuantitativo ?? null,
+        labResponsavel: labResponsavelPorEpic.get(epicConcluido?.key ?? '') ?? ini.timeResponsavel ?? '—',
+        concluidoEm: epicConcluido?.concluidoEm ?? null,
+      }
+    })
+
+  // ── Novos Experimentos (últimos 15 dias) ──
+  // Lista INICIATIVAS criadas nos últimos 15 dias com nome, resumo, BO, Sponsor e data de criação
   const agora = new Date()
-  const corte = new Date(agora.getTime() - 30 * 24 * 60 * 60 * 1000)
+  const corte = new Date(agora.getTime() - 15 * 24 * 60 * 60 * 1000)
 
   interface NovoNaEsteira {
     key: string
@@ -144,12 +147,14 @@ export default async function ReportPage() {
     dominios: string[]
     criadoEm: string | null
     qtdExperimentos: number
+    resumo: string
+    bo: string
   }
 
   const seen = new Set<string>()
   const novosNaEsteira: NovoNaEsteira[] = []
 
-  // Initiatives created in the last 30 days
+  // Initiatives created in the last 15 days
   for (const ini of data.iniciativas) {
     if (!ini.criadoEm) continue
     const d = new Date(ini.criadoEm)
@@ -160,6 +165,10 @@ export default async function ReportPage() {
     const sponsors = ini.sponsors.length > 0
       ? ini.sponsors
       : (ini.sponsor ? [ini.sponsor] : [])
+    // Pega o BO do primeiro epic que tiver, ou '—'
+    const bo = ini.epics.find(e => e.bo)?.bo ?? '—'
+    // Pega o resumo da descrição do primeiro epic, ou '—'
+    const resumo = ini.epics.find(e => e.descricao)?.descricao ?? '—'
     novosNaEsteira.push({
       key: ini.key,
       nome: ini.nome,
@@ -168,6 +177,8 @@ export default async function ReportPage() {
       dominios: ini.dominios,
       criadoEm: ini.criadoEm,
       qtdExperimentos: ini.epics.length,
+      resumo,
+      bo,
     })
   }
 
@@ -179,13 +190,13 @@ export default async function ReportPage() {
   })
 
   // ── Funil de Inovação ──
-  // Em Andamento: Experimentos (Epics do board 2707) com status "Em andamento"
-  // Em Piloto: Iniciativas (board 2706) na coluna "EM PILOTO"
-  // Concluídos: Experimentos (Epics do board 2707) com status "Concluído"
-  // Em Escala: Iniciativas (board 2706) na coluna "EM ESCALA"
+  // Em Andamento: Experimentos (Epics do board 2735) com status "Em andamento"
+  // Em Piloto: Iniciativas (board 2734) na coluna "EM PILOTO"
+  // Concluídos: Experimentos (Epics do board 2735) com status "Concluído"
+  // Em Escala: Iniciativas (board 2734) na coluna "EM ESCALA"
   const emAndamentoCount = data.allEpics.filter(e => e.status.id === '3').length
   const emPilotoCount = data.pipeline['EM PILOTO']
-  const concluidosCount = data.allEpics.filter(e => e.status.id === '10003').length
+  const concluidosCount = data.allEpics.filter(e => e.status.id === '10019').length
   const emEscalaCount = data.pipeline['EM ESCALA']
 
   const funilStages = [
@@ -291,8 +302,8 @@ export default async function ReportPage() {
           <div className="flex items-center gap-3">
             <img src="/jira/logobeonlabs.png" alt="BeOn Labs" className="h-8 w-auto" />
             <div>
-              <h1 className="text-lg font-bold text-gray-900">Report — Em Andamento</h1>
-              <p className="text-xs text-gray-500">Experimentos em execução ordenados por prioridade</p>
+              <h1 className="text-lg font-bold text-gray-900">Report — Todos os Experimentos Ativos</h1>
+              <p className="text-xs text-gray-500">{emAndamento.length} experimentos ordenados por prioridade (maior → menor)</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
@@ -305,7 +316,10 @@ export default async function ReportPage() {
         </header>
 
         <ReportContent
+          iniciativasSlides={iniciativasSlides}
+          iniciativasCandidatas={iniciativasCandidatas}
           emAndamento={emAndamento}
+          bloqueados={bloqueados}
           novosNaEsteira={novosNaEsteira}
           iniciativasDelivery={iniciativasDelivery}
           funilStages={funilStages}
