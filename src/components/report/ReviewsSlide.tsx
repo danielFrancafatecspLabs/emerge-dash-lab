@@ -63,7 +63,11 @@ export default function ReviewsSlide() {
             <ul className="space-y-2 text-xs text-gray-700 leading-relaxed">
               <li className="flex items-start gap-2">
                 <span className="mt-[5px] h-1.5 w-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: RED_ACCENT }} />
-                <span><strong>Participação</strong> de 2 executivos (Gaiotto e Lívia)</span>
+                <span><strong>Participação</strong> de 12 pessoas</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="mt-[5px] h-1.5 w-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: RED_ACCENT }} />
+                <span><strong>2 Executivos</strong> Presentes (Gaiotto e Lívia)</span>
               </li>
               <li className="flex items-start gap-2">
                 <span className="mt-[5px] h-1.5 w-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: RED_ACCENT }} />
@@ -82,13 +86,32 @@ export default function ReviewsSlide() {
                 <span className="mt-[5px] h-1.5 w-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: RED_ACCENT }} />
                 <span><strong>Pedido 1</strong> — Lívia solicita explicação de como endereçar novas iniciativas ao beOn Labs. <em className="text-gray-500">Resp: Daniel França</em></span>
               </li>
+              {/* Ações Pedido 1 */}
+              <li className="flex items-start gap-2 ml-4">
+                <span className="text-amber-500 text-sm flex-shrink-0">⏳</span>
+                <span className="text-gray-600">Compartilhar Formulário do beOn Labs para encaminhar novas iniciativas no dia 02/09</span>
+              </li>
+              <li className="flex items-start gap-2 ml-4">
+                <span className="text-amber-500 text-sm flex-shrink-0">⏳</span>
+                <span className="text-gray-600">Sugestão de agenda para apresentação do beOn Labs e o recebimento dessas iniciativas</span>
+              </li>
               <li className="flex items-start gap-2">
                 <span className="mt-[5px] h-1.5 w-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: RED_ACCENT }} />
                 <span><strong>Pedido 2</strong> — Rodrigo Peres: quais perguntas/informações complementar na entrada de uma ideia/oportunidade na esteira do beOn Labs para captura de benefício.</span>
               </li>
+              {/* Ações Pedido 2 */}
+              <li className="flex items-start gap-2 ml-4">
+                <span className="text-amber-500 text-sm flex-shrink-0">⏳</span>
+                <span className="text-gray-600">Sugestão de agenda com time do Peres para entender as perguntas para complementar entrada</span>
+              </li>
               <li className="flex items-start gap-2">
                 <span className="mt-[5px] h-1.5 w-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: RED_ACCENT }} />
                 <span><strong>Pedido 3</strong> — Apresentar soluções de IA para incluir no catálogo do beOn Labs.</span>
+              </li>
+              {/* Ações Pedido 3 */}
+              <li className="flex items-start gap-2 ml-4">
+                <span className="text-green-600 text-sm flex-shrink-0">✅</span>
+                <span className="text-gray-600">Realizado no dia 21/08 por Carlos Bueno apresentando os cases do Catálogo de Soluções de IA.</span>
               </li>
             </ul>
           </div>
@@ -134,6 +157,19 @@ export default function ReviewsSlide() {
               <li className="flex items-start gap-2">
                 <span className="mt-[5px] h-1.5 w-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: RED_ACCENT }} />
                 <span>Como <strong>não burocratizar</strong> a entrada de novas iniciativas?</span>
+              </li>
+            </ul>
+
+            <div className="border-t" style={{ borderColor: RED_BORDER }} />
+
+            <p className="text-[11px] font-bold uppercase tracking-wider" style={{ color: RED_MUTED }}>
+              Ações
+            </p>
+
+            <ul className="space-y-2 text-xs text-gray-700 leading-relaxed">
+              <li className="flex items-start gap-2">
+                <span className="text-amber-500 text-sm flex-shrink-0">⏳</span>
+                <span className="text-gray-600">Discutir pautas sobre critérios para experimentação, fichas de experimentação em outros laboratórios.</span>
               </li>
             </ul>
           </div>

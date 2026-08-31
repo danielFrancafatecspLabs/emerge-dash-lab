@@ -25,16 +25,35 @@ import type { ChangelogEntry } from './jira'
 import type { MetaCategoria } from './portfolio-classifier'
 import type { SegmentoMercado } from './segmento-classifier'
 
-// Fallback para epics sem classificação no mapa (não deve acontecer na prática)
-function getSegmentoFallback(dominio: string | null | undefined): SegmentoMercado {
-  const d = (dominio ?? '').toLowerCase()
-  if (d === 'empresarial' || d === 'pme') return 'PME/GE/GOV'
-  return 'Consumo'
+// Mapeamento determinístico de domínio → mercado (mesmo do segmento-classifier)
+const DOMAIN_TO_MARKET_FALLBACK: Record<string, SegmentoMercado> = {
+  'Atendimento': 'Consumo',
+  'Digital': 'Consumo',
+  'TV': 'Consumo',
+  'Comercial': 'Consumo',
+  'Vendas': 'Consumo',
+  'PME': 'PME/GE/GOV',
+  'GE': 'PME/GE/GOV',
+  'GOV': 'PME/GE/GOV',
+  'Hitss': 'PME/GE/GOV',
+  'TI': 'Corporativo',
+  'Rede': 'Corporativo',
+  'Operações Técnicas': 'Corporativo',
+  'Financeiro / ADM': 'Corporativo',
+  'Jurídico': 'Corporativo',
+  'Corporativo': 'Corporativo',
+  'RH': 'Corporativo',
+  'Compras': 'Corporativo',
+  'Dados e IA': 'Corporativo',
+  'Segurança': 'Corporativo',
+  'Engenharia': 'Corporativo',
 }
 
-function getSegmento(dominio: string | null | undefined): SegmentoMercado {
-  if (dominio === 'Empresarial' || dominio === 'PME') return 'Corporativo'
-  return 'Consumo'
+// Fallback para epics sem classificação no mapa (não deve acontecer na prática)
+function getSegmentoFallback(dominio: string | null | undefined): SegmentoMercado {
+  const dom = (dominio ?? '').trim()
+  if (dom.toLowerCase() === 'empresarial') return 'PME/GE/GOV'
+  return DOMAIN_TO_MARKET_FALLBACK[dom] ?? 'Consumo'
 }
 
 // Status IDs confirmados via API (board 2734 — Iniciativas, board 2735 — Experimentos)
@@ -121,7 +140,7 @@ function mapEpicToDetail(epic: JiraIssue, changelog?: ChangelogEntry[]): EpicDet
     diretoria: f.customfield_21499 ?? null,
     metaCategoria: null,
     tipo: f.issuetype?.name ?? null,
-    mercado: getSegmento(f.customfield_30014),
+    mercado: getSegmentoFallback(f.customfield_11987?.value ?? f.customfield_30014),
     descricao: f.description ?? null,
     motivoBloqueio: f.customfield_13406?.value ?? null,
     statusDetalhado: f.lastComment ?? null,
@@ -156,11 +175,6 @@ export function getPipelineStage(status: JiraStatus): keyof PipelineCount | unde
   const normalized = status.name.trim().toUpperCase()
   if (normalized.includes('ESCALA') && !normalized.includes('AGUARDANDO')) return 'EM ESCALA'
   return STATUS_PIPELINE[status.id] ?? STATUS_NAME_PIPELINE[normalized]
-}
-
-export function getPipelineConversionRate(pipeline: PipelineCount): string {
-  const total = Object.values(pipeline).reduce((sum, value) => sum + value, 0)
-  return total > 0 ? `${Math.round((pipeline.FINALIZADO / total) * 100)}%` : '0%'
 }
 
 export function buildDashboardData(

@@ -287,3 +287,51 @@ export type PeriodoFiltro =
   | { tipo: 'ultimos12' }
   | { tipo: 'semestre'; ano: number; semestre: 1 | 2 }
   | { tipo: 'tudo' }
+
+// ── Tipos para os Slides do Report ──
+
+export interface IniciativaSlideRow {
+  key: string
+  nome: string
+  prioridade: 'Alta' | 'Média' | 'Baixa' | '—'
+  descricao: string
+  sponsor: string
+  diretoria: string
+  beneficioLabel: string
+  labResponsavel: string
+}
+
+export interface IniciativaCandidataRow {
+  key: string
+  nome: string
+  experimento: 'Sim' | 'Não'
+  situacaoBadge: 'CONCLUÍDO' | 'EM ANDAMENTO' | 'NOVO CICLO' | 'N/A'
+  situacaoTexto: string
+  proximosPassos: string
+  sponsor: string
+  diretoria: string
+  beneficioQuantitativo: number | null
+  labResponsavel: string
+  concluidoEm: string | null
+}
+
+export interface BloqueadoSlideRow {
+  key: string
+  nome: string
+  motivoBloqueio: string
+  prioridade: string
+  descricao: string
+  sponsor: string
+  diretoria: string
+  beneficioLabel: string
+  labResponsavel: string
+}
+
+export interface IniciativaDelivery {
+  nome: string
+  experimento: string
+  situacaoAtual: string
+  proximosPassos: string
+  sponsor: string
+  dominio: string
+}

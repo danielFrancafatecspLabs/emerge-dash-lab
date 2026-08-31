@@ -38,5 +38,13 @@
     "role": "admin",
     "createdAt": "2026-08-28T12:55:19.044Z",
     "active": true
+  },
+  {
+    "id": "99",
+    "username": "admin",
+    "passwordHash": "3c685e190e6ea224edfb2156ec4eab90:d1965d893e7fe68d1f2819a91bc150e5c0667b4bd4c6e0999ffabf82a78a1966642476a06d616e7088636426dcfb729f3099aaa5b52caa46084931e111c4e787",
+    "role": "admin",
+    "createdAt": "2026-08-31T02:40:56.516Z",
+    "active": true
   }
 ]
