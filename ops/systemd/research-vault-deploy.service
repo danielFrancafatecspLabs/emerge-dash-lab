@@ -1,0 +1,13 @@
+[Unit]
+Description=Update the research-obsidian vault snapshot
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=azureuser
+Group=azureuser
+ExecStart=/usr/local/bin/research-vault-deploy
+
+[Install]
+WantedBy=multi-user.target
