@@ -1,4 +1,4 @@
-import { readFile, readdir, realpath } from 'node:fs/promises'
+import { lstat, readFile, readdir, realpath } from 'node:fs/promises'
 import path from 'node:path'
 
 export type ResearchDocumentType = 'category' | 'topic' | 'concept' | 'paper'
@@ -64,6 +64,7 @@ export class ResearchDocumentNotFoundError extends Error {
 }
 
 const cache = new Map<string, CacheEntry>()
+const vaultRoots = new WeakMap<ResearchVault, string>()
 const ISO_DATE = /^20\d{2}-\d{2}-\d{2}$/
 const TYPE_ORDER: Record<ResearchDocumentType, number> = {
   category: 0,
@@ -152,7 +153,7 @@ function extractWikilinks(content: string) {
   return targets
 }
 
-function classifyDocument(relativePath: string): Pick<ResearchDocument, 'type' | 'category' | 'topic'> {
+function classifyDocument(relativePath: string): Pick<ResearchDocument, 'type' | 'category' | 'topic'> | null {
   const parts = relativePath.split('/')
   const category = parts[1] ?? ''
 
@@ -160,8 +161,9 @@ function classifyDocument(relativePath: string): Pick<ResearchDocument, 'type' |
 
   const topic = parts[2] ?? null
   if (parts.length === 4) return { type: 'topic', category, topic }
-  if (parts.includes('Papers')) return { type: 'paper', category, topic }
-  return { type: 'concept', category, topic }
+  if (parts.length === 5 && parts[3] === 'Concepts') return { type: 'concept', category, topic }
+  if (parts.length === 5 && parts[3] === 'Papers') return { type: 'paper', category, topic }
+  return null
 }
 
 async function listMarkdownFiles(directory: string, prefix = ''): Promise<string[]> {
@@ -281,12 +283,13 @@ export async function loadResearchVault(root: string): Promise<ResearchVault> {
     throw new ResearchVaultUnavailableError(error instanceof Error ? error.message : undefined)
   }
 
-  const documents = await Promise.all(relativeFiles.map(async relativeToResearchs => {
+  const parsedDocuments = await Promise.all(relativeFiles.map(async relativeToResearchs => {
     const relativePath = `Researchs/${relativeToResearchs}`
     const absolutePath = path.join(resolvedRoot, ...relativePath.split('/'))
     const content = await readFile(absolutePath, 'utf8')
     const frontmatter = parseFrontmatter(content)
     const classification = classifyDocument(relativePath)
+    if (!classification) return null
     const name = path.posix.basename(relativePath, path.posix.extname(relativePath))
 
     return {
@@ -301,6 +304,7 @@ export async function loadResearchVault(root: string): Promise<ResearchVault> {
       links: extractWikilinks(frontmatter.body),
     } satisfies ResearchDocument
   }))
+  const documents = parsedDocuments.filter((document): document is ResearchDocument => document !== null)
 
   documents.sort(compareDocuments)
   const vault: ResearchVault = {
@@ -311,7 +315,11 @@ export async function loadResearchVault(root: string): Promise<ResearchVault> {
     edges: buildEdges(documents),
   }
 
-  if (revisionFile) cache.set(resolvedRoot, { revision: revisionFile, vault })
+  vaultRoots.set(vault, resolvedRoot)
+  if (revisionFile) {
+    cache.clear()
+    cache.set(resolvedRoot, { revision: revisionFile, vault })
+  }
   return vault
 }
 
@@ -323,14 +331,23 @@ export async function loadResearchDocument(
   const document = vault.documents.find(candidate => candidate.path === requestedPath)
   if (!document) throw new ResearchDocumentNotFoundError()
 
-  const resolvedRoot = await realpath(root)
+  const resolvedRoot = vaultRoots.get(vault)
+  if (!resolvedRoot) throw new ResearchDocumentNotFoundError()
   const absolutePath = path.resolve(resolvedRoot, ...document.path.split('/'))
   if (!absolutePath.startsWith(`${resolvedRoot}${path.sep}`)) {
     throw new ResearchDocumentNotFoundError()
   }
 
   try {
-    const content = await readFile(absolutePath, 'utf8')
+    const candidateStats = await lstat(absolutePath)
+    if (candidateStats.isSymbolicLink() || !candidateStats.isFile()) {
+      throw new ResearchDocumentNotFoundError()
+    }
+    const resolvedDocument = await realpath(absolutePath)
+    if (!resolvedDocument.startsWith(`${resolvedRoot}${path.sep}`)) {
+      throw new ResearchDocumentNotFoundError()
+    }
+    const content = await readFile(resolvedDocument, 'utf8')
     return { document, content: parseFrontmatter(content).body }
   } catch (error) {
     if (error instanceof ResearchDocumentNotFoundError) throw error

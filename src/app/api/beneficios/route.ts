@@ -1,17 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { upsertValidacao, loadValidacoes, type StatusValidacao } from '@/lib/beneficios'
 import { loadUsers } from '@/lib/users'
+import { verifyAuthSession } from '@/lib/auth-session'
 
 const STATUS_VALUES: StatusValidacao[] = ['nao_validado', 'em_validacao', 'validado', 'rejeitado']
 
-function getAuthedUser(request: NextRequest): { username: string; role: string } | null {
-  const token = request.cookies.get('auth_token')?.value
-  const secret = process.env.AUTH_SECRET
-  if (!secret || token !== secret) return null
-  const username = request.cookies.get('username')?.value
-  const role = request.cookies.get('user_role')?.value
-  if (!username || !role) return null
-  return { username, role }
+async function getAuthedUser(request: NextRequest): Promise<{ username: string; role: string } | null> {
+  const session = await verifyAuthSession(
+    request.cookies.get('auth_session')?.value,
+    process.env.AUTH_SECRET,
+  )
+  return session ? { username: session.username, role: session.role } : null
 }
 
 // Só financeiro e admin podem gravar validações — os demais perfis (ex.: executivo)
@@ -21,13 +20,13 @@ function canEdit(role: string): boolean {
 }
 
 export async function GET(request: NextRequest) {
-  const user = getAuthedUser(request)
+  const user = await getAuthedUser(request)
   if (!user) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
   return NextResponse.json(loadValidacoes())
 }
 
 export async function PATCH(request: NextRequest) {
-  const user = getAuthedUser(request)
+  const user = await getAuthedUser(request)
   if (!user) return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
   if (!canEdit(user.role)) {
     return NextResponse.json({ error: 'Apenas o time financeiro pode editar validações.' }, { status: 403 })

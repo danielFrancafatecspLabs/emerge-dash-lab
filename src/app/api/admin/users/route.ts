@@ -1,18 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { loadUsers, saveUsers, hashPassword, toPublic, isAdmin } from '@/lib/users'
 import { randomUUID } from 'crypto'
+import { verifyAuthSession } from '@/lib/auth-session'
 
-function checkAdmin(request: NextRequest): boolean {
-  const token = request.cookies.get('auth_token')?.value
-  const secret = process.env.AUTH_SECRET
-  if (!secret || token !== secret) return false
-  const username = request.cookies.get('username')?.value
-  if (!username) return false
-  return isAdmin(username)
+async function checkAdmin(request: NextRequest): Promise<boolean> {
+  const session = await verifyAuthSession(
+    request.cookies.get('auth_session')?.value,
+    process.env.AUTH_SECRET,
+  )
+  return session?.role === 'admin' && isAdmin(session.username)
 }
 
 export async function GET(request: NextRequest) {
-  if (!checkAdmin(request)) {
+  if (!await checkAdmin(request)) {
     return NextResponse.json({ error: 'Não autorizado' }, { status: 403 })
   }
   const users = loadUsers()
@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  if (!checkAdmin(request)) {
+  if (!await checkAdmin(request)) {
     return NextResponse.json({ error: 'Não autorizado' }, { status: 403 })
   }
   try {
