@@ -110,6 +110,20 @@ describe('buildResearchTree', () => {
     expect(JSON.stringify(tree)).not.toContain('Unfinished')
     expect(JSON.stringify(tree)).not.toContain('Draft.md')
   })
+
+  it('does not expose arbitrary nested Markdown as a research concept', () => {
+    const note: ResearchDocument = {
+      ...documents[3],
+      id: 'Researchs/Agents/Alpha/Notes/Internal.md',
+      path: 'Researchs/Agents/Alpha/Notes/Internal.md',
+      name: 'Internal',
+      title: 'Internal note',
+    }
+
+    const tree = buildResearchTree([...documents, note])
+
+    expect(JSON.stringify(tree)).not.toContain('Internal note')
+  })
 })
 
 describe('filterResearchTree', () => {

@@ -1,4 +1,4 @@
-import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises'
+import { mkdtemp, mkdir, rm, symlink, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
@@ -173,4 +173,20 @@ describe('loadResearchDocument', () => {
       })
     },
   )
+
+  it('rejects an indexed file replaced by a symlink outside the snapshot', async () => {
+    const root = await createVault()
+    const vault = await loadResearchVault(root)
+    const topicPath = 'Researchs/Agent Architectures/Adaptive Agents/Adaptive Agents (ALMAA).md'
+    const absoluteTopic = path.join(root, topicPath)
+    const outsideFile = path.join(path.dirname(root), `${path.basename(root)}-outside.md`)
+    temporaryRoots.push(outsideFile)
+    await writeFile(outsideFile, 'outside the vault', 'utf8')
+    await rm(absoluteTopic)
+    await symlink(outsideFile, absoluteTopic)
+
+    await expect(loadResearchDocument(root, vault, topicPath)).rejects.toMatchObject({
+      name: 'ResearchDocumentNotFoundError',
+    })
+  })
 })

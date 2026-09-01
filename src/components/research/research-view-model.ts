@@ -76,6 +76,7 @@ export function buildResearchTree(documents: ResearchDocument[]): ResearchTreeNo
           document.category === categoryName
           && document.topic === topic.topic
           && (document.type === 'concept' || document.type === 'paper')
+          && document.path.split('/')[3] === (document.type === 'concept' ? 'Concepts' : 'Papers')
         ))
         const concepts = supportingDocuments
           .filter(document => document.type === 'concept')

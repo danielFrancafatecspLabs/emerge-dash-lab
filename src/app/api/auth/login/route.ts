@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { verifyCredentials } from '@/lib/users'
+import { createAuthSession } from '@/lib/auth-session'
 
 export async function POST(request: Request) {
   try {
@@ -10,6 +11,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Usuário ou senha incorretos' }, { status: 401 })
     }
 
+    const secret = process.env.AUTH_SECRET
+    if (!secret) {
+      console.error('Authentication unavailable: AUTH_SECRET is not configured')
+      return NextResponse.json({ error: 'Autenticação indisponível' }, { status: 503 })
+    }
+
     const cookieOpts = {
       httpOnly: true,
       sameSite: 'lax' as const,
@@ -17,7 +24,7 @@ export async function POST(request: Request) {
       path: '/',
     }
     const response = NextResponse.json({ ok: true, role: user.role, username: user.username })
-    response.cookies.set('auth_token', process.env.AUTH_SECRET!, cookieOpts)
+    response.cookies.set('auth_session', await createAuthSession(user, secret), cookieOpts)
     response.cookies.set('username', user.username, cookieOpts)
     response.cookies.set('user_role', user.role, cookieOpts)
     return response

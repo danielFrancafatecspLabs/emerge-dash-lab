@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useDeferredValue, useEffect, useMemo, useState } from 'react'
+import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
 import {
   Boxes,
   FolderTree,
@@ -32,6 +32,10 @@ export function ResearchExplorer() {
   const [documentValue, setDocumentValue] = useState<ResearchDocumentContent | null>(null)
   const [documentLoading, setDocumentLoading] = useState(false)
   const [documentError, setDocumentError] = useState<string | null>(null)
+  const documentRequestRef = useRef<{ id: number; controller: AbortController | null }>({
+    id: 0,
+    controller: null,
+  })
 
   const loadVault = useCallback(async (signal?: AbortSignal) => {
     setLoading(true)
@@ -56,6 +60,10 @@ export function ResearchExplorer() {
   }, [loadVault])
 
   const loadDocument = useCallback(async (path: string) => {
+    documentRequestRef.current.controller?.abort()
+    const controller = new AbortController()
+    const requestId = documentRequestRef.current.id + 1
+    documentRequestRef.current = { id: requestId, controller }
     setSelectedPath(path)
     setDocumentValue(null)
     setDocumentError(null)
@@ -63,16 +71,24 @@ export function ResearchExplorer() {
     try {
       const response = await fetch(`/jira/api/pesquisas?file=${encodeURIComponent(path)}`, {
         credentials: 'include',
+        signal: controller.signal,
       })
       const body = await response.json()
       if (!response.ok) throw new Error(body.error || 'Falha ao abrir o documento')
+      if (documentRequestRef.current.id !== requestId) return
       setDocumentValue(body)
     } catch (requestError) {
+      if (controller.signal.aborted || documentRequestRef.current.id !== requestId) return
       setDocumentError(requestError instanceof Error ? requestError.message : 'Falha ao abrir o documento')
     } finally {
-      setDocumentLoading(false)
+      if (documentRequestRef.current.id === requestId) {
+        documentRequestRef.current.controller = null
+        setDocumentLoading(false)
+      }
     }
   }, [])
+
+  useEffect(() => () => documentRequestRef.current.controller?.abort(), [])
 
   const tree = useMemo(() => buildResearchTree(vault?.documents ?? []), [vault?.documents])
   const filteredTree = useMemo(
@@ -187,6 +203,11 @@ export function ResearchExplorer() {
             loading={documentLoading}
             error={documentError}
             onClose={() => {
+              documentRequestRef.current.controller?.abort()
+              documentRequestRef.current = {
+                id: documentRequestRef.current.id + 1,
+                controller: null,
+              }
               setSelectedPath(null)
               setDocumentValue(null)
               setDocumentError(null)
