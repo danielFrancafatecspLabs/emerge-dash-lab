@@ -92,6 +92,52 @@ if run_deploy; then fail 'invalid topic date unexpectedly activated'; fi
 assert_eq "$(basename "$(readlink -f "$current")")" "$sha1"
 [[ ! -d "$deploy_root/releases/$invalid_sha" ]] || fail 'invalid release was retained'
 
+topic_file="$work/Researchs/Agents/Adaptive Agents/Adaptive Agents.md"
+rm -- "$topic_file"
+ln -s /etc/passwd "$topic_file"
+symlink_sha="$(commit_and_push symlink-topic)"
+if run_deploy; then fail 'snapshot containing a symlink unexpectedly activated'; fi
+assert_eq "$(basename "$(readlink -f "$current")")" "$sha1"
+[[ ! -d "$deploy_root/releases/$symlink_sha" ]] || fail 'symlink release was retained'
+
+rm -- "$topic_file"
+cat > "$topic_file" <<'PREAMBLE'
+# Text before frontmatter
+---
+title: Adaptive Agents
+created: 2026-08-31
+updated: 2026-08-31
+---
+PREAMBLE
+preamble_sha="$(commit_and_push misplaced-frontmatter)"
+if run_deploy; then fail 'misplaced frontmatter unexpectedly activated'; fi
+assert_eq "$(basename "$(readlink -f "$current")")" "$sha1"
+[[ ! -d "$deploy_root/releases/$preamble_sha" ]] || fail 'misplaced-frontmatter release was retained'
+
+cat > "$topic_file" <<'UNTERMINATED'
+---
+title: Adaptive Agents
+created: 2026-08-31
+updated: 2026-08-31
+UNTERMINATED
+unterminated_sha="$(commit_and_push unterminated-frontmatter)"
+if run_deploy; then fail 'unterminated frontmatter unexpectedly activated'; fi
+assert_eq "$(basename "$(readlink -f "$current")")" "$sha1"
+[[ ! -d "$deploy_root/releases/$unterminated_sha" ]] || fail 'unterminated-frontmatter release was retained'
+
+cat > "$topic_file" <<'DUPLICATE'
+---
+title: Adaptive Agents
+created: 2026-08-31
+created: someday
+updated: 2026-08-31
+---
+DUPLICATE
+duplicate_sha="$(commit_and_push duplicate-date)"
+if run_deploy; then fail 'invalid duplicate date unexpectedly activated'; fi
+assert_eq "$(basename "$(readlink -f "$current")")" "$sha1"
+[[ ! -d "$deploy_root/releases/$duplicate_sha" ]] || fail 'invalid duplicate-date release was retained'
+
 cat > "$work/Researchs/Agents/Adaptive Agents/Adaptive Agents.md" <<'VALID'
 ---
 title: Adaptive Agents

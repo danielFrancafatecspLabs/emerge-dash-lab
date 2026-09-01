@@ -51,14 +51,15 @@ frontmatter_date() {
   local file="$1"
   local field="$2"
   awk -v field="$field" '
-    $0 == "---" { delimiters += 1; next }
-    delimiters == 1 && $0 ~ ("^" field ":[[:space:]]*") {
+    { sub(/\r$/, "") }
+    NR == 1 && $0 != "---" { exit }
+    NR == 1 { frontmatter = 1; next }
+    frontmatter && $0 == "---" { closed = 1; exit }
+    frontmatter && $0 ~ ("^" field ":[[:space:]]*") {
       sub("^" field ":[[:space:]]*", "")
-      gsub(/\r$/, "")
-      print
-      exit
+      value = $0
     }
-    delimiters >= 2 { exit }
+    END { if (closed && value != "") print value }
   ' "$file"
 }
 
@@ -69,6 +70,9 @@ validate_snapshot() {
 
   [[ -d "$snapshot/Researchs" ]] || die 'snapshot is missing Researchs/'
   [[ -f "$snapshot/Researches Index.md" ]] || die 'snapshot is missing Researches Index.md'
+  if find "$snapshot" -type l -print -quit | grep -q .; then
+    die 'snapshot contains a symbolic link'
+  fi
 
   while IFS= read -r -d '' file; do
     topic_count=$((topic_count + 1))

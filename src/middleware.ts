@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
+import { verifyAuthSession } from '@/lib/auth-session'
 
 const PUBLIC_PATHS = ['/login', '/bem-vindo', '/api/auth']
 const BASE = '/jira'
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
   const stripped = pathname.startsWith(BASE) ? pathname.slice(BASE.length) : pathname
 
@@ -17,15 +18,14 @@ export function middleware(request: NextRequest) {
   const isPublic = PUBLIC_PATHS.some(p => stripped.startsWith(p))
   if (isPublic) return NextResponse.next()
 
-  const token = request.cookies.get('auth_token')?.value
   const secret = process.env.AUTH_SECRET
-  if (secret && token === secret) {
+  const session = await verifyAuthSession(request.cookies.get('auth_session')?.value, secret)
+  if (session) {
     // Proteger rotas que só admin pode acessar
-    const ADMIN_ONLY = ['/beneficios', '/pesquisas', '/api/pesquisas']
+    const ADMIN_ONLY = ['/admin/users', '/api/admin', '/beneficios', '/pesquisas', '/api/pesquisas']
     const isAdminOnly = ADMIN_ONLY.some(p => stripped.startsWith(p))
     if (isAdminOnly) {
-      const role = request.cookies.get('user_role')?.value
-      if (role !== 'admin') {
+      if (session?.role !== 'admin') {
         if (stripped.startsWith('/api/')) {
           return NextResponse.json({ error: 'Acesso restrito a admin' }, { status: 403 })
         }
