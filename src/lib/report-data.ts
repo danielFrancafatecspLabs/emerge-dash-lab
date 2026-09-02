@@ -5,14 +5,7 @@ import type { IniciativaDelivery } from './types'
  * Mantida separada da lógica de renderização para facilitar manutenção.
  */
 export const iniciativasDelivery: IniciativaDelivery[] = [
-  {
-    nome: 'Reajuste Telmex',
-    experimento: 'Sim',
-    situacaoAtual: 'Experimento Concluído. Aguardando GO/No Go para OK de Delivery com recurso da Carla Tiemi.',
-    proximosPassos: 'Tomar decisão para delivery, estimar custos de infra e subir a iniciativa para produção.',
-    sponsor: 'Carla Tiemi',
-    dominio: 'Empresarial',
-  },
+  // 'Reajuste Telmex' removed from delivery list per request
   {
     nome: 'Smart Capex',
     experimento: 'Sim',
@@ -53,14 +46,7 @@ export const iniciativasDelivery: IniciativaDelivery[] = [
     sponsor: 'Heloisa Vieira',
     dominio: 'Engenharia',
   },
-  {
-    nome: 'Antispam',
-    experimento: 'Sim',
-    situacaoAtual: 'Realizar ajustes no App a partir da segunda quinzena de agosto.',
-    proximosPassos: 'Realizar testes em conjunto ao Imusica.',
-    sponsor: 'Gabriel Portugal',
-    dominio: 'SVA',
-  },
+  // 'Antispam' removed from delivery list per request
   {
     nome: 'Controle Parental',
     experimento: 'Não',

@@ -10,6 +10,8 @@ import IniciativasCandidatasSlides, { type IniciativaCandidataRow } from './Inic
 import NovosExperimentosSlides from './NovosExperimentosSlides'
 import DestaquesSlide from './DestaquesSlide'
 import ReviewsSlide from './ReviewsSlide'
+import BloqueiosPorProblemaSlide from './BloqueiosPorProblemaSlide'
+import BloqueiosExecutivoSlide from './BloqueiosExecutivoSlide'
 import BloqueadosSlide, { type BloqueadoSlideRow } from './BloqueadosSlide'
 
 interface NovoNaEsteira {
@@ -265,6 +267,16 @@ export default function ReportContent({
         </div>
       </div>
 
+      {/* ═══════════════ SLIDE 1 — BLOQUEIOS DAS INICIATIVAS POR PROBLEMA ═══════════════ */}
+      <ErrorBoundary>
+        <BloqueiosPorProblemaSlide />
+      </ErrorBoundary>
+
+      {/* ═══════════════ SLIDE EXECUTIVO — BLOQUEIOS POR PROBLEMA ═══════════════ */}
+      <ErrorBoundary>
+        <BloqueiosExecutivoSlide />
+      </ErrorBoundary>
+
       {/* ═══════════════ SLIDES — REVIEWS ÚLTIMOS 15 DIAS ═══════════════ */}
       <ErrorBoundary>
         <ReviewsSlide />
@@ -272,7 +284,7 @@ export default function ReportContent({
 
       {/* ═══════════════ SLIDES — DESTAQUES DA SEMANA ═══════════════ */}
       <ErrorBoundary>
-        <DestaquesSlide />
+        <DestaquesSlide novosNaEsteira={novosNaEsteira} />
       </ErrorBoundary>
 
       {/* ═══════════════ SLIDES — EXPERIMENTOS BLOQUEADOS ═══════════════ */}
@@ -346,8 +358,6 @@ export default function ReportContent({
             iniciativas={novosNaEsteira.map(ini => ({
               key: ini.key,
               nome: ini.nome,
-              resumo: ini.resumo,
-              bo: ini.bo,
               sponsor: ini.sponsors.length > 0 ? ini.sponsors.join(', ') : '—',
               criadoEm: ini.criadoEm ?? '',
             }))}

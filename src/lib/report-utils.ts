@@ -61,9 +61,14 @@ export function estaBloqueadoAgora(
   let bloqueado = false
   for (const entry of sorted) {
     for (const item of entry.items) {
-      if (item.fieldId !== 'customfield_13406') continue
-      const from = item.fromString
-      const to = item.toString
+      // Aceita tanto o fieldId técnico quanto o nome legível do campo
+      const fieldIdMatch = item.fieldId === 'customfield_13406'
+      const fieldName = typeof item.field === 'string' ? item.field : ''
+      const fieldNameMatch = fieldName === 'customfield_13406' || /motivo.*bloqueio/i.test(fieldName)
+      if (!fieldIdMatch && !fieldNameMatch) continue
+
+      const from = item.fromString ?? item.from
+      const to = item.toString ?? item.to
       const estavaBloqueado = !!from && from !== 'None' && from !== 'null'
       const ficouBloqueado = !!to && to !== 'None' && to !== 'null'
       if (!estavaBloqueado && ficouBloqueado) bloqueado = true
@@ -101,13 +106,13 @@ export const PRIORITY_ORDER: Record<string, number> = {
 export const CANDIDATAS_DELIVERY_NOMES = new Set([
   'ARI Juridico',
   'Zelador',
-  'Reajuste Telmex',
-  'OCR do Solar',
+  // 'Reajuste Telmex' removed per request
+  // 'OCR do Solar' removed per request
   'Processamento de Manifestos',
   'Identificação de Chamadas de Spam',
   'Automação de Editais',
   'Qualificações de Segurança',
-  'Tabulação Automática em Leitura de Contexto',
+  // 'Tabulação Automática em Leitura de Contexto' removed per request
 ])
 
 /**
