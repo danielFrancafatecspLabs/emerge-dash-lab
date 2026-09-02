@@ -1,13 +1,15 @@
 'use client'
 
 import { useMemo, useRef, type RefObject } from 'react'
+import { AlertTriangle } from 'lucide-react'
 import { SLIDE_PAGE_SIZE, chunk, SlideDownloadButtons } from './slideExport'
 
 export interface BloqueadoSlideRow {
   key: string
   nome: string
+  fase: string
   motivoBloqueio: string
-  prioridade: string
+  dataLimite: string | null
   descricao: string
   sponsor: string
   diretoria: string
@@ -72,9 +74,9 @@ export default function BloqueadosSlide({ bloqueados }: Props) {
               <table className="w-full border-collapse" style={{ tableLayout: 'fixed' }}>
                 <colgroup>
                   <col style={{ width: '16%' }} />
-                  <col style={{ width: '7%' }} />
-                  <col style={{ width: '16%' }} />
-                  <col style={{ width: '27%' }} />
+                  <col style={{ width: '8%' }} />
+                  <col style={{ width: '18%' }} />
+                  <col style={{ width: '24%' }} />
                   <col style={{ width: '13%' }} />
                   <col style={{ width: '12%' }} />
                   <col style={{ width: '9%' }} />
@@ -82,7 +84,7 @@ export default function BloqueadosSlide({ bloqueados }: Props) {
                 <thead>
                   <tr className="align-bottom">
                     {[
-                      'Nome do Experimento', 'Prioridade', 'Motivo do Bloqueio',
+                      'Nome do Experimento', 'Fase', 'Motivo do Bloqueio',
                       'Descrição', 'Sponsor & Diretoria', 'Benefício Potencial', 'Lab Resp.',
                     ].map((h, i) => (
                       <th
@@ -103,21 +105,26 @@ export default function BloqueadosSlide({ bloqueados }: Props) {
                       </td>
                       <td className="py-3 pr-2 align-top">
                         <span
-                          className="inline-block rounded-full border-2 px-3 py-0.5 font-bold"
+                          className="inline-block rounded-full px-3 py-0.5 font-bold text-white"
                           style={{
                             fontSize: 11,
-                            borderColor: '#D97706',
-                            color: '#92400E',
-                            background: '#FEF3C7',
+                            background: row.fase === 'EM VALIDAÇÃO' ? '#7A1212' :
+                                       row.fase === 'Em andamento' ? '#B8860B' :
+                                       row.fase === 'Em refinamento' ? '#2563EB' :
+                                       row.fase === 'PRONTO PARA EXECUÇÃO' ? '#059669' :
+                                       '#6B7280'
                           }}
                         >
-                          {row.prioridade}
+                          {row.fase}
                         </span>
                       </td>
                       <td className="py-3 pr-2 align-top">
-                        <p className="font-semibold text-gray-800" style={{ fontSize: 11.5, lineHeight: 1.3 }}>
-                          {row.motivoBloqueio}
-                        </p>
+                        <div className="flex items-start gap-1.5">
+                          <AlertTriangle size={14} className="mt-0.5 shrink-0" style={{ color: '#D97706' }} />
+                          <p className="font-semibold text-gray-800" style={{ fontSize: 11.5, lineHeight: 1.3 }}>
+                            {row.motivoBloqueio}
+                          </p>
+                        </div>
                       </td>
                       <td className="py-3 pr-3 align-top">
                         <p className="text-gray-600" style={{ fontSize: 11.5, lineHeight: 1.35 }} title={row.descricao}>

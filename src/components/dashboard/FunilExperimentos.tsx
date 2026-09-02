@@ -41,14 +41,24 @@ export default function FunilExperimentos({ data }: Props) {
   const emAndamento = data.allEpics.filter(e =>
     e.status?.id === '3' || e.status?.name === 'Em andamento'
   ).length
+  const emValidacao = data.allEpics.filter(e =>
+    e.status?.id === '10204' || e.status?.name === 'EM VALIDAÇÃO' || e.status?.name === 'Em validação'
+  ).length
+  const emAndamentoTotal = emAndamento + emValidacao
+  // Exclui os mesmos experimentos que o burnup exclui para manter consistência
+  const EXCLUIR_CONCLUIDOS = new Set([
+    'Otimiza APP - Ciclo 1 (Análise de comentários das lojas de apps)',
+    "IA para IP'S de rede",
+    'Assistente IA Ágil - Ciclo 2',
+    'Sumarização dos Contratos',
+    'Jurisquery - Consulta de Pareceres Juridicos',
+  ])
+  // Alinhado com o burnup (mappers.ts): apenas status 10019 (FINALIZADO)
   const concluidos = data.allEpics.filter(e =>
-    e.status?.id === '10003' || e.status?.id === '10019' || e.status?.name === 'Concluído'
+    e.status?.id === '10019' && !EXCLUIR_CONCLUIDOS.has(e.nome)
   ).length
   const cancelados = data.allEpics.filter(e =>
     e.status?.id === '10015' || e.status?.name === 'Cancelado'
-  ).length
-  const emValidacao = data.allEpics.filter(e =>
-    e.status?.id === '10204' || e.status?.name === 'EM VALIDAÇÃO' || e.status?.name === 'Em validação'
   ).length
 
   // ── Board de Iniciativas (2734) — Pipeline ──
@@ -77,8 +87,16 @@ export default function FunilExperimentos({ data }: Props) {
     const emAndamentoList = data.allEpics.filter(e =>
       e.status?.id === '3' || e.status?.name === 'Em andamento'
     )
+    const EXCLUIR_CONCLUIDOS = new Set([
+      'Otimiza APP - Ciclo 1 (Análise de comentários das lojas de apps)',
+      "IA para IP'S de rede",
+      'Assistente IA Ágil - Ciclo 2',
+      'Sumarização dos Contratos',
+      'Jurisquery - Consulta de Pareceres Juridicos',
+    ])
+    // Alinhado com o burnup: apenas status 10019 (FINALIZADO)
     const concluidosList = data.allEpics.filter(e =>
-      e.status?.id === '10003' || e.status?.id === '10019' || e.status?.name === 'Concluído'
+      e.status?.id === '10019' && !EXCLUIR_CONCLUIDOS.has(e.nome)
     )
     const canceladosList = data.allEpics.filter(e =>
       e.status?.id === '10015' || e.status?.name === 'Cancelado'
@@ -86,30 +104,44 @@ export default function FunilExperimentos({ data }: Props) {
     const emValidacaoList = data.allEpics.filter(e =>
       e.status?.id === '10204' || e.status?.name === 'EM VALIDAÇÃO' || e.status?.name === 'Em validação'
     )
-    return { emAndamentoList, concluidosList, canceladosList, emValidacaoList }
+    const emAndamentoCompletoList = [...emAndamentoList, ...emValidacaoList]
+    return { emAndamentoList, emAndamentoCompletoList, concluidosList, canceladosList, emValidacaoList }
   }, [data.allEpics])
 
   // ── % sobre o total de experimentos ──
   const pct = (v: number) => totalExperimentos > 0 ? Math.round((v / totalExperimentos) * 100) : 0
 
   // ── Definição das camadas ──
+  // ── Paleta de vermelhos ──
+  // Do mais escuro (base do funil) ao mais claro (topo)
+  const RED_900 = '#7F1D1D'
+  const RED_800 = '#991B1B'
+  const RED_700 = '#B91C1C'
+  const RED_600 = '#DC2626'
+  const RED_500 = '#EF4444'
+  const RED_400 = '#F87171'
+  const RED_300 = '#FCA5A5'
+  const RED_200 = '#FECACA'
+  const RED_100 = '#FEE2E2'
+  const RED_50  = '#FEF2F2'
+
   const camadasSimplificadas = [
-    { id: 'total',        label: 'Total de Experimentos', valor: totalExperimentos, pct: 100, cor: '#3B82F6', grad: 'from-blue-500 to-blue-600', chave: null as string | null, isIniciativa: false, epicFilter: null as string | null },
-    { id: 'andamento',    label: 'Em Andamento',          valor: emAndamento,       pct: pct(emAndamento), cor: '#F59E0B', grad: 'from-amber-500 to-amber-600', chave: 'emAndamentoList', isIniciativa: false, epicFilter: 'emAndamentoList' },
-    { id: 'concluidos',   label: 'Concluídos',            valor: concluidos,        pct: pct(concluidos), cor: '#6B7280', grad: 'from-gray-500 to-gray-600', chave: 'concluidosList', isIniciativa: false, epicFilter: 'concluidosList' },
-    { id: 'aguardando',   label: 'Aguardando Piloto',     valor: aguardandoPiloto,  pct: pct(aguardandoPiloto), cor: '#84CC16', grad: 'from-lime-500 to-lime-600', nota: 'iniciativas', chave: 'AGUARDANDO PILOTO', isIniciativa: true, epicFilter: null },
-    { id: 'pilotos',      label: 'Pilotos Executados',    valor: emPiloto + emEscala, pct: pct(emPiloto + emEscala), cor: '#16A34A', grad: 'from-green-500 to-green-600', nota: 'iniciativas', chave: 'EM PILOTO', isIniciativa: true, epicFilter: null },
-    { id: 'escala',       label: 'Em Escala',             valor: emEscala,          pct: pct(emEscala), cor: '#22C55E', grad: 'from-emerald-400 to-emerald-500', nota: 'iniciativas', chave: 'EM ESCALA', isIniciativa: true, epicFilter: null },
+    { id: 'total',        label: 'Total de Experimentos', valor: totalExperimentos, pct: 100, cor: RED_600, grad: 'from-red-600 to-red-700', chave: null as string | null, isIniciativa: false, epicFilter: null as string | null },
+    { id: 'andamento',    label: 'Em Andamento',          valor: emAndamentoTotal,  pct: pct(emAndamentoTotal), cor: RED_500, grad: 'from-red-500 to-red-600', chave: 'emAndamentoCompletoList', isIniciativa: false, epicFilter: 'emAndamentoCompletoList' },
+    { id: 'concluidos',   label: 'Concluídos',            valor: concluidos,        pct: pct(concluidos), cor: RED_400, grad: 'from-red-400 to-red-500', chave: 'concluidosList', isIniciativa: false, epicFilter: 'concluidosList' },
+    { id: 'aguardando',   label: 'Aguardando Piloto',     valor: aguardandoPiloto,  pct: pct(aguardandoPiloto), cor: RED_300, grad: 'from-red-300 to-red-400', chave: 'AGUARDANDO PILOTO', isIniciativa: true, epicFilter: null },
+    { id: 'pilotos',      label: 'Pilotos Executados',    valor: emPiloto + emEscala, pct: pct(emPiloto + emEscala), cor: RED_700, grad: 'from-red-700 to-red-800', chave: 'EM PILOTO', isIniciativa: true, epicFilter: null },
+    { id: 'escala',       label: 'Em Escala',             valor: emEscala,          pct: pct(emEscala), cor: RED_800, grad: 'from-red-800 to-red-900', chave: 'EM ESCALA', isIniciativa: true, epicFilter: null },
   ]
 
   const camadasDetalhadas = [
-    { id: 'total',        label: 'Total de Experimentos', valor: totalExperimentos, pct: 100, cor: '#3B82F6', grad: 'from-blue-500 to-blue-600', chave: null as string | null, isIniciativa: false, epicFilter: null as string | null },
-    { id: 'cancelados',   label: 'Cancelados',            valor: cancelados,        pct: pct(cancelados), cor: '#EF4444', grad: 'from-red-500 to-red-600', chave: 'canceladosList', isIniciativa: false, epicFilter: 'canceladosList' },
-    { id: 'andamento',    label: 'Em Andamento',          valor: emAndamento,       pct: pct(emAndamento), cor: '#F59E0B', grad: 'from-amber-500 to-amber-600', chave: 'emAndamentoList', isIniciativa: false, epicFilter: 'emAndamentoList' },
-    { id: 'validacao',    label: 'Em Validação',          valor: emValidacao,       pct: pct(emValidacao), cor: '#8B5CF6', grad: 'from-violet-500 to-violet-600', chave: 'emValidacaoList', isIniciativa: false, epicFilter: 'emValidacaoList' },
-    { id: 'concluidos',   label: 'Concluídos',            valor: concluidos,        pct: pct(concluidos), cor: '#6B7280', grad: 'from-gray-500 to-gray-600', chave: 'concluidosList', isIniciativa: false, epicFilter: 'concluidosList' },
-    { id: 'pilotos',      label: 'Pilotos',               valor: emPiloto,          pct: pct(emPiloto), cor: '#16A34A', grad: 'from-green-500 to-green-600', nota: 'iniciativas', chave: 'EM PILOTO', isIniciativa: true, epicFilter: null },
-    { id: 'escala',       label: 'Escala',                valor: emEscala,          pct: pct(emEscala), cor: '#22C55E', grad: 'from-emerald-400 to-emerald-500', nota: 'iniciativas', chave: 'EM ESCALA', isIniciativa: true, epicFilter: null },
+    { id: 'total',        label: 'Total de Experimentos', valor: totalExperimentos, pct: 100, cor: RED_600, grad: 'from-red-600 to-red-700', chave: null as string | null, isIniciativa: false, epicFilter: null as string | null },
+    { id: 'cancelados',   label: 'Cancelados',            valor: cancelados,        pct: pct(cancelados), cor: RED_900, grad: 'from-red-900 to-red-950', chave: 'canceladosList', isIniciativa: false, epicFilter: 'canceladosList' },
+    { id: 'andamento',    label: 'Em Andamento',          valor: emAndamentoTotal,  pct: pct(emAndamentoTotal), cor: RED_500, grad: 'from-red-500 to-red-600', chave: 'emAndamentoCompletoList', isIniciativa: false, epicFilter: 'emAndamentoCompletoList' },
+    { id: 'validacao',    label: 'Em Validação',          valor: emValidacao,       pct: pct(emValidacao), cor: RED_300, grad: 'from-red-300 to-red-400', chave: 'emValidacaoList', isIniciativa: false, epicFilter: 'emValidacaoList' },
+    { id: 'concluidos',   label: 'Concluídos',            valor: concluidos,        pct: pct(concluidos), cor: RED_400, grad: 'from-red-400 to-red-500', chave: 'concluidosList', isIniciativa: false, epicFilter: 'concluidosList' },
+    { id: 'pilotos',      label: 'Pilotos',               valor: emPiloto,          pct: pct(emPiloto), cor: RED_700, grad: 'from-red-700 to-red-800', chave: 'EM PILOTO', isIniciativa: true, epicFilter: null },
+    { id: 'escala',       label: 'Escala',                valor: emEscala,          pct: pct(emEscala), cor: RED_800, grad: 'from-red-800 to-red-900', chave: 'EM ESCALA', isIniciativa: true, epicFilter: null },
   ]
 
   const camadas = visaoSimplificada ? camadasSimplificadas : camadasDetalhadas
@@ -277,18 +309,18 @@ export default function FunilExperimentos({ data }: Props) {
             </p>
           </div>
           <div className="flex items-center gap-4">
-            <div className="flex items-center gap-1.5 bg-gray-50/80 px-2 py-1 rounded-md">
-              <span className="w-2 h-2 rounded-full bg-gray-500" />
+            <div className="flex items-center gap-1.5 bg-red-50/80 px-2 py-1 rounded-md">
+              <span className="w-2 h-2 rounded-full" style={{ background: RED_400 }} />
               <span className="text-[10px] text-gray-500 font-medium">Concluídos</span>
               <span className="text-xs font-bold text-gray-800">{pct(concluidos)}%</span>
             </div>
-            <div className="flex items-center gap-1.5 bg-gray-50/80 px-2 py-1 rounded-md">
-              <span className="w-2 h-2 rounded-full bg-green-500" />
+            <div className="flex items-center gap-1.5 bg-red-50/80 px-2 py-1 rounded-md">
+              <span className="w-2 h-2 rounded-full" style={{ background: RED_700 }} />
               <span className="text-[10px] text-gray-500 font-medium">Piloto</span>
               <span className="text-xs font-bold text-gray-800">{pct(emPiloto + emEscala)}%</span>
             </div>
-            <div className="flex items-center gap-1.5 bg-gray-50/80 px-2 py-1 rounded-md">
-              <span className="w-2 h-2 rounded-full bg-emerald-400" />
+            <div className="flex items-center gap-1.5 bg-red-50/80 px-2 py-1 rounded-md">
+              <span className="w-2 h-2 rounded-full" style={{ background: RED_800 }} />
               <span className="text-[10px] text-gray-500 font-medium">Escala</span>
               <span className="text-xs font-bold text-gray-800">{pct(emEscala)}%</span>
             </div>

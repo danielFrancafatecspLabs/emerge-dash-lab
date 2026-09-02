@@ -6,8 +6,6 @@ import { SLIDE_PAGE_SIZE, chunk, SlideDownloadButtons } from './slideExport'
 export interface NovoExperimentoSlideRow {
   key: string
   nome: string
-  resumo: string
-  bo: string
   sponsor: string
   criadoEm: string
 }
@@ -77,18 +75,14 @@ export default function NovosExperimentosSlides({ iniciativas }: Props) {
 
               <table className="w-full border-collapse" style={{ tableLayout: 'fixed' }}>
                 <colgroup>
-                  <col style={{ width: '18%' }} />
-                  <col style={{ width: '42%' }} />
-                  <col style={{ width: '14%' }} />
-                  <col style={{ width: '16%' }} />
-                  <col style={{ width: '10%' }} />
+                  <col style={{ width: '40%' }} />
+                  <col style={{ width: '30%' }} />
+                  <col style={{ width: '15%' }} />
                 </colgroup>
                 <thead>
                   <tr className="align-bottom">
                     {[
                       'Nome da Iniciativa',
-                      'Resumo',
-                      'BO',
                       'Sponsor',
                       'Criado em',
                     ].map((h, i) => (
@@ -115,16 +109,6 @@ export default function NovosExperimentosSlides({ iniciativas }: Props) {
                         </p>
                         <p className="text-gray-400" style={{ fontSize: 9, marginTop: 1 }}>
                           #{row.key}
-                        </p>
-                      </td>
-                      <td className="py-2.5 pr-3 align-top">
-                        <p className="text-gray-700" style={{ fontSize: 11, lineHeight: 1.4 }}>
-                          {row.resumo || '—'}
-                        </p>
-                      </td>
-                      <td className="py-2.5 pr-3 align-top">
-                        <p className="text-gray-700" style={{ fontSize: 11 }}>
-                          {row.bo || '—'}
                         </p>
                       </td>
                       <td className="py-2.5 pr-3 align-top">

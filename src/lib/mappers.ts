@@ -70,9 +70,11 @@ export const STATUS_PIPELINE: Record<string, keyof PipelineCount> = {
   '10504': 'EM ESCALA',
   '13562': 'EM ESCALA',         // Board 2734 — coluna "EM ESCALA" usa status "Finalizado" (13562)
   '10019': 'FINALIZADO',        // Concluído (board 2734 Iniciativas e 2735 Epics)
-  '10015': 'CANCELADO',
+  '10015': 'CANCELADO',         // Cancelado (board 2734)
+  '10004': 'CANCELADO',         // Cancelado (board 2735 Epics)
   // Board 2735 (Experimentos/Epics) — status específicos
-  '3': 'EM EXPERIMENTAÇÃO',     // "Em andamento"
+  '3': 'EM EXPERIMENTAÇÃO',     // "Em andamento" (legado)
+  '10067': 'EM EXPERIMENTAÇÃO', // "Em andamento" (board 2735)
   '10204': 'EM EXPERIMENTAÇÃO', // "EM VALIDAÇÃO"
   '11201': 'EM EXPERIMENTAÇÃO', // "Em validação"
   '10057': 'BACKLOG',           // "Backlog"
@@ -143,8 +145,14 @@ function mapEpicToDetail(epic: JiraIssue, changelog?: ChangelogEntry[]): EpicDet
     mercado: getSegmentoFallback(f.customfield_11987?.value ?? f.customfield_30014),
     descricao: f.description ?? null,
     motivoBloqueio: f.customfield_13406?.value ?? null,
+    flagged: f.customfield_10021 != null && (
+      f.customfield_10021 === 'Impediment' ||
+      (typeof f.customfield_10021 === 'object' && f.customfield_10021?.value === 'Impediment')
+    ) ? true : null,
+    tipoImpedimento: f.customfield_30437?.value ?? null,
     statusDetalhado: f.lastComment ?? null,
     prioridade: f.priority?.name ?? null,
+    duedate: f.duedate ?? null,
     criadoEm: f.created ?? null,
     concluidoEm,
     anexos: f.attachment?.map(a => ({
@@ -169,12 +177,39 @@ const DONUT_COLORS: Record<string, string> = {
 const STATUS_NAME_PIPELINE: Record<string, keyof PipelineCount> = {
   'EM ESCALA': 'EM ESCALA',
   'ESCALA': 'EM ESCALA',
+  'AGUARDANDO PILOTO': 'AGUARDANDO PILOTO',
+  'EM PILOTO': 'EM PILOTO',
+  'EM EXPERIMENTAÇÃO': 'EM EXPERIMENTAÇÃO',
+  'EM ANDAMENTO': 'EM EXPERIMENTAÇÃO',
+  'FINALIZADO': 'FINALIZADO',
+  'CONCLUÍDO': 'FINALIZADO',
+  'CONCLUIDO': 'FINALIZADO',
+  'DONE': 'FINALIZADO',
+  'CANCELADO': 'CANCELADO',
+  'BACKLOG': 'BACKLOG',
+  'EM REFINAMENTO': 'EM REFINAMENTO',
+  'PRONTO PARA EXECUÇÃO': 'PRONTO PARA EXECUÇÃO',
 }
 
 export function getPipelineStage(status: JiraStatus): keyof PipelineCount | undefined {
   const normalized = status.name.trim().toUpperCase()
+  // Primeiro tenta pelo ID (mais preciso)
+  const byId = STATUS_PIPELINE[status.id]
+  if (byId) return byId
+  // Depois tenta pelo nome exato
+  const byName = STATUS_NAME_PIPELINE[normalized]
+  if (byName) return byName
+  // Fallback: busca parcial por palavras-chave
   if (normalized.includes('ESCALA') && !normalized.includes('AGUARDANDO')) return 'EM ESCALA'
-  return STATUS_PIPELINE[status.id] ?? STATUS_NAME_PIPELINE[normalized]
+  if (normalized.includes('PILOTO')) return 'EM PILOTO'
+  if (normalized.includes('AGUARDANDO')) return 'AGUARDANDO PILOTO'
+  if (normalized.includes('EXPERIMENTA') || normalized.includes('ANDAMENTO') || normalized.includes('VALIDAÇÃO') || normalized.includes('VALIDACAO')) return 'EM EXPERIMENTAÇÃO'
+  if (normalized.includes('CONCLUÍ') || normalized.includes('CONCLUI') || normalized === 'DONE') return 'FINALIZADO'
+  if (normalized.includes('CANCEL') || normalized.includes('CANCELLED')) return 'CANCELADO'
+  if (normalized.includes('BACKLOG')) return 'BACKLOG'
+  if (normalized.includes('REFINAMENTO')) return 'EM REFINAMENTO'
+  if (normalized.includes('PRONTO')) return 'PRONTO PARA EXECUÇÃO'
+  return undefined
 }
 
 export function buildDashboardData(
@@ -259,6 +294,9 @@ export function buildDashboardData(
       timeResponsavel: ini.fields.customfield_31438?.value ?? ini.fields.customfield_30357 ?? null,
       sponsor: ini.fields.customfield_30394 ? normalizeSponsor(ini.fields.customfield_30394) : null,
       criadoEm: ini.fields.created ?? null,
+      descricao: ini.fields.description ?? null,
+      bo: ini.fields.customfield_30340 ?? null,
+      dominio: ini.fields.customfield_30021?.value ?? ini.fields.customfield_11987?.value ?? ini.fields.customfield_11991?.value ?? null,
     }
   })
 
@@ -1405,6 +1443,15 @@ function getMesesDoPeriodo(periodo: PeriodoFiltro): { mes: string; ano: number; 
  * dos mesmos dados reais usados pelo DashboardData.
  * @param periodo Filtro de período (ultimos12, semestre, tudo)
  */
+// Lista de experimentos que não devem ser considerados como concluídos (reabertos ou movidos indevidamente)
+const EXCLUIR_CONCLUIDOS = new Set([
+  'Otimiza APP - Ciclo 1 (Análise de comentários das lojas de apps)',
+  "IA para IP'S de rede",
+  'Assistente IA Ágil - Ciclo 2',
+  'Sumarização dos Contratos',
+  'Jurisquery - Consulta de Pareceres Juridicos',
+])
+
 export function buildMonitoramentoData(data: DashboardData, periodo: PeriodoFiltro = { tipo: 'ultimos12' }): MonitoramentoData {
   const allEpics = data.allEpics
 
@@ -1415,7 +1462,7 @@ export function buildMonitoramentoData(data: DashboardData, periodo: PeriodoFilt
 
   // ── KPIs ──
   const experimentosConcluidos = epicsNoPeriodo.filter(e =>
-    e.status.id === '10019'
+    e.status.id === '10019' && !EXCLUIR_CONCLUIDOS.has(e.nome)
   ).length
 
   const totalPipeline = Object.values(data.pipeline).reduce((s, v) => s + v, 0)
@@ -1427,8 +1474,8 @@ export function buildMonitoramentoData(data: DashboardData, periodo: PeriodoFilt
   const beneficioNoPeriodo = epicsNoPeriodo.reduce((s, e) => s + (e.beneficioQuantitativo ?? 0), 0)
   const roi = custoTotal > 0 ? beneficioNoPeriodo / custoTotal : null
 
-  // ── Burnup: acumulado mês a mês apenas de experimentos CONCLUÍDOS (status 10003) ──
-  // Usa criadoEm como referência para posicionar cada experimento no mês
+  // ── Burnup: acumulado mês a mês apenas de experimentos CONCLUÍDOS (status 10019) ──
+  // Usa concluidoEm (data do changelog) como referência; fallback para criadoEm
   const meses = getMesesDoPeriodo(periodo)
   const realizado: { mes: string; ano: number; valor: number }[] = []
   const beneficioAcumulado: { mes: string; ano: number; valor: number }[] = []
@@ -1436,8 +1483,10 @@ export function buildMonitoramentoData(data: DashboardData, periodo: PeriodoFilt
   let acumuladoBeneficio = 0
   for (const { mes, ano, mesIdx } of meses) {
     const epicsNoMes = epicsNoPeriodo.filter(e => {
-      if (!e.criadoEm) return false
-      const d = new Date(e.criadoEm)
+      if (EXCLUIR_CONCLUIDOS.has(e.nome)) return false
+      const dataRef = e.concluidoEm ?? e.criadoEm
+      if (!dataRef) return false
+      const d = new Date(dataRef)
       return d.getFullYear() === ano && d.getMonth() === mesIdx && e.status.id === '10019'
     })
     acumulado += epicsNoMes.length

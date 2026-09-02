@@ -412,6 +412,12 @@
 			"command": "cmd /c npx next dev",
 			"isBackground": true,
 			"problemMatcher": []
+		},
+		{
+			"label": "build-funil",
+			"type": "shell",
+			"command": "npx next build",
+			"group": "build"
 		}
 	]
 }

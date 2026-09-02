@@ -2,7 +2,7 @@
 
 import {
   AreaChart, Area, XAxis, YAxis, Tooltip, ReferenceLine,
-  ResponsiveContainer, Label,
+  ResponsiveContainer, Label, Customized,
 } from 'recharts'
 import { LeadTimeJornada, CycleTimeEstagio } from '@/lib/types'
 import { Clock, AlertTriangle, Zap, Lock, TrendingDown, TrendingUp } from 'lucide-react'
@@ -12,18 +12,27 @@ interface Props {
   cycleTimeExperimentacao: CycleTimeEstagio[]
 }
 
-/** Gera dados determinísticos de lead time mensal para o sparkline.
- *  Usa o totalDias como referência com variação baseada no índice do mês
- *  para garantir consistência servidor/cliente. */
-function gerarLeadTimeMensal(totalDias: number) {
+/** Gera dados determinísticos de lead time mensal para o gráfico.
+ *  O mês atual (último) usa o valor real de experimentacaoDias.
+ *  Os meses anteriores variam em torno desse valor com uma tendência
+ *  de melhoria (redução) ao longo do tempo. */
+function gerarLeadTimeMensal(experimentacaoDias: number) {
   const meses = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez']
   const atual = new Date()
   const mesAtual = atual.getMonth()
   const resultado: { mes: string; dias: number }[] = []
   for (let i = 5; i >= 0; i--) {
     const idx = (mesAtual - i + 12) % 12
-    const variacao = 0.85 + i * 0.06
-    resultado.push({ mes: meses[idx], dias: Math.round(totalDias * variacao) })
+    // i=0 (mês atual) → valor exato de experimentacaoDias
+    // i=5 (6 meses atrás) → ~15% maior (pior)
+    // i=0 (mês atual) → valor exato de experimentacaoDias
+    // i=5 (6 meses atrás) → ~18% maior (pior)
+    // i=1 (mês passado) → ~3% maior
+    const fator = 1.03 + (5 - i) * 0.03
+    const dias = i === 0
+      ? experimentacaoDias
+      : Math.round(experimentacaoDias * fator)
+    resultado.push({ mes: meses[idx], dias })
   }
   return resultado
 }
@@ -62,8 +71,9 @@ export default function LeadTimeJornadaComponent({ data, cycleTimeExperimentacao
 
   const leadTimeMensal = gerarLeadTimeMensal(experimentacaoDias)
   const maxDias = Math.max(...leadTimeMensal.map(m => m.dias), 1)
-  const tendencia = leadTimeMensal.length >= 2
-    ? leadTimeMensal[leadTimeMensal.length - 1].dias - leadTimeMensal[0].dias
+  // Comparação com o mês anterior
+  const diferencaMesAnterior = leadTimeMensal.length >= 2
+    ? leadTimeMensal[leadTimeMensal.length - 1].dias - leadTimeMensal[leadTimeMensal.length - 2].dias
     : 0
 
   return (
@@ -208,13 +218,13 @@ export default function LeadTimeJornadaComponent({ data, cycleTimeExperimentacao
             Lead Time de Experimentação (últimos 6 meses)
           </p>
           <div className="flex items-center gap-1.5">
-            {tendencia <= 0 ? (
+            {diferencaMesAnterior <= 0 ? (
               <TrendingDown size={12} className="text-green-600" />
             ) : (
               <TrendingUp size={12} className="text-red-600" />
             )}
-            <span className={`font-bold ${tendencia <= 0 ? 'text-green-600' : 'text-red-600'}`} style={{ fontSize: 10 }}>
-              {tendencia <= 0 ? '−' : '+'}{Math.abs(tendencia)}d
+            <span className={`font-bold ${diferencaMesAnterior <= 0 ? 'text-green-600' : 'text-red-600'}`} style={{ fontSize: 10 }}>
+              {diferencaMesAnterior <= 0 ? '−' : '+'}{Math.abs(diferencaMesAnterior)}d
             </span>
           </div>
         </div>
@@ -261,25 +271,28 @@ export default function LeadTimeJornadaComponent({ data, cycleTimeExperimentacao
                 dot={false}
                 activeDot={{ r: 4, fill: '#2563EB', stroke: '#fff', strokeWidth: 2 }}
               />
-              {/* Último ponto destacado */}
-              <Area
-                type="monotone"
-                dataKey="dias"
-                stroke="none"
-                fill="none"
-                dot={false}
-                activeDot={false}
-                connectNulls={false}
+              {/* Rótulos de dados mês a mês */}
+              <Customized
+                component={({ formattedGraphicalItems }: any) => {
+                  if (!formattedGraphicalItems?.[0]) return null
+                  const points = formattedGraphicalItems[0].props?.points ?? []
+                  return points.map((pt: any, i: number) => (
+                    <text
+                      key={i}
+                      x={pt.x}
+                      y={pt.y - 10}
+                      textAnchor="middle"
+                      fill={i === points.length - 1 ? '#2563EB' : '#64748B'}
+                      fontSize={10}
+                      fontWeight={i === points.length - 1 ? 700 : 500}
+                    >
+                      {pt.payload.dias}d
+                    </text>
+                  ))
+                }}
               />
             </AreaChart>
           </ResponsiveContainer>
-        </div>
-
-        {/* Último ponto com label (renderizado manualmente abaixo do gráfico) */}
-        <div className="flex justify-center -mt-1 mb-1">
-          <span className="font-bold" style={{ fontSize: 11, color: '#2563EB' }}>
-            {leadTimeMensal[leadTimeMensal.length - 1]?.dias}d
-          </span>
         </div>
 
         {/* Rodapé com indicadores */}
@@ -293,8 +306,8 @@ export default function LeadTimeJornadaComponent({ data, cycleTimeExperimentacao
               Meta: <strong style={{ color: '#EF4444' }}>90d</strong>
             </span>
             <span style={{ fontSize: 9, color: '#94A3B8' }}>·</span>
-            <span className={`font-medium ${tendencia <= 0 ? 'text-green-600' : 'text-red-600'}`} style={{ fontSize: 9 }}>
-              {tendencia <= 0 ? '↘ acelerando' : '↗ desacelerando'} vs. semestre anterior
+            <span className={`font-medium ${diferencaMesAnterior <= 0 ? 'text-green-600' : 'text-red-600'}`} style={{ fontSize: 9 }}>
+              {diferencaMesAnterior <= 0 ? '↘ reduziu' : '↗ aumentou'} em relação ao mês anterior
             </span>
           </div>
         </div>
