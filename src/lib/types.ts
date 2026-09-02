@@ -20,6 +20,8 @@ export interface JiraIssueFields {
   // Epics — board 2735
   customfield_30014?: string                          // Domínio (Empresarial / PME / outros) (was customfield_11661)
   customfield_13406?: { value: string }               // Motivo de Bloqueio
+  customfield_10021?: { value: string } | string | null  // Flagged (Impediment)
+  customfield_30437?: { value: string }               // Tipo de Impedimento
   customfield_30394?: string                          // Sponsor (was customfield_11662)
   customfield_30340?: string                          // BO (Business Owner) (was customfield_11663)
   customfield_30358?: string | { value: string }        // Complexidade (was customfield_11664)
@@ -39,6 +41,8 @@ export interface JiraIssueFields {
   lastComment?: string | null
   // Prioridade padrão do Jira
   priority?: { id?: string; name?: string } | null
+  // Data limite (campo padrão do Jira)
+  duedate?: string | null
   // Anexos
   attachment?: { id: string; filename: string; content: string; mimeType: string; created: string }[]
 }
@@ -90,8 +94,11 @@ export interface EpicDetail {
   mercado: string
   descricao: string | null
   motivoBloqueio: string | null
+  flagged?: boolean | null
+  tipoImpedimento?: string | null
   statusDetalhado?: string | null
   prioridade?: string | null
+  duedate?: string | null
   criadoEm?: string | null
   concluidoEm?: string | null
   anexos?: { filename: string; url: string }[] | null
@@ -111,6 +118,9 @@ export interface Iniciativa {
   timeResponsavel: string | null
   sponsor: string | null
   criadoEm: string | null
+  descricao: string | null                  // Solução (description da Iniciativa)
+  bo: string | null                         // Business Owner da própria Iniciativa
+  dominio: string | null                    // Domínio da própria Iniciativa
 }
 
 export interface PipelineCount {
@@ -293,7 +303,10 @@ export type PeriodoFiltro =
 export interface IniciativaSlideRow {
   key: string
   nome: string
-  prioridade: 'Alta' | 'Média' | 'Baixa' | '—'
+  fase: string
+  dataLimite: string | null
+  bloqueado: boolean
+  motivoBloqueio: string | null
   descricao: string
   sponsor: string
   diretoria: string
@@ -318,8 +331,9 @@ export interface IniciativaCandidataRow {
 export interface BloqueadoSlideRow {
   key: string
   nome: string
+  fase: string
   motivoBloqueio: string
-  prioridade: string
+  dataLimite: string | null
   descricao: string
   sponsor: string
   diretoria: string
