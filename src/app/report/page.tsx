@@ -17,6 +17,7 @@ import {
   CANDIDATAS_DELIVERY_NOMES,
   STATUS_ANDAMENTO_VALIDACAO,
 } from '@/lib/report-utils'
+import { BLOQUEIOS_DATA } from '@/app/api/bloqueios/route'
 import type {
   IniciativaSlideRow,
   IniciativaCandidataRow,
@@ -78,16 +79,57 @@ export default async function ReportPage() {
   const labResponsavelPorEpic = new Map<string, string>()
   for (const ini of data.iniciativas) {
     for (const epic of ini.epics) {
-      labResponsavelPorEpic.set(epic.key, ini.timeResponsavel ?? '—')
+      // Prioriza o `timeResponsavel` do próprio epic (pode ter sido propagado do pai),
+      // em seguida usa o time da iniciativa mãe como fallback.
+      const lab = epic.timeResponsavel ?? ini.timeResponsavel ?? '—'
+      labResponsavelPorEpic.set(epic.key, lab)
     }
   }
 
   // Usa a MESMA lista de emAndamento (todos os experimentos ativos) para os slides
-  const iniciativasSlides: IniciativaSlideRow[] = emAndamento
+  const EXCLUIR_DO_SLIDE = new Set(['Personas Sintéticas', 'Leads PME - 2º Ciclo', 'Claro Box x OTTs'])
+  const EXCLUIR = EXCLUIR_DO_SLIDE
+
+  // ── Slides "Experimentos Bloqueados" (construímos primeiro para ser a fonte de verdade)
+  // Mapeia key -> categoria (motivo) a partir dos dados do slide de bloqueios (quadrantes)
+  const bloqueiosPorKey = new Map<string, string>()
+  const bloqueiosPorNome = new Map<string, string>()
+  const bloqueiosItems: { key: string; nome: string; titulo: string }[] = []
+  for (const cat of BLOQUEIOS_DATA.categorias) {
+    // Ignorar motivo "BENEFÍCIO POTENCIAL NÃO MAPEADO" conforme solicitado
+    if (cat.titulo === 'BENEFÍCIO POTENCIAL NÃO MAPEADO') continue
+    for (const item of cat.items) {
+      // armazenar por key e por nome normalizado para fallback
+      const nomeNorm = (item.nome ?? '').trim()
+      bloqueiosPorKey.set(item.key, cat.titulo)
+      bloqueiosPorNome.set(nomeNorm.toLowerCase(), cat.titulo)
+      bloqueiosItems.push({ key: item.key, nome: nomeNorm, titulo: cat.titulo })
+    }
+  }
+
+  function findMotivoQuadrante(epicKey: string, epicNome?: string): string | undefined {
+    if (bloqueiosPorKey.has(epicKey)) return bloqueiosPorKey.get(epicKey)
+    const nome = (epicNome ?? '').trim()
+    if (!nome) return undefined
+    const nomeLower = nome.toLowerCase()
+    if (bloqueiosPorNome.has(nomeLower)) return bloqueiosPorNome.get(nomeLower)
+    // Fallback: substring matching (item nome contained in epic nome ou vice-versa)
+    for (const it of bloqueiosItems) {
+      const itemNome = it.nome.toLowerCase()
+      if (itemNome && (nomeLower.includes(itemNome) || itemNome.includes(nomeLower))) return it.titulo
+    }
+    return undefined
+  }
+
+  const bloqueados: BloqueadoSlideRow[] = emAndamento
+    .filter(e => Boolean(findMotivoQuadrante(e.key, e.nome) ?? e.motivoBloqueio) || estaBloqueadoAgora(e.key, epicChangelogs))
     .map(e => ({
       key: e.key,
       nome: e.nome,
-      prioridade: PRIORIDADE_LABEL[e.prioridade ?? ''] ?? '—',
+      fase: e.status?.name ?? '—',
+      // Primeiro, buscar o motivo nos quadrantes (por key, por nome ou por substring); se não houver, fallback para campo Jira
+      motivoBloqueio: findMotivoQuadrante(e.key, e.nome) ?? e.motivoBloqueio ?? '—',
+      dataLimite: e.duedate ?? null,
       descricao: limparDescricao(e.descricao),
       sponsor: e.sponsor ?? '—',
       diretoria: e.dominio ?? '—',
@@ -95,14 +137,19 @@ export default async function ReportPage() {
       labResponsavel: labResponsavelPorEpic.get(e.key) ?? '—',
     }))
 
-  // ── Slides "Experimentos Bloqueados" ──
-  const bloqueados: BloqueadoSlideRow[] = emAndamento
-    .filter(e => !!e.motivoBloqueio || estaBloqueadoAgora(e.key, epicChangelogs))
+  // Fonte de verdade para bloquear nas iniciativas em andamento: os itens do slide de bloqueados
+  const setBloqueados = new Set(bloqueados.map(b => b.key))
+  const bloqueadoMap = new Map(bloqueados.map(b => [b.key, b.motivoBloqueio]))
+
+  const iniciativasSlides: IniciativaSlideRow[] = emAndamento
+    .filter(e => !EXCLUIR.has(e.nome))
     .map(e => ({
       key: e.key,
       nome: e.nome,
-      motivoBloqueio: e.motivoBloqueio ?? '—',
-      prioridade: PRIORIDADE_LABEL[e.prioridade ?? ''] ?? '—',
+      fase: e.status?.name ?? '—',
+      dataLimite: e.duedate ?? null,
+      bloqueado: setBloqueados.has(e.key),
+      motivoBloqueio: bloqueadoMap.get(e.key) ?? e.motivoBloqueio ?? null,
       descricao: limparDescricao(e.descricao),
       sponsor: e.sponsor ?? '—',
       diretoria: e.dominio ?? '—',
@@ -161,20 +208,17 @@ export default async function ReportPage() {
     if (d < corte) continue
     if (seen.has(ini.key)) continue
     seen.add(ini.key)
-    // Use initiative-level sponsor as fallback when no experiment sponsors exist
-    const sponsors = ini.sponsors.length > 0
-      ? ini.sponsors
-      : (ini.sponsor ? [ini.sponsor] : [])
-    // Pega o BO do primeiro epic que tiver, ou '—'
-    const bo = ini.epics.find(e => e.bo)?.bo ?? '—'
-    // Pega o resumo da descrição do primeiro epic, ou '—'
-    const resumo = ini.epics.find(e => e.descricao)?.descricao ?? '—'
+    // Sponsor e BO vêm diretamente da Iniciativa
+    const sponsors = ini.sponsor ? [ini.sponsor] : []
+    const bo = ini.bo ?? '—'
+    // Resumo (Solução): descrição da Iniciativa, fallback para descrição do primeiro Epic
+    const resumo = ini.descricao ?? ini.epics.find(e => e.descricao)?.descricao ?? '—'
     novosNaEsteira.push({
       key: ini.key,
       nome: ini.nome,
       status: ini.status.name,
       sponsors,
-      dominios: ini.dominios,
+      dominios: ini.dominios.length > 0 ? ini.dominios : (ini.dominio ? [ini.dominio] : []),
       criadoEm: ini.criadoEm,
       qtdExperimentos: ini.epics.length,
       resumo,

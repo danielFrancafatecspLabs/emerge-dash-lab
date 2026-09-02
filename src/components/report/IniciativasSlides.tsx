@@ -1,13 +1,16 @@
 'use client'
 
 import { useMemo, useRef, useState, type RefObject } from 'react'
-import { Pencil, Check } from 'lucide-react'
+import { Pencil, Check, AlertTriangle } from 'lucide-react'
 import { SLIDE_PAGE_SIZE, chunk, SlideDownloadButtons } from './slideExport'
 
 export interface IniciativaSlideRow {
   key: string
   nome: string
-  prioridade: 'Alta' | 'Média' | 'Baixa' | '—'
+  fase: string
+  dataLimite: string | null
+  bloqueado: boolean
+  motivoBloqueio: string | null
   descricao: string
   sponsor: string
   diretoria: string
@@ -19,20 +22,17 @@ interface Props {
   iniciativas: IniciativaSlideRow[]
 }
 
-const PRIORIDADE_STYLE: Record<string, string> = {
-  'Alta': 'border-red-600 text-red-600',
-  'Média': 'border-gray-300 text-gray-400',
-  'Baixa': 'border-gray-200 text-gray-300',
-  '—': 'border-gray-200 text-gray-300',
+function formatDate(d: string | null): string {
+  if (!d) return ''
+  const dt = new Date(d)
+  return dt.toLocaleDateString('pt-BR')
 }
 
 export default function IniciativasSlides({ iniciativas }: Props) {
   const paginas = useMemo(() => chunk(iniciativas, SLIDE_PAGE_SIZE), [iniciativas])
   const totalPaginas = paginas.length
 
-  // Previsão de Conclusão não existe como campo estruturado no Jira — é preenchida
-  // manualmente pelo time antes de cada apresentação (mesmo padrão de edição inline
-  // já usado na tabela "Iniciativas Direcionadas para beOn Delivery").
+  // Previsão de Conclusão editável manualmente (fallback quando não há dataLimite)
   const [previsoes, setPrevisoes] = useState<Record<string, string>>({})
   const [editingKey, setEditingKey] = useState<string | null>(null)
   const [editValue, setEditValue] = useState('')
@@ -50,7 +50,6 @@ export default function IniciativasSlides({ iniciativas }: Props) {
   const refs = useRef<Array<RefObject<HTMLDivElement>>>(
     paginas.map(() => ({ current: null }))
   )
-  // Garante que exista uma ref para cada página, mesmo se a quantidade mudar
   while (refs.current.length < totalPaginas) refs.current.push({ current: null })
 
   if (iniciativas.length === 0) {
@@ -101,9 +100,9 @@ export default function IniciativasSlides({ iniciativas }: Props) {
               <table className="w-full border-collapse" style={{ tableLayout: 'fixed' }}>
                 <colgroup>
                   <col style={{ width: '18%' }} />
-                  <col style={{ width: '7%' }} />
                   <col style={{ width: '10%' }} />
-                  <col style={{ width: '30%' }} />
+                  <col style={{ width: '10%' }} />
+                  <col style={{ width: '27%' }} />
                   <col style={{ width: '13%' }} />
                   <col style={{ width: '12%' }} />
                   <col style={{ width: '10%' }} />
@@ -111,12 +110,12 @@ export default function IniciativasSlides({ iniciativas }: Props) {
                 <thead>
                   <tr className="align-bottom">
                     {[
-                      'Nome da Iniciativa', 'Prioridade', 'Previsão de Conclusão',
+                      'Nome da Iniciativa', 'Fase', 'Previsão de Conclusão',
                       'Descrição', 'Sponsor & Diretoria', 'Benefício Potencial', 'Lab Resp.',
                     ].map((h, i) => (
                       <th
                         key={h}
-                        className={`pb-2.5 font-bold text-gray-500 uppercase ${i === 0 ? 'text-left' : i >= 5 ? 'text-left' : 'text-left'}`}
+                        className={`pb-2.5 font-bold text-gray-500 uppercase ${i === 0 ? 'text-left' : 'text-left'}`}
                         style={{ fontSize: 10.5, letterSpacing: '0.02em', lineHeight: 1.25 }}
                       >
                         {h}
@@ -126,7 +125,8 @@ export default function IniciativasSlides({ iniciativas }: Props) {
                 </thead>
                 <tbody>
                   {rows.map((row, i) => {
-                    const previsao = previsoes[row.key] ?? 'TBD'
+                    const estaBloqueado = row.bloqueado
+                    const previsao = previsoes[row.key] ?? (row.dataLimite ? formatDate(row.dataLimite) : '')
                     return (
                       <tr key={row.key} className={i < rows.length - 1 ? 'border-b' : ''} style={{ borderColor: '#F3F4F6' }}>
                         <td className="py-3 pr-3 align-top">
@@ -134,14 +134,31 @@ export default function IniciativasSlides({ iniciativas }: Props) {
                         </td>
                         <td className="py-3 pr-2 align-top">
                           <span
-                            className={`inline-block rounded-full border-2 px-3 py-0.5 font-bold ${PRIORIDADE_STYLE[row.prioridade]}`}
-                            style={{ fontSize: 11 }}
+                            className="inline-block rounded-full px-3 py-0.5 font-bold text-white"
+                            style={{
+                              fontSize: 11,
+                              background: row.fase === 'EM VALIDAÇÃO' ? '#7A1212' :
+                                         row.fase === 'Em andamento' ? '#B8860B' :
+                                         row.fase === 'Em refinamento' ? '#2563EB' :
+                                         row.fase === 'PRONTO PARA EXECUÇÃO' ? '#059669' :
+                                         '#6B7280'
+                            }}
                           >
-                            {row.prioridade}
+                            {row.fase}
                           </span>
                         </td>
                         <td className="py-3 pr-2 align-top">
-                          {editingKey === row.key ? (
+                          {estaBloqueado ? (
+                            <div className="flex items-start gap-1.5" title={row.motivoBloqueio ?? ''}>
+                              <AlertTriangle size={14} className="mt-0.5 shrink-0" style={{ color: '#D97706' }} />
+                              <div>
+                                <span className="font-bold text-xs" style={{ color: '#92400E' }}>Bloqueado</span>
+                                <p className="text-gray-500 leading-tight" style={{ fontSize: 9.5 }}>
+                                  {row.motivoBloqueio}
+                                </p>
+                              </div>
+                            </div>
+                          ) : editingKey === row.key ? (
                             <div className="flex items-center gap-1">
                               <input
                                 autoFocus
@@ -159,7 +176,7 @@ export default function IniciativasSlides({ iniciativas }: Props) {
                               title="Clique para editar"
                               style={{ background: '#F3F4F6', borderRadius: 8, padding: '4px 10px', display: 'inline-block', cursor: 'pointer' }}
                             >
-                              <span style={{ fontSize: 11, fontWeight: 600, color: '#4B5563' }}>{previsao}</span>
+                              <span style={{ fontSize: 11, fontWeight: 600, color: '#4B5563' }}>{previsao || 'TBD'}</span>
                               <Pencil size={10} className="no-print" style={{ color: '#D1D5DB', marginLeft: 4, opacity: 0.6, verticalAlign: -1 }} />
                             </div>
                           )}

@@ -29,28 +29,55 @@ const CARD_BASE = 'rounded-xl border p-5 flex flex-col gap-3'
 const CARD_BORDER = 'border-[#E0D0D0]'
 const CARD_BG = 'bg-white'
 
-export default function DestaquesSlide() {
+export default function DestaquesSlide({ novosNaEsteira }: { novosNaEsteira?: { nome: string; criadoEm?: string | null }[] }) {
   const [data, setData] = useState<DestaquesData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const slideRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
+    // Sempre buscar os demais dados do endpoint `/jira/api/destaques` —
+    // se `novosNaEsteira` for passado, sobrescreve APENAS o card "Novas Iniciativas".
     fetch('/jira/api/destaques', { credentials: 'include' })
       .then(r => r.json())
       .then(json => {
         if (json.error) {
           setError(json.error)
+          // Mesmo em erro, se o pai forneceu `novosNaEsteira` usamos pelo menos esse card
+          if (novosNaEsteira) {
+            setData({
+              iniciativasNovasAgosto: { quantidade: novosNaEsteira.length, nomes: novosNaEsteira.map(n => n.nome) },
+              experimentosConcluidosAgosto: { quantidade: 0, nomes: [] },
+              novoLaboratorio: { criado: false, nome: '' },
+              beneficioIncrementado30d: { valor: 0, epics: [] },
+            })
+            setError(null)
+          }
         } else {
+          // Se o pai passou `novosNaEsteira`, sobrepõe somente `iniciativasNovasAgosto`.
+          if (novosNaEsteira) {
+            json.iniciativasNovasAgosto = { quantidade: novosNaEsteira.length, nomes: novosNaEsteira.map((n: any) => n.nome) }
+          }
           setData(json)
         }
         setLoading(false)
       })
       .catch(err => {
-        setError(err.message)
+        // Em caso de falha de rede, usar fallback com `novosNaEsteira` quando disponível
+        if (novosNaEsteira) {
+          setData({
+            iniciativasNovasAgosto: { quantidade: novosNaEsteira.length, nomes: novosNaEsteira.map(n => n.nome) },
+            experimentosConcluidosAgosto: { quantidade: 0, nomes: [] },
+            novoLaboratorio: { criado: false, nome: '' },
+            beneficioIncrementado30d: { valor: 0, epics: [] },
+          })
+          setError(null)
+        } else {
+          setError(err.message)
+        }
         setLoading(false)
       })
-  }, [])
+  }, [novosNaEsteira])
 
   if (loading) {
     return (

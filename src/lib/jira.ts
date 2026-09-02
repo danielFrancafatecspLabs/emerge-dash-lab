@@ -5,7 +5,7 @@ export const IDEACAO_BOARD_ID = Number(process.env.JIRA_BOARD_IDEACAO_ID ?? 2734
 export const EXPERIMENTACAO_BOARD_ID = Number(process.env.JIRA_BOARD_INICIATIVAS_ID ?? 2735)
 
 const FIELDS_INICIATIVA = [
-  'summary', 'status', 'issuetype', 'created', 'updated',
+  'summary', 'status', 'issuetype', 'created', 'updated', 'description',
   'customfield_30216', // Benefício Quantitativo (R$) (was customfield_13242)
   'customfield_30394', // Sponsor (was customfield_11662)
   'customfield_30357', // Time Responsável (Lab) (was customfield_16911)
@@ -20,6 +20,8 @@ const FIELDS_EPIC = [
   'summary', 'status', 'issuetype', 'parent', 'description', 'priority', 'created',
   'customfield_30014', // Domínio (Empresarial / PME / outros) (was customfield_11661)
   'customfield_13406', // Motivo de Bloqueio
+  'customfield_10021', // Flagged (Impediment)
+  'customfield_30437', // Tipo de Impedimento
   'customfield_30394', // Sponsor (was customfield_11662)
   'customfield_30340', // BO (was customfield_11663)
   'customfield_30358', // Complexidade (was customfield_11664)
@@ -35,6 +37,7 @@ const FIELDS_EPIC = [
   'customfield_30445', // Segmento (was customfield_11378)
   'customfield_30110', // Portfólio (was customfield_15919)
   'customfield_21499', // Diretoria (was customfield_10904)
+  'duedate',             // Data limite
   'attachment',          // Anexos
 ].join(',')
 
