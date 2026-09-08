@@ -12,6 +12,7 @@ const NAV_ALL = [
   { label: 'Portfólio',  icon: BarChart2, href: '/portfolio',     inactive: false, roles: ['admin'] },
   { label: 'Priorização',icon: ListOrdered,href: '/priorizacao',  inactive: false, roles: ['admin'] },
   { label: 'Report',     icon: FileText, href: '/report',         inactive: false, roles: ['admin'] },
+  { label: 'MBR',        icon: PanelRightOpen, href: '/report/mbr', inactive: false, roles: ['admin'] },
   { label: 'Monitoram.', icon: Activity,  href: '/monitoramento', inactive: false, roles: ['admin'] },
   { label: 'Cientista',  icon: Bot,       href: '/cientista',     inactive: false, roles: ['admin'] },
   { label: 'Comunidade', icon: HeartHandshake, href: '/comunidade', inactive: false, roles: ['admin'] },
