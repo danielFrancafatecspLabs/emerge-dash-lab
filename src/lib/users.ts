@@ -120,5 +120,5 @@ export function isAdmin(username: string): boolean {
   const users = loadUsers()
   if (users.length === 0) return username === process.env.ADMIN_USER
   const user = users.find(u => u.username === username)
-  return user?.role === 'admin' ?? false
+  return user?.role === 'admin' ? true : false
 }

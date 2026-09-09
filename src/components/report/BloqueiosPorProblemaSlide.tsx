@@ -150,7 +150,7 @@ export default function BloqueiosPorProblemaSlide() {
 
         {/* ── Grid de cards de bloqueio (dinâmico) ── */}
         <div className="grid grid-cols-5 gap-3 mb-5">
-          {categorias.map((cat: BloqueioCategoria) => {
+          {categorias.map((cat: any) => {
             const Icon = ICON_MAP[cat.titulo] ?? CircleAlert
             return (
               <div
@@ -240,7 +240,7 @@ export default function BloqueiosPorProblemaSlide() {
               {(() => {
                 // Pega os nomes dos epics sem benefício da categoria BENEFÍCIO POTENCIAL NÃO MAPEADO
                 const semBeneficio = categorias
-                  .find(c => c.titulo === 'BENEFÍCIO POTENCIAL NÃO MAPEADO')
+                  .find((c: BloqueioCategoria) => c.titulo === 'BENEFÍCIO POTENCIAL NÃO MAPEADO')
                   ?.items.slice(0, 8) ?? []
                 const metade = Math.ceil(semBeneficio.length / 2)
                 const col1 = semBeneficio.slice(0, metade)
@@ -248,10 +248,10 @@ export default function BloqueiosPorProblemaSlide() {
                 return (
                   <>
                     <ul className="space-y-1">
-                      {col1.map(item => <li key={item.key}>• {item.nome}</li>)}
+                      {col1.map((item: BloqueioItem) => <li key={item.key}>• {item.nome}</li>)}
                     </ul>
                     <ul className="space-y-1">
-                      {col2.map(item => <li key={item.key}>• {item.nome}</li>)}
+                      {col2.map((item: BloqueioItem) => <li key={item.key}>• {item.nome}</li>)}
                     </ul>
                   </>
                 )

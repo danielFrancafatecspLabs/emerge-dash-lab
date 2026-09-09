@@ -73,6 +73,7 @@ export default function SituacaoPortfolioOperacional({ data }: Props) {
           Situação do Portfólio
         </h3>
 
+
         <div className="flex items-center gap-4">
           {/* Donut chart */}
           <div className="relative" style={{ width: 140, height: 140 }}>

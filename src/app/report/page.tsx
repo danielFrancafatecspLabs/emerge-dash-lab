@@ -17,7 +17,7 @@ import {
   CANDIDATAS_DELIVERY_NOMES,
   STATUS_ANDAMENTO_VALIDACAO,
 } from '@/lib/report-utils'
-import { BLOQUEIOS_DATA } from '@/app/api/bloqueios/route'
+import { BLOQUEIOS_DATA } from '@/lib/bloqueios-data'
 import type {
   IniciativaSlideRow,
   IniciativaCandidataRow,

@@ -2,7 +2,7 @@ import { fetchDashboardRaw } from '@/lib/jira'
 import { buildDashboardData, buildMonitoramentoData } from '@/lib/mappers'
 import { classifyPortfolios } from '@/lib/portfolio-classifier'
 import { classifySegmentos } from '@/lib/segmento-classifier'
-import type { PeriodoFiltro } from '@/lib/types'
+import type { PeriodoFiltro as PeriodoFiltroType } from '@/lib/types'
 import Sidebar from '@/components/layout/Sidebar'
 import LogoutButton from '@/components/layout/LogoutButton'
 import PeriodoFiltro from '@/components/monitoramento/PeriodoFiltro'
@@ -15,7 +15,7 @@ import CycleTimeEstrategia from '@/components/dashboard/CycleTimeEstrategia'
 
 export const dynamic = 'force-dynamic'
 
-function parsePeriodo(raw: string | undefined): PeriodoFiltro {
+function parsePeriodo(raw: string | undefined): PeriodoFiltroType {
   if (!raw || raw === 'ultimos12') return { tipo: 'ultimos12' }
   if (raw === 'tudo') return { tipo: 'tudo' }
   // formato: 1s2025, 2s2026, etc.
@@ -30,7 +30,7 @@ function parsePeriodo(raw: string | undefined): PeriodoFiltro {
   return { tipo: 'ultimos12' }
 }
 
-function periodoLabel(p: PeriodoFiltro): string {
+function periodoLabel(p: PeriodoFiltroType): string {
   if (p.tipo === 'ultimos12') return 'Últimos 12 meses'
   if (p.tipo === 'tudo') return 'Todo o período'
   return `${p.semestre}º Semestre ${p.ano}`
@@ -123,9 +123,9 @@ export default async function MonitoramentoPage({
           <InsightsExecutivos data={monitoramento.insights} />
 
           {/* Linha 5 — Cycle Time Experimentação (por porte) */}
-          {monitoramento.cycleTimeExperimentacaoGeral?.qtdIniciativas > 0 && (
+          {monitoramento.cycleTimeExperimentacaoGeral && monitoramento.cycleTimeExperimentacaoGeral.qtdIniciativas > 0 && (
             <CycleTimeEstrategia
-              porPorte={monitoramento.cycleTimeExperimentacao}
+              porPorte={monitoramento.cycleTimeExperimentacao ?? []}
               geral={monitoramento.cycleTimeExperimentacaoGeral}
             />
           )}

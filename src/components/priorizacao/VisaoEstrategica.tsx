@@ -40,12 +40,12 @@ function espalharPontos(
   }
 
   const offsets = new Map<string, { xBase: number; offset: number }>()
-  for (const [complexidade, exps] of grupos) {
+  for (const [complexidade, exps] of grupos.entries()) {
     const xBase = COMPLEXIDADE_X[complexidade] ?? 50
     const n = exps.length
     // Range dinâmico: mínimo 20, escala com número de pontos
     const range = Math.max(20, Math.min(n * 3, 35))
-    exps.forEach((exp, i) => {
+    exps.forEach((exp: ExperimentoPriorizacao, i: number) => {
       const offset = n > 1 ? ((i / (n - 1)) - 0.5) * range : 0
       offsets.set(exp.key, { xBase, offset })
     })

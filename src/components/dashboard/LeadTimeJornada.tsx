@@ -8,7 +8,7 @@ import { LeadTimeJornada, CycleTimeEstagio } from '@/lib/types'
 import { Clock, AlertTriangle, Zap, Lock, TrendingDown, TrendingUp } from 'lucide-react'
 
 interface Props {
-  data: LeadTimeJornada
+  data?: LeadTimeJornada | null
   cycleTimeExperimentacao: CycleTimeEstagio[]
 }
 
@@ -49,17 +49,39 @@ function LeadTimeTooltip({ active, payload, label }: any) {
 }
 
 export default function LeadTimeJornadaComponent({ data, cycleTimeExperimentacao }: Props) {
-  const { totalDias, fases, bottleneck } = data
-
-  // Filtra fases com 0 dias (ex: Piloto sem dados)
-  const fasesVisiveis = fases.filter(f => f.dias > 0)
-
-  if (totalDias <= 0 || fasesVisiveis.length === 0) {
+  if (!data) {
     return (
       <div className="flex items-center justify-center h-full">
         <div className="text-center text-gray-400">
           <p className="text-sm font-medium">Jornada de Adoção</p>
           <p className="text-xs mt-1">Dados insuficientes</p>
+        </div>
+      </div>
+    )
+  }
+
+  const { totalDias, fases, bottleneck } = data
+
+  // Filtra fases com 0 dias (ex: Piloto sem dados)
+  const fasesVisiveis = fases.filter(f => f.dias > 0)
+
+  if (totalDias <= 0) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="text-center text-gray-400">
+          <p className="text-sm font-medium">Jornada de Adoção</p>
+          <p className="text-xs mt-1">Dados insuficientes</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (fasesVisiveis.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="text-center text-gray-400">
+          <p className="text-sm font-medium">Jornada de Adoção</p>
+          <p className="text-xs mt-1">Sem fases visíveis para o período selecionado</p>
         </div>
       </div>
     )
