@@ -1,50 +1,10 @@
 [
   {
-    "id": "1",
-    "username": "gustavo.leite@claro.com.br",
-    "passwordHash": "604bc85dd32019f8d9da5cc6e43475cf:de144e11eecf6b7e6dfd7018f9442c5c7b3919e49be09a417d502cda3f6407100facfc3ebd89f1920226676a8f3f6baa2f4dfd3f8d2b4ce74a314f31c45b774c",
-    "role": "executivo",
-    "createdAt": "2026-08-28T12:55:18.856Z",
-    "active": true
-  },
-  {
-    "id": "2",
-    "username": "rodrigo.assad@claro.com.br",
-    "passwordHash": "82307d91667b13184b9d97d37697a5aa:921b7bef3af8c13f4458c6ac2cf92cec2160470ba5275f6b6f1f814bd140617cb82e3ad02a3d45838b2b42dd8cdbc1c196454a66d106f5b2f793f564c7864cf3",
-    "role": "executivo",
-    "createdAt": "2026-08-28T12:55:18.918Z",
-    "active": true
-  },
-  {
-    "id": "3",
-    "username": "marco_asterito",
-    "passwordHash": "c4358061148bfa6e60f8d5f0c151a788:e3b7b808c1297e53b2a912f6209ba5d4856216a4429541f065d047a9ac5f4a42808805d91dcdd0708fa6d746b02c93c824e233beabc7378015853d27069aed8f",
+    "id": "local-1",
+    "username": "local_admin",
+    "passwordHash": "1e64c514abc5ba5994985828725191cf:136ed19b773926dfc98e9d222008fcbce73ba8a6e74ef551a948da3cd85a0f14ebe634ee33693356c6d7abe9e78782c7a5bffa0f28ba3f8760a087e6544dc676",
     "role": "admin",
-    "createdAt": "2026-08-28T12:55:18.961Z",
-    "active": true
-  },
-  {
-    "id": "4",
-    "username": "daniel_frauches",
-    "passwordHash": "41e2c0071d7d6f1bd62b63dce46d7a09:6398a755b4c549590df9ab7f035f50a2c50d2f9d318fd75ab5512725d9f0e5a6d946c78d4b6ffc0e2c1d5eaa302f6b1096b02185155a1c87bcbe15694a18762d",
-    "role": "admin",
-    "createdAt": "2026-08-28T12:55:19.003Z",
-    "active": true
-  },
-  {
-    "id": "5",
-    "username": "daniel_franca",
-    "passwordHash": "f3685333df84b098d92e9b435e533164:60d63862a653f26313eaf29aa254fe0556aec4416325a703a2fce7082da662f678c5da1a4f9a031d75e651d4f5d6b53bdff6f24a1812ca80525c658f58453908",
-    "role": "admin",
-    "createdAt": "2026-08-28T12:55:19.044Z",
-    "active": true
-  },
-  {
-    "id": "99",
-    "username": "admin",
-    "passwordHash": "3c685e190e6ea224edfb2156ec4eab90:d1965d893e7fe68d1f2819a91bc150e5c0667b4bd4c6e0999ffabf82a78a1966642476a06d616e7088636426dcfb729f3099aaa5b52caa46084931e111c4e787",
-    "role": "admin",
-    "createdAt": "2026-08-31T02:40:56.516Z",
+    "createdAt": "2026-09-08T14:53:55.357Z",
     "active": true
   }
 ]

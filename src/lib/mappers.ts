@@ -23,6 +23,8 @@ import {
 } from './types'
 import type { ChangelogEntry } from './jira'
 import type { MetaCategoria } from './portfolio-classifier'
+// Simplified type for board configuration (shape varies by API); keep as any to avoid strict coupling here
+type JiraBoardConfiguration = any
 import type { SegmentoMercado } from './segmento-classifier'
 
 // Mapeamento determinístico de domínio → mercado (mesmo do segmento-classifier)
@@ -71,10 +73,8 @@ export const STATUS_PIPELINE: Record<string, keyof PipelineCount> = {
   '13562': 'EM ESCALA',         // Board 2734 — coluna "EM ESCALA" usa status "Finalizado" (13562)
   '10019': 'FINALIZADO',        // Concluído (board 2734 Iniciativas e 2735 Epics)
   '10015': 'CANCELADO',         // Cancelado (board 2734)
-  '10004': 'CANCELADO',         // Cancelado (board 2735 Epics)
   // Board 2735 (Experimentos/Epics) — status específicos
   '3': 'EM EXPERIMENTAÇÃO',     // "Em andamento" (legado)
-  '10067': 'EM EXPERIMENTAÇÃO', // "Em andamento" (board 2735)
   '10204': 'EM EXPERIMENTAÇÃO', // "EM VALIDAÇÃO"
   '11201': 'EM EXPERIMENTAÇÃO', // "Em validação"
   '10057': 'BACKLOG',           // "Backlog"
@@ -130,8 +130,8 @@ function mapEpicToDetail(epic: JiraIssue, changelog?: ChangelogEntry[]): EpicDet
     status: f.status,
     sponsor: f.customfield_30394 ? normalizeSponsor(f.customfield_30394) : null,
     bo: f.customfield_30340 ?? null,
-    complexidade: f.customfield_30358 ?? null,
-    timeResponsavel: f.customfield_31438?.value ?? f.customfield_30357 ?? null,
+    complexidade: (typeof (f.customfield_30358 as any) === 'object' && (f.customfield_30358 as any) !== null) ? ((f.customfield_30358 as any).value ?? null) : (f.customfield_30358 ?? null),
+    timeResponsavel: (typeof (f.customfield_31438 as any) === 'object' && (f.customfield_31438 as any) != null) ? ((f.customfield_31438 as any).value ?? ((typeof (f.customfield_30357 as any) === 'object' && (f.customfield_30357 as any) != null) ? (f.customfield_30357 as any).value : f.customfield_30357) ?? null) : ((typeof (f.customfield_30357 as any) === 'object' && (f.customfield_30357 as any) != null) ? ((f.customfield_30357 as any).value ?? null) : (f.customfield_30357 ?? null)),
     beneficioQuantitativo: f.customfield_30216 ?? null,
     beneficioQualitativo: f.customfield_30222 ?? null,
     dominio: f.customfield_30021?.value ?? f.customfield_11987?.value ?? f.customfield_11991?.value ?? null,
@@ -249,8 +249,12 @@ export function buildDashboardData(
     const parent = iniciativaParentMap.get(parentKey)
     if (!parent) continue
     const parentFields = parent.fields
-    const timeResp = parentFields.customfield_31438?.value ?? parentFields.customfield_30357 ?? null
-    const dominio = parentFields.customfield_30021?.value ?? parentFields.customfield_11987?.value ?? parentFields.customfield_11991?.value ?? null
+    const timeResp = (typeof (parentFields.customfield_31438 as any) === 'object' && (parentFields.customfield_31438 as any) != null)
+      ? ((parentFields.customfield_31438 as any).value ?? ((typeof (parentFields.customfield_30357 as any) === 'object' && (parentFields.customfield_30357 as any) != null) ? (parentFields.customfield_30357 as any).value : parentFields.customfield_30357) ?? null)
+      : ((typeof (parentFields.customfield_30357 as any) === 'object' && (parentFields.customfield_30357 as any) != null) ? ((parentFields.customfield_30357 as any).value ?? null) : (parentFields.customfield_30357 ?? null))
+    const dominio = (typeof (parentFields.customfield_30021 as any) === 'object' && (parentFields.customfield_30021 as any) != null)
+      ? ((parentFields.customfield_30021 as any).value ?? (typeof (parentFields.customfield_11987 as any) === 'object' && (parentFields.customfield_11987 as any) != null ? (parentFields.customfield_11987 as any).value : parentFields.customfield_11987) ?? (typeof (parentFields.customfield_11991 as any) === 'object' && (parentFields.customfield_11991 as any) != null ? (parentFields.customfield_11991 as any).value : parentFields.customfield_11991) ?? null)
+      : (parentFields.customfield_30021?.value ?? parentFields.customfield_11987?.value ?? parentFields.customfield_11991?.value ?? null)
     for (const epic of epics) {
       const detail = epicDetailMap.get(epic.key)
       if (detail) {
@@ -267,10 +271,12 @@ export function buildDashboardData(
     for (const epic of myEpics) {
       const meta = epic.metaCategoria
       if (!meta) continue
-      const existing = metaCounts.get(meta) ?? { count: 0, valor: 0 }
+      // meta may be a string; ensure it's treated as MetaCategoria when indexing
+      const metaKey = meta as MetaCategoria
+      const existing = metaCounts.get(metaKey) ?? { count: 0, valor: 0 }
       existing.count += 1
       existing.valor += epic.beneficioQuantitativo ?? 0
-      metaCounts.set(meta, existing)
+      metaCounts.set(metaKey, existing)
     }
     const metaCategoria = Array.from(metaCounts.entries())
       .sort((a, b) => {
@@ -308,7 +314,7 @@ export function buildDashboardData(
     for (const col of boardConfig.columnConfig.columns) {
       const nomeUpper = col.name.trim().toUpperCase()
       colunaNomeNormalizado.set(nomeUpper, col.name.trim())
-      colunaStatusIds.set(nomeUpper, col.statuses.map(s => s.id))
+      colunaStatusIds.set(nomeUpper, (col.statuses || []).map((s: any) => s.id))
     }
   }
 
@@ -501,12 +507,11 @@ export function buildDashboardData(
     NPS: [],
     Receita: [],
   }
-
   // Distribuir iniciativas para cada meta com base nos epics que carregam essa meta
   for (const iniciativa of iniciativas) {
     const seenMetas = new Set<MetaCategoria>()
     for (const epic of iniciativa.epics) {
-      const meta = epic.metaCategoria
+      const meta = epic.metaCategoria as MetaCategoria | null
       if (!meta || seenMetas.has(meta)) continue
       seenMetas.add(meta)
       metasAgregadas[meta].count++
@@ -649,16 +654,21 @@ function calculateLeadTimeJornada(
 
   // Total considera apenas as fases visíveis (Experimentação, Transição, Piloto, Escala)
   const totalDias = experimentacaoDias + transicaoPilotoDias + pilotoDias + (escalaDias > 0 ? escalaDias : 0)
+  const totalComFallback = totalDias > 0 ? totalDias : experimentacaoDias
 
-  const calcPct = (d: number) => totalDias > 0 ? Math.round((d / totalDias) * 100) : 0
+  const calcPct = (d: number) => totalComFallback > 0 ? Math.round((d / totalComFallback) * 100) : 0
 
   // Fases exibidas (sem Backlog — começa na Experimentação)
-  const fases: LeadTimeJornadaFase[] = [
-    { fase: 'Experimentação', dias: experimentacaoDias, pct: calcPct(experimentacaoDias), cor: '#F59E0B', destaque: true },
-    { fase: 'Transição para Piloto', dias: transicaoPilotoDias, pct: calcPct(transicaoPilotoDias), cor: '#9CA3AF' },
-    { fase: 'Piloto', dias: pilotoDias, pct: calcPct(pilotoDias), cor: '#6B7280' },
-    ...(escalaDias > 0 ? [{ fase: 'Escala', dias: escalaDias, pct: calcPct(escalaDias), cor: '#4B5563' }] : []),
-  ]
+  const fases: LeadTimeJornadaFase[] = totalDias > 0
+    ? [
+        { fase: 'Experimentação', dias: experimentacaoDias, pct: calcPct(experimentacaoDias), cor: '#F59E0B', destaque: true },
+        { fase: 'Transição para Piloto', dias: transicaoPilotoDias, pct: calcPct(transicaoPilotoDias), cor: '#9CA3AF' },
+        { fase: 'Piloto', dias: pilotoDias, pct: calcPct(pilotoDias), cor: '#6B7280' },
+        ...(escalaDias > 0 ? [{ fase: 'Escala', dias: escalaDias, pct: calcPct(escalaDias), cor: '#4B5563' }] : []),
+      ]
+    : [
+        { fase: 'Experimentação', dias: experimentacaoDias, pct: 100, cor: '#F59E0B', destaque: true },
+      ]
 
   // Bottleneck: fase com mais dias
   const sorted = [...fases].sort((a, b) => b.dias - a.dias)
@@ -848,7 +858,7 @@ function calculateCycleTimeExperimentacao(
 function calculateCycleTimeExperimentacaoDetalhado(
   epicChangelogs: Record<string, ChangelogEntry[]>,
   epicsRaw: JiraIssue[]
-): { ciclos: CycleTimeEstagio[]; diagnostico: CycleTimeDiagnostico } {
+): { ciclos: CycleTimeEstagio[]; geral: CycleTimeEstagio; diagnostico: CycleTimeDiagnostico } {
   const EXPERIMENTACAO_NAMES = new Set(['Em andamento', 'In Progress', 'EM VALIDAÇÃO'])
   const CONCLUIDO_ID = '10019'
 
@@ -1455,14 +1465,14 @@ const EXCLUIR_CONCLUIDOS = new Set([
 export function buildMonitoramentoData(data: DashboardData, periodo: PeriodoFiltro = { tipo: 'ultimos12' }): MonitoramentoData {
   const allEpics = data.allEpics
 
-  // Filtrar epics pelo período (usando criadoEm)
+  // Filtrar epics pelo período (usando concluidoEm se disponível, senão criadoEm)
   const epicsNoPeriodo = periodo.tipo === 'tudo'
     ? allEpics
-    : allEpics.filter(e => dataEstaNoPeriodo(e.criadoEm, periodo))
+    : allEpics.filter(e => dataEstaNoPeriodo(e.concluidoEm ?? e.criadoEm, periodo))
 
   // ── KPIs ──
   const experimentosConcluidos = epicsNoPeriodo.filter(e =>
-    e.status.id === '10019' && !EXCLUIR_CONCLUIDOS.has(e.nome)
+    (e.status.id === '10019' || e.status.id === '10003') && !EXCLUIR_CONCLUIDOS.has(e.nome)
   ).length
 
   const totalPipeline = Object.values(data.pipeline).reduce((s, v) => s + v, 0)
@@ -1474,23 +1484,25 @@ export function buildMonitoramentoData(data: DashboardData, periodo: PeriodoFilt
   const beneficioNoPeriodo = epicsNoPeriodo.reduce((s, e) => s + (e.beneficioQuantitativo ?? 0), 0)
   const roi = custoTotal > 0 ? beneficioNoPeriodo / custoTotal : null
 
-  // ── Burnup: acumulado mês a mês apenas de experimentos CONCLUÍDOS (status 10019) ──
-  // Usa concluidoEm (data do changelog) como referência; fallback para criadoEm
+  // ── Burnup: acumulado mês a mês apenas de experimentos CONCLUÍDOS (status 10019 e 10003) ──
+  // Usa concluidoEm como referência; fallback para criadoEm
   const meses = getMesesDoPeriodo(periodo)
-  const realizado: { mes: string; ano: number; valor: number }[] = []
+  const realizado: { mes: string; ano: number; valor: number; epics: EpicDetail[] }[] = []
   const beneficioAcumulado: { mes: string; ano: number; valor: number }[] = []
   let acumulado = 0
   let acumuladoBeneficio = 0
+  const todosEpicsConcluidos: EpicDetail[] = []
   for (const { mes, ano, mesIdx } of meses) {
     const epicsNoMes = epicsNoPeriodo.filter(e => {
       if (EXCLUIR_CONCLUIDOS.has(e.nome)) return false
       const dataRef = e.concluidoEm ?? e.criadoEm
       if (!dataRef) return false
       const d = new Date(dataRef)
-      return d.getFullYear() === ano && d.getMonth() === mesIdx && e.status.id === '10019'
+      return d.getFullYear() === ano && d.getMonth() === mesIdx && (e.status.id === '10019' || e.status.id === '10003')
     })
+    todosEpicsConcluidos.push(...epicsNoMes)
     acumulado += epicsNoMes.length
-    realizado.push({ mes, ano, valor: acumulado })
+    realizado.push({ mes, ano, valor: acumulado, epics: [...todosEpicsConcluidos] })
 
     // Benefício acumulado: soma o benefício de TODOS os epics até o mês
     acumuladoBeneficio += epicsNoMes.reduce((s, e) => s + (e.beneficioQuantitativo ?? 0), 0)
@@ -1524,7 +1536,7 @@ export function buildMonitoramentoData(data: DashboardData, periodo: PeriodoFilt
       const dataRef = e.concluidoEm ?? e.criadoEm
       if (!dataRef) return false
       const d = new Date(dataRef)
-      return d.getFullYear() === ano && d.getMonth() === mesIdx && e.status.id === '10019'
+      return d.getFullYear() === ano && d.getMonth() === mesIdx && (e.status.id === '10019' || e.status.id === '10003')
     })
     return {
       mes: periodo.tipo === 'tudo' ? `${mes}/${String(ano).slice(2)}` : mes,

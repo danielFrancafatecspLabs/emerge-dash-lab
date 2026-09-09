@@ -16,6 +16,7 @@ export default function BurnupChart({ data }: Props) {
     return data.realizado.map((p) => ({
       label: `${p.mes}/${String(p.ano).slice(2)}`,
       Acumulado: p.valor,
+      epics: p.epics ?? [],
     }))
   }, [data])
 
@@ -31,7 +32,7 @@ export default function BurnupChart({ data }: Props) {
       </div>
 
       {/* Gráfico — ocupa todo espaço disponível */}
-      <div className="flex-1 min-h-0" style={{ minHeight: 120 }}>
+      <div className="flex-1 min-h-0 max-h-[400px]" style={{ minHeight: 120 }}>
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={chartData} margin={{ top: 16, right: 8, left: -8, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" vertical={false} />
@@ -61,7 +62,7 @@ export default function BurnupChart({ data }: Props) {
             />
             <Bar
               dataKey="Acumulado"
-              fill="#DC2626"
+              fill="#CC0000"
               radius={[3, 3, 0, 0]}
               barSize={24}
               label={{

@@ -63,6 +63,15 @@ const STATUS_PRIORIZACAO = new Set([
 
 function mapToPriorizacao(issue: JiraIssue): ExperimentoPriorizacao {
   const f = issue.fields
+  const complexidade = typeof f.customfield_30358 === 'object' && f.customfield_30358 !== null
+    ? f.customfield_30358.value ?? null
+    : f.customfield_30358 ?? null
+  const parentFields = f.parent?.fields as any
+  const timeResponsavel = parentFields?.customfield_31438?.value
+    ?? parentFields?.customfield_30357
+    ?? (typeof f.customfield_31438 === 'object' && f.customfield_31438 !== null ? f.customfield_31438.value ?? null : null)
+    ?? f.customfield_30357
+    ?? null
   return {
     key: issue.key,
     nome: f.summary,
@@ -70,12 +79,12 @@ function mapToPriorizacao(issue: JiraIssue): ExperimentoPriorizacao {
     statusNome: f.status.name,
     parentKey: f.parent?.key ?? null,
     parentNome: f.parent?.fields?.summary ?? null,
-    complexidade: f.customfield_30358 ?? null,
+    complexidade,
     beneficioQuantitativo: f.customfield_30216 ?? null,
     beneficioQualitativo: f.customfield_30222 ?? null,
     sponsor: f.customfield_30394 ?? null,
     bo: f.customfield_30340 ?? null,
-    timeResponsavel: f.parent?.fields?.customfield_31438?.value ?? f.parent?.fields?.customfield_30357 ?? f.customfield_31438?.value ?? f.customfield_30357 ?? null,
+    timeResponsavel,
     dominio: f.customfield_30021?.value ?? f.customfield_11987?.value ?? null,
     segmento: f.customfield_30445?.value ?? null,
     portfolio: f.customfield_30110?.value ?? null,
