@@ -7,13 +7,14 @@ import {
   TrendingUp, DollarSign, Heart, Wallet, List,
   Beaker, BarChart3, ExternalLink, ArrowUpRight
 } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
 import Link from 'next/link'
 import IniciativaModal from './IniciativaModal'
 import EpicModal from './EpicModal'
 
 interface Props { data: DashboardData; beneficioValidadoTotal: number }
 
-const META_ICONS: Record<string, React.ComponentType<{ size?: number; color?: string }>> = {
+const META_ICONS: Record<string, LucideIcon> = {
   EBITDA:  TrendingUp,
   Receita: DollarSign,
   NPS:     Heart,

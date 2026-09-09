@@ -229,9 +229,9 @@ export default function FunilExperimentos({ data }: Props) {
                   {meta?.icon}
                   {camada.label}
                 </span>
-                {camada.nota && (
+                {(camada as any).nota && (
                   <span className="block text-[7px] text-gray-400 font-normal tracking-wide uppercase">
-                    {camada.nota}
+                    {(camada as any).nota}
                   </span>
                 )}
               </div>

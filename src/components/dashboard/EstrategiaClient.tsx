@@ -175,7 +175,7 @@ function filtrarDashboardData(data: DashboardData, periodo: PeriodoFiltro): Dash
   for (const ini of iniciativasFiltradas) {
     const seenMetas = new Set<MetaCategoria>()
     for (const epic of ini.epics) {
-      const meta = epic.metaCategoria
+      const meta = epic.metaCategoria as MetaCategoria | null
       if (!meta || seenMetas.has(meta)) continue
       seenMetas.add(meta)
       metasAgregadas[meta].count++
@@ -230,7 +230,7 @@ export default function EstrategiaClient({ data, monitoramento, beneficioValidad
   )
 
   const monitoramentoFiltrado = useMemo(
-    () => buildMonitoramentoData(dadosFiltrados, periodoFiltro),
+    () => buildMonitoramentoData(dadosFiltrados, periodoFiltro as any),
     [dadosFiltrados, periodoFiltro]
   )
 

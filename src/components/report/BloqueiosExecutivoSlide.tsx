@@ -59,7 +59,7 @@ function TabelaIniciativas({ items }: { items: BloqueioCategoria['items'] }) {
           </tr>
         </thead>
         <tbody>
-          {items.map((item, i) => (
+          {items.map((item: BloqueioCategoria['items'][number], i: number) => (
             <tr
               key={i}
               className="text-[7px]"
@@ -71,7 +71,7 @@ function TabelaIniciativas({ items }: { items: BloqueioCategoria['items'] }) {
                 </div>
                 {item.outrosProblemas && item.outrosProblemas.length > 0 && (
                   <div className="mt-0.5 flex flex-wrap">
-                    {item.outrosProblemas.map((tag, j) => (
+                    {item.outrosProblemas.map((tag: string, j: number) => (
                       <TagProblema key={j} label={tag} />
                     ))}
                   </div>
@@ -189,7 +189,7 @@ function SlideContent({
           Resumo Executivo
         </p>
         <div className="grid grid-cols-5 gap-2">
-          {resumo.map((ind) => (
+          {resumo.map((ind: (typeof RESUMO_INDICADORES)[number]) => (
             <div
               key={ind.titulo}
               className="rounded-lg p-2.5 flex flex-col gap-1"

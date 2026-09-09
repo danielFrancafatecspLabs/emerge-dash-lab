@@ -225,9 +225,9 @@ export default function ExperimentosPage() {
   const [filtroStatus, setFiltroStatus] = useState<string | null>(null)
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
 
-  const categorias = useMemo(() => [...new Set(experimentos.map(e => e.categoria))].sort(), [experimentos])
-  const dominios = useMemo(() => [...new Set(experimentos.map(e => e.dominio))].sort(), [experimentos])
-  const statuses = useMemo(() => [...new Set(experimentos.map(e => e.status))].sort(), [experimentos])
+  const categorias = useMemo(() => Array.from(new Set(experimentos.map(e => e.categoria))).sort(), [experimentos])
+  const dominios = useMemo(() => Array.from(new Set(experimentos.map(e => e.dominio))).sort(), [experimentos])
+  const statuses = useMemo(() => Array.from(new Set(experimentos.map(e => e.status))).sort(), [experimentos])
 
   const filtrados = useMemo(() => {
     return experimentos.filter(e => {

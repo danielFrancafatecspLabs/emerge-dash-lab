@@ -236,6 +236,10 @@ export interface SerieMensal {
   beneficio: MesValor[]    // benefício potencial acumulado mês a mês (R$)
 }
 
+export interface SerieMensalComEpics extends SerieMensal {
+  realizado: (MesValor & { epics?: EpicDetail[] })[]
+}
+
 export interface BeneficioPorArea {
   area: string             // ex.: "Marketing", "Tecnologia", "Operações"
   valor: number            // benefício total em R$
@@ -291,6 +295,8 @@ export interface MonitoramentoData {
   maturidade: MaturidadeEstagio[]
   insights: InsightExecutivo[]
   iniciativasPorLab: IniciativaLab[]
+  cycleTimeExperimentacao?: CycleTimeEstagio[]
+  cycleTimeExperimentacaoGeral?: CycleTimeEstagio
 }
 
 export type PeriodoFiltro =
