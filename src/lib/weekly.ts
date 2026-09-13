@@ -47,6 +47,7 @@ export interface WeeklyData {
   semSponsor: { count: number; pct: number }
   topSponsors: WeeklyRanking[]       // top 6 sponsors por quantidade de experimentos (todas as fases do funil)
   topDiretorias: WeeklyRanking[]     // top 6 diretorias/domínios por quantidade de experimentos (idem)
+  aprendizadosSemEscalar: number     // Concluídos - (Aguardando piloto + Piloto + Em escala): geraram aprendizado mas não seguiram adiante
   aprendizadosAcionaveis: number
   insightPrincipal: string
   insightPositivo: string
@@ -253,6 +254,13 @@ export function buildWeeklyData(data: DashboardData, epicChangelogs: Record<stri
   const totalIniciados = emAndamentoCount + concluidosCount
   const taxaOportunidadesParaExperimentos = pct(emAndamentoCount, backlogCount)
 
+  // Aguardando piloto / Piloto / Em escala nascem DENTRO dos Concluídos — são
+  // as iniciativas cujo experimento já terminou e seguiu adiante. O restante
+  // dos Concluídos não avançou: virou aprendizado (benchmark, hipótese
+  // refutada etc.) sem escalar. Mostrado no funil como um ramo derivado de
+  // Concluídos, não como mais uma fase sequencial independente.
+  const aprendizadosSemEscalar = Math.max(0, concluidosCount - (aguardandoInis.length + pilotoInis.length + escalaInis.length))
+
   // Numeradores na mesma lógica da aba Estratégia / Report (ver
   // src/app/report/page.tsx): iniciativas que já chegaram a Piloto/Escala.
   // Denominador: SEMPRE o total de experimentos aprovados do slide 1 (total de
@@ -291,6 +299,7 @@ export function buildWeeklyData(data: DashboardData, epicChangelogs: Record<stri
     semSponsor: { count: semSponsorCount, pct: pct(semSponsorCount, totalEpics) },
     topSponsors,
     topDiretorias,
+    aprendizadosSemEscalar,
     aprendizadosAcionaveis,
     insightPrincipal: principal,
     insightPositivo: positivo,
@@ -366,6 +375,7 @@ const SAMPLE_CONVERSAO_PILOTO_NUMERADOR = 59
 const SAMPLE_CONVERSAO_PILOTO = pct(SAMPLE_CONVERSAO_PILOTO_NUMERADOR, SAMPLE_CONVERSAO_DENOMINADOR)
 const SAMPLE_CONVERSAO_ESCALA = pct(SAMPLE_CONVERSAO_ESCALA_NUMERADOR, SAMPLE_CONVERSAO_DENOMINADOR)
 const SAMPLE_APRENDIZADOS = 24   // deve ser <= quantidade de Concluídos (33) — é um subconjunto
+const SAMPLE_APRENDIZADOS_SEM_ESCALAR = 10   // Concluídos (33) - (Aguardando 28 + Piloto 18 + Escala 11), ilustrativo
 const SAMPLE_TOP_SPONSORS: WeeklyRanking[] = [
   { nome: 'Rodrigo Assad', count: 34 },
   { nome: 'Sidney Neves', count: 28 },
@@ -401,6 +411,7 @@ export const SAMPLE_WEEKLY_DATA: WeeklyData = {
   semSponsor: { count: 29, pct: pct(29, SAMPLE_TOTAL_EPICS) },
   topSponsors: SAMPLE_TOP_SPONSORS,
   topDiretorias: SAMPLE_TOP_DIRETORIAS,
+  aprendizadosSemEscalar: SAMPLE_APRENDIZADOS_SEM_ESCALAR,
   aprendizadosAcionaveis: SAMPLE_APRENDIZADOS,
   insightPrincipal: SAMPLE_INSIGHTS.principal,
   insightPositivo: SAMPLE_INSIGHTS.positivo,
