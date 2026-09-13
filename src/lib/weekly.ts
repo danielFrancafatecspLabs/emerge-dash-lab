@@ -42,19 +42,23 @@ function semBeneficioPotencial(e: EpicDetail): boolean {
 }
 
 /**
- * Mapeamento acordado com o time BeOn Labs para o slide Weekly (v3 — corrigido
+ * Mapeamento acordado com o time BeOn Labs para o slide Weekly (v4 — corrigido
  * após teste com dados reais). Reusa os MESMOS filtros por id+nome de status já
  * usados em src/app/report/page.tsx (funilStages / totalExperimentosIniciados /
  * conversaoPiloto / conversaoEscala) em vez do mapa STATUS_PIPELINE — aquele mapa
  * ficou incompleto/desatualizado em relação aos status reais do board e subcontava
  * "Em andamento".
  *
+ * Ordem das etapas: Oportunidades Mapeadas → Backlog → Ideias Qualificadas →
+ * Em andamento → Concluídos → Piloto → Em escala ("Aguardando piloto" removida).
+ *
+ * - Oportunidades Mapeadas: total de Iniciativas do board de Ideação (sem filtro de status).
+ * - Backlog: Iniciativas no status BACKLOG (id 10004 / nome "BACKLOG").
  * - Ideias Qualificadas: soma de Epics em Em andamento + Em validação + Concluído
  *   (board de Experimentação) — o mesmo total de "Experimentos iniciados".
- * - Backlog / Aguardando piloto / Piloto / Em escala: Iniciativas nos respectivos
- *   status do board de Ideação.
  * - Em andamento: Epics em "Em andamento" (id 3) + "Em validação"/"EM VALIDAÇÃO" (id 10204).
  * - Concluídos: Epics com status "Concluído" (id 10019).
+ * - Piloto / Em escala: Iniciativas nos respectivos status do board de Ideação.
  * - Conversão para Piloto/Escala: % de TODAS as iniciativas que já chegaram àquele
  *   marco, usando data.pilotoStatusIds / data.escalaStatusIds (igual à aba Estratégia).
  * - Sem benefício potencial / Sem sponsor: sobre TODOS os Epics do board de
@@ -62,7 +66,6 @@ function semBeneficioPotencial(e: EpicDetail): boolean {
  */
 export function buildWeeklyData(data: DashboardData): WeeklyData {
   const backlogInis = data.iniciativas.filter(i => i.status.id === '10004' || i.status.name === 'BACKLOG')
-  const aguardandoInis = data.iniciativas.filter(i => i.status.id === '13045' || i.status.name === 'Aguardando Piloto')
   const pilotoInis = data.iniciativas.filter(i => i.status.id === '12847' || i.status.name === 'EM PILOTO' || i.status.name === 'Em Piloto')
   const escalaInis = data.iniciativas.filter(i =>
     i.status.id === '12848' || ['EM ESCALA', 'Em Escala', 'Em escala', 'FINALIZADO', 'Finalizado'].includes(i.status.name)
@@ -76,13 +79,14 @@ export function buildWeeklyData(data: DashboardData): WeeklyData {
   const concluidosCount = concluidosEpics.length
   const ideiasQualificadas = emAndamentoCount + concluidosCount
   const backlogCount = backlogInis.length
+  const oportunidadesMapeadas = data.iniciativas.length
 
   const stages: WeeklyStage[] = [
+    { id: 'oportunidades', label: 'Oportunidades Mapeadas', descricao: 'Total do board de Ideação', quantidade: oportunidadesMapeadas },
+    { id: 'backlog', label: 'Backlog', descricao: 'Ideias pendentes de avaliação', quantidade: backlogCount },
     { id: 'ideias', label: 'Ideias Qualificadas', descricao: 'Ativos ou concluídos', quantidade: ideiasQualificadas },
-    { id: 'backlog', label: 'Backlog', descricao: 'Aguardando priorização', quantidade: backlogCount },
     { id: 'andamento', label: 'Em andamento', descricao: 'Execução ativa', quantidade: emAndamentoCount },
     { id: 'concluidos', label: 'Concluídos', descricao: 'Experimento finalizado', quantidade: concluidosCount },
-    { id: 'aguardando', label: 'Aguardando piloto', descricao: 'Concluído, em avaliação', quantidade: aguardandoInis.length },
     { id: 'piloto', label: 'Piloto', descricao: 'Validação real', quantidade: pilotoInis.length },
     { id: 'escala', label: 'Em escala', descricao: 'Solução em implementação', quantidade: escalaInis.length },
   ]
@@ -129,11 +133,11 @@ export function buildWeeklyData(data: DashboardData): WeeklyData {
 
 // ── Dados de exemplo (usados quando o Jira está inacessível) ──
 const SAMPLE_STAGES: WeeklyStage[] = [
+  { id: 'oportunidades', label: 'Oportunidades Mapeadas', descricao: 'Total do board de Ideação', quantidade: 186 },
+  { id: 'backlog', label: 'Backlog', descricao: 'Ideias pendentes de avaliação', quantidade: 82 },
   { id: 'ideias', label: 'Ideias Qualificadas', descricao: 'Ativos ou concluídos', quantidade: 100 },
-  { id: 'backlog', label: 'Backlog', descricao: 'Aguardando priorização', quantidade: 82 },
   { id: 'andamento', label: 'Em andamento', descricao: 'Execução ativa', quantidade: 56 },
   { id: 'concluidos', label: 'Concluídos', descricao: 'Experimento finalizado', quantidade: 44 },
-  { id: 'aguardando', label: 'Aguardando piloto', descricao: 'Concluído, em avaliação', quantidade: 28 },
   { id: 'piloto', label: 'Piloto', descricao: 'Validação real', quantidade: 18 },
   { id: 'escala', label: 'Em escala', descricao: 'Solução em implementação', quantidade: 11 },
 ]
