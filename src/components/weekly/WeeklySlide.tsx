@@ -1,109 +1,106 @@
 'use client'
 
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
-  FileText, Cog, Clock, FlaskConical, BarChart3, ChevronRight,
-  AlertTriangle, User, Rocket, ArrowRightLeft, TrendingDown, Sparkles,
+  Lightbulb, FileText, Cog, Clock, FlaskConical, BarChart3,
+  AlertTriangle, User, Rocket, ArrowRightLeft, Target, Award, TrendingDown, Sparkles,
 } from 'lucide-react'
 import type { WeeklyData } from '@/lib/weekly'
 import { SlideDownloadButtons } from '@/components/report/slideExport'
 
-/* ── Paleta — rampa ordinal de um único matiz (vermelho da marca),
-   validada: monotônica, ΔL >= 0.06 entre etapas, extremo claro >= 2:1
-   de contraste contra o fundo branco. Ver skill de dataviz. ── */
+/* ── Paleta — rampa ordinal de um único matiz (vermelho da marca) em tons
+   escuros, com texto branco em todas as etapas: monotônica, ΔL >= 0.06,
+   contraste do texto branco >= 5.3:1 até no tom mais claro. Ver skill de
+   dataviz — validado com scripts/validate_palette.js --ordinal. ── */
 const RED = '#8B0000'
-const RAMP = ['#E79E9E', '#DA7373', '#C94848', '#AE2828', '#8B0000']
-const RAMP_TINT = ['#FBEFEF', '#FAEAEA', '#F8E1E1', '#F5D5D5', '#F1C7C7']
+const RAMP = ['#D11D1A', '#AC1815', '#881311', '#680E0D', '#490A09', '#290605']
 const WARNING_INK = '#92400E'
-const STAGE_ICONS = [FileText, Cog, Clock, FlaskConical, BarChart3]
+const STAGE_ICONS = [Lightbulb, FileText, Cog, Clock, FlaskConical, BarChart3]
 
-function StageCard({ label, descricao, quantidade, index }: { label: string; descricao: string; quantidade: number; index: number }) {
+function StageCard({ label, descricao, quantidade, index, total }: { label: string; descricao: string; quantidade: number; index: number; total: number }) {
   const Icon = STAGE_ICONS[index]
+  const notch = 18
+  let clipPath: string
+  if (index === 0) {
+    clipPath = `polygon(0% 0%, calc(100% - ${notch}px) 0%, 100% 50%, calc(100% - ${notch}px) 100%, 0% 100%)`
+  } else if (index === total - 1) {
+    clipPath = `polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%, ${notch}px 50%)`
+  } else {
+    clipPath = `polygon(0% 0%, calc(100% - ${notch}px) 0%, 100% 50%, calc(100% - ${notch}px) 100%, 0% 100%, ${notch}px 50%)`
+  }
   return (
     <div
       style={{
         flex: 1,
-        background: '#FFFFFF',
-        border: '1px solid #EFEFEF',
-        borderRadius: 14,
-        boxShadow: '0 1px 2px rgba(17,24,39,0.04)',
+        marginLeft: index === 0 ? 0 : -notch,
+        clipPath,
+        background: RAMP[index],
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        padding: '20px 12px 16px',
+        paddingTop: 18,
+        paddingBottom: 14,
+        paddingLeft: index === 0 ? 10 : notch + 10,
+        paddingRight: 10,
+        height: 172,
         boxSizing: 'border-box',
       }}
     >
       <div style={{
-        width: 38, height: 38, borderRadius: 999, background: RAMP_TINT[index],
+        width: 36, height: 36, borderRadius: 999, background: 'rgba(255,255,255,0.92)',
         display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
       }}>
-        <Icon size={17} color={RAMP[index]} strokeWidth={2.25} />
+        <Icon size={16} color={RED} strokeWidth={2.25} />
       </div>
-      <div style={{ fontSize: 13.5, fontWeight: 700, color: '#111827', textAlign: 'center', lineHeight: 1.15, marginTop: 11 }}>
+      <div style={{ fontSize: 13.5, fontWeight: 800, color: '#FFFFFF', textAlign: 'center', lineHeight: 1.15, marginTop: 9 }}>
         {label}
       </div>
-      <div style={{ fontSize: 9.5, color: '#9CA3AF', textAlign: 'center', lineHeight: 1.3, marginTop: 3, maxWidth: 140, minHeight: 24 }}>
+      <div style={{ fontSize: 9.5, color: 'rgba(255,255,255,0.8)', textAlign: 'center', lineHeight: 1.3, marginTop: 3, maxWidth: 140, minHeight: 24 }}>
         {descricao}
       </div>
-      <div style={{ fontSize: 34, fontWeight: 800, color: '#111827', marginTop: 6, lineHeight: 1 }}>
+      <div style={{ fontSize: 32, fontWeight: 800, color: '#FFFFFF', marginTop: 5, lineHeight: 1 }}>
         {quantidade}
       </div>
-      <div style={{ width: 28, height: 3, borderRadius: 999, background: RAMP[index], marginTop: 9 }} />
     </div>
   )
 }
 
-function StageConnector() {
-  return (
-    <div style={{ width: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-      <ChevronRight size={15} color="#D1D5DB" strokeWidth={2.5} />
-    </div>
-  )
-}
+const TONE_STYLES = {
+  neutral: { bar: '#9CA3AF', chip: '#F3F4F6', value: '#111827', bg: '#FAFAFA', border: '#EFEFEF' },
+  accent: { bar: RED, chip: '#FBEAEA', value: RED, bg: '#FDF6F6', border: '#F5DEDE' },
+  warn: { bar: '#D97706', chip: '#FEF3C7', value: WARNING_INK, bg: '#FFFBEB', border: '#FAE8C4' },
+} as const
 
-function KpiTile({
-  icon: Icon, label, value, sublabel, accent, warn,
-}: { icon: typeof Rocket; label: string; value: string; sublabel?: string; accent?: boolean; warn?: boolean }) {
-  const valueColor = warn ? WARNING_INK : accent ? RED : '#111827'
+function MetricCard({
+  icon: Icon, label, value, caption, tone = 'neutral',
+}: { icon: typeof Rocket; label: string; value: string; caption: string; tone?: keyof typeof TONE_STYLES }) {
+  const t = TONE_STYLES[tone]
   return (
-    <div style={{ flex: 1, display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-      <div style={{
-        width: 34, height: 34, borderRadius: 10, flexShrink: 0,
-        background: warn ? '#FEF3C7' : accent ? '#FBEAEA' : '#F3F4F6',
-        display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: 1,
-      }}>
-        <Icon size={16} color={valueColor} strokeWidth={2.25} />
-      </div>
-      <div style={{ minWidth: 0 }}>
-        <div style={{ fontSize: 10, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: 0.4, lineHeight: 1.3 }}>
-          {label}
+    <div style={{
+      flex: 1, display: 'flex', flexDirection: 'column', background: t.bg,
+      border: `1px solid ${t.border}`, borderRadius: 12, overflow: 'hidden',
+    }}>
+      <div style={{ height: 3, background: t.bar }} />
+      <div style={{ padding: '12px 13px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+          <div style={{
+            width: 24, height: 24, borderRadius: 7, flexShrink: 0, background: t.chip,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <Icon size={13} color={t.value} strokeWidth={2.25} />
+          </div>
+          <div style={{ fontSize: 9.5, fontWeight: 700, color: '#6B7280', textTransform: 'uppercase', letterSpacing: 0.3, lineHeight: 1.25 }}>
+            {label}
+          </div>
         </div>
-        <div style={{ fontSize: 26, fontWeight: 800, color: valueColor, lineHeight: 1.2, marginTop: 1 }}>
+        <div style={{ fontSize: 25, fontWeight: 800, color: t.value, lineHeight: 1 }}>
           {value}
         </div>
-        {sublabel && (
-          <div style={{ fontSize: 10, color: '#9CA3AF', lineHeight: 1.3, marginTop: 1 }}>{sublabel}</div>
-        )}
+        <div style={{ fontSize: 9.5, color: '#9CA3AF', lineHeight: 1.3, minHeight: 24 }}>
+          {caption}
+        </div>
       </div>
     </div>
-  )
-}
-
-function ConversionRing({ pct }: { pct: number }) {
-  const size = 52
-  const stroke = 6
-  const r = (size - stroke) / 2
-  const c = 2 * Math.PI * r
-  const offset = c - (Math.min(pct, 100) / 100) * c
-  return (
-    <svg width={size} height={size} style={{ transform: 'rotate(-90deg)', flexShrink: 0 }}>
-      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#F3D6D6" strokeWidth={stroke} />
-      <circle
-        cx={size / 2} cy={size / 2} r={r} fill="none" stroke={RED} strokeWidth={stroke}
-        strokeDasharray={c} strokeDashoffset={offset} strokeLinecap="round"
-      />
-    </svg>
   )
 }
 
@@ -180,47 +177,26 @@ export default function WeeklySlide() {
                 Etapas da<br />jornada
               </div>
             </div>
-            <div style={{ flex: 1, display: 'flex', alignItems: 'stretch', gap: 4 }}>
+            <div style={{ flex: 1, display: 'flex', alignItems: 'stretch' }}>
               {data.stages.map((stage, i) => (
-                <StageCard key={stage.id} label={stage.label} descricao={stage.descricao} quantidade={stage.quantidade} index={i} />
-              )).reduce((acc: ReactNode[], card, i) => {
-                if (i > 0) acc.push(<StageConnector key={`c-${i}`} />)
-                acc.push(card)
-                return acc
-              }, [])}
+                <StageCard key={stage.id} label={stage.label} descricao={stage.descricao} quantidade={stage.quantidade} index={i} total={data.stages.length} />
+              ))}
             </div>
           </div>
 
-          {/* KPIs agregados do funil inteiro */}
-          <div style={{ display: 'flex', gap: 28, borderTop: '1px solid #F3F4F6', borderBottom: '1px solid #F3F4F6', padding: '14px 0' }}>
-            <KpiTile icon={Rocket} label="Experimentos iniciados" value={String(data.totalIniciados)} sublabel="saíram do backlog" />
-            <KpiTile icon={ArrowRightLeft} label="Oportunidades → Experimentos" value={`${data.taxaOportunidadesParaExperimentos}%`} sublabel="taxa de conversão" accent />
-            <KpiTile icon={AlertTriangle} label="Sem benefício potencial" value={String(data.semBeneficio.count)} sublabel={`${data.semBeneficio.pct}% do funil`} warn />
-            <KpiTile icon={User} label="Sem sponsor identificado" value={String(data.semSponsor.count)} sublabel={`${data.semSponsor.pct}% do funil`} warn />
-          </div>
-
-          {/* Conversões — mesma lógica da aba Estratégia: % de todas as
-              iniciativas que já chegaram a Piloto / Escala */}
-          <div style={{ display: 'flex' }}>
-            <div style={{ width: 96, flexShrink: 0, fontSize: 10, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: 0.5, lineHeight: 1.4, display: 'flex', alignItems: 'center' }}>
-              Principais<br />conversões
+          {/* Métricas da semana — volume, conversão e riscos de dados, todas
+              no mesmo formato de card para leitura rápida e comparável */}
+          <div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>
+              Métricas da semana
             </div>
-            <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 64 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <ConversionRing pct={data.conversaoPiloto} />
-                <div style={{ minWidth: 0 }}>
-                  <div style={{ fontSize: 22, fontWeight: 800, color: RED, lineHeight: 1.1 }}>{data.conversaoPiloto}%</div>
-                  <div style={{ fontSize: 11, color: '#6B7280', lineHeight: 1.3, marginTop: 1 }}>Conversão para Piloto</div>
-                </div>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <ConversionRing pct={data.conversaoEscala} />
-                <div style={{ minWidth: 0 }}>
-                  <div style={{ fontSize: 22, fontWeight: 800, color: RED, lineHeight: 1.1 }}>{data.conversaoEscala}%</div>
-                  <div style={{ fontSize: 11, color: '#6B7280', lineHeight: 1.3, marginTop: 1 }}>Conversão para Escala</div>
-                </div>
-              </div>
-              <div style={{ flex: 1, height: 1, background: 'linear-gradient(to right, #F3F4F6, transparent)' }} />
+            <div style={{ display: 'flex', gap: 10 }}>
+              <MetricCard icon={Rocket} label="Experimentos iniciados" value={String(data.totalIniciados)} caption="Em andamento + Validação + Concluído" />
+              <MetricCard icon={ArrowRightLeft} label="Oportunidades → Experimentos" value={`${data.taxaOportunidadesParaExperimentos}%`} caption="Do backlog que virou experimento" tone="accent" />
+              <MetricCard icon={Target} label="Conversão para Piloto" value={`${data.conversaoPiloto}%`} caption="Iniciativas que já chegaram ao piloto" tone="accent" />
+              <MetricCard icon={Award} label="Conversão para Escala" value={`${data.conversaoEscala}%`} caption="Iniciativas que já chegaram à escala" tone="accent" />
+              <MetricCard icon={AlertTriangle} label="Sem benefício potencial" value={String(data.semBeneficio.count)} caption={`${data.semBeneficio.pct}% dos experimentos, sem R$ nem relato`} tone="warn" />
+              <MetricCard icon={User} label="Sem sponsor identificado" value={String(data.semSponsor.count)} caption={`${data.semSponsor.pct}% dos experimentos sem sponsor`} tone="warn" />
             </div>
           </div>
 

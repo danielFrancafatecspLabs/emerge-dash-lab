@@ -1,5 +1,4 @@
-import { DashboardData, Iniciativa, EpicDetail } from './types'
-import { getPipelineStage } from './mappers'
+import { DashboardData, EpicDetail } from './types'
 
 export interface WeeklyStage {
   id: string
@@ -11,16 +10,16 @@ export interface WeeklyStage {
 export interface WeeklyData {
   geradoEm: string
   stages: WeeklyStage[]
-  totalAtivo: number                // soma de todas as etapas do funil (oportunidades + experimentos)
-  totalIniciados: number            // soma de tudo, exceto Backlog — experimentos que já saíram da ideação
+  totalEpics: number                // data.allEpics.length — denominador dos cards de risco
+  totalIniciados: number            // Epics em Em andamento + Em validação + Concluído (board de Experimentação)
   taxaOportunidadesParaExperimentos: number  // % Backlog (Iniciativas) -> Em andamento (Epics)
-  conversaoPiloto: number           // % de TODAS as iniciativas que já chegaram a Piloto ou Escala (mesma lógica da aba Estratégia)
-  conversaoEscala: number           // % de TODAS as iniciativas que já chegaram a Escala (mesma lógica da aba Estratégia)
-  semBeneficio: { count: number; pct: number }  // agregado no funil inteiro
-  semSponsor: { count: number; pct: number }    // agregado no funil inteiro
+  conversaoPiloto: number           // % de TODAS as iniciativas que já chegaram a Piloto ou Escala (mesma lógica da aba Estratégia/Report)
+  conversaoEscala: number           // % de TODAS as iniciativas que já chegaram a Escala (mesma lógica da aba Estratégia/Report)
+  semBeneficio: { count: number; pct: number }  // Epics sem benefício quantitativo E sem benefício qualitativo
+  semSponsor: { count: number; pct: number }    // Epics sem sponsor
   aprendizadosAcionaveis: number
-  insightPrincipal: string          // gargalo Piloto -> Escala, calculado a partir dos dados
-  insightPositivo: string           // leitura executiva da conversão geral + aprendizados
+  insightPrincipal: string
+  insightPositivo: string
   isSample: boolean
 }
 
@@ -36,54 +35,55 @@ function buildInsights(conversaoPiloto: number, conversaoEscala: number, totalIn
   return { principal, positivo }
 }
 
-interface RiscoItem {
-  semBeneficio: boolean
-  semSponsor: boolean
-}
-
-function iniciativaRisco(i: Iniciativa): RiscoItem {
-  return {
-    semBeneficio: (i.beneficioQuantitativoTotal ?? 0) <= 0,
-    semSponsor: !i.sponsor && (!i.sponsors || i.sponsors.length === 0),
-  }
-}
-
-function epicRisco(e: EpicDetail): RiscoItem {
-  return {
-    semBeneficio: (e.beneficioQuantitativo ?? 0) <= 0,
-    semSponsor: !e.sponsor,
-  }
+function semBeneficioPotencial(e: EpicDetail): boolean {
+  const semQuantitativo = (e.beneficioQuantitativo ?? 0) <= 0
+  const semQualitativo = !e.beneficioQualitativo || !e.beneficioQualitativo.trim()
+  return semQuantitativo && semQualitativo
 }
 
 /**
- * Mapeamento acordado com o time BeOn Labs para o slide Weekly:
- * - Backlog, Aguardando piloto, Piloto e Em escala vêm do board de Ideação
- *   (Iniciativas, board 2734) — cada um é uma coluna/status daquele board.
- * - Em andamento vem do board de Experimentação (Epics, board 2735) —
- *   soma de Em refinamento + Em andamento + Em validação (já unificados em
- *   "EM EXPERIMENTAÇÃO" por STATUS_PIPELINE em mappers.ts).
- * As duas taxas de conversão (Piloto e Escala) usam a mesma lógica da aba
- * Estratégia / Report: % de TODAS as iniciativas que já chegaram àquele
- * marco, usando data.pilotoStatusIds / data.escalaStatusIds.
+ * Mapeamento acordado com o time BeOn Labs para o slide Weekly (v2 — corrigido
+ * após teste com dados reais). Reusa os MESMOS filtros por id+nome de status já
+ * usados em src/app/report/page.tsx (funilStages / totalExperimentosIniciados /
+ * conversaoPiloto / conversaoEscala) em vez do mapa STATUS_PIPELINE — aquele mapa
+ * ficou incompleto/desatualizado em relação aos status reais do board e subcontava
+ * "Em andamento".
+ *
+ * - Ideias Qualificadas: todo o pool de Iniciativas do board de Ideação.
+ * - Backlog: Iniciativas no status BACKLOG (id 10004 / nome "BACKLOG").
+ * - Em andamento: Epics em "Em andamento" (id 3) + "Em validação"/"EM VALIDAÇÃO" (id 10204).
+ * - Aguardando piloto / Piloto / Em escala: Iniciativas nos respectivos status do board de Ideação.
+ * - Experimentos iniciados: Epics em Em andamento + Em validação + Concluído (id 10019).
+ * - Conversão para Piloto/Escala: % de TODAS as iniciativas que já chegaram àquele
+ *   marco, usando data.pilotoStatusIds / data.escalaStatusIds (igual à aba Estratégia).
+ * - Sem benefício potencial / Sem sponsor: sobre TODOS os Epics do board de
+ *   Experimentação — benefício considera os campos quantitativo E qualitativo juntos.
  */
 export function buildWeeklyData(data: DashboardData): WeeklyData {
-  const backlogInis = data.iniciativas.filter(i => getPipelineStage(i.status) === 'BACKLOG')
-  const aguardandoInis = data.iniciativas.filter(i => getPipelineStage(i.status) === 'AGUARDANDO PILOTO')
-  const pilotoInis = data.iniciativas.filter(i => getPipelineStage(i.status) === 'EM PILOTO')
-  const escalaInis = data.iniciativas.filter(i => getPipelineStage(i.status) === 'EM ESCALA')
-  const andamentoEpics = data.allEpics.filter(e => getPipelineStage(e.status) === 'EM EXPERIMENTAÇÃO')
+  const ideiasQualificadas = data.iniciativas.length
+
+  const backlogInis = data.iniciativas.filter(i => i.status.id === '10004' || i.status.name === 'BACKLOG')
+  const aguardandoInis = data.iniciativas.filter(i => i.status.id === '13045' || i.status.name === 'Aguardando Piloto')
+  const pilotoInis = data.iniciativas.filter(i => i.status.id === '12847' || i.status.name === 'EM PILOTO' || i.status.name === 'Em Piloto')
+  const escalaInis = data.iniciativas.filter(i =>
+    i.status.id === '12848' || ['EM ESCALA', 'Em Escala', 'Em escala', 'FINALIZADO', 'Finalizado'].includes(i.status.name)
+  )
+
+  const emAndamentoEpics = data.allEpics.filter(e => e.status?.id === '3' || e.status?.name === 'Em andamento')
+  const emValidacaoEpics = data.allEpics.filter(e => e.status?.id === '10204' || e.status?.name === 'EM VALIDAÇÃO' || e.status?.name === 'Em validação')
+  const concluidosEpics = data.allEpics.filter(e => e.status?.id === '10019')
 
   const stages: WeeklyStage[] = [
-    { id: 'backlog', label: 'Backlog', descricao: 'Ideias qualificadas para análise', quantidade: backlogInis.length },
-    { id: 'andamento', label: 'Em andamento', descricao: 'Execução da experimentação', quantidade: andamentoEpics.length },
+    { id: 'ideias', label: 'Ideias Qualificadas', descricao: 'Todo o pool de iniciativas registradas', quantidade: ideiasQualificadas },
+    { id: 'backlog', label: 'Backlog', descricao: 'Aguardando priorização', quantidade: backlogInis.length },
+    { id: 'andamento', label: 'Em andamento', descricao: 'Execução da experimentação', quantidade: emAndamentoEpics.length + emValidacaoEpics.length },
     { id: 'aguardando', label: 'Aguardando piloto', descricao: 'Concluído, em avaliação', quantidade: aguardandoInis.length },
     { id: 'piloto', label: 'Piloto', descricao: 'Validação em ambiente real', quantidade: pilotoInis.length },
     { id: 'escala', label: 'Em escala', descricao: 'Solução em implementação', quantidade: escalaInis.length },
   ]
 
-  const totalAtivo = stages.reduce((s, st) => s + st.quantidade, 0)
-  const totalIniciados = totalAtivo - stages[0].quantidade
-  const taxaOportunidadesParaExperimentos = pct(stages[1].quantidade, stages[0].quantidade)
+  const totalIniciados = emAndamentoEpics.length + emValidacaoEpics.length + concluidosEpics.length
+  const taxaOportunidadesParaExperimentos = pct(stages[2].quantidade, stages[1].quantidade)
 
   // Mesma lógica da aba Estratégia / Report (ver src/app/report/page.tsx):
   // % de TODAS as iniciativas do board de Ideação que já chegaram a Piloto/Escala.
@@ -93,15 +93,9 @@ export function buildWeeklyData(data: DashboardData): WeeklyData {
   const conversaoPiloto = pct(countEmPiloto + countEmEscala, totalIniciativas)
   const conversaoEscala = pct(countEmEscala, totalIniciativas)
 
-  const riscos: RiscoItem[] = [
-    ...backlogInis.map(iniciativaRisco),
-    ...aguardandoInis.map(iniciativaRisco),
-    ...pilotoInis.map(iniciativaRisco),
-    ...escalaInis.map(iniciativaRisco),
-    ...andamentoEpics.map(epicRisco),
-  ]
-  const semBeneficioCount = riscos.filter(r => r.semBeneficio).length
-  const semSponsorCount = riscos.filter(r => r.semSponsor).length
+  const totalEpics = data.allEpics.length
+  const semBeneficioCount = data.allEpics.filter(semBeneficioPotencial).length
+  const semSponsorCount = data.allEpics.filter(e => !e.sponsor).length
 
   // Aprendizados acionáveis: epics concluídos que documentaram um benefício
   // qualitativo (proxy para "gerou aprendizado", já que não há campo dedicado no Jira).
@@ -115,13 +109,13 @@ export function buildWeeklyData(data: DashboardData): WeeklyData {
     geradoEm: new Date().toISOString(),
     isSample: false,
     stages,
-    totalAtivo,
+    totalEpics,
     totalIniciados,
     taxaOportunidadesParaExperimentos,
     conversaoPiloto,
     conversaoEscala,
-    semBeneficio: { count: semBeneficioCount, pct: pct(semBeneficioCount, totalAtivo) },
-    semSponsor: { count: semSponsorCount, pct: pct(semSponsorCount, totalAtivo) },
+    semBeneficio: { count: semBeneficioCount, pct: pct(semBeneficioCount, totalEpics) },
+    semSponsor: { count: semSponsorCount, pct: pct(semSponsorCount, totalEpics) },
     aprendizadosAcionaveis,
     insightPrincipal: principal,
     insightPositivo: positivo,
@@ -130,15 +124,16 @@ export function buildWeeklyData(data: DashboardData): WeeklyData {
 
 // ── Dados de exemplo (usados quando o Jira está inacessível) ──
 const SAMPLE_STAGES: WeeklyStage[] = [
-  { id: 'backlog', label: 'Backlog', descricao: 'Ideias qualificadas para análise', quantidade: 82 },
+  { id: 'ideias', label: 'Ideias Qualificadas', descricao: 'Todo o pool de iniciativas registradas', quantidade: 186 },
+  { id: 'backlog', label: 'Backlog', descricao: 'Aguardando priorização', quantidade: 82 },
   { id: 'andamento', label: 'Em andamento', descricao: 'Execução da experimentação', quantidade: 56 },
   { id: 'aguardando', label: 'Aguardando piloto', descricao: 'Concluído, em avaliação', quantidade: 28 },
   { id: 'piloto', label: 'Piloto', descricao: 'Validação em ambiente real', quantidade: 18 },
   { id: 'escala', label: 'Em escala', descricao: 'Solução em implementação', quantidade: 11 },
 ]
-const SAMPLE_TOTAL = SAMPLE_STAGES.reduce((s, st) => s + st.quantidade, 0)
-const SAMPLE_TOTAL_INICIADOS = SAMPLE_TOTAL - SAMPLE_STAGES[0].quantidade
-const SAMPLE_TAXA_OPORTUNIDADES = pct(SAMPLE_STAGES[1].quantidade, SAMPLE_STAGES[0].quantidade)
+const SAMPLE_TOTAL_EPICS = 199
+const SAMPLE_TOTAL_INICIADOS = 113
+const SAMPLE_TAXA_OPORTUNIDADES = pct(SAMPLE_STAGES[2].quantidade, SAMPLE_STAGES[1].quantidade)
 const SAMPLE_CONVERSAO_PILOTO = 32
 const SAMPLE_CONVERSAO_ESCALA = 13
 const SAMPLE_APRENDIZADOS = 37
@@ -148,13 +143,13 @@ export const SAMPLE_WEEKLY_DATA: WeeklyData = {
   geradoEm: new Date().toISOString(),
   isSample: true,
   stages: SAMPLE_STAGES,
-  totalAtivo: SAMPLE_TOTAL,
+  totalEpics: SAMPLE_TOTAL_EPICS,
   totalIniciados: SAMPLE_TOTAL_INICIADOS,
   taxaOportunidadesParaExperimentos: SAMPLE_TAXA_OPORTUNIDADES,
   conversaoPiloto: SAMPLE_CONVERSAO_PILOTO,
   conversaoEscala: SAMPLE_CONVERSAO_ESCALA,
-  semBeneficio: { count: 36, pct: pct(36, SAMPLE_TOTAL) },
-  semSponsor: { count: 29, pct: pct(29, SAMPLE_TOTAL) },
+  semBeneficio: { count: 36, pct: pct(36, SAMPLE_TOTAL_EPICS) },
+  semSponsor: { count: 29, pct: pct(29, SAMPLE_TOTAL_EPICS) },
   aprendizadosAcionaveis: SAMPLE_APRENDIZADOS,
   insightPrincipal: SAMPLE_INSIGHTS.principal,
   insightPositivo: SAMPLE_INSIGHTS.positivo,
