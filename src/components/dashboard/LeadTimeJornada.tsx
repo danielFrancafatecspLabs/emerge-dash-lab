@@ -10,6 +10,7 @@ import { Clock, AlertTriangle, Zap, Lock, TrendingDown, TrendingUp } from 'lucid
 interface Props {
   data?: LeadTimeJornada | null
   cycleTimeExperimentacao: CycleTimeEstagio[]
+  cycleTimeExperimentacaoGeral?: CycleTimeEstagio | null
 }
 
 /** Gera dados determinísticos de lead time mensal para o gráfico.
@@ -48,8 +49,18 @@ function LeadTimeTooltip({ active, payload, label }: any) {
   )
 }
 
-export default function LeadTimeJornadaComponent({ data, cycleTimeExperimentacao }: Props) {
-  if (!data) {
+export default function LeadTimeJornadaComponent({ data, cycleTimeExperimentacao, cycleTimeExperimentacaoGeral }: Props) {
+  const temDadosAuxiliares = (cycleTimeExperimentacao?.length ?? 0) > 0 || !!cycleTimeExperimentacaoGeral?.mediaDias
+  const fallbackExperimentacaoDias = cycleTimeExperimentacaoGeral?.mediaDias ?? 1
+  const safeData = data ?? {
+    totalDias: fallbackExperimentacaoDias,
+    fases: [{ fase: 'Experimentação', dias: fallbackExperimentacaoDias, pct: 100, cor: '#F59E0B', destaque: true }],
+    bottleneck: { fase: 'Experimentação', dias: fallbackExperimentacaoDias, pct: 100 },
+    blockedTimeDias: 0,
+    blockedTimePct: 0,
+  }
+
+  if (!data && !temDadosAuxiliares) {
     return (
       <div className="flex items-center justify-center h-full">
         <div className="text-center text-gray-400">
@@ -60,28 +71,20 @@ export default function LeadTimeJornadaComponent({ data, cycleTimeExperimentacao
     )
   }
 
-  const { totalDias, fases, bottleneck } = data
+  const totalDias = safeData.totalDias
+  const fases = safeData.fases
+  const bottleneck = safeData.bottleneck
 
   // Filtra fases com 0 dias (ex: Piloto sem dados)
   const fasesVisiveis = fases.filter(f => f.dias > 0)
+  const temDadosDeGrafico = totalDias > 0 || fasesVisiveis.length > 0 || temDadosAuxiliares
 
-  if (totalDias <= 0) {
+  if (!temDadosDeGrafico) {
     return (
       <div className="flex items-center justify-center h-full">
         <div className="text-center text-gray-400">
           <p className="text-sm font-medium">Jornada de Adoção</p>
           <p className="text-xs mt-1">Dados insuficientes</p>
-        </div>
-      </div>
-    )
-  }
-
-  if (fasesVisiveis.length === 0) {
-    return (
-      <div className="flex items-center justify-center h-full">
-        <div className="text-center text-gray-400">
-          <p className="text-sm font-medium">Jornada de Adoção</p>
-          <p className="text-xs mt-1">Sem fases visíveis para o período selecionado</p>
         </div>
       </div>
     )
@@ -89,7 +92,7 @@ export default function LeadTimeJornadaComponent({ data, cycleTimeExperimentacao
 
   // Usa apenas os dias da fase "Experimentação" para o sparkline
   const faseExperimentacao = fasesVisiveis.find(f => f.fase === 'Experimentação')
-  const experimentacaoDias = faseExperimentacao?.dias ?? totalDias
+  const experimentacaoDias = faseExperimentacao?.dias ?? cycleTimeExperimentacaoGeral?.mediaDias ?? totalDias ?? 1
 
   const leadTimeMensal = gerarLeadTimeMensal(experimentacaoDias)
   const maxDias = Math.max(...leadTimeMensal.map(m => m.dias), 1)
@@ -104,7 +107,7 @@ export default function LeadTimeJornadaComponent({ data, cycleTimeExperimentacao
       <div className="flex-shrink-0">
         {/* Blocos da timeline */}
         <div className="flex rounded-full overflow-hidden" style={{ height: 22 }}>
-          {fasesVisiveis.map((fase, i) => {
+          {(fasesVisiveis.length > 0 ? fasesVisiveis : [{ fase: 'Experimentação', dias: experimentacaoDias, pct: 100, cor: '#F59E0B', destaque: true }]).map((fase, i, arr) => {
             const widthPct = totalDias > 0 ? (fase.dias / totalDias) * 100 : 0
             return (
               <div
@@ -116,7 +119,7 @@ export default function LeadTimeJornadaComponent({ data, cycleTimeExperimentacao
                   background: fase.destaque
                     ? `linear-gradient(135deg, #F59E0B 0%, #F97316 100%)`
                     : fase.cor,
-                  borderRight: i < fasesVisiveis.length - 1 ? '2px solid white' : undefined,
+                  borderRight: i < arr.length - 1 ? '2px solid white' : undefined,
                 }}
                 title={`${fase.fase}: ${fase.dias}d (${fase.pct}%)`}
               >
@@ -132,7 +135,7 @@ export default function LeadTimeJornadaComponent({ data, cycleTimeExperimentacao
 
         {/* Labels abaixo dos blocos */}
         <div className="flex mt-1">
-          {fasesVisiveis.map((fase) => {
+          {(fasesVisiveis.length > 0 ? fasesVisiveis : [{ fase: 'Experimentação', dias: experimentacaoDias, pct: 100, cor: '#F59E0B', destaque: true }]).map((fase) => {
             const widthPct = totalDias > 0 ? (fase.dias / totalDias) * 100 : 0
             return (
               <div
@@ -193,7 +196,7 @@ export default function LeadTimeJornadaComponent({ data, cycleTimeExperimentacao
             <p className="font-semibold text-gray-700" style={{ fontSize: 10 }}>Tempo Bloqueado</p>
           </div>
           <p className="text-gray-600" style={{ fontSize: 10, lineHeight: 1.4 }}>
-            <span className="font-bold text-gray-800">{data.blockedTimeDias}d</span>
+            <span className="font-bold text-gray-800">{safeData.blockedTimeDias}d</span>
             {' '}em média dos experimentos concluídos
           </p>
           <div className="mt-1.5 flex items-center gap-1">
@@ -201,12 +204,12 @@ export default function LeadTimeJornadaComponent({ data, cycleTimeExperimentacao
               <div
                 className="rounded-full h-1"
                 style={{
-                  width: `${Math.min(data.blockedTimePct, 100)}%`,
+                  width: `${Math.min(safeData.blockedTimePct, 100)}%`,
                   background: 'linear-gradient(90deg, #9CA3AF, #6B7280)',
                 }}
               />
             </div>
-            <span className="font-bold text-gray-600" style={{ fontSize: 10 }}>{data.blockedTimePct}%</span>
+            <span className="font-bold text-gray-600" style={{ fontSize: 10 }}>{safeData.blockedTimePct}%</span>
           </div>
         </div>
 
@@ -252,8 +255,8 @@ export default function LeadTimeJornadaComponent({ data, cycleTimeExperimentacao
         </div>
 
         {/* Área do gráfico */}
-        <div style={{ height: 140 }}>
-          <ResponsiveContainer width="100%" height={140}>
+        <div style={{ height: 140, minHeight: 140 }}>
+          <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={leadTimeMensal} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
               <defs>
                 <linearGradient id="leadTimeGradient" x1="0" y1="0" x2="0" y2="1">

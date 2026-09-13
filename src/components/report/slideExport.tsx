@@ -6,8 +6,9 @@ import { Download, Loader2 } from 'lucide-react'
 export const SLIDE_PAGE_SIZE = 10
 
 export function chunk<T>(items: T[], size: number): T[][] {
+  const safeItems = items ?? []
   const out: T[][] = []
-  for (let i = 0; i < items.length; i += size) out.push(items.slice(i, i + size))
+  for (let i = 0; i < safeItems.length; i += size) out.push(safeItems.slice(i, i + size))
   return out
 }
 
