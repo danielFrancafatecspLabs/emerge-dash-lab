@@ -42,26 +42,25 @@ function semBeneficioPotencial(e: EpicDetail): boolean {
 }
 
 /**
- * Mapeamento acordado com o time BeOn Labs para o slide Weekly (v2 — corrigido
+ * Mapeamento acordado com o time BeOn Labs para o slide Weekly (v3 — corrigido
  * após teste com dados reais). Reusa os MESMOS filtros por id+nome de status já
  * usados em src/app/report/page.tsx (funilStages / totalExperimentosIniciados /
  * conversaoPiloto / conversaoEscala) em vez do mapa STATUS_PIPELINE — aquele mapa
  * ficou incompleto/desatualizado em relação aos status reais do board e subcontava
  * "Em andamento".
  *
- * - Ideias Qualificadas: todo o pool de Iniciativas do board de Ideação.
- * - Backlog: Iniciativas no status BACKLOG (id 10004 / nome "BACKLOG").
+ * - Ideias Qualificadas: soma de Epics em Em andamento + Em validação + Concluído
+ *   (board de Experimentação) — o mesmo total de "Experimentos iniciados".
+ * - Backlog / Aguardando piloto / Piloto / Em escala: Iniciativas nos respectivos
+ *   status do board de Ideação.
  * - Em andamento: Epics em "Em andamento" (id 3) + "Em validação"/"EM VALIDAÇÃO" (id 10204).
- * - Aguardando piloto / Piloto / Em escala: Iniciativas nos respectivos status do board de Ideação.
- * - Experimentos iniciados: Epics em Em andamento + Em validação + Concluído (id 10019).
+ * - Concluídos: Epics com status "Concluído" (id 10019).
  * - Conversão para Piloto/Escala: % de TODAS as iniciativas que já chegaram àquele
  *   marco, usando data.pilotoStatusIds / data.escalaStatusIds (igual à aba Estratégia).
  * - Sem benefício potencial / Sem sponsor: sobre TODOS os Epics do board de
  *   Experimentação — benefício considera os campos quantitativo E qualitativo juntos.
  */
 export function buildWeeklyData(data: DashboardData): WeeklyData {
-  const ideiasQualificadas = data.iniciativas.length
-
   const backlogInis = data.iniciativas.filter(i => i.status.id === '10004' || i.status.name === 'BACKLOG')
   const aguardandoInis = data.iniciativas.filter(i => i.status.id === '13045' || i.status.name === 'Aguardando Piloto')
   const pilotoInis = data.iniciativas.filter(i => i.status.id === '12847' || i.status.name === 'EM PILOTO' || i.status.name === 'Em Piloto')
@@ -73,17 +72,23 @@ export function buildWeeklyData(data: DashboardData): WeeklyData {
   const emValidacaoEpics = data.allEpics.filter(e => e.status?.id === '10204' || e.status?.name === 'EM VALIDAÇÃO' || e.status?.name === 'Em validação')
   const concluidosEpics = data.allEpics.filter(e => e.status?.id === '10019')
 
+  const emAndamentoCount = emAndamentoEpics.length + emValidacaoEpics.length
+  const concluidosCount = concluidosEpics.length
+  const ideiasQualificadas = emAndamentoCount + concluidosCount
+  const backlogCount = backlogInis.length
+
   const stages: WeeklyStage[] = [
-    { id: 'ideias', label: 'Ideias Qualificadas', descricao: 'Todo o pool de iniciativas registradas', quantidade: ideiasQualificadas },
-    { id: 'backlog', label: 'Backlog', descricao: 'Aguardando priorização', quantidade: backlogInis.length },
-    { id: 'andamento', label: 'Em andamento', descricao: 'Execução da experimentação', quantidade: emAndamentoEpics.length + emValidacaoEpics.length },
+    { id: 'ideias', label: 'Ideias Qualificadas', descricao: 'Ativos ou concluídos', quantidade: ideiasQualificadas },
+    { id: 'backlog', label: 'Backlog', descricao: 'Aguardando priorização', quantidade: backlogCount },
+    { id: 'andamento', label: 'Em andamento', descricao: 'Execução ativa', quantidade: emAndamentoCount },
+    { id: 'concluidos', label: 'Concluídos', descricao: 'Experimento finalizado', quantidade: concluidosCount },
     { id: 'aguardando', label: 'Aguardando piloto', descricao: 'Concluído, em avaliação', quantidade: aguardandoInis.length },
-    { id: 'piloto', label: 'Piloto', descricao: 'Validação em ambiente real', quantidade: pilotoInis.length },
+    { id: 'piloto', label: 'Piloto', descricao: 'Validação real', quantidade: pilotoInis.length },
     { id: 'escala', label: 'Em escala', descricao: 'Solução em implementação', quantidade: escalaInis.length },
   ]
 
-  const totalIniciados = emAndamentoEpics.length + emValidacaoEpics.length + concluidosEpics.length
-  const taxaOportunidadesParaExperimentos = pct(stages[2].quantidade, stages[1].quantidade)
+  const totalIniciados = emAndamentoCount + concluidosCount
+  const taxaOportunidadesParaExperimentos = pct(emAndamentoCount, backlogCount)
 
   // Mesma lógica da aba Estratégia / Report (ver src/app/report/page.tsx):
   // % de TODAS as iniciativas do board de Ideação que já chegaram a Piloto/Escala.
@@ -124,16 +129,17 @@ export function buildWeeklyData(data: DashboardData): WeeklyData {
 
 // ── Dados de exemplo (usados quando o Jira está inacessível) ──
 const SAMPLE_STAGES: WeeklyStage[] = [
-  { id: 'ideias', label: 'Ideias Qualificadas', descricao: 'Todo o pool de iniciativas registradas', quantidade: 186 },
+  { id: 'ideias', label: 'Ideias Qualificadas', descricao: 'Ativos ou concluídos', quantidade: 100 },
   { id: 'backlog', label: 'Backlog', descricao: 'Aguardando priorização', quantidade: 82 },
-  { id: 'andamento', label: 'Em andamento', descricao: 'Execução da experimentação', quantidade: 56 },
+  { id: 'andamento', label: 'Em andamento', descricao: 'Execução ativa', quantidade: 56 },
+  { id: 'concluidos', label: 'Concluídos', descricao: 'Experimento finalizado', quantidade: 44 },
   { id: 'aguardando', label: 'Aguardando piloto', descricao: 'Concluído, em avaliação', quantidade: 28 },
-  { id: 'piloto', label: 'Piloto', descricao: 'Validação em ambiente real', quantidade: 18 },
+  { id: 'piloto', label: 'Piloto', descricao: 'Validação real', quantidade: 18 },
   { id: 'escala', label: 'Em escala', descricao: 'Solução em implementação', quantidade: 11 },
 ]
 const SAMPLE_TOTAL_EPICS = 199
-const SAMPLE_TOTAL_INICIADOS = 113
-const SAMPLE_TAXA_OPORTUNIDADES = pct(SAMPLE_STAGES[2].quantidade, SAMPLE_STAGES[1].quantidade)
+const SAMPLE_TOTAL_INICIADOS = 100
+const SAMPLE_TAXA_OPORTUNIDADES = pct(56, 82)
 const SAMPLE_CONVERSAO_PILOTO = 32
 const SAMPLE_CONVERSAO_ESCALA = 13
 const SAMPLE_APRENDIZADOS = 37
