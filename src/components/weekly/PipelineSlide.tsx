@@ -3,7 +3,7 @@
 import { useRef, useState } from 'react'
 import {
   Inbox, Cog, XCircle, CheckCircle2, Hourglass, FlaskConical, Rocket as StageRocket,
-  AlertTriangle, User, Rocket, ArrowRightLeft, Target, Award, TrendingDown, Sparkles,
+  AlertTriangle, User, Rocket, Target, Award, TrendingDown, Sparkles, CornerDownRight, Lightbulb,
   ListFilter, ChevronDown, ChevronUp,
 } from 'lucide-react'
 import type { WeeklyData, WeeklyStageMotivo } from '@/lib/weekly'
@@ -19,10 +19,13 @@ import PatrocinadoresSlide from './PatrocinadoresSlide'
 const RED = '#8B0000'
 const WARNING_INK = '#92400E'
 const RAMP = ['#C42420', '#A81715', '#8B1210', '#6E0E0D', '#500908', '#350505', '#1A0202']
-// Ordem: Backlog, Em andamento, Cancelados, Concluídos, Aguardando piloto, Piloto, Em escala
+// Ordem: Backlog, Em andamento, Cancelados, Concluídos (funil principal) —
+// Aguardando piloto, Piloto, Em escala continuam a rampa, mas nascem DENTRO
+// de Concluídos (ver ramo abaixo), não como fases sequenciais independentes.
 const STAGE_ICONS = [Inbox, Cog, XCircle, CheckCircle2, Hourglass, FlaskConical, StageRocket]
 const STAGE_TEXT = '#FFFFFF'
 const STAGE_MUTED = 'rgba(255,255,255,0.82)'
+const MAIN_STAGE_COUNT = 4
 
 // Trunca em JS em vez de depender de overflow:hidden + text-overflow:ellipsis —
 // essa combinação, dentro de um card com clip-path, não é recortada corretamente
@@ -106,6 +109,75 @@ function StageCard({ label, descricao, quantidade, index, total, motivos }: { la
   )
 }
 
+const MINI_STAGE_ICONS = [Hourglass, FlaskConical, StageRocket]
+const MINI_STAGE_HEIGHT = 78
+
+// Ramo derivado de Concluídos: mesma técnica de seta/chevron do funil
+// principal (altura uniforme na fileira, sem calc()/position:absolute) só
+// que menor, para deixar visualmente claro que é um sub-funil, não uma
+// continuação da mesma hierarquia.
+function MiniStageCard({ label, quantidade, index, total }: { label: string; quantidade: number; index: number; total: number }) {
+  const Icon = MINI_STAGE_ICONS[index]
+  const notch = 12
+  let clipPath: string
+  if (index === 0) {
+    clipPath = `polygon(0% 0%, calc(100% - ${notch}px) 0%, 100% 50%, calc(100% - ${notch}px) 100%, 0% 100%)`
+  } else if (index === total - 1) {
+    clipPath = `polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%, ${notch}px 50%)`
+  } else {
+    clipPath = `polygon(0% 0%, calc(100% - ${notch}px) 0%, 100% 50%, calc(100% - ${notch}px) 100%, 0% 100%, ${notch}px 50%)`
+  }
+  return (
+    <div style={{
+      flex: 1, minWidth: 0, marginLeft: index === 0 ? 0 : -notch, clipPath,
+      background: RAMP[MAIN_STAGE_COUNT + index], display: 'flex', flexDirection: 'column',
+      alignItems: 'center', justifyContent: 'center', paddingTop: 7, paddingBottom: 6,
+      paddingLeft: index === 0 ? 6 : notch + 6, paddingRight: 6, height: MINI_STAGE_HEIGHT, boxSizing: 'border-box',
+    }}>
+      <div style={{
+        width: 19, height: 19, borderRadius: 999, background: '#FFFFFF', flexShrink: 0,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}>
+        <Icon size={10} color={RED} strokeWidth={2.25} />
+      </div>
+      <div style={{ fontSize: 9, fontWeight: 800, color: '#FFFFFF', textAlign: 'center', lineHeight: 1.1, marginTop: 4, width: '100%', overflowWrap: 'break-word' }}>
+        {label}
+      </div>
+      <div style={{ fontSize: 15, fontWeight: 800, color: '#FFFFFF', marginTop: 1, lineHeight: 1 }}>
+        {quantidade}
+      </div>
+    </div>
+  )
+}
+
+// Card do outro ramo (não segue o formato de seta de propósito): o
+// aprendizado que NÃO avançou para piloto/escala tem o mesmo peso visual dos
+// mini-cards ao lado, mas sem ser mais uma "etapa" — é o fim de um caminho.
+function AprendizadoRamoCard({ quantidade }: { quantidade: number }) {
+  return (
+    <div style={{
+      flex: 1, minWidth: 0, height: MINI_STAGE_HEIGHT, boxSizing: 'border-box',
+      background: '#FCEAEA', border: '1px dashed #E8B4B4', borderRadius: 10,
+      display: 'flex', alignItems: 'center', gap: 10, padding: '0 14px',
+    }}>
+      <div style={{
+        width: 26, height: 26, borderRadius: 999, background: '#FFFFFF', flexShrink: 0,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}>
+        <Lightbulb size={13} color={RED} strokeWidth={2.25} />
+      </div>
+      <div style={{ minWidth: 0 }}>
+        <div style={{ fontSize: 9.5, fontWeight: 800, color: RED, lineHeight: 1.2, textTransform: 'uppercase', letterSpacing: 0.2 }}>
+          Aprendizado sem escalar
+        </div>
+        <div style={{ fontSize: 9, color: '#7A4B4B', lineHeight: 1.25, marginTop: 2 }}>
+          <b style={{ fontSize: 16, color: RED }}>{quantidade}</b> concluídos viraram benchmark ou hipótese validada/refutada, sem seguir para piloto
+        </div>
+      </div>
+    </div>
+  )
+}
+
 const TONE_STYLES = {
   neutral: { bar: '#9CA3AF', chip: '#F3F4F6', value: '#111827', bg: '#FAFAFA', border: '#EFEFEF' },
   accent: { bar: RED, chip: '#FBEAEA', value: RED, bg: '#FDF6F6', border: '#F5DEDE' },
@@ -122,22 +194,22 @@ function MetricCard({
       border: `1px solid ${t.border}`, borderRadius: 12, overflow: 'hidden',
     }}>
       <div style={{ height: 3, background: t.bar }} />
-      <div style={{ padding: '12px 13px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+      <div style={{ padding: '9px 13px', display: 'flex', flexDirection: 'column', gap: 4 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
           <div style={{
-            width: 24, height: 24, borderRadius: 7, flexShrink: 0, background: t.chip,
+            width: 22, height: 22, borderRadius: 7, flexShrink: 0, background: t.chip,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
-            <Icon size={13} color={t.value} strokeWidth={2.25} />
+            <Icon size={12} color={t.value} strokeWidth={2.25} />
           </div>
           <div style={{ fontSize: 9.5, fontWeight: 700, color: '#6B7280', textTransform: 'uppercase', letterSpacing: 0.3, lineHeight: 1.25 }}>
             {label}
           </div>
         </div>
-        <div style={{ fontSize: 25, fontWeight: 800, color: t.value, lineHeight: 1 }}>
+        <div style={{ fontSize: 22, fontWeight: 800, color: t.value, lineHeight: 1 }}>
           {value}
         </div>
-        <div style={{ fontSize: 9.5, color: '#9CA3AF', lineHeight: 1.3, minHeight: 24 }}>
+        <div style={{ fontSize: 9.5, color: '#9CA3AF', lineHeight: 1.3, minHeight: 20 }}>
           {caption}
         </div>
       </div>
@@ -163,11 +235,11 @@ export default function PipelineSlide({ data }: { data: WeeklyData }) {
             width: 1280,
             height: 720,
             background: '#FFFFFF',
-            padding: 46,
+            padding: '40px 46px',
             boxSizing: 'border-box',
             display: 'flex',
             flexDirection: 'column',
-            gap: 18,
+            gap: 11,
           }}
         >
           {/* Cabeçalho */}
@@ -183,7 +255,7 @@ export default function PipelineSlide({ data }: { data: WeeklyData }) {
             </div>
           </div>
 
-          {/* Funil — volume por etapa */}
+          {/* Funil principal — Backlog até Concluídos */}
           <div style={{ display: 'flex' }}>
             <div style={{ width: 96, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', paddingBottom: 66, flexShrink: 0 }}>
               <div style={{ fontSize: 10, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: 0.5, lineHeight: 1.4 }}>
@@ -191,21 +263,44 @@ export default function PipelineSlide({ data }: { data: WeeklyData }) {
               </div>
             </div>
             <div style={{ flex: 1, display: 'flex' }}>
-              {data.stages.map((stage, i) => (
-                <StageCard key={stage.id} label={stage.label} descricao={stage.descricao} quantidade={stage.quantidade} index={i} total={data.stages.length} motivos={stage.motivos} />
+              {data.stages.slice(0, MAIN_STAGE_COUNT).map((stage, i) => (
+                <StageCard key={stage.id} label={stage.label} descricao={stage.descricao} quantidade={stage.quantidade} index={i} total={MAIN_STAGE_COUNT} motivos={stage.motivos} />
               ))}
             </div>
           </div>
 
-          {/* Métricas da semana — volume, conversão e riscos de dados, todas
-              no mesmo formato de card para leitura rápida e comparável */}
+          {/* Ramo derivado de Concluídos — Aguardando piloto/Piloto/Em escala
+              nascem DENTRO do total de Concluídos (não são uma continuação
+              sequencial): o restante virou aprendizado sem seguir adiante. */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <div style={{ width: 96, flexShrink: 0 }} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <CornerDownRight size={12} color={RED} strokeWidth={2.5} />
+              <span style={{ fontSize: 9.5, fontWeight: 800, color: RED, textTransform: 'uppercase', letterSpacing: 0.3 }}>
+                Dentro dos {data.stages[3].quantidade} concluídos
+              </span>
+              <span style={{ fontSize: 9.5, color: '#9CA3AF' }}>
+                — parte segue para piloto/escala, o restante já é aprendizado validado
+              </span>
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: 14 }}>
+            <div style={{ width: 96, flexShrink: 0 }} />
+            <div style={{ flex: 1.5, display: 'flex' }}>
+              {data.stages.slice(MAIN_STAGE_COUNT).map((stage, i) => (
+                <MiniStageCard key={stage.id} label={stage.label} quantidade={stage.quantidade} index={i} total={3} />
+              ))}
+            </div>
+            <AprendizadoRamoCard quantidade={data.aprendizadosSemEscalar} />
+          </div>
+
+          {/* Métricas da semana — conversão e riscos de dados, no mesmo
+              formato de card para leitura rápida e comparável */}
           <div>
-            <div style={{ fontSize: 10, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>
+            <div style={{ fontSize: 10, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 }}>
               Métricas da semana
             </div>
             <div style={{ display: 'flex', gap: 10 }}>
-              <MetricCard icon={Rocket} label="Experimentos iniciados" value={String(data.totalIniciados)} caption="Em andamento + Validação + Concluído" />
-              <MetricCard icon={ArrowRightLeft} label="Oportunidades → Experimentos" value={`${data.taxaOportunidadesParaExperimentos}%`} caption="Do backlog que virou experimento" tone="accent" />
               <MetricCard icon={Target} label="Conversão para Piloto" value={`${data.conversaoPiloto}%`} caption={`${data.conversaoPilotoNumerador} de ${data.conversaoDenominador} experimentos aprovados já em piloto`} tone="accent" />
               <MetricCard icon={Award} label="Conversão para Escala" value={`${data.conversaoEscala}%`} caption={`${data.conversaoEscalaNumerador} de ${data.conversaoDenominador} experimentos aprovados já em escala`} tone="accent" />
               <MetricCard icon={AlertTriangle} label="Sem benefício potencial" value={String(data.semBeneficio.count)} caption={`${data.semBeneficio.pct}% dos experimentos, sem R$ nem relato`} tone="warn" />
