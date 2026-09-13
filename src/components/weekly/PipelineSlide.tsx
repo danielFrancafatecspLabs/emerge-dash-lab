@@ -1,12 +1,15 @@
 'use client'
 
-import { useRef } from 'react'
+import { useRef, useState } from 'react'
 import {
   Inbox, Cog, XCircle, CheckCircle2, Hourglass, FlaskConical, Rocket as StageRocket,
   AlertTriangle, User, Rocket, ArrowRightLeft, Target, Award, TrendingDown, Sparkles,
+  ListFilter, ChevronDown, ChevronUp,
 } from 'lucide-react'
 import type { WeeklyData, WeeklyStageMotivo } from '@/lib/weekly'
 import { SlideDownloadButtons } from '@/components/report/slideExport'
+import StageDetalhesSlides from './StageDetalhesSlides'
+import AprendizadosSlide from './AprendizadosSlide'
 
 /* ── Paleta — rampa ordinal de um único matiz (vinho/vermelho escuro da
    marca), monotônica, ΔL >= 0.06, matiz único (spread 2°), contraste do
@@ -143,6 +146,7 @@ function MetricCard({
 
 export default function PipelineSlide({ data }: { data: WeeklyData }) {
   const slideRef = useRef<HTMLDivElement>(null)
+  const [stageAberta, setStageAberta] = useState<string | null>(null)
 
   return (
     <div className="flex flex-col gap-3">
@@ -231,6 +235,44 @@ export default function PipelineSlide({ data }: { data: WeeklyData }) {
           </div>
         </div>
       </div>
+
+      <AprendizadosSlide data={data} />
+
+      {/* Ver detalhes por etapa — fora do slide exportável: cada clique abre a
+          lista de experimentos daquela fase, vinda do Jira, como slides
+          tabulares próprios (reusa o mesmo padrão de IniciativasSlides). */}
+      <div className="flex flex-wrap items-center gap-2 mt-1">
+        <span className="flex items-center gap-1.5 text-xs font-semibold text-gray-400 uppercase tracking-wide mr-1">
+          <ListFilter size={13} /> Ver detalhes:
+        </span>
+        {data.stages.map((stage, i) => {
+          const aberta = stageAberta === stage.id
+          return (
+            <button
+              key={stage.id}
+              onClick={() => setStageAberta(aberta ? null : stage.id)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors"
+              style={{
+                background: aberta ? RAMP[i] : '#F3F4F6',
+                color: aberta ? '#FFFFFF' : '#374151',
+                border: `1px solid ${aberta ? RAMP[i] : '#E5E7EB'}`,
+              }}
+            >
+              {stage.label} ({stage.quantidade})
+              {aberta ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+            </button>
+          )
+        })}
+      </div>
+
+      {stageAberta && (
+        <div className="mt-1">
+          {(() => {
+            const stage = data.stages.find(s => s.id === stageAberta)!
+            return <StageDetalhesSlides stageId={stage.id} stageLabel={stage.label} rows={stage.experimentos} />
+          })()}
+        </div>
+      )}
     </div>
   )
 }

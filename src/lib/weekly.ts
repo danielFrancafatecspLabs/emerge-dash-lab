@@ -1,9 +1,20 @@
-import { DashboardData, EpicDetail } from './types'
+import { DashboardData, EpicDetail, Iniciativa } from './types'
 import type { ChangelogEntry } from './jira'
+import { formatBeneficioMM, limparDescricao } from './report-utils'
 
 export interface WeeklyStageMotivo {
   motivo: string
   count: number
+}
+
+export interface WeeklyExperimentoRow {
+  key: string
+  nome: string
+  objetivo: string
+  fase: string
+  sponsor: string
+  dominio: string
+  beneficioLabel: string
 }
 
 export interface WeeklyStage {
@@ -12,6 +23,7 @@ export interface WeeklyStage {
   descricao: string
   quantidade: number
   motivos?: WeeklyStageMotivo[]   // top motivos (só preenchido na fase "Cancelados")
+  experimentos: WeeklyExperimentoRow[]   // lista detalhada — usada no "Ver detalhes" de cada fase
 }
 
 export interface WeeklyData {
@@ -50,6 +62,38 @@ function semBeneficioPotencial(e: EpicDetail): boolean {
   const semQuantitativo = (e.beneficioQuantitativo ?? 0) <= 0
   const semQualitativo = !e.beneficioQualitativo || !e.beneficioQualitativo.trim()
   return semQuantitativo && semQualitativo
+}
+
+/**
+ * Linhas de detalhe por fase, para o "Ver detalhes" do funil. As fases
+ * Backlog/Aguardando piloto/Piloto/Em escala vêm de Iniciativas (board de
+ * Ideação — sem campos ricos próprios, por isso usamos os agregados dos
+ * Epics filhos: sponsor/dominio/benefício). Em andamento/Cancelados/
+ * Concluídos vêm direto dos Epics (board de Experimentação, fonte dos
+ * dados ricos de negócio).
+ */
+function rowFromIniciativa(i: Iniciativa): WeeklyExperimentoRow {
+  return {
+    key: i.key,
+    nome: i.nome,
+    objetivo: limparDescricao(i.descricao),
+    fase: i.status.name,
+    sponsor: i.sponsor ?? i.sponsors[0] ?? '—',
+    dominio: i.dominio ?? i.dominios[0] ?? '—',
+    beneficioLabel: formatBeneficioMM(i.beneficioQuantitativoTotal || i.beneficioQuantitativo),
+  }
+}
+
+function rowFromEpic(e: EpicDetail): WeeklyExperimentoRow {
+  return {
+    key: e.key,
+    nome: e.nome,
+    objetivo: limparDescricao(e.descricao),
+    fase: e.status.name,
+    sponsor: e.sponsor ?? '—',
+    dominio: e.dominio ?? '—',
+    beneficioLabel: formatBeneficioMM(e.beneficioQuantitativo),
+  }
 }
 
 /**
@@ -152,13 +196,13 @@ export function buildWeeklyData(data: DashboardData, epicChangelogs: Record<stri
   const topMotivosCancelamento = buildTopMotivosCancelamento(canceladosEpics, epicChangelogs)
 
   const stages: WeeklyStage[] = [
-    { id: 'backlog', label: 'Backlog', descricao: 'Ideias qualificadas para análise', quantidade: backlogCount },
-    { id: 'andamento', label: 'Em andamento', descricao: 'Execução da experimentação', quantidade: emAndamentoCount },
-    { id: 'cancelados', label: 'Cancelados', descricao: 'Principais motivos', quantidade: canceladosCount, motivos: topMotivosCancelamento },
-    { id: 'concluidos', label: 'Concluídos', descricao: 'Experimentação encerrada', quantidade: concluidosCount },
-    { id: 'aguardando', label: 'Aguardando piloto', descricao: 'Concluído, em avaliação', quantidade: aguardandoInis.length },
-    { id: 'piloto', label: 'Piloto', descricao: 'Validação em ambiente real', quantidade: pilotoInis.length },
-    { id: 'escala', label: 'Em escala', descricao: 'Solução em implementação', quantidade: escalaInis.length },
+    { id: 'backlog', label: 'Backlog', descricao: 'Ideias qualificadas para análise', quantidade: backlogCount, experimentos: backlogInis.map(rowFromIniciativa) },
+    { id: 'andamento', label: 'Em andamento', descricao: 'Execução da experimentação', quantidade: emAndamentoCount, experimentos: [...emAndamentoEpics, ...emValidacaoEpics].map(rowFromEpic) },
+    { id: 'cancelados', label: 'Cancelados', descricao: 'Principais motivos', quantidade: canceladosCount, motivos: topMotivosCancelamento, experimentos: canceladosEpics.map(rowFromEpic) },
+    { id: 'concluidos', label: 'Concluídos', descricao: 'Experimentação encerrada', quantidade: concluidosCount, experimentos: concluidosEpics.map(rowFromEpic) },
+    { id: 'aguardando', label: 'Aguardando piloto', descricao: 'Concluído, em avaliação', quantidade: aguardandoInis.length, experimentos: aguardandoInis.map(rowFromIniciativa) },
+    { id: 'piloto', label: 'Piloto', descricao: 'Validação em ambiente real', quantidade: pilotoInis.length, experimentos: pilotoInis.map(rowFromIniciativa) },
+    { id: 'escala', label: 'Em escala', descricao: 'Solução em implementação', quantidade: escalaInis.length, experimentos: escalaInis.map(rowFromIniciativa) },
   ]
 
   const totalIniciados = emAndamentoCount + concluidosCount
@@ -212,14 +256,56 @@ const SAMPLE_MOTIVOS_CANCELAMENTO: WeeklyStageMotivo[] = [
   { motivo: 'Falta de benefício potencial', count: 3 },
 ]
 
+function sampleRow(i: number, nome: string, fase: string, sponsor: string, dominio: string, beneficio: string): WeeklyExperimentoRow {
+  return { key: `GL-${1000 + i}`, nome, objetivo: 'Reduzir custo operacional e melhorar a experiência do cliente com automação.', fase, sponsor, dominio, beneficioLabel: beneficio }
+}
+
 const SAMPLE_STAGES: WeeklyStage[] = [
-  { id: 'backlog', label: 'Backlog', descricao: 'Ideias qualificadas para análise', quantidade: 82 },
-  { id: 'andamento', label: 'Em andamento', descricao: 'Execução da experimentação', quantidade: 56 },
-  { id: 'cancelados', label: 'Cancelados', descricao: 'Principais motivos', quantidade: 17, motivos: SAMPLE_MOTIVOS_CANCELAMENTO },
-  { id: 'concluidos', label: 'Concluídos', descricao: 'Experimentação encerrada', quantidade: 33 },
-  { id: 'aguardando', label: 'Aguardando piloto', descricao: 'Concluído, em avaliação', quantidade: 28 },
-  { id: 'piloto', label: 'Piloto', descricao: 'Validação em ambiente real', quantidade: 18 },
-  { id: 'escala', label: 'Em escala', descricao: 'Solução em implementação', quantidade: 11 },
+  {
+    id: 'backlog', label: 'Backlog', descricao: 'Ideias qualificadas para análise', quantidade: 82,
+    experimentos: [
+      sampleRow(1, 'Triagem Automática de Chamados', 'BACKLOG', 'Rodrigo Assad', 'Atendimento', 'R$ 1.2 MM'),
+      sampleRow(2, 'Score de Risco de Churn', 'BACKLOG', 'Sidney Neves', 'Comercial', 'Não Mapeado'),
+    ],
+  },
+  {
+    id: 'andamento', label: 'Em andamento', descricao: 'Execução da experimentação', quantidade: 56,
+    experimentos: [
+      sampleRow(3, 'Evolução da Clarinha', 'Em andamento', 'Rodrigo Duclos', 'Digital', 'R$ 3.4 MM'),
+      sampleRow(4, 'Roteirização Inteligente', 'Em validação', 'Carla Tiemi', 'Rede', 'R$ 0.8 MM'),
+    ],
+  },
+  {
+    id: 'cancelados', label: 'Cancelados', descricao: 'Principais motivos', quantidade: 17, motivos: SAMPLE_MOTIVOS_CANCELAMENTO,
+    experimentos: [
+      sampleRow(5, 'IA para BD', 'Cancelado', 'Patrícia Mofato', 'Dados', 'Não Mapeado'),
+      sampleRow(6, 'Recomendação de Produtos', 'Cancelado', 'Marco Zumba', 'Marketing', 'R$ 0.5 MM'),
+    ],
+  },
+  {
+    id: 'concluidos', label: 'Concluídos', descricao: 'Experimentação encerrada', quantidade: 33,
+    experimentos: [
+      sampleRow(7, 'ARI Jurídico', 'FINALIZADO', 'Rogério Estrela', 'Jurídico', 'R$ 2.1 MM'),
+    ],
+  },
+  {
+    id: 'aguardando', label: 'Aguardando piloto', descricao: 'Concluído, em avaliação', quantidade: 28,
+    experimentos: [
+      sampleRow(8, 'Automação de Editais', 'Aguardando Piloto', 'Sidney Neves', 'Compras', 'R$ 1.6 MM'),
+    ],
+  },
+  {
+    id: 'piloto', label: 'Piloto', descricao: 'Validação em ambiente real', quantidade: 18,
+    experimentos: [
+      sampleRow(9, 'Zelador', 'EM PILOTO', 'Rodrigo Assad', 'Operações Técnicas', 'R$ 2.8 MM'),
+    ],
+  },
+  {
+    id: 'escala', label: 'Em escala', descricao: 'Solução em implementação', quantidade: 11,
+    experimentos: [
+      sampleRow(10, 'Identificação de Chamadas de Spam', 'EM ESCALA', 'Marco Zumba', 'Segurança', 'R$ 4.5 MM'),
+    ],
+  },
 ]
 const SAMPLE_EXPERIMENTOS_APROVADOS = 106
 const SAMPLE_TOTAL_EPICS = 199
@@ -230,7 +316,7 @@ const SAMPLE_CONVERSAO_ESCALA = 13
 const SAMPLE_CONVERSAO_DENOMINADOR = 186
 const SAMPLE_CONVERSAO_ESCALA_NUMERADOR = 24
 const SAMPLE_CONVERSAO_PILOTO_NUMERADOR = 59
-const SAMPLE_APRENDIZADOS = 37
+const SAMPLE_APRENDIZADOS = 24   // deve ser <= quantidade de Concluídos (33) — é um subconjunto
 const SAMPLE_INSIGHTS = buildInsights(SAMPLE_CONVERSAO_PILOTO, SAMPLE_CONVERSAO_ESCALA, SAMPLE_TOTAL_INICIADOS, SAMPLE_TAXA_OPORTUNIDADES, SAMPLE_APRENDIZADOS)
 
 export const SAMPLE_WEEKLY_DATA: WeeklyData = {
