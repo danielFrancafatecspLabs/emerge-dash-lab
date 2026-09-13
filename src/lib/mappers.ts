@@ -181,6 +181,7 @@ const STATUS_NAME_PIPELINE: Record<string, keyof PipelineCount> = {
   'EM PILOTO': 'EM PILOTO',
   'EM EXPERIMENTAÇÃO': 'EM EXPERIMENTAÇÃO',
   'EM ANDAMENTO': 'EM EXPERIMENTAÇÃO',
+  'EM VALIDAÇÃO': 'EM EXPERIMENTAÇÃO',
   'FINALIZADO': 'FINALIZADO',
   'CONCLUÍDO': 'FINALIZADO',
   'CONCLUIDO': 'FINALIZADO',
@@ -638,46 +639,49 @@ function calculateLeadTimeJornada(
   epicChangelogs: Record<string, ChangelogEntry[]>,
   epicsRaw: JiraIssue[]
 ): LeadTimeJornada {
-  // Constrói um mapa: estagio → mediaDias
-  const mapa: Record<string, number> = {}
+  const mapa = new Map<string, number>()
   for (const c of cycleTimeIdeacao) {
-    mapa[c.estagio] = c.mediaDias
+    mapa.set(c.estagio, c.mediaDias)
   }
 
-  // Fases da jornada (agregadas)
-  // Backlog é mantido apenas para o cálculo de tempoEsperaTransicaoDias, mas NÃO entra no totalDias
-  const backlogDias = (mapa['BACKLOG'] ?? 0) + (mapa['EM REFINAMENTO'] ?? 0) + (mapa['PRONTO PARA EXECUÇÃO'] ?? 0)
-  const experimentacaoDias = cicloGeral.mediaDias  // usa o cycle time geral de experimentação (já desconta bloqueio)
-  const transicaoPilotoDias = mapa['AGUARDANDO PILOTO'] ?? 0
-  const pilotoDias = mapa['EM PILOTO'] ?? 0
-  const escalaDias = mapa['EM ESCALA'] ?? 0
+  const experimentacaoBaseDias = cicloGeral?.mediaDias ?? 0
+  const experimentacaoDetalhadaDias = cycleTimeExperimentacao.reduce((acc, item) => acc + (item.mediaDias ?? 0), 0)
+  const experimentacaoDias = experimentacaoBaseDias > 0 ? experimentacaoBaseDias : experimentacaoDetalhadaDias
 
-  // Total considera apenas as fases visíveis (Experimentação, Transição, Piloto, Escala)
-  const totalDias = experimentacaoDias + transicaoPilotoDias + pilotoDias + (escalaDias > 0 ? escalaDias : 0)
-  const totalComFallback = totalDias > 0 ? totalDias : experimentacaoDias
+  const experimentacaoDiasNormalizado = Math.max(experimentacaoDias, 1)
+  const aguardandoPilotoDias = mapa.get('AGUARDANDO PILOTO') ?? 0
+  const pilotoDias = mapa.get('EM PILOTO') ?? 0
+
+  const fasesBase: LeadTimeJornadaFase[] = [
+    { fase: 'Experimentação', dias: experimentacaoDiasNormalizado, pct: 0, cor: '#F59E0B', destaque: true },
+    { fase: 'Aguardando Piloto', dias: aguardandoPilotoDias, pct: 0, cor: '#9CA3AF' },
+    { fase: 'Piloto', dias: pilotoDias, pct: 0, cor: '#6B7280' },
+  ]
+
+  const fases = fasesBase.filter(fase => fase.dias > 0 || fase.fase === 'Experimentação')
+
+  const backlogDias = 0
+  const transicaoPilotoDias = aguardandoPilotoDias
+  const escalaDias = 0
+
+  const totalDias = fases.reduce((acc, fase) => acc + fase.dias, 0)
+  const totalComFallback = totalDias > 0 ? totalDias : 1
 
   const calcPct = (d: number) => totalComFallback > 0 ? Math.round((d / totalComFallback) * 100) : 0
 
-  // Fases exibidas (sem Backlog — começa na Experimentação)
-  const fases: LeadTimeJornadaFase[] = totalDias > 0
-    ? [
-        { fase: 'Experimentação', dias: experimentacaoDias, pct: calcPct(experimentacaoDias), cor: '#F59E0B', destaque: true },
-        { fase: 'Transição para Piloto', dias: transicaoPilotoDias, pct: calcPct(transicaoPilotoDias), cor: '#9CA3AF' },
-        { fase: 'Piloto', dias: pilotoDias, pct: calcPct(pilotoDias), cor: '#6B7280' },
-        ...(escalaDias > 0 ? [{ fase: 'Escala', dias: escalaDias, pct: calcPct(escalaDias), cor: '#4B5563' }] : []),
-      ]
-    : [
-        { fase: 'Experimentação', dias: experimentacaoDias, pct: 100, cor: '#F59E0B', destaque: true },
-      ]
+  const fasesComPct: LeadTimeJornadaFase[] = fases.map(fase => ({
+    ...fase,
+    pct: calcPct(fase.dias),
+  }))
 
   // Bottleneck: fase com mais dias
-  const sorted = [...fases].sort((a, b) => b.dias - a.dias)
+  const sorted = [...fasesComPct].sort((a, b) => b.dias - a.dias)
   const bottleneck = sorted[0]
     ? { fase: sorted[0].fase, dias: sorted[0].dias, pct: sorted[0].pct }
     : { fase: 'N/A', dias: 0, pct: 0 }
 
   // Decomposição
-  const tempoGeracaoValorDias = experimentacaoDias + pilotoDias
+  const tempoGeracaoValorDias = experimentacaoDiasNormalizado + pilotoDias
   const tempoEsperaTransicaoDias = backlogDias + transicaoPilotoDias
   const tempoImplantacaoEscalaDias = escalaDias
 
@@ -773,7 +777,7 @@ function calculateLeadTimeJornada(
 
   return {
     totalDias,
-    fases,
+    fases: fasesComPct,
     bottleneck,
     tempoGeracaoValorDias,
     tempoEsperaTransicaoDias,

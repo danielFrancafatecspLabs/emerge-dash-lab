@@ -6,5 +6,13 @@
     "role": "admin",
     "createdAt": "2026-09-08T14:53:55.357Z",
     "active": true
+  },
+  {
+    "id": "local-2",
+    "username": "test_login",
+    "passwordHash": "b7f3d2c4a1e9f0d8:d98f9a3d3dd0a2aa277e223257706a91fcdbcdb106e348d0b36c8ca56afd6e10a0e72c7d88294b2aebe0c5077ba3b6e33d5c05a5190557e5c90965454ac6318b",
+    "role": "admin",
+    "createdAt": "2026-09-11T00:00:00.000Z",
+    "active": true
   }
 ]

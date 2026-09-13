@@ -27,11 +27,13 @@ export default function DominioCard({
   emPiloto,
   concluidos,
   beneficioTotal,
-  topEpics,
-  allEpics,
+  topEpics = [],
+  allEpics = [],
   accent,
 }: DominioCardProps) {
   const [expanded, setExpanded] = useState(false)
+  const nomeSeguro = nome?.trim() || 'Sem domínio'
+  const inicial = nomeSeguro.charAt(0).toUpperCase()
   const remainingEpics = allEpics.filter(e => !topEpics.some(t => t.key === e.key))
 
   const pctAndamento = total > 0 ? (emAndamento / total) * 100 : 0
@@ -50,10 +52,10 @@ export default function DominioCard({
             className="w-8 h-8 rounded-lg flex items-center justify-center text-white text-sm font-bold"
             style={{ backgroundColor: accent }}
           >
-            {nome.charAt(0).toUpperCase()}
+            {inicial}
           </div>
           <div>
-            <p className="text-sm font-bold text-gray-800">{nome}</p>
+            <p className="text-sm font-bold text-gray-800">{nomeSeguro}</p>
             <p className="text-[10px] text-gray-400">{total} iniciativas</p>
           </div>
         </div>

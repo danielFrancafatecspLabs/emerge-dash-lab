@@ -146,6 +146,41 @@ export default async function MBRPage() {
   })
   const semBeneficio = concluidosSemBeneficio.length
 
+  const topSponsors = (() => {
+    const map = new Map<string, { sponsor: string; qtdExperimentos: number; dominios: Map<string, number> }>()
+
+    for (const epic of data.allEpics) {
+      const sponsor = (epic.sponsor ?? '').trim() || 'Sem Sponsor'
+      const dominio = (epic.dominio ?? '').trim() || 'Sem domínio'
+
+      const current = map.get(sponsor)
+      if (current) {
+        current.qtdExperimentos += 1
+        current.dominios.set(dominio, (current.dominios.get(dominio) ?? 0) + 1)
+      } else {
+        map.set(sponsor, {
+          sponsor,
+          qtdExperimentos: 1,
+          dominios: new Map([[dominio, 1]]),
+        })
+      }
+    }
+
+    return Array.from(map.values())
+      .map(item => {
+        const dominioMaisFrequente = Array.from(item.dominios.entries())
+          .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))[0]?.[0] ?? 'Sem domínio'
+
+        return {
+          sponsor: item.sponsor,
+          dominio: dominioMaisFrequente,
+          qtdExperimentos: item.qtdExperimentos,
+        }
+      })
+      .sort((a, b) => b.qtdExperimentos - a.qtdExperimentos || a.sponsor.localeCompare(b.sponsor))
+      .slice(0, 5)
+  })()
+
   // Build top-5 prioritized exactly as requested by user (preserve order)
   const topFivePrioritized = desiredOrder.map(d => {
     const found = priorizados.find(p => p.nome && p.nome.toLowerCase().includes(d.match.toLowerCase()))
@@ -215,13 +250,59 @@ export default async function MBRPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <div className="bg-white rounded-lg p-4 shadow-sm border-t-4 border-[#8B0000] min-h-[260px]">
             <p className="text-xs text-gray-400 uppercase mb-3">Jornada de adoção</p>
-            <LeadTimeJornadaComponent data={monitoramento.leadTimeJornada} cycleTimeExperimentacao={monitoramento.cycleTimeExperimentacao ?? []} />
+            <LeadTimeJornadaComponent
+              data={data.leadTimeJornada}
+              cycleTimeExperimentacao={data.cycleTimeExperimentacao}
+            />
           </div>
-          <div className="bg-white rounded-lg p-4 shadow-sm border-t-4 border-[#8B0000] min-h-[260px]">
+          <div className="bg-white rounded-lg p-4 shadow-sm border-t-4 border-[#8B0000] min-h-[260px] flex flex-col overflow-hidden">
             <p className="text-xs text-gray-400 uppercase mb-3">Crescimento de experimentação</p>
-            <div className="h-[220px] overflow-hidden">
+            <div className="flex-1 min-h-0">
               <BurnupChart data={monitoramento.burnup} />
             </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-lg p-4 shadow-sm border-t-4 border-[#8B0000] min-h-[280px] flex flex-col">
+          <div className="flex items-center justify-between gap-3 mb-3">
+            <div>
+              <p className="text-xs text-gray-400 uppercase">Top 5 sponsors por experimentos</p>
+              <p className="text-sm text-gray-500">Sponsor, domínio e quantidade de experimentos</p>
+            </div>
+            <span className="text-xs text-gray-400">{topSponsors.length} itens</span>
+          </div>
+
+          <div className="flex-1 min-h-0 grid gap-3">
+            {topSponsors.map((item, index) => {
+              const max = Math.max(...topSponsors.map(s => s.qtdExperimentos), 1)
+              const width = Math.max(Math.round((item.qtdExperimentos / max) * 100), 8)
+
+              return (
+                <div key={`${item.sponsor}-${item.dominio}`} className="grid grid-cols-[28px_minmax(0,1fr)_72px] items-center gap-3">
+                  <div className="text-xs font-bold text-[#8B0000] text-right tabular-nums">{index + 1}</div>
+
+                  <div className="min-w-0">
+                    <div className="flex items-baseline justify-between gap-3 mb-1">
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-gray-900 truncate">{item.sponsor}</p>
+                        <p className="text-xs text-gray-500 truncate">{item.dominio}</p>
+                      </div>
+                    </div>
+                    <div className="h-2.5 rounded-full bg-gray-100 overflow-hidden">
+                      <div
+                        className="h-full rounded-full"
+                        style={{ width: `${width}%`, background: 'linear-gradient(90deg, #8B0000, #CC0000)' }}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="text-right shrink-0">
+                    <p className="text-sm font-bold text-gray-900 tabular-nums">{item.qtdExperimentos}</p>
+                    <p className="text-[10px] uppercase tracking-wide text-gray-400">experimentos</p>
+                  </div>
+                </div>
+              )
+            })}
           </div>
         </div>
 
