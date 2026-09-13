@@ -11,6 +11,9 @@ dist
 dist-ssr
 *.local
 
+# Saída gerada por scripts/weekly-export (PNGs, PPTX, PDF)
+/weekly-export/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
