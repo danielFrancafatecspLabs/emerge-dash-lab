@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import {
-  Lightbulb, FileText, Cog, CheckCircle2, Clock, FlaskConical, BarChart3,
+  Compass, FileText, Lightbulb, Cog, CheckCircle2, FlaskConical, BarChart3,
   AlertTriangle, User, Rocket, ArrowRightLeft, Target, Award, TrendingDown, Sparkles,
 } from 'lucide-react'
 import type { WeeklyData } from '@/lib/weekly'
@@ -15,7 +15,8 @@ import { SlideDownloadButtons } from '@/components/report/slideExport'
 const RED = '#8B0000'
 const RAMP = ['#DA1E1B', '#B61916', '#961513', '#76100F', '#560C0B', '#360807', '#1B0403']
 const WARNING_INK = '#92400E'
-const STAGE_ICONS = [Lightbulb, FileText, Cog, CheckCircle2, Clock, FlaskConical, BarChart3]
+// Ordem: Oportunidades Mapeadas, Backlog, Ideias Qualificadas, Em andamento, Concluídos, Piloto, Em escala
+const STAGE_ICONS = [Compass, FileText, Lightbulb, Cog, CheckCircle2, FlaskConical, BarChart3]
 
 function StageCard({ label, descricao, quantidade, index, total }: { label: string; descricao: string; quantidade: number; index: number; total: number }) {
   const Icon = STAGE_ICONS[index]
