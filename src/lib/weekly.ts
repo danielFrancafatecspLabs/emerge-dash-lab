@@ -26,10 +26,15 @@ export interface WeeklyStage {
   experimentos: WeeklyExperimentoRow[]   // lista detalhada — usada no "Ver detalhes" de cada fase
 }
 
+export interface WeeklyRanking {
+  nome: string
+  count: number
+}
+
 export interface WeeklyData {
   geradoEm: string
   stages: WeeklyStage[]              // funil: Backlog -> Em andamento -> Cancelados -> Concluídos -> Aguardando piloto -> Piloto -> Em escala
-  experimentosAprovados: number      // Em andamento + Cancelados + Concluídos (board de Experimentação) — usado no slide de entrada
+  experimentosAprovados: number      // total de itens no funil da pipeline (soma de todas as fases) — usado no slide de entrada
   totalEpics: number
   totalIniciados: number
   taxaOportunidadesParaExperimentos: number
@@ -37,9 +42,11 @@ export interface WeeklyData {
   conversaoEscala: number
   conversaoPilotoNumerador: number   // iniciativas já em Piloto ou Em escala (numerador da conversaoPiloto)
   conversaoEscalaNumerador: number   // iniciativas já em Em escala (numerador da conversaoEscala)
-  conversaoDenominador: number       // total de iniciativas do board de Ideação (denominador das duas)
+  conversaoDenominador: number       // total de experimentos aprovados (mesmo total do slide 1 — soma de todas as fases do funil)
   semBeneficio: { count: number; pct: number }
   semSponsor: { count: number; pct: number }
+  topSponsors: WeeklyRanking[]       // top 6 sponsors por quantidade de experimentos (todas as fases do funil)
+  topDiretorias: WeeklyRanking[]     // top 6 diretorias/domínios por quantidade de experimentos (idem)
   aprendizadosAcionaveis: number
   insightPrincipal: string
   insightPositivo: string
@@ -53,7 +60,7 @@ function pct(count: number, total: number): number {
 
 function buildInsights(conversaoPiloto: number, conversaoEscala: number, totalIniciados: number, taxaOportunidades: number, aprendizados: number): { principal: string; positivo: string } {
   const presoNoPiloto = Math.max(0, conversaoPiloto - conversaoEscala)
-  const principal = `${conversaoPiloto}% das iniciativas já chegaram ao piloto, mas só ${conversaoEscala}% avança até a escala — ${presoNoPiloto} pontos percentuais ficam pelo caminho.`
+  const principal = `${conversaoPiloto}% dos experimentos aprovados já chegaram ao piloto, mas só ${conversaoEscala}% avança até a escala — ${presoNoPiloto} pontos percentuais ficam pelo caminho.`
   const positivo = `${taxaOportunidades}% das oportunidades em backlog viram experimentos (${totalIniciados} já iniciados), e ${aprendizados} deles já geraram aprendizados acionáveis.`
   return { principal, positivo }
 }
@@ -94,6 +101,25 @@ function rowFromEpic(e: EpicDetail): WeeklyExperimentoRow {
     dominio: e.dominio ?? '—',
     beneficioLabel: formatBeneficioMM(e.beneficioQuantitativo),
   }
+}
+
+/**
+ * Ranking (top N) de quantos experimentos cada valor de um campo concentra,
+ * considerando TODAS as fases do funil (mesmo universo do total de
+ * Experimentos Aprovados). Valores vazios/não identificados ("—") ficam de
+ * fora do ranking — aparecem à parte, no card "Sem sponsor identificado".
+ */
+function buildRanking(rows: WeeklyExperimentoRow[], campo: 'sponsor' | 'dominio', limite = 6): WeeklyRanking[] {
+  const counts = new Map<string, number>()
+  for (const r of rows) {
+    const valor = r[campo]
+    if (!valor || valor === '—') continue
+    counts.set(valor, (counts.get(valor) ?? 0) + 1)
+  }
+  return [...counts.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, limite)
+    .map(([nome, count]) => ({ nome, count }))
 }
 
 /**
@@ -168,9 +194,12 @@ function buildTopMotivosCancelamento(
  *   principais motivos, extraídos do campo "Motivo de Bloqueio"
  *   (customfield_13406) — valor atual ou, se limpo, último valor do changelog.
  * - Concluídos: Epics em status concluído (id 10019).
- * - Experimentos Aprovados: soma de Em andamento + Cancelados + Concluídos.
- * - Conversão para Piloto/Escala: % de TODAS as iniciativas que já chegaram àquele
- *   marco, usando data.pilotoStatusIds / data.escalaStatusIds (igual à aba Estratégia).
+ * - Experimentos Aprovados: total de itens no funil da pipeline (soma de
+ *   TODAS as fases, Backlog -> Em escala).
+ * - Conversão para Piloto/Escala: numerador = iniciativas que já chegaram àquele
+ *   marco (data.pilotoStatusIds / data.escalaStatusIds, igual à aba Estratégia);
+ *   denominador = SEMPRE o total de Experimentos Aprovados (mesmo número do slide 1),
+ *   não o total bruto de iniciativas do board de Ideação.
  * - Sem benefício potencial / Sem sponsor: sobre TODOS os Epics do board de
  *   Experimentação — benefício considera os campos quantitativo E qualitativo juntos.
  */
@@ -191,7 +220,6 @@ export function buildWeeklyData(data: DashboardData, epicChangelogs: Record<stri
   const canceladosCount = canceladosEpics.length
   const concluidosCount = concluidosEpics.length
   const backlogCount = backlogInis.length
-  const experimentosAprovados = emAndamentoCount + canceladosCount + concluidosCount
 
   const topMotivosCancelamento = buildTopMotivosCancelamento(canceladosEpics, epicChangelogs)
 
@@ -205,16 +233,29 @@ export function buildWeeklyData(data: DashboardData, epicChangelogs: Record<stri
     { id: 'escala', label: 'Em escala', descricao: 'Solução em implementação', quantidade: escalaInis.length, experimentos: escalaInis.map(rowFromIniciativa) },
   ]
 
+  // Experimentos aprovados = total de itens mostrados no funil da pipeline
+  // (soma de TODAS as fases, Backlog -> Em escala) — usado como métrica de
+  // saída no slide de entrada (Solicitação/Iniciativas -> Critérios de
+  // Entrada -> Experimento aprovado).
+  const experimentosAprovados = stages.reduce((soma, s) => soma + s.quantidade, 0)
+
+  // Ranking de sponsors/diretorias sobre o MESMO universo do total acima —
+  // todos os experimentos de todas as fases do funil.
+  const todosExperimentos = stages.flatMap(s => s.experimentos)
+  const topSponsors = buildRanking(todosExperimentos, 'sponsor')
+  const topDiretorias = buildRanking(todosExperimentos, 'dominio')
+
   const totalIniciados = emAndamentoCount + concluidosCount
   const taxaOportunidadesParaExperimentos = pct(emAndamentoCount, backlogCount)
 
-  // Mesma lógica da aba Estratégia / Report (ver src/app/report/page.tsx):
-  // % de TODAS as iniciativas do board de Ideação que já chegaram a Piloto/Escala.
-  const totalIniciativas = data.iniciativas.length
+  // Numeradores na mesma lógica da aba Estratégia / Report (ver
+  // src/app/report/page.tsx): iniciativas que já chegaram a Piloto/Escala.
+  // Denominador: SEMPRE o total de experimentos aprovados do slide 1 (soma de
+  // todas as fases do funil), não o total bruto de iniciativas do board.
   const countEmPiloto = data.iniciativas.filter(i => data.pilotoStatusIds.includes(i.status.id)).length
   const countEmEscala = data.iniciativas.filter(i => data.escalaStatusIds.includes(i.status.id)).length
-  const conversaoPiloto = pct(countEmPiloto + countEmEscala, totalIniciativas)
-  const conversaoEscala = pct(countEmEscala, totalIniciativas)
+  const conversaoPiloto = pct(countEmPiloto + countEmEscala, experimentosAprovados)
+  const conversaoEscala = pct(countEmEscala, experimentosAprovados)
 
   const totalEpics = data.allEpics.length
   const semBeneficioCount = data.allEpics.filter(semBeneficioPotencial).length
@@ -240,9 +281,11 @@ export function buildWeeklyData(data: DashboardData, epicChangelogs: Record<stri
     conversaoEscala,
     conversaoPilotoNumerador: countEmPiloto + countEmEscala,
     conversaoEscalaNumerador: countEmEscala,
-    conversaoDenominador: totalIniciativas,
+    conversaoDenominador: experimentosAprovados,
     semBeneficio: { count: semBeneficioCount, pct: pct(semBeneficioCount, totalEpics) },
     semSponsor: { count: semSponsorCount, pct: pct(semSponsorCount, totalEpics) },
+    topSponsors,
+    topDiretorias,
     aprendizadosAcionaveis,
     insightPrincipal: principal,
     insightPositivo: positivo,
@@ -307,16 +350,33 @@ const SAMPLE_STAGES: WeeklyStage[] = [
     ],
   },
 ]
-const SAMPLE_EXPERIMENTOS_APROVADOS = 106
+const SAMPLE_EXPERIMENTOS_APROVADOS = 245   // soma das quantidades de SAMPLE_STAGES (82+56+17+33+28+18+11)
 const SAMPLE_TOTAL_EPICS = 199
 const SAMPLE_TOTAL_INICIADOS = 89
 const SAMPLE_TAXA_OPORTUNIDADES = pct(56, 82)
-const SAMPLE_CONVERSAO_PILOTO = 32
-const SAMPLE_CONVERSAO_ESCALA = 13
-const SAMPLE_CONVERSAO_DENOMINADOR = 186
+// Denominador das conversões é SEMPRE o total de experimentos aprovados (slide 1).
+const SAMPLE_CONVERSAO_DENOMINADOR = SAMPLE_EXPERIMENTOS_APROVADOS
 const SAMPLE_CONVERSAO_ESCALA_NUMERADOR = 24
 const SAMPLE_CONVERSAO_PILOTO_NUMERADOR = 59
+const SAMPLE_CONVERSAO_PILOTO = pct(SAMPLE_CONVERSAO_PILOTO_NUMERADOR, SAMPLE_CONVERSAO_DENOMINADOR)
+const SAMPLE_CONVERSAO_ESCALA = pct(SAMPLE_CONVERSAO_ESCALA_NUMERADOR, SAMPLE_CONVERSAO_DENOMINADOR)
 const SAMPLE_APRENDIZADOS = 24   // deve ser <= quantidade de Concluídos (33) — é um subconjunto
+const SAMPLE_TOP_SPONSORS: WeeklyRanking[] = [
+  { nome: 'Rodrigo Assad', count: 34 },
+  { nome: 'Sidney Neves', count: 28 },
+  { nome: 'Rodrigo Duclos', count: 22 },
+  { nome: 'Marco Zumba', count: 19 },
+  { nome: 'Carla Tiemi', count: 15 },
+  { nome: 'Patrícia Mofato', count: 11 },
+]
+const SAMPLE_TOP_DIRETORIAS: WeeklyRanking[] = [
+  { nome: 'Atendimento', count: 41 },
+  { nome: 'Comercial', count: 33 },
+  { nome: 'Tecnologia', count: 27 },
+  { nome: 'Operações Técnicas', count: 21 },
+  { nome: 'Dados', count: 18 },
+  { nome: 'Jurídico', count: 12 },
+]
 const SAMPLE_INSIGHTS = buildInsights(SAMPLE_CONVERSAO_PILOTO, SAMPLE_CONVERSAO_ESCALA, SAMPLE_TOTAL_INICIADOS, SAMPLE_TAXA_OPORTUNIDADES, SAMPLE_APRENDIZADOS)
 
 export const SAMPLE_WEEKLY_DATA: WeeklyData = {
@@ -334,6 +394,8 @@ export const SAMPLE_WEEKLY_DATA: WeeklyData = {
   conversaoDenominador: SAMPLE_CONVERSAO_DENOMINADOR,
   semBeneficio: { count: 36, pct: pct(36, SAMPLE_TOTAL_EPICS) },
   semSponsor: { count: 29, pct: pct(29, SAMPLE_TOTAL_EPICS) },
+  topSponsors: SAMPLE_TOP_SPONSORS,
+  topDiretorias: SAMPLE_TOP_DIRETORIAS,
   aprendizadosAcionaveis: SAMPLE_APRENDIZADOS,
   insightPrincipal: SAMPLE_INSIGHTS.principal,
   insightPositivo: SAMPLE_INSIGHTS.positivo,
