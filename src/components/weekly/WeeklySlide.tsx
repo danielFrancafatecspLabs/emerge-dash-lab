@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import {
-  Lightbulb, FileText, Cog, Clock, FlaskConical, BarChart3,
+  Lightbulb, FileText, Cog, CheckCircle2, Clock, FlaskConical, BarChart3,
   AlertTriangle, User, Rocket, ArrowRightLeft, Target, Award, TrendingDown, Sparkles,
 } from 'lucide-react'
 import type { WeeklyData } from '@/lib/weekly'
@@ -10,12 +10,12 @@ import { SlideDownloadButtons } from '@/components/report/slideExport'
 
 /* ── Paleta — rampa ordinal de um único matiz (vermelho da marca) em tons
    escuros, com texto branco em todas as etapas: monotônica, ΔL >= 0.06,
-   contraste do texto branco >= 5.3:1 até no tom mais claro. Ver skill de
+   contraste do texto branco >= 5:1 até no tom mais claro. Ver skill de
    dataviz — validado com scripts/validate_palette.js --ordinal. ── */
 const RED = '#8B0000'
-const RAMP = ['#D11D1A', '#AC1815', '#881311', '#680E0D', '#490A09', '#290605']
+const RAMP = ['#DA1E1B', '#B61916', '#961513', '#76100F', '#560C0B', '#360807', '#1B0403']
 const WARNING_INK = '#92400E'
-const STAGE_ICONS = [Lightbulb, FileText, Cog, Clock, FlaskConical, BarChart3]
+const STAGE_ICONS = [Lightbulb, FileText, Cog, CheckCircle2, Clock, FlaskConical, BarChart3]
 
 function StageCard({ label, descricao, quantidade, index, total }: { label: string; descricao: string; quantidade: number; index: number; total: number }) {
   const Icon = STAGE_ICONS[index]
@@ -55,7 +55,7 @@ function StageCard({ label, descricao, quantidade, index, total }: { label: stri
       <div style={{ fontSize: 13.5, fontWeight: 800, color: '#FFFFFF', textAlign: 'center', lineHeight: 1.15, marginTop: 9 }}>
         {label}
       </div>
-      <div style={{ fontSize: 9.5, color: 'rgba(255,255,255,0.8)', textAlign: 'center', lineHeight: 1.3, marginTop: 3, maxWidth: 140, minHeight: 24 }}>
+      <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.8)', textAlign: 'center', lineHeight: 1.3, marginTop: 3, width: '100%', overflowWrap: 'break-word', minHeight: 24 }}>
         {descricao}
       </div>
       <div style={{ fontSize: 32, fontWeight: 800, color: '#FFFFFF', marginTop: 5, lineHeight: 1 }}>
