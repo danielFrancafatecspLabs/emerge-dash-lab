@@ -10,6 +10,7 @@ import type { WeeklyData, WeeklyStageMotivo } from '@/lib/weekly'
 import { SlideDownloadButtons } from '@/components/report/slideExport'
 import StageDetalhesSlides from './StageDetalhesSlides'
 import AprendizadosSlide from './AprendizadosSlide'
+import PatrocinadoresSlide from './PatrocinadoresSlide'
 
 /* ── Paleta — rampa ordinal de um único matiz (vinho/vermelho escuro da
    marca), monotônica, ΔL >= 0.06, matiz único (spread 2°), contraste do
@@ -205,8 +206,8 @@ export default function PipelineSlide({ data }: { data: WeeklyData }) {
             <div style={{ display: 'flex', gap: 10 }}>
               <MetricCard icon={Rocket} label="Experimentos iniciados" value={String(data.totalIniciados)} caption="Em andamento + Validação + Concluído" />
               <MetricCard icon={ArrowRightLeft} label="Oportunidades → Experimentos" value={`${data.taxaOportunidadesParaExperimentos}%`} caption="Do backlog que virou experimento" tone="accent" />
-              <MetricCard icon={Target} label="Conversão para Piloto" value={`${data.conversaoPiloto}%`} caption={`${data.conversaoPilotoNumerador} de ${data.conversaoDenominador} iniciativas já em piloto`} tone="accent" />
-              <MetricCard icon={Award} label="Conversão para Escala" value={`${data.conversaoEscala}%`} caption={`${data.conversaoEscalaNumerador} de ${data.conversaoDenominador} iniciativas já em escala`} tone="accent" />
+              <MetricCard icon={Target} label="Conversão para Piloto" value={`${data.conversaoPiloto}%`} caption={`${data.conversaoPilotoNumerador} de ${data.conversaoDenominador} experimentos aprovados já em piloto`} tone="accent" />
+              <MetricCard icon={Award} label="Conversão para Escala" value={`${data.conversaoEscala}%`} caption={`${data.conversaoEscalaNumerador} de ${data.conversaoDenominador} experimentos aprovados já em escala`} tone="accent" />
               <MetricCard icon={AlertTriangle} label="Sem benefício potencial" value={String(data.semBeneficio.count)} caption={`${data.semBeneficio.pct}% dos experimentos, sem R$ nem relato`} tone="warn" />
               <MetricCard icon={User} label="Sem sponsor identificado" value={String(data.semSponsor.count)} caption={`${data.semSponsor.pct}% dos experimentos sem sponsor`} tone="warn" />
             </div>
@@ -237,6 +238,8 @@ export default function PipelineSlide({ data }: { data: WeeklyData }) {
       </div>
 
       <AprendizadosSlide data={data} />
+
+      <PatrocinadoresSlide data={data} />
 
       {/* Ver detalhes por etapa — fora do slide exportável: cada clique abre a
           lista de experimentos daquela fase, vinda do Jira, como slides
