@@ -34,7 +34,7 @@ export interface WeeklyRanking {
 export interface WeeklyData {
   geradoEm: string
   stages: WeeklyStage[]              // funil: Backlog -> Em andamento -> Cancelados -> Concluídos -> Aguardando piloto -> Piloto -> Em escala
-  experimentosAprovados: number      // total de itens no funil da pipeline (soma de todas as fases) — usado no slide de entrada
+  experimentosAprovados: number      // total de Epics no board de Experimentação (data.allEpics.length) — usado no slide de entrada
   totalEpics: number
   totalIniciados: number
   taxaOportunidadesParaExperimentos: number
@@ -42,7 +42,7 @@ export interface WeeklyData {
   conversaoEscala: number
   conversaoPilotoNumerador: number   // iniciativas já em Piloto ou Em escala (numerador da conversaoPiloto)
   conversaoEscalaNumerador: number   // iniciativas já em Em escala (numerador da conversaoEscala)
-  conversaoDenominador: number       // total de experimentos aprovados (mesmo total do slide 1 — soma de todas as fases do funil)
+  conversaoDenominador: number       // total de experimentos aprovados (mesmo total do slide 1 — total de Epics)
   semBeneficio: { count: number; pct: number }
   semSponsor: { count: number; pct: number }
   topSponsors: WeeklyRanking[]       // top 6 sponsors por quantidade de experimentos (todas as fases do funil)
@@ -194,8 +194,11 @@ function buildTopMotivosCancelamento(
  *   principais motivos, extraídos do campo "Motivo de Bloqueio"
  *   (customfield_13406) — valor atual ou, se limpo, último valor do changelog.
  * - Concluídos: Epics em status concluído (id 10019).
- * - Experimentos Aprovados: total de itens no funil da pipeline (soma de
- *   TODAS as fases, Backlog -> Em escala).
+ * - Experimentos Aprovados: total de Epics no board de Experimentação
+ *   (data.allEpics.length) — MESMA definição de "Total de Experimentos" do
+ *   Funil de Experimentos na aba Estratégia (ver FunilExperimentos.tsx).
+ *   NÃO é a soma das fases do funil da pipeline acima: Backlog/Aguardando/
+ *   Piloto/Escala são Iniciativas (board de Ideação), um universo diferente.
  * - Conversão para Piloto/Escala: numerador = iniciativas que já chegaram àquele
  *   marco (data.pilotoStatusIds / data.escalaStatusIds, igual à aba Estratégia);
  *   denominador = SEMPRE o total de Experimentos Aprovados (mesmo número do slide 1),
@@ -233,31 +236,33 @@ export function buildWeeklyData(data: DashboardData, epicChangelogs: Record<stri
     { id: 'escala', label: 'Em escala', descricao: 'Solução em implementação', quantidade: escalaInis.length, experimentos: escalaInis.map(rowFromIniciativa) },
   ]
 
-  // Experimentos aprovados = total de itens mostrados no funil da pipeline
-  // (soma de TODAS as fases, Backlog -> Em escala) — usado como métrica de
-  // saída no slide de entrada (Solicitação/Iniciativas -> Critérios de
-  // Entrada -> Experimento aprovado).
-  const experimentosAprovados = stages.reduce((soma, s) => soma + s.quantidade, 0)
+  // Experimentos aprovados = total de Epics no board de Experimentação
+  // (data.allEpics.length) — MESMA definição de "Total de Experimentos" usada
+  // no Funil de Experimentos da aba Estratégia (ver FunilExperimentos.tsx).
+  // Não é a soma das fases do funil da pipeline: Backlog/Aguardando/Piloto/
+  // Escala são Iniciativas (board de Ideação), um universo diferente, e somá-
+  // -las ao total de Epics inflava e duplicava a contagem.
+  const experimentosAprovados = data.allEpics.length
 
   // Ranking de sponsors/diretorias sobre o MESMO universo do total acima —
-  // todos os experimentos de todas as fases do funil.
-  const todosExperimentos = stages.flatMap(s => s.experimentos)
-  const topSponsors = buildRanking(todosExperimentos, 'sponsor')
-  const topDiretorias = buildRanking(todosExperimentos, 'dominio')
+  // todos os Epics do board de Experimentação.
+  const todosEpicsRows = data.allEpics.map(rowFromEpic)
+  const topSponsors = buildRanking(todosEpicsRows, 'sponsor')
+  const topDiretorias = buildRanking(todosEpicsRows, 'dominio')
 
   const totalIniciados = emAndamentoCount + concluidosCount
   const taxaOportunidadesParaExperimentos = pct(emAndamentoCount, backlogCount)
 
   // Numeradores na mesma lógica da aba Estratégia / Report (ver
   // src/app/report/page.tsx): iniciativas que já chegaram a Piloto/Escala.
-  // Denominador: SEMPRE o total de experimentos aprovados do slide 1 (soma de
-  // todas as fases do funil), não o total bruto de iniciativas do board.
+  // Denominador: SEMPRE o total de experimentos aprovados do slide 1 (total de
+  // Epics), não o total bruto de iniciativas do board de Ideação.
   const countEmPiloto = data.iniciativas.filter(i => data.pilotoStatusIds.includes(i.status.id)).length
   const countEmEscala = data.iniciativas.filter(i => data.escalaStatusIds.includes(i.status.id)).length
   const conversaoPiloto = pct(countEmPiloto + countEmEscala, experimentosAprovados)
   const conversaoEscala = pct(countEmEscala, experimentosAprovados)
 
-  const totalEpics = data.allEpics.length
+  const totalEpics = experimentosAprovados
   const semBeneficioCount = data.allEpics.filter(semBeneficioPotencial).length
   const semSponsorCount = data.allEpics.filter(e => !e.sponsor).length
 
@@ -350,8 +355,8 @@ const SAMPLE_STAGES: WeeklyStage[] = [
     ],
   },
 ]
-const SAMPLE_EXPERIMENTOS_APROVADOS = 245   // soma das quantidades de SAMPLE_STAGES (82+56+17+33+28+18+11)
 const SAMPLE_TOTAL_EPICS = 199
+const SAMPLE_EXPERIMENTOS_APROVADOS = SAMPLE_TOTAL_EPICS   // mesma definição: total de Epics
 const SAMPLE_TOTAL_INICIADOS = 89
 const SAMPLE_TAXA_OPORTUNIDADES = pct(56, 82)
 // Denominador das conversões é SEMPRE o total de experimentos aprovados (slide 1).
