@@ -21,11 +21,10 @@ interface Criterio {
   after: string
 }
 
-const CRITERIOS: Criterio[] = [
+const CRITERIOS_QUADRANTE_1: Criterio[] = [
   { icon: Target, before: 'O problema ', bold: 'vale a pena', after: ' ser resolvido?' },
   { icon: HelpCircle, before: 'Existem ', bold: 'incertezas tecnológicas', after: ' ou de negócio relevantes?' },
   { icon: BarChart3, before: 'Está associado à ', bold: 'estratégia', after: ' da empresa (70-70-50)?' },
-  { icon: Star, before: 'É uma iniciativa ', bold: 'estratégica', after: ' de um C-Level?' },
   { icon: Gem, before: 'Tem ', bold: 'benefício potencial', after: '?' },
   { icon: Users, before: '', bold: 'Patrocinador', after: ' identificado?' },
   { icon: Ban, before: 'Não existe ', bold: 'iniciativa em andamento', after: ' ou solução existente para o problema?' },
@@ -57,14 +56,12 @@ function PendenteCard({ quantidade }: { quantidade: number }) {
     }}>
       <Clock size={24} color="#FFFFFF" strokeWidth={1.8} />
       <div style={{ fontSize: 13.5, fontWeight: 800, color: '#FFFFFF', lineHeight: 1.2 }}>
-        Pendente para Análise
+        Oportunidades Pendente para Análise 
       </div>
       <div style={{ fontSize: 26, fontWeight: 800, color: '#FFFFFF', lineHeight: 1 }}>
         {quantidade}
       </div>
-      <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.85)', lineHeight: 1.35 }}>
-        Iniciativas no board de Ideação
-      </div>
+     
     </div>
   )
 }
@@ -77,7 +74,33 @@ function FlowArrow() {
   )
 }
 
-export default function IntakeSlide({ experimentosAprovados, pendenteAnalise }: { experimentosAprovados: number; pendenteAnalise: number }) {
+function CriteriaRow({ criterio, isLast }: { criterio: Criterio; isLast?: boolean }) {
+  const Icon = criterio.icon
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: 10, padding: '7px 16px',
+      borderTop: isLast ? '1px solid #F3E4E4' : 'none',
+    }}>
+      <div style={{
+        width: 26, height: 26, borderRadius: 999, background: PINK_BG, flexShrink: 0,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}>
+        <Icon size={13} color={RED} strokeWidth={2} />
+      </div>
+      <div style={{ fontSize: 11.5, color: '#374151', lineHeight: 1.3 }}>
+        {criterio.before}<b style={{ color: '#111827' }}>{criterio.bold}</b>{criterio.after}
+      </div>
+    </div>
+  )
+}
+
+export default function IntakeSlide({
+  experimentosAprovados,
+  pendenteAnalise,
+}: {
+  experimentosAprovados: number
+  pendenteAnalise: number
+}) {
   const slideRef = useRef<HTMLDivElement>(null)
 
   return (
@@ -110,9 +133,6 @@ export default function IntakeSlide({ experimentosAprovados, pendenteAnalise }: 
               <div style={{ fontSize: 28, fontWeight: 800, color: '#111827', marginTop: 5, lineHeight: 1.1, letterSpacing: -0.3 }}>
                 Como um experimento entra no laboratório?
               </div>
-              <div style={{ fontSize: 13, color: '#6B7280', marginTop: 4 }}>
-                Duas portas de entrada, um mesmo propósito: transformar desafios em aprendizados de valor.
-              </div>
             </div>
             <div style={{ textAlign: 'right', flexShrink: 0, paddingTop: 4 }}>
               <div style={{ width: 60, height: 3, background: RED, marginLeft: 'auto', marginBottom: 8 }} />
@@ -135,12 +155,6 @@ export default function IntakeSlide({ experimentosAprovados, pendenteAnalise }: 
                 title="Iniciativas do beOn Labs"
                 descricao="Propostas identificadas ativamente pelo beOn Labs em parceria com as áreas de negócio."
               />
-            </div>
-
-            <FlowArrow />
-
-            <div style={{ width: 150, flexShrink: 0, display: 'flex' }}>
-              <PendenteCard quantidade={pendenteAnalise} />
             </div>
 
             <FlowArrow />
@@ -169,25 +183,11 @@ export default function IntakeSlide({ experimentosAprovados, pendenteAnalise }: 
                 <span style={{ fontSize: 10.5, color: 'rgba(255,255,255,0.85)' }}>A iniciativa deve atender aos seguintes critérios:</span>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column' }}>
-                {CRITERIOS.map((c, i) => {
-                  const Icon = c.icon
-                  return (
-                    <div key={i} style={{
-                      display: 'flex', alignItems: 'center', gap: 10, padding: '7px 16px',
-                      borderTop: i === 0 ? 'none' : '1px solid #F3E4E4',
-                    }}>
-                      <div style={{
-                        width: 26, height: 26, borderRadius: 999, background: PINK_BG, flexShrink: 0,
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      }}>
-                        <Icon size={13} color={RED} strokeWidth={2} />
-                      </div>
-                      <div style={{ fontSize: 11.5, color: '#374151', lineHeight: 1.3 }}>
-                        {c.before}<b style={{ color: '#111827' }}>{c.bold}</b>{c.after}
-                      </div>
-                    </div>
-                  )
-                })}
+                {CRITERIOS_QUADRANTE_1.map((criterio, index) => (
+                  <CriteriaRow key={`q1-${index}`} criterio={criterio} isLast={index === CRITERIOS_QUADRANTE_1.length - 1} />
+                ))}
+                <CriteriaRow criterio={{ icon: Star, before: 'É uma iniciativa ', bold: 'estratégica', after: ' de um C-Level?' }} />
+                <CriteriaRow criterio={{ icon: FlaskConical, before: 'Potencial de ', bold: 'aprendizado para o Lab', after: '' }} isLast />
               </div>
             </div>
 
@@ -201,10 +201,7 @@ export default function IntakeSlide({ experimentosAprovados, pendenteAnalise }: 
               }}>
                 <FlaskConical size={26} color={RED} strokeWidth={1.8} />
                 <div style={{ fontSize: 13.5, fontWeight: 800, color: '#111827', lineHeight: 1.2 }}>
-                  Experimento aprovado
-                </div>
-                <div style={{ fontSize: 30, fontWeight: 800, color: RED, lineHeight: 1 }}>
-                  {experimentosAprovados}
+                  Ideias aprovadas nos Critérios
                 </div>
                 <div style={{ fontSize: 10, color: '#6B7280', lineHeight: 1.35 }}>
                   Segue para planejamento e execução no beOn Labs.
@@ -213,19 +210,36 @@ export default function IntakeSlide({ experimentosAprovados, pendenteAnalise }: 
             </div>
           </div>
 
-          {/* Banner de aviso */}
           <div style={{
-            display: 'flex', alignItems: 'flex-start', gap: 12, background: '#F9FAFB',
-            border: '1px solid #F0F0F0', borderRadius: 12, padding: '14px 20px',
+            marginTop: 18,
+            background: '#F9FAFB',
+            border: '1px solid #E5E7EB',
+            borderRadius: 14,
+            padding: '14px 16px',
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: 10,
           }}>
-            <Megaphone size={18} color={RED} style={{ flexShrink: 0, marginTop: 1 }} />
-            <div style={{ fontSize: 11.5, color: '#374151', lineHeight: 1.45 }}>
-              <span style={{ fontWeight: 800, color: RED, letterSpacing: 0.3 }}>IMPORTANTE&nbsp; </span>
+            <div style={{
+              width: 28,
+              height: 28,
+              borderRadius: 999,
+              background: '#FEE2E2',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+            }}>
+              <Megaphone size={15} color={RED} strokeWidth={2.2} />
+            </div>
+            <div style={{ fontSize: 12.5, lineHeight: 1.45, color: '#4B5563' }}>
+              <b style={{ color: RED, textTransform: 'uppercase', letterSpacing: 0.4 }}>IMPORTANTE</b>{' '}
               Nos casos em que a proposta não atende aos critérios de entrada, ainda assim{' '}
-              <b>incentivamos, apoiamos e direcionamos</b> a experimentação com os próprios recursos das áreas, para
-              fortalecer a cultura de experimentação e estimular o surgimento de novas iniciativas e Labs.
+              <b>incentivamos, apoiamos e direcionamos</b> a experimentação com os próprios recursos das áreas,
+              para fortalecer a cultura de experimentação e estimular o surgimento de novas iniciativas e Labs.
             </div>
           </div>
+
         </div>
       </div>
     </div>

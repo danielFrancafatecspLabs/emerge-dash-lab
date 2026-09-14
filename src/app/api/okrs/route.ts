@@ -263,7 +263,7 @@ export async function GET(): Promise<Response> {
       {
         titulo: '2. Maximizar o impacto dos experimentos no negócio',
         krs: [
-          { label: 'Iniciativas que evoluíram para Piloto', base: '34,9%', meta: '40%', atual: `${taxaPiloto.pct}%`, pct: calcPct(34.9, 40, taxaPiloto.pct) },
+          { label: 'Pilotos executados', base: '34,9%', meta: '40%', atual: `${taxaPiloto.pct}%`, pct: calcPct(34.9, 40, taxaPiloto.pct) },
           { label: 'Experimentos aprovados para Produção', base: '0', meta: '1', atual: String(aprovadosProducao), pct: calcPct(0, 1, aprovadosProducao) },
           { label: 'Valor financeiro potencial identificado', base: '63 MM', meta: '150 MM', atual: fmtMM(valorFinanceiro), pct: calcPct(63_000_000, 150_000_000, valorFinanceiro) },
         ],
