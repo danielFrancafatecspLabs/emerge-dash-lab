@@ -60,11 +60,12 @@ async function main() {
   page.on('console', msg => { if (msg.type() === 'error') consoleErrors.push(msg.text()) })
   page.on('pageerror', err => consoleErrors.push('pageerror: ' + err.message))
 
-  await page.goto(`${BASE_URL}/login`, { waitUntil: 'networkidle' })
-  await page.fill('input[type="text"], input[name="username"], input[placeholder="admin"]', LOGIN_USER)
-  await page.fill('input[type="password"]', LOGIN_PASSWORD)
-  await page.click('button:has-text("Entrar")')
-  await page.waitForURL('**/estrategia', { timeout: 15000 }).catch(() => {})
+  await page.goto(`${BASE_URL}/login`, { waitUntil: 'domcontentloaded' })
+  await page.locator('input[placeholder="admin"]').waitFor({ state: 'visible', timeout: 15000 })
+  await page.locator('input[placeholder="admin"]').fill(LOGIN_USER)
+  await page.locator('input[type="password"]').fill(LOGIN_PASSWORD)
+  await page.locator('button[type="submit"]').click()
+  await page.waitForLoadState('networkidle').catch(() => {})
 
   await page.goto(`${BASE_URL}/weekly`, { waitUntil: 'networkidle' })
   await page.waitForTimeout(2000)

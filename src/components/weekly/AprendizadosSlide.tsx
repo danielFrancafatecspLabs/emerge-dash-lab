@@ -33,12 +33,12 @@ function AprendizadoCell({ icon: Icon, texto }: Aprendizado) {
   return (
     <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'flex-start', gap: 10 }}>
       <div style={{
-        width: 26, height: 26, borderRadius: 999, background: PINK_BG, flexShrink: 0, marginTop: 1,
+        width: 30, height: 30, borderRadius: 999, background: '#F8D7D7', flexShrink: 0, marginTop: 1,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}>
-        <Icon size={13} color={RED} strokeWidth={2.25} />
+        <Icon size={15} color={RED} strokeWidth={2.4} />
       </div>
-      <div style={{ fontSize: 11.5, color: '#374151', lineHeight: 1.4, width: '100%', overflowWrap: 'break-word' }}>
+      <div style={{ fontSize: 13.5, color: '#1F2937', lineHeight: 1.45, width: '100%', overflowWrap: 'break-word', fontWeight: 500 }}>
         {texto}
       </div>
     </div>
@@ -80,7 +80,7 @@ export default function AprendizadosSlide({ data }: { data: WeeklyData }) {
               <div style={{ fontSize: 30, fontWeight: 800, color: '#111827', marginTop: 5, lineHeight: 1.1, letterSpacing: -0.3 }}>
                 Principais Aprendizados
               </div>
-              <div style={{ fontSize: 13, color: '#6B7280', marginTop: 4 }}>
+              <div style={{ fontSize: 14.5, color: '#4B5563', marginTop: 4, lineHeight: 1.45, maxWidth: 720 }}>
                 O que aprendemos até aqui sobre como o laboratório funciona — e o que precisa evoluir.
               </div>
             </div>
@@ -95,14 +95,14 @@ export default function AprendizadosSlide({ data }: { data: WeeklyData }) {
           {/* Lista de aprendizados — grade 3×3 */}
           <div style={{
             flex: 1, display: 'flex', flexDirection: 'column', background: '#FAFAFA',
-            border: '1px solid #F0F0F0', borderRadius: 14, padding: '20px 26px',
+            border: '1px solid #E8D0D0', borderRadius: 14, padding: '20px 26px',
           }}>
             {[linha1, linha2, linha3].map((linha, li) => (
               <div
                 key={li}
                 style={{
                   flex: 1, display: 'flex', gap: 28, alignItems: 'center',
-                  borderTop: li === 0 ? 'none' : '1px solid #EFEFEF',
+                  borderTop: li === 0 ? 'none' : '1px solid #E9DADA',
                 }}
               >
                 {linha.map((a, i) => (
@@ -115,10 +115,10 @@ export default function AprendizadosSlide({ data }: { data: WeeklyData }) {
           {/* Rodapé — leitura executiva do quanto já está documentado */}
           <div style={{
             display: 'flex', alignItems: 'center', gap: 12, background: '#FAFAFA',
-            border: '1px solid #F0F0F0', borderRadius: 12, padding: '14px 20px',
+            border: '1px solid #E8D0D0', borderRadius: 12, padding: '14px 20px',
           }}>
             <Sparkles size={16} color={RED} style={{ flexShrink: 0 }} />
-            <span style={{ fontSize: 12.5, color: '#374151', lineHeight: 1.4 }}>
+            <span style={{ fontSize: 13.5, color: '#1F2937', lineHeight: 1.5 }}>
               <b style={{ color: '#111827' }}>{data.aprendizadosAcionaveis} de {concluidos} experimentos concluídos</b> ({pctDocumentado}%) já
               têm um aprendizado documentado — transformar essa prática em hábito é o que acelera o próximo ciclo do laboratório.
             </span>

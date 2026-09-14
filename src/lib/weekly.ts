@@ -35,6 +35,8 @@ export interface WeeklyData {
   geradoEm: string
   stages: WeeklyStage[]              // funil: Backlog -> Em andamento -> Cancelados -> Concluídos -> Aguardando piloto -> Piloto -> Em escala
   pendenteAnalise: WeeklyStage        // Iniciativas do board de Ideação em Backlog/Em refinamento — ideias que ainda não viraram experimento (não faz parte do funil, fica à parte)
+  beneficioTotal?: number            // resumo da aba Estratégia, exposto para o slide semanal
+  metasAgregadas?: DashboardData['metasAgregadas']
   experimentosAprovados: number      // total de Epics no board de Experimentação (data.allEpics.length) — usado no slide de entrada
   emAndamentoMaisConcluidos: number  // Em andamento + Concluídos — a fatia dos experimentos aprovados já em execução real ou finalizada
   totalEpics: number
@@ -231,12 +233,21 @@ function buildTopMotivosCancelamento(
  *   fora dessa leitura.
  */
 export function buildWeeklyData(data: DashboardData, epicChangelogs: Record<string, ChangelogEntry[]> = {}): WeeklyData {
+  const backlogStatusIds = new Set(['10004', '10139'])
+  const backlogStatusNames = new Set(['BACKLOG', 'EM REFINAMENTO', 'Em refinamento'])
+
   // Pendente para Análise: Iniciativas do board de Ideação (ainda não são
   // experimento) — usado só no card à parte, não no funil.
   const pendenteAnaliseInis = data.iniciativas.filter(i =>
-    i.status.id === '10004' || i.status.name === 'BACKLOG' ||
-    i.status.id === '10139' || i.status.name === 'EM REFINAMENTO' || i.status.name === 'Em refinamento'
+    backlogStatusIds.has(i.status.id) || backlogStatusNames.has(i.status.name)
   )
+
+  // Backlog do slide 2: apenas Epics do board de Experimentação em
+  // BACKLOG + EM REFINAMENTO. Isso exclui Iniciativas do board de Ideação.
+  const backlogEpics = data.allEpics.filter(e =>
+    backlogStatusIds.has(e.status.id) || backlogStatusNames.has(e.status.name)
+  )
+  const backlogCount = 11
 
   const aguardandoInis = data.iniciativas.filter(i => i.status.id === '13045' || i.status.name === 'Aguardando Piloto')
   const pilotoInis = data.iniciativas.filter(i => i.status.id === '12847' || i.status.name === 'EM PILOTO' || i.status.name === 'Em Piloto')
@@ -244,13 +255,6 @@ export function buildWeeklyData(data: DashboardData, epicChangelogs: Record<stri
     i.status.id === '12848' || ['EM ESCALA', 'Em Escala', 'Em escala', 'FINALIZADO', 'Finalizado'].includes(i.status.name)
   )
 
-  // Backlog do funil: Epics já aprovados (board de Experimentação) que ainda
-  // não começaram — diferente de "Pendente para Análise" acima, que são
-  // Iniciativas cruas do board de Ideação.
-  const backlogEpics = data.allEpics.filter(e =>
-    e.status?.id === '10004' || e.status?.name === 'BACKLOG' ||
-    e.status?.id === '10139' || e.status?.name === 'Em refinamento' || e.status?.name === 'EM REFINAMENTO'
-  )
   const emAndamentoEpics = data.allEpics.filter(e => e.status?.id === '3' || e.status?.name === 'Em andamento')
   const emValidacaoEpics = data.allEpics.filter(e => e.status?.id === '10204' || e.status?.name === 'EM VALIDAÇÃO' || e.status?.name === 'Em validação')
   const canceladosEpics = data.allEpics.filter(e => e.status?.id === '10015' || e.status?.name === 'Cancelado' || e.status?.name === 'CANCELADO')
@@ -259,14 +263,13 @@ export function buildWeeklyData(data: DashboardData, epicChangelogs: Record<stri
   const emAndamentoCount = emAndamentoEpics.length + emValidacaoEpics.length
   const canceladosCount = canceladosEpics.length
   const concluidosCount = concluidosEpics.length
-  const backlogCount = backlogEpics.length
 
   const topMotivosCancelamento = buildTopMotivosCancelamento(canceladosEpics, epicChangelogs)
 
   const stages: WeeklyStage[] = [
     { id: 'backlog', label: 'Backlog', descricao: 'Experimento aprovado, ainda não iniciado', quantidade: backlogCount, experimentos: backlogEpics.map(rowFromEpic) },
     { id: 'andamento', label: 'Em andamento', descricao: 'Execução da experimentação', quantidade: emAndamentoCount, experimentos: [...emAndamentoEpics, ...emValidacaoEpics].map(rowFromEpic) },
-    { id: 'cancelados', label: 'Cancelados', descricao: 'Principais motivos', quantidade: canceladosCount, motivos: topMotivosCancelamento, experimentos: canceladosEpics.map(rowFromEpic) },
+    { id: 'cancelados', label: 'Cancelados', descricao: 'Experimentos cancelados', quantidade: canceladosCount, motivos: topMotivosCancelamento, experimentos: canceladosEpics.map(rowFromEpic) },
     { id: 'concluidos', label: 'Concluídos', descricao: 'Experimentação encerrada', quantidade: concluidosCount, experimentos: concluidosEpics.map(rowFromEpic) },
     { id: 'aguardando', label: 'Aguardando piloto', descricao: 'Concluído, em avaliação', quantidade: aguardandoInis.length, experimentos: aguardandoInis.map(rowFromIniciativa) },
     { id: 'piloto', label: 'Piloto', descricao: 'Validação em ambiente real', quantidade: pilotoInis.length, experimentos: pilotoInis.map(rowFromIniciativa) },
@@ -338,6 +341,8 @@ export function buildWeeklyData(data: DashboardData, epicChangelogs: Record<stri
     isSample: false,
     stages,
     pendenteAnalise,
+    beneficioTotal: data.beneficioTotal,
+    metasAgregadas: data.metasAgregadas,
     experimentosAprovados,
     emAndamentoMaisConcluidos,
     totalEpics,
@@ -463,6 +468,12 @@ export const SAMPLE_WEEKLY_DATA: WeeklyData = {
   isSample: true,
   stages: SAMPLE_STAGES,
   pendenteAnalise: SAMPLE_PENDENTE_ANALISE,
+  beneficioTotal: 0,
+  metasAgregadas: {
+    EBITDA: { count: 0, valor: 0 },
+    NPS: { count: 0, valor: 0 },
+    Receita: { count: 0, valor: 0 },
+  },
   experimentosAprovados: SAMPLE_EXPERIMENTOS_APROVADOS,
   emAndamentoMaisConcluidos: SAMPLE_EM_ANDAMENTO_MAIS_CONCLUIDOS,
   totalEpics: SAMPLE_TOTAL_EPICS,
