@@ -42,7 +42,7 @@ export default function WeeklySlide() {
         <span className="text-xs text-gray-400">Gerado em {geradoEmLabel}</span>
       </div>
 
-      <IntakeSlide experimentosAprovados={data.experimentosAprovados} />
+      <IntakeSlide experimentosAprovados={data.experimentosAprovados} pendenteAnalise={data.pendenteAnalise.quantidade} />
       <PipelineSlide data={data} />
     </div>
   )

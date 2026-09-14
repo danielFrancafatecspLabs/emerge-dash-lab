@@ -3,13 +3,16 @@
 import { useRef } from 'react'
 import {
   Users, Lightbulb, FileSearch, Target, HelpCircle, BarChart3, Star, Gem, Ban,
-  FlaskConical, Megaphone, ArrowRight,
+  FlaskConical, Megaphone, ArrowRight, Clock,
 } from 'lucide-react'
 import { SlideDownloadButtons } from '@/components/report/slideExport'
 
 const RED = '#8B0000'
 const PINK_BG = '#FCEAEA'
 const PINK_BORDER = '#F6D5D5'
+// Amarelo mais escuro — mesmo tom usado como aviso no resto do dashboard,
+// aqui como fundo sólido (contraste do texto branco: 7.1:1).
+const PENDENTE_COLOR = '#92400E'
 
 interface Criterio {
   icon: typeof Target
@@ -41,6 +44,31 @@ function EntryCard({ icon: Icon, title, descricao }: { icon: typeof Users; title
   )
 }
 
+// Iniciativas do board de Ideação em Backlog + Em Refinamento — ainda não
+// avaliadas pelos critérios de entrada, portanto ainda não viraram
+// experimento. Fica entre as portas de entrada e a avaliação, em amarelo
+// mais escuro para se distinguir dos cards rosados do resto do fluxo.
+function PendenteCard({ quantidade }: { quantidade: number }) {
+  return (
+    <div style={{
+      flex: 1, background: PENDENTE_COLOR, borderRadius: 14,
+      padding: '16px 14px', display: 'flex', flexDirection: 'column', alignItems: 'center',
+      justifyContent: 'center', gap: 6, textAlign: 'center',
+    }}>
+      <Clock size={24} color="#FFFFFF" strokeWidth={1.8} />
+      <div style={{ fontSize: 13.5, fontWeight: 800, color: '#FFFFFF', lineHeight: 1.2 }}>
+        Pendente para Análise
+      </div>
+      <div style={{ fontSize: 26, fontWeight: 800, color: '#FFFFFF', lineHeight: 1 }}>
+        {quantidade}
+      </div>
+      <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.85)', lineHeight: 1.35 }}>
+        Iniciativas no board de Ideação
+      </div>
+    </div>
+  )
+}
+
 function FlowArrow() {
   return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, width: 28 }}>
@@ -49,7 +77,7 @@ function FlowArrow() {
   )
 }
 
-export default function IntakeSlide({ experimentosAprovados }: { experimentosAprovados: number }) {
+export default function IntakeSlide({ experimentosAprovados, pendenteAnalise }: { experimentosAprovados: number; pendenteAnalise: number }) {
   const slideRef = useRef<HTMLDivElement>(null)
 
   return (
@@ -107,6 +135,12 @@ export default function IntakeSlide({ experimentosAprovados }: { experimentosApr
                 title="Iniciativas do beOn Labs"
                 descricao="Propostas identificadas ativamente pelo beOn Labs em parceria com as áreas de negócio."
               />
+            </div>
+
+            <FlowArrow />
+
+            <div style={{ width: 150, flexShrink: 0, display: 'flex' }}>
+              <PendenteCard quantidade={pendenteAnalise} />
             </div>
 
             <FlowArrow />

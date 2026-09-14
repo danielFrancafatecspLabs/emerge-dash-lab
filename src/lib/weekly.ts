@@ -51,8 +51,8 @@ export interface WeeklyData {
   topDiretorias: WeeklyRanking[]     // top 6 diretorias/domínios por quantidade de experimentos (idem)
   aprendizadosSemEscalar: number     // Concluídos - (Aguardando piloto + Piloto + Em escala): geraram aprendizado mas não seguiram adiante
   aprendizadosAcionaveis: number
-  insightPrincipal: string
-  insightPositivo: string
+  insightPrincipal: string    // maior gargalo do funil (conversão piloto -> escala)
+  insightSecundario: string   // segundo risco em destaque (motivo de cancelamento ou backlog parado)
   isSample: boolean
 }
 
@@ -61,11 +61,21 @@ function pct(count: number, total: number): number {
   return Math.round((count / total) * 100)
 }
 
-function buildInsights(conversaoPiloto: number, conversaoEscala: number, totalIniciados: number, taxaOportunidades: number, aprendizados: number): { principal: string; positivo: string } {
+// Os dois insights do rodapé existem para apontar PROBLEMAS/riscos do
+// funil — não para recapitular estatísticas já mostradas nos cards acima.
+function buildInsights(
+  conversaoPiloto: number,
+  conversaoEscala: number,
+  canceladosCount: number,
+  topMotivo: WeeklyStageMotivo | undefined,
+  backlogCount: number,
+): { principal: string; secundario: string } {
   const presoNoPiloto = Math.max(0, conversaoPiloto - conversaoEscala)
-  const principal = `${conversaoPiloto}% dos experimentos aprovados já chegaram ao piloto, mas só ${conversaoEscala}% avança até a escala — ${presoNoPiloto} pontos percentuais ficam pelo caminho.`
-  const positivo = `${taxaOportunidades}% das ideias pendentes de análise viram experimentos (${totalIniciados} já iniciados), e ${aprendizados} deles já geraram aprendizados acionáveis.`
-  return { principal, positivo }
+  const principal = `Gargalo na escala: apenas ${conversaoEscala}% dos experimentos aprovados chega à implementação, mesmo com ${conversaoPiloto}% já validados em piloto — ${presoNoPiloto} pontos percentuais ficam presos na transição.`
+  const secundario = topMotivo
+    ? `"${topMotivo.motivo}" já responde por ${topMotivo.count} dos ${canceladosCount} cancelamentos (${pct(topMotivo.count, canceladosCount)}%) — maior risco de continuidade identificado no período.`
+    : `${backlogCount} experimentos aprovados ainda não saíram do backlog — risco de perder tração se não forem priorizados.`
+  return { principal, secundario }
 }
 
 function semBeneficioPotencial(e: EpicDetail): boolean {
@@ -313,7 +323,7 @@ export function buildWeeklyData(data: DashboardData, epicChangelogs: Record<stri
     e => ['Concluído', 'FINALIZADO'].includes(e.status.name) && !!e.beneficioQualitativo?.trim()
   ).length
 
-  const { principal, positivo } = buildInsights(conversaoPiloto, conversaoEscala, totalIniciados, taxaOportunidadesParaExperimentos, aprendizadosAcionaveis)
+  const { principal, secundario } = buildInsights(conversaoPiloto, conversaoEscala, canceladosCount, topMotivosCancelamento[0], backlogCount)
 
   const pendenteAnalise: WeeklyStage = {
     id: 'pendente-analise',
@@ -345,7 +355,7 @@ export function buildWeeklyData(data: DashboardData, epicChangelogs: Record<stri
     aprendizadosSemEscalar,
     aprendizadosAcionaveis,
     insightPrincipal: principal,
-    insightPositivo: positivo,
+    insightSecundario: secundario,
   }
 }
 
@@ -444,7 +454,9 @@ const SAMPLE_TOP_DIRETORIAS: WeeklyRanking[] = [
   { nome: 'Dados', count: 18 },
   { nome: 'Jurídico', count: 12 },
 ]
-const SAMPLE_INSIGHTS = buildInsights(SAMPLE_CONVERSAO_PILOTO, SAMPLE_CONVERSAO_ESCALA, SAMPLE_TOTAL_INICIADOS, SAMPLE_TAXA_OPORTUNIDADES, SAMPLE_APRENDIZADOS)
+const SAMPLE_CANCELADOS_COUNT = 17
+const SAMPLE_BACKLOG_COUNT = 14
+const SAMPLE_INSIGHTS = buildInsights(SAMPLE_CONVERSAO_PILOTO, SAMPLE_CONVERSAO_ESCALA, SAMPLE_CANCELADOS_COUNT, SAMPLE_MOTIVOS_CANCELAMENTO[0], SAMPLE_BACKLOG_COUNT)
 
 export const SAMPLE_WEEKLY_DATA: WeeklyData = {
   geradoEm: new Date().toISOString(),
@@ -468,5 +480,5 @@ export const SAMPLE_WEEKLY_DATA: WeeklyData = {
   aprendizadosSemEscalar: SAMPLE_APRENDIZADOS_SEM_ESCALAR,
   aprendizadosAcionaveis: SAMPLE_APRENDIZADOS,
   insightPrincipal: SAMPLE_INSIGHTS.principal,
-  insightPositivo: SAMPLE_INSIGHTS.positivo,
+  insightSecundario: SAMPLE_INSIGHTS.secundario,
 }
