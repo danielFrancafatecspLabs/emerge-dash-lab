@@ -3,8 +3,8 @@
 import { useRef, useState } from 'react'
 import {
   Inbox, Cog, XCircle, CheckCircle2, Hourglass, FlaskConical, Rocket as StageRocket,
-  AlertTriangle, User, Rocket, Target, Award, TrendingDown, Sparkles, CornerDownRight, Lightbulb,
-  ListFilter, ChevronDown, ChevronUp, Clock, Link2,
+  AlertTriangle, User, Rocket, Target, Award, TrendingDown, CornerDownRight, Lightbulb,
+  ListFilter, ChevronDown, ChevronUp, Link2,
 } from 'lucide-react'
 import type { WeeklyData, WeeklyStageMotivo } from '@/lib/weekly'
 import { SlideDownloadButtons } from '@/components/report/slideExport'
@@ -26,15 +26,10 @@ const STAGE_ICONS = [Inbox, Cog, XCircle, CheckCircle2, Hourglass, FlaskConical,
 const STAGE_TEXT = '#FFFFFF'
 const STAGE_MUTED = 'rgba(255,255,255,0.82)'
 const MAIN_STAGE_COUNT = 4
-// Amarelo mais escuro — mesmo tom já usado como WARNING_INK no resto do
-// slide, aqui como fundo sólido (contraste do texto branco: 7.1:1).
-const PENDENTE_COLOR = '#92400E'
-const PENDENTE_CARD_WIDTH = 128
-const LABEL_COLUMN_WIDTH = 78
-const ROW_GAP = 10
+const LABEL_COLUMN_WIDTH = 96
 // Offset onde o funil principal (Backlog) começa — usado para alinhar as
-// fileiras de anotação abaixo dele com o card "Pendente para Análise" à esquerda.
-const FUNNEL_START_OFFSET = PENDENTE_CARD_WIDTH + ROW_GAP + LABEL_COLUMN_WIDTH
+// fileiras de anotação abaixo dele com a coluna de rótulo "Etapas da jornada".
+const FUNNEL_START_OFFSET = LABEL_COLUMN_WIDTH
 
 // Trunca em JS em vez de depender de overflow:hidden + text-overflow:ellipsis —
 // essa combinação, dentro de um card com clip-path, não é recortada corretamente
@@ -187,39 +182,6 @@ function AprendizadoRamoCard({ quantidade }: { quantidade: number }) {
   )
 }
 
-// Ideias cruas do board de Ideação (ainda não viraram experimento) — fica À
-// PARTE do funil vermelho, em amarelo mais escuro, exatamente para não ser
-// confundida com "Backlog" (que já são experimentos aprovados). Formato de
-// seta igual ao primeiro card do funil, para sugerir o fluxo entrando nele.
-function PendenteAnaliseCard({ quantidade }: { quantidade: number }) {
-  const notch = 18
-  const clipPath = `polygon(0% 0%, calc(100% - ${notch}px) 0%, 100% 50%, calc(100% - ${notch}px) 100%, 0% 100%)`
-  return (
-    <div style={{
-      width: PENDENTE_CARD_WIDTH, flexShrink: 0, clipPath, background: PENDENTE_COLOR,
-      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-      paddingTop: 16, paddingBottom: 12, paddingLeft: 8, paddingRight: notch + 8,
-      height: 172, boxSizing: 'border-box',
-    }}>
-      <div style={{
-        width: 30, height: 30, borderRadius: 999, background: '#FFFFFF', flexShrink: 0,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-      }}>
-        <Clock size={14} color={PENDENTE_COLOR} strokeWidth={2.25} />
-      </div>
-      <div style={{ fontSize: 10.5, fontWeight: 800, color: '#FFFFFF', textAlign: 'center', lineHeight: 1.15, marginTop: 7 }}>
-        Pendente para<br />Análise
-      </div>
-      <div style={{ fontSize: 22, fontWeight: 800, color: '#FFFFFF', marginTop: 3, lineHeight: 1 }}>
-        {quantidade}
-      </div>
-      <div style={{ fontSize: 8, color: 'rgba(255,255,255,0.85)', textAlign: 'center', lineHeight: 1.25, marginTop: 3 }}>
-        Iniciativas no board de Ideação
-      </div>
-    </div>
-  )
-}
-
 const TONE_STYLES = {
   neutral: { bar: '#9CA3AF', chip: '#F3F4F6', value: '#111827', bg: '#FAFAFA', border: '#EFEFEF' },
   accent: { bar: RED, chip: '#FBEAEA', value: RED, bg: '#FDF6F6', border: '#F5DEDE' },
@@ -297,11 +259,10 @@ export default function PipelineSlide({ data }: { data: WeeklyData }) {
             </div>
           </div>
 
-          {/* Funil principal — Pendente para Análise (fora do funil, ideias
-              cruas do board de Ideação) + Backlog até Concluídos (experimentos
-              já aprovados, board de Experimentação). */}
-          <div style={{ display: 'flex', gap: ROW_GAP }}>
-            <PendenteAnaliseCard quantidade={data.pendenteAnalise.quantidade} />
+          {/* Funil principal — Backlog até Concluídos (experimentos já
+              aprovados, board de Experimentação). "Pendente para Análise"
+              (ideias cruas do board de Ideação) fica no slide 1. */}
+          <div style={{ display: 'flex', gap: 10 }}>
             <div style={{ width: LABEL_COLUMN_WIDTH, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', paddingBottom: 66, flexShrink: 0 }}>
               <div style={{ fontSize: 10, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: 0.5, lineHeight: 1.4 }}>
                 Etapas da<br />jornada
@@ -382,9 +343,9 @@ export default function PipelineSlide({ data }: { data: WeeklyData }) {
                 </span>
               </div>
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-                <Sparkles size={15} color="#9CA3AF" style={{ flexShrink: 0, marginTop: 2 }} />
-                <span style={{ fontSize: 12.5, color: '#6B7280', lineHeight: 1.4 }}>
-                  {data.insightPositivo}
+                <AlertTriangle size={15} color={WARNING_INK} style={{ flexShrink: 0, marginTop: 2 }} />
+                <span style={{ fontSize: 12.5, color: WARNING_INK, fontWeight: 600, lineHeight: 1.4 }}>
+                  {data.insightSecundario}
                 </span>
               </div>
             </div>
