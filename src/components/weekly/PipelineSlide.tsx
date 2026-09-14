@@ -4,7 +4,7 @@ import { useRef, useState } from 'react'
 import {
   Inbox, Cog, XCircle, CheckCircle2, Hourglass, FlaskConical, Rocket as StageRocket,
   AlertTriangle, User, Rocket, Target, Award, TrendingDown, Sparkles, CornerDownRight, Lightbulb,
-  ListFilter, ChevronDown, ChevronUp,
+  ListFilter, ChevronDown, ChevronUp, Clock, Link2,
 } from 'lucide-react'
 import type { WeeklyData, WeeklyStageMotivo } from '@/lib/weekly'
 import { SlideDownloadButtons } from '@/components/report/slideExport'
@@ -26,6 +26,15 @@ const STAGE_ICONS = [Inbox, Cog, XCircle, CheckCircle2, Hourglass, FlaskConical,
 const STAGE_TEXT = '#FFFFFF'
 const STAGE_MUTED = 'rgba(255,255,255,0.82)'
 const MAIN_STAGE_COUNT = 4
+// Amarelo mais escuro — mesmo tom já usado como WARNING_INK no resto do
+// slide, aqui como fundo sólido (contraste do texto branco: 7.1:1).
+const PENDENTE_COLOR = '#92400E'
+const PENDENTE_CARD_WIDTH = 128
+const LABEL_COLUMN_WIDTH = 78
+const ROW_GAP = 10
+// Offset onde o funil principal (Backlog) começa — usado para alinhar as
+// fileiras de anotação abaixo dele com o card "Pendente para Análise" à esquerda.
+const FUNNEL_START_OFFSET = PENDENTE_CARD_WIDTH + ROW_GAP + LABEL_COLUMN_WIDTH
 
 // Trunca em JS em vez de depender de overflow:hidden + text-overflow:ellipsis —
 // essa combinação, dentro de um card com clip-path, não é recortada corretamente
@@ -178,6 +187,39 @@ function AprendizadoRamoCard({ quantidade }: { quantidade: number }) {
   )
 }
 
+// Ideias cruas do board de Ideação (ainda não viraram experimento) — fica À
+// PARTE do funil vermelho, em amarelo mais escuro, exatamente para não ser
+// confundida com "Backlog" (que já são experimentos aprovados). Formato de
+// seta igual ao primeiro card do funil, para sugerir o fluxo entrando nele.
+function PendenteAnaliseCard({ quantidade }: { quantidade: number }) {
+  const notch = 18
+  const clipPath = `polygon(0% 0%, calc(100% - ${notch}px) 0%, 100% 50%, calc(100% - ${notch}px) 100%, 0% 100%)`
+  return (
+    <div style={{
+      width: PENDENTE_CARD_WIDTH, flexShrink: 0, clipPath, background: PENDENTE_COLOR,
+      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+      paddingTop: 16, paddingBottom: 12, paddingLeft: 8, paddingRight: notch + 8,
+      height: 172, boxSizing: 'border-box',
+    }}>
+      <div style={{
+        width: 30, height: 30, borderRadius: 999, background: '#FFFFFF', flexShrink: 0,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}>
+        <Clock size={14} color={PENDENTE_COLOR} strokeWidth={2.25} />
+      </div>
+      <div style={{ fontSize: 10.5, fontWeight: 800, color: '#FFFFFF', textAlign: 'center', lineHeight: 1.15, marginTop: 7 }}>
+        Pendente para<br />Análise
+      </div>
+      <div style={{ fontSize: 22, fontWeight: 800, color: '#FFFFFF', marginTop: 3, lineHeight: 1 }}>
+        {quantidade}
+      </div>
+      <div style={{ fontSize: 8, color: 'rgba(255,255,255,0.85)', textAlign: 'center', lineHeight: 1.25, marginTop: 3 }}>
+        Iniciativas no board de Ideação
+      </div>
+    </div>
+  )
+}
+
 const TONE_STYLES = {
   neutral: { bar: '#9CA3AF', chip: '#F3F4F6', value: '#111827', bg: '#FAFAFA', border: '#EFEFEF' },
   accent: { bar: RED, chip: '#FBEAEA', value: RED, bg: '#FDF6F6', border: '#F5DEDE' },
@@ -255,9 +297,12 @@ export default function PipelineSlide({ data }: { data: WeeklyData }) {
             </div>
           </div>
 
-          {/* Funil principal — Backlog até Concluídos */}
-          <div style={{ display: 'flex' }}>
-            <div style={{ width: 96, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', paddingBottom: 66, flexShrink: 0 }}>
+          {/* Funil principal — Pendente para Análise (fora do funil, ideias
+              cruas do board de Ideação) + Backlog até Concluídos (experimentos
+              já aprovados, board de Experimentação). */}
+          <div style={{ display: 'flex', gap: ROW_GAP }}>
+            <PendenteAnaliseCard quantidade={data.pendenteAnalise.quantidade} />
+            <div style={{ width: LABEL_COLUMN_WIDTH, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', paddingBottom: 66, flexShrink: 0 }}>
               <div style={{ fontSize: 10, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: 0.5, lineHeight: 1.4 }}>
                 Etapas da<br />jornada
               </div>
@@ -269,23 +314,38 @@ export default function PipelineSlide({ data }: { data: WeeklyData }) {
             </div>
           </div>
 
-          {/* Ramo derivado de Concluídos — Aguardando piloto/Piloto/Em escala
-              nascem DENTRO do total de Concluídos (não são uma continuação
-              sequencial): o restante virou aprendizado sem seguir adiante. */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <div style={{ width: 96, flexShrink: 0 }} />
+          {/* Anotações do funil: (1) interligação Em andamento + Concluídos =
+              fatia dos experimentos aprovados (slide 1) já em execução real ou
+              concluída; (2) Aguardando piloto/Piloto/Em escala nascem DENTRO
+              do total de Concluídos, não são uma continuação sequencial. */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <CornerDownRight size={12} color={RED} strokeWidth={2.5} />
-              <span style={{ fontSize: 9.5, fontWeight: 800, color: RED, textTransform: 'uppercase', letterSpacing: 0.3 }}>
-                Dentro dos {data.stages[3].quantidade} concluídos
-              </span>
-              <span style={{ fontSize: 9.5, color: '#9CA3AF' }}>
-                — parte segue para piloto/escala, o restante já é aprendizado validado
-              </span>
+              <div style={{ width: FUNNEL_START_OFFSET, flexShrink: 0 }} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <Link2 size={11} color={RED} strokeWidth={2.5} />
+                <span style={{ fontSize: 9, fontWeight: 800, color: RED, textTransform: 'uppercase', letterSpacing: 0.3 }}>
+                  Em andamento + Concluídos = {data.emAndamentoMaisConcluidos}
+                </span>
+                <span style={{ fontSize: 9, color: '#9CA3AF' }}>
+                  de {data.experimentosAprovados} experimentos aprovados (slide 1) já em execução real ou concluída
+                </span>
+              </div>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <div style={{ width: FUNNEL_START_OFFSET, flexShrink: 0 }} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <CornerDownRight size={11} color={RED} strokeWidth={2.5} />
+                <span style={{ fontSize: 9, fontWeight: 800, color: RED, textTransform: 'uppercase', letterSpacing: 0.3 }}>
+                  Dentro dos {data.stages[3].quantidade} concluídos
+                </span>
+                <span style={{ fontSize: 9, color: '#9CA3AF' }}>
+                  — parte segue para piloto/escala, o restante já é aprendizado validado
+                </span>
+              </div>
             </div>
           </div>
           <div style={{ display: 'flex', gap: 14 }}>
-            <div style={{ width: 96, flexShrink: 0 }} />
+            <div style={{ width: FUNNEL_START_OFFSET, flexShrink: 0 }} />
             <div style={{ flex: 1.5, display: 'flex' }}>
               {data.stages.slice(MAIN_STAGE_COUNT).map((stage, i) => (
                 <MiniStageCard key={stage.id} label={stage.label} quantidade={stage.quantidade} index={i} total={3} />
