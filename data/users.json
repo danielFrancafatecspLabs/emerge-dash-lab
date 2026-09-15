@@ -6,5 +6,13 @@
     "role": "admin",
     "createdAt": "2026-09-08T14:53:55.357Z",
     "active": true
+  },
+  {
+    "id": "local-2",
+    "username": "marco_asterito",
+    "passwordHash": "7641025809754f8f4a1397f4fe162b76:5e122bd395ba3ba68b581d7a052d67dc840dcd552c67d87af0ef272d8a3bccb1b34e0655407edb5e9afbea1ad482a8fefe6147c20927a09ca57c1e6e303999ba",
+    "role": "admin",
+    "createdAt": "2026-09-10T16:55:00.000Z",
+    "active": true
   }
 ]

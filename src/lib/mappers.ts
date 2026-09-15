@@ -701,8 +701,8 @@ function calculateLeadTimeJornada(
   }
 
   // ── Blocked Time: média de dias bloqueados dos experimentos concluídos ──
-  const CONCLUIDO_ID = '10019'
-  const epicsConcluidos = epicsRaw.filter(e => e.fields.status.id === CONCLUIDO_ID)
+  const CONCLUIDO_IDS = new Set(['10003', '10019'])
+  const epicsConcluidos = epicsRaw.filter(e => CONCLUIDO_IDS.has(e.fields.status.id))
   const blockedTotals: number[] = []
   const lifecycleTotals: number[] = []
 
@@ -717,7 +717,7 @@ function calculateLeadTimeJornada(
       const sorted = [...changelog].sort((a, b) => new Date(a.created).getTime() - new Date(b.created).getTime())
       for (const entry of sorted) {
         for (const item of entry.items) {
-          if (item.field === 'status' && item.toString === CONCLUIDO_ID) {
+          if (item.field === 'status' && CONCLUIDO_IDS.has(item.toString)) {
             fimCiclo = new Date(entry.created).getTime()
             break
           }
@@ -795,11 +795,11 @@ function calculateCycleTimeExperimentacao(
   epicsRaw: JiraIssue[]
 ): number {
   const EXPERIMENTACAO_NAMES = new Set(['Em andamento', 'In Progress', 'EM VALIDAÇÃO'])
-  const CONCLUIDO_ID = '10019'
+  const CONCLUIDO_IDS = new Set(['10003', '10019'])
   const todosCycleTimes: number[] = []
 
   // Apenas Epics CONCLUÍDOS
-  const epicsConcluidos = epicsRaw.filter(e => e.fields.status.id === CONCLUIDO_ID)
+  const epicsConcluidos = epicsRaw.filter(e => CONCLUIDO_IDS.has(e.fields.status.id))
 
   for (const epic of epicsConcluidos) {
     const changelog = epicChangelogs[epic.key]
@@ -860,7 +860,7 @@ function calculateCycleTimeExperimentacaoDetalhado(
   epicsRaw: JiraIssue[]
 ): { ciclos: CycleTimeEstagio[]; geral: CycleTimeEstagio; diagnostico: CycleTimeDiagnostico } {
   const EXPERIMENTACAO_NAMES = new Set(['Em andamento', 'In Progress', 'EM VALIDAÇÃO'])
-  const CONCLUIDO_ID = '10019'
+  const CONCLUIDO_IDS = new Set(['10003', '10019'])
 
   // Mapeia complexidade → label de porte
   // O Jira retorna diretamente "P", "M", "G" (valores abreviados)
@@ -886,7 +886,7 @@ function calculateCycleTimeExperimentacaoDetalhado(
   let naoConcluidos = 0
 
   // Filtrar apenas Epics CONCLUÍDOS
-  const epicsConcluidos = epicsRaw.filter(e => e.fields.status.id === CONCLUIDO_ID)
+  const epicsConcluidos = epicsRaw.filter(e => CONCLUIDO_IDS.has(e.fields.status.id))
 
   for (const epic of epicsConcluidos) {
     const changelog = epicChangelogs[epic.key]
@@ -1580,6 +1580,7 @@ export function buildMonitoramentoData(data: DashboardData, periodo: PeriodoFilt
     iniciativasPorLab,
     cycleTimeExperimentacao: data.cycleTimeExperimentacao,
     cycleTimeExperimentacaoGeral: data.cycleTimeExperimentacaoGeral,
+    leadTimeJornada: data.leadTimeJornada,
   }
 }
 
