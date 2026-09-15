@@ -297,6 +297,7 @@ export interface MonitoramentoData {
   iniciativasPorLab: IniciativaLab[]
   cycleTimeExperimentacao?: CycleTimeEstagio[]
   cycleTimeExperimentacaoGeral?: CycleTimeEstagio
+  leadTimeJornada?: LeadTimeJornada
 }
 
 export type PeriodoFiltro =

@@ -437,7 +437,6 @@ export default function EstrategiaClient({ data, monitoramento, beneficioValidad
               <p className="text-[11px] font-bold uppercase tracking-widest" style={{ color: '#CC0000' }}>
                 1 · Impacto Entregue
               </p>
-              <p className="text-[10px] text-gray-400 mt-0.5">O que o laboratório já gerou de resultado — o valor, a tendência e as provas concretas</p>
             </div>
             <div className="grid gap-3 grid-cols-1 lg:grid-cols-3 auto-rows-fr min-w-0">
               <GraficoComInsight
@@ -484,7 +483,6 @@ export default function EstrategiaClient({ data, monitoramento, beneficioValidad
               <p className="text-[11px] font-bold uppercase tracking-widest" style={{ color: '#CC0000' }}>
                 2 · Como Chegamos Lá
               </p>
-              <p className="text-[10px] text-gray-400 mt-0.5">O motor por trás do resultado — conversão, velocidade e onde estamos apostando</p>
             </div>
             <div className="grid gap-3 grid-cols-1 lg:grid-cols-3 auto-rows-fr min-w-0">
               <GraficoComInsight

@@ -32,7 +32,7 @@ export default function BurnupChart({ data }: Props) {
       </div>
 
       {/* Gráfico — ocupa todo espaço disponível */}
-      <div className="flex-1 min-h-0 max-h-[400px]" style={{ minHeight: 120 }}>
+      <div className="flex-1 min-h-0">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={chartData} margin={{ top: 16, right: 8, left: -8, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" vertical={false} />

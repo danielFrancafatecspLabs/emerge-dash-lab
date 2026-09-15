@@ -63,18 +63,18 @@ export default function MapaDiretorias({ epics }: Props) {
   }
 
   return (
-    <div className="flex flex-col gap-1.5 h-full">
+    <div className="flex flex-col gap-0.5 h-full">
       {/* Cabeçalho com totalizador */}
-      <div className="flex items-center justify-between text-[10px] text-gray-400 tabular-nums px-0.5">
+      <div className="flex items-center justify-between text-[9px] text-gray-400 tabular-nums px-0.5">
         <span>Diretoria / Domínio</span>
-        <div className="flex items-center gap-3">
-          <span>Experimentos</span>
-          <span style={{ width: 72, textAlign: 'right' }}>Benefício Pot.</span>
+        <div className="flex items-center gap-2">
+          <span>Exp.</span>
+          <span style={{ width: 64, textAlign: 'right' }}>Benefício</span>
         </div>
       </div>
 
       {/* Barras — scroll se necessário */}
-      <div className="flex-1 overflow-y-auto space-y-1" style={{ minHeight: 0 }}>
+      <div className="flex-1 overflow-y-auto space-y-0.5" style={{ minHeight: 0 }}>
         {(expandido ? linhas : linhas.slice(0, LIMITE_VISIVEL)).map((d, i) => {
           const pct = maxExp > 0 ? (d.qtdExperimentos / maxExp) * 100 : 0
           const cor = BARRAS_CORES[i % BARRAS_CORES.length]
@@ -90,8 +90,8 @@ export default function MapaDiretorias({ epics }: Props) {
               </span>
 
               {/* Barra de experimentos */}
-              <div className="flex-1 flex items-center gap-1.5 min-w-0">
-                <div className="flex-1 h-3.5 rounded-sm bg-gray-100 overflow-hidden">
+              <div className="flex-1 flex items-center gap-1 min-w-0">
+                <div className="flex-1 h-3 rounded-sm bg-gray-100 overflow-hidden">
                   <div
                     className="h-full rounded-sm transition-all"
                     style={{ width: `${Math.max(pct, 4)}%`, background: cor }}
@@ -114,7 +114,7 @@ export default function MapaDiretorias({ epics }: Props) {
         {linhas.length > LIMITE_VISIVEL && (
           <button
             onClick={() => setExpandido(!expandido)}
-            className="flex items-center justify-center gap-1 w-full py-1 text-[11px] text-blue-600 hover:text-blue-800 transition-colors cursor-pointer"
+            className="flex items-center justify-center gap-1 w-full py-0.5 text-[10px] text-blue-600 hover:text-blue-800 transition-colors cursor-pointer"
           >
             {expandido ? (
               <>
@@ -130,7 +130,7 @@ export default function MapaDiretorias({ epics }: Props) {
       </div>
 
       {/* Totalizador */}
-      <div className="flex items-center justify-between pt-1 border-t border-gray-100 text-[11px] tabular-nums text-gray-500">
+      <div className="flex items-center justify-between pt-0.5 pb-0 border-t border-gray-100 text-[10px] tabular-nums text-gray-500 mt-auto">
         <span>
           <strong className="text-gray-800">{totalExperimentos}</strong> experimentos
         </span>
