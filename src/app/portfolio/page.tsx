@@ -47,11 +47,11 @@ export default async function PortfolioPage() {
   }
 
   return (
-    <div className="flex min-h-dvh" style={{ background: '#f0f0f0' }}>
+    <div className="flex min-h-dvh bg-gray-50">
       {/* Sidebar */}
-      <div className="flex-shrink-0" style={{ width: 72 }}>
-        <div className="fixed top-0 left-0 h-full" style={{ width: 72 }}>
-          <div style={{ background: '#8B0000', paddingTop: 52, height: '100%' }}>
+      <div className="flex-shrink-0" style={{ width: 64 }}>
+        <div className="fixed top-0 left-0 h-full z-20" style={{ width: 64 }}>
+          <div className="h-full bg-gradient-to-b from-[#8B0000] to-[#6B0000]">
             <Sidebar />
           </div>
         </div>
@@ -60,7 +60,7 @@ export default async function PortfolioPage() {
       {/* Main */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Header */}
-        <div className="fixed top-0 z-10" style={{ left: 72, right: 0 }}>
+        <div className="fixed top-0 z-10" style={{ left: 64, right: 0 }}>
           <header
             className="flex items-center justify-between px-5"
             style={{ background: '#8B0000', minHeight: 52 }}
