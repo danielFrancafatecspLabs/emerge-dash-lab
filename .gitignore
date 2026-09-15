@@ -1,5 +1,39 @@
-node_modules/
-node-compile-cache/
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Saída gerada por scripts/weekly-export (PNGs, PPTX, PDF)
+/weekly-export/
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Environment files (do not commit secrets)
+.env
+.env.*
+frontend/.env
+backend/.env
+**/.env.local
+**/.env.development.local
+**/.env.production.local
+.next/
 .next/
 out/
 build/

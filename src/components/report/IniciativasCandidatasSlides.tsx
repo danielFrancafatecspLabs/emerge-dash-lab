@@ -53,7 +53,8 @@ function formatTempoDesdeConclusao(concluidoEm: string | null): string {
 }
 
 export default function IniciativasCandidatasSlides({ iniciativas }: Props) {
-  const paginas = useMemo(() => chunk(iniciativas, SLIDE_PAGE_SIZE), [iniciativas])
+  const safeIniciativas = iniciativas ?? []
+  const paginas = useMemo(() => chunk(safeIniciativas, SLIDE_PAGE_SIZE), [safeIniciativas])
   const totalPaginas = paginas.length
 
   const [overrides, setOverrides] = useState<Record<string, Partial<RowState>>>({})
@@ -70,7 +71,7 @@ export default function IniciativasCandidatasSlides({ iniciativas }: Props) {
   )
   while (refs.current.length < totalPaginas) refs.current.push({ current: null })
 
-  if (iniciativas.length === 0) {
+  if (safeIniciativas.length === 0) {
     return (
       <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-8 text-center text-gray-400 text-sm">
         Nenhuma iniciativa em Aguardando Piloto no momento.

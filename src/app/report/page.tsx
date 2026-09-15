@@ -234,18 +234,41 @@ export default async function ReportPage() {
   })
 
   // ── Funil de Inovação ──
-  // Em Andamento: Experimentos (Epics do board 2735) com status "Em andamento"
-  // Em Piloto: Iniciativas (board 2734) na coluna "EM PILOTO"
-  // Concluídos: Experimentos (Epics do board 2735) com status "Concluído"
-  // Em Escala: Iniciativas (board 2734) na coluna "EM ESCALA"
-  const emAndamentoCount = data.allEpics.filter(e => e.status.id === '3').length
-  const emPilotoCount = data.pipeline['EM PILOTO']
-  const concluidosCount = data.allEpics.filter(e => e.status.id === '10019').length
-  const emEscalaCount = data.pipeline['EM ESCALA']
+  // O report precisa espelhar a mesma contagem do board de experimentação usada no funil.
+  const EXCLUIR_CONCLUIDOS = new Set([
+    'Otimiza APP - Ciclo 1 (Análise de comentários das lojas de apps)',
+    "IA para IP'S de rede",
+    'Assistente IA Ágil - Ciclo 2',
+    'Sumarização dos Contratos',
+    'Jurisquery - Consulta de Pareceres Juridicos',
+  ])
+  const emAndamentoCount = data.allEpics.filter(e =>
+    e.status?.id === '3' || e.status?.name === 'Em andamento'
+  ).length
+  const emValidacaoCount = data.allEpics.filter(e =>
+    e.status?.id === '10204' || e.status?.name === 'EM VALIDAÇÃO' || e.status?.name === 'Em validação'
+  ).length
+  const concluidosCount = data.allEpics.filter(e =>
+    e.status?.id === '10019' && !EXCLUIR_CONCLUIDOS.has(e.nome)
+  ).length
+  const backlogIdeacaoCount = data.iniciativas.filter(e =>
+    e.status?.id === '10004' || e.status?.name === 'BACKLOG'
+  ).length
+  const aguardandoPilotoCount = data.iniciativas.filter(e =>
+    e.status?.id === '13045' || e.status?.name === 'Aguardando Piloto'
+  ).length
+  const pilotoCount = data.iniciativas.filter(e =>
+    e.status?.id === '12847' || e.status?.name === 'EM PILOTO' || e.status?.name === 'Em Piloto'
+  ).length
+  const emEscalaCount = data.iniciativas.filter(e =>
+    e.status?.id === '12848' || e.status?.name === 'EM ESCALA' || e.status?.name === 'Em Escala' || e.status?.name === 'Em escala' || e.status?.name === 'FINALIZADO' || e.status?.name === 'Finalizado'
+  ).length
 
   const funilStages = [
+    { label: 'Backlog', value: backlogIdeacaoCount, color: '#9CA3AF' },
     { label: 'Em Andamento', value: emAndamentoCount, color: '#3B82F6' },
-    { label: 'Em Piloto', value: emPilotoCount, color: '#EF4444' },
+    { label: 'Aguardando Piloto', value: aguardandoPilotoCount, color: '#F59E0B' },
+    { label: 'Piloto', value: pilotoCount, color: '#EF4444' },
     { label: 'Concluídos', value: concluidosCount, color: '#134E4A' },
     { label: 'Em Escala', value: emEscalaCount, color: '#22C55E' },
   ]
@@ -314,6 +337,8 @@ export default async function ReportPage() {
   const qtdExperimentosAtivos = data.allEpics.filter(
     e => e.status.name !== 'Concluído' && e.status.name !== 'Cancelado'
   ).length
+  const totalExperimentosIniciados = emAndamentoCount + emValidacaoCount + concluidosCount
+  const totalExperimentosConcluidos = concluidosCount
 
   // Conversões (mesma lógica do PipelineInovacao):
   // % de iniciativas que chegaram a Piloto (EM PILOTO + EM ESCALA / total)
@@ -374,6 +399,13 @@ export default async function ReportPage() {
           conversaoPiloto={conversaoPiloto}
           conversaoEscala={conversaoEscala}
           beneficioPotencialEstimado={beneficioPotencialEstimado}
+          totalExperimentosIniciados={totalExperimentosIniciados}
+          totalExperimentosConcluidos={totalExperimentosConcluidos}
+          funilEmAndamento={emAndamentoCount}
+          funilEmValidacao={emValidacaoCount}
+          funilAguardandoPiloto={aguardandoPilotoCount}
+          funilPiloto={pilotoCount}
+          funilEmEscala={emEscalaCount}
         />
       </main>
     </div>
