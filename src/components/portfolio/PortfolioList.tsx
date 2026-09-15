@@ -24,13 +24,13 @@ function Select({
 }) {
   return (
     <div>
-      <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
+      <label className="block text-[9px] font-semibold text-gray-500 uppercase tracking-wider mb-0.5">
         {label}
       </label>
       <select
         value={value}
         onChange={e => onChange(e.target.value)}
-        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-700 bg-white focus:outline-none focus:ring-2 focus:ring-red-200 focus:border-red-400 transition-all"
+        className="w-full border border-gray-300 rounded-lg px-2 py-1 text-[11px] text-gray-700 bg-white focus:outline-none focus:ring-1 focus:ring-red-200 focus:border-red-400 transition-all"
       >
         <option value="">Todos</option>
         {options.map(o => (
@@ -51,7 +51,7 @@ export default function PortfolioList({ data }: Props) {
   const [mercado,      setMercado]      = useState('')
   const [sponsor,      setSponsor]      = useState('')
   const [lab,          setLab]          = useState('')
-  const [status,       setStatus]       = useState('')
+  const [status,       setStatus]       = useState<string[]>([])
   const [impactos,     setImpactos]     = useState<string[]>([])
   const [selectedEpic, setSelectedEpic] = useState<EpicDetail | null>(null)
   const [visibleColumns, setVisibleColumns] = useState({
@@ -88,17 +88,17 @@ export default function PortfolioList({ data }: Props) {
       if (mercado && e.mercado !== mercado) return false
       if (sponsor && e.sponsor !== sponsor) return false
       if (lab    && e.timeResponsavel !== lab) return false
-      if (status && e.status.name !== status) return false
+      if (status.length > 0 && !status.includes(e.status.name)) return false
       if (impactos.length > 0 && !impactos.includes(e.metaCategoria ?? '')) return false
       return true
     })
   }, [epics, search, mercado, sponsor, lab, status, impactos])
 
-  const hasFilter = !!(search || mercado || sponsor || lab || status || impactos.length > 0)
+  const hasFilter = !!(search || mercado || sponsor || lab || status.length > 0 || impactos.length > 0)
 
   function clearFilters() {
     setSearch(''); setMercado(''); setSponsor('')
-    setLab(''); setStatus(''); setImpactos([])
+    setLab(''); setStatus([]); setImpactos([])
   }
 
   function toggleImpacto(v: string) {
@@ -130,7 +130,8 @@ export default function PortfolioList({ data }: Props) {
   return (
     <>
     <div className="flex flex-col gap-4">
-      {/* ===== RESUMO DO PORTFÓLIO (SEMPRE VISÍVEL) ===== */}
+      {/* ===== RESUMO DO PORTFÓLIO ===== */}
+      {!isMaximized && (
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
         {/* Cabeçalho do resumo */}
         <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-gray-50 to-white">
@@ -227,25 +228,25 @@ export default function PortfolioList({ data }: Props) {
           </div>
         </div>
       </div>
+      )}
 
       {/* ===== FILTROS + TABELA ===== */}
-      <div className={`grid gap-4 ${isMaximized ? 'grid-cols-1' : 'grid-cols-1 lg:grid-cols-[1fr]'}`}>
+      <div className="grid gap-4">
         {/* Filtros */}
-        {!isMaximized && (
-          <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
             {/* Cabeçalho dos filtros */}
-            <div className="px-5 py-2.5 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-gray-50 to-white">
-              <div className="flex items-center gap-2">
-                <Filter size={14} className="text-gray-500" />
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-widest">Filtros</p>
+            <div className="px-3 py-1.5 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-gray-50 to-white">
+              <div className="flex items-center gap-1.5">
+                <Filter size={11} className="text-gray-500" />
+                <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-widest">Filtros</p>
                 {hasFilter && (
-                  <span className="px-1.5 py-0.5 rounded-full bg-red-100 text-red-700 text-xs font-bold">
+                  <span className="px-1 py-0.5 rounded-full bg-red-100 text-red-700 text-[9px] font-bold">
                     {[
                       search ? 1 : 0,
                       mercado ? 1 : 0,
                       sponsor ? 1 : 0,
                       lab ? 1 : 0,
-                      status ? 1 : 0,
+                      status.length,
                       impactos.length,
                     ].reduce((a, b) => a + b, 0)}
                   </span>
@@ -254,27 +255,27 @@ export default function PortfolioList({ data }: Props) {
               {hasFilter && (
                 <button
                   onClick={clearFilters}
-                  className="flex items-center gap-1 text-xs font-medium text-red-600 hover:text-red-800 hover:bg-red-50 px-2 py-1 rounded-md transition-colors"
+                  className="flex items-center gap-0.5 text-[10px] font-medium text-red-600 hover:text-red-800 hover:bg-red-50 px-1.5 py-0.5 rounded-md transition-colors"
                 >
-                  <X size={12} /> Limpar todos
+                  <X size={10} /> Limpar
                 </button>
               )}
             </div>
 
             {/* Corpo dos filtros */}
-            <div className="p-4 space-y-3">
+            <div className="p-2 space-y-1.5">
               {/* Linha 1: Busca + Mercado + Sponsor + Lab */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-1.5">
                 <div>
-                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Buscar</label>
+                  <label className="block text-[9px] font-semibold text-gray-500 uppercase tracking-wider mb-0.5">Buscar</label>
                   <div className="relative">
-                    <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                    <Search size={10} className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400" />
                     <input
                       type="text"
                       placeholder="Nome, sponsor, lab..."
                       value={search}
                       onChange={e => setSearch(e.target.value)}
-                      className="w-full border border-gray-300 rounded-lg pl-9 pr-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-red-200 focus:border-red-400 transition-all"
+                      className="w-full border border-gray-300 rounded-lg pl-7 pr-2 py-1 text-[11px] text-gray-700 focus:outline-none focus:ring-1 focus:ring-red-200 focus:border-red-400 transition-all"
                     />
                   </div>
                 </div>
@@ -284,15 +285,44 @@ export default function PortfolioList({ data }: Props) {
               </div>
 
               {/* Linha 2: Status + Impacto */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <Select label="Status" value={status} onChange={setStatus} options={statusOptions} />
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5">
+                <div>
+                  <label className="block text-[9px] font-semibold text-gray-500 uppercase tracking-wider mb-0.5">Status</label>
+                  <div className="relative">
+                    <select
+                      value=""
+                      onChange={e => {
+                        const val = e.target.value
+                        if (!val) return
+                        setStatus(prev =>
+                          prev.includes(val)
+                            ? prev.filter(x => x !== val)
+                            : [...prev, val]
+                        )
+                        // Reset select to placeholder
+                        e.target.value = ''
+                      }}
+                      className="w-full border border-gray-300 rounded-lg px-2 py-1 text-[11px] text-gray-700 bg-white focus:outline-none focus:ring-1 focus:ring-red-200 focus:border-red-400 transition-all appearance-none cursor-pointer"
+                    >
+                      <option value="">{status.length > 0 ? `${status.length} selecionado${status.length > 1 ? 's' : ''}` : 'Todos'}</option>
+                      {statusOptions.map(s => (
+                        <option key={s} value={s}>
+                          {status.includes(s) ? '✓ ' : ''}{s}
+                        </option>
+                      ))}
+                    </select>
+                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-1.5">
+                      <ChevronDown size={10} className="text-gray-400" />
+                    </div>
+                  </div>
+                </div>
                 <div className="sm:col-span-2">
-                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Impacto</label>
-                  <div className="flex items-center gap-4 flex-wrap">
+                  <label className="block text-[9px] font-semibold text-gray-500 uppercase tracking-wider mb-0.5">Impacto</label>
+                  <div className="flex items-center gap-2 flex-wrap">
                     {(['EBITDA', 'Receita', 'NPS'] as const).map(v => (
                       <label
                         key={v}
-                        className={`flex items-center gap-2 px-3 py-1.5 rounded-full border cursor-pointer select-none transition-all text-sm ${
+                        className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full border cursor-pointer select-none transition-all text-[10px] ${
                           impactos.includes(v)
                             ? 'border-red-300 bg-red-50 text-red-700 font-semibold'
                             : 'border-gray-200 bg-white text-gray-500 hover:border-gray-300'
@@ -305,7 +335,7 @@ export default function PortfolioList({ data }: Props) {
                           className="sr-only"
                         />
                         <span
-                          className="w-2.5 h-2.5 rounded-full"
+                          className="w-2 h-2 rounded-full"
                           style={{ background: IMPACTO_COLORS[v]?.background ?? '#9CA3AF' }}
                         />
                         {META_LABELS[v] ?? v}
@@ -317,55 +347,54 @@ export default function PortfolioList({ data }: Props) {
 
               {/* Chips de filtros ativos */}
               {hasFilter && (
-                <div className="flex items-center gap-1.5 flex-wrap pt-1 border-t border-gray-100">
-                  <span className="text-xs text-gray-400 mr-1">Ativos:</span>
+                <div className="flex items-center gap-1 flex-wrap pt-0.5 border-t border-gray-100">
+                  <span className="text-[9px] text-gray-400 mr-0.5">Ativos:</span>
                   {search && (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 text-xs">
+                    <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-600 text-[9px]">
                       Busca: "{search}"
-                      <button onClick={() => setSearch('')} className="hover:text-red-600"><X size={10} /></button>
+                      <button onClick={() => setSearch('')} className="hover:text-red-600"><X size={8} /></button>
                     </span>
                   )}
                   {mercado && (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 text-xs">
-                      Mercado: {mercado}
-                      <button onClick={() => setMercado('')} className="hover:text-red-600"><X size={10} /></button>
+                    <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-700 text-[9px]">
+                      {mercado}
+                      <button onClick={() => setMercado('')} className="hover:text-red-600"><X size={8} /></button>
                     </span>
                   )}
                   {sponsor && (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-50 text-green-700 text-xs">
-                      Sponsor: {sponsor}
-                      <button onClick={() => setSponsor('')} className="hover:text-red-600"><X size={10} /></button>
+                    <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-green-50 text-green-700 text-[9px]">
+                      {sponsor}
+                      <button onClick={() => setSponsor('')} className="hover:text-red-600"><X size={8} /></button>
                     </span>
                   )}
                   {lab && (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-50 text-red-700 text-xs">
+                    <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-red-50 text-red-700 text-[9px]">
                       Lab: {lab}
-                      <button onClick={() => setLab('')} className="hover:text-red-600"><X size={10} /></button>
+                      <button onClick={() => setLab('')} className="hover:text-red-600"><X size={8} /></button>
                     </span>
                   )}
-                  {status && (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 text-xs">
-                      Status: {status}
-                      <button onClick={() => setStatus('')} className="hover:text-red-600"><X size={10} /></button>
+                  {status.map(s => (
+                    <span key={s} className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-amber-50 text-amber-700 text-[9px]">
+                      {s}
+                      <button onClick={() => setStatus(prev => prev.filter(x => x !== s))} className="hover:text-red-600"><X size={8} /></button>
                     </span>
-                  )}
+                  ))}
                   {impactos.map(v => (
-                    <span key={v} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-50 text-red-700 text-xs">
+                    <span key={v} className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-red-50 text-red-700 text-[9px]">
                       {META_LABELS[v] ?? v}
-                      <button onClick={() => toggleImpacto(v)} className="hover:text-red-900"><X size={10} /></button>
+                      <button onClick={() => toggleImpacto(v)} className="hover:text-red-900"><X size={8} /></button>
                     </span>
                   ))}
                 </div>
               )}
             </div>
           </div>
-        )}
-      </div>
+        </div>
 
       {/* Table */}
       <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-        <div className="flex items-center justify-between px-4 py-2 border-b border-gray-100">
-          <p className="text-xs font-semibold text-gray-500 uppercase tracking-widest">
+        <div className="flex items-center justify-between px-3 py-1 border-b border-gray-100">
+          <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-widest">
             Lista completa de experimentos ({filtered.length})
           </p>
           <div className="flex items-center gap-2">
