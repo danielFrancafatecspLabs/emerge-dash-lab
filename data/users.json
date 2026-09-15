@@ -9,8 +9,8 @@
   },
   {
     "id": "local-2",
-    "username": "marco_asterito",
-    "passwordHash": "7641025809754f8f4a1397f4fe162b76:5e122bd395ba3ba68b581d7a052d67dc840dcd552c67d87af0ef272d8a3bccb1b34e0655407edb5e9afbea1ad482a8fefe6147c20927a09ca57c1e6e303999ba",
+    "username": "test_user",
+    "passwordHash": "261480c3df324e889ba4565b771c3ca6:9a68c7fa2e0a339d60bd66eda426651f4985df14a0f263abd66967f325a4d329eddbe27a60fa84a5a5b7c15c8233b68e13432df49b8eeb361c7175a22f728a54",
     "role": "admin",
     "createdAt": "2026-09-10T16:55:00.000Z",
     "active": true

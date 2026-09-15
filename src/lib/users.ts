@@ -58,8 +58,8 @@ const BUILTIN_USERS: User[] = [
   },
   {
     id: "3",
-    username: "marco_asterito",
-    passwordHash: "8fb46fb90b6b7760b5d917bfa1edb006:407da17f8dd72480420cf64665de6102f04b760c980b9147b931c6b58d51231806765701c9da29fbdf65d7d90592950d68a7e8621b797fca83d51f22b7d7de48",
+    username: "test_user",
+    passwordHash: "261480c3df324e889ba4565b771c3ca6:9a68c7fa2e0a339d60bd66eda426651f4985df14a0f263abd66967f325a4d329eddbe27a60fa84a5a5b7c15c8233b68e13432df49b8eeb361c7175a22f728a54",
     role: "admin",
     createdAt: "2026-07-23T00:00:00.000Z",
     active: true,
