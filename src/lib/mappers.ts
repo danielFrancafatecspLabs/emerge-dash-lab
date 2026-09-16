@@ -128,6 +128,8 @@ function mapEpicToDetail(epic: JiraIssue, changelog?: ChangelogEntry[]): EpicDet
     key: epic.key,
     nome: f.summary,
     status: f.status,
+    parentKey: epic.fields.parent?.key ?? null,
+    tecnologia: (typeof (f.tecnologia as any) === 'object' && (f.tecnologia as any) !== null) ? ((f.tecnologia as any).value ?? null) : (f.tecnologia ?? null),
     sponsor: f.customfield_30394 ? normalizeSponsor(f.customfield_30394) : null,
     bo: f.customfield_30340 ?? null,
     complexidade: (typeof (f.customfield_30358 as any) === 'object' && (f.customfield_30358 as any) !== null) ? ((f.customfield_30358 as any).value ?? null) : (f.customfield_30358 ?? null),

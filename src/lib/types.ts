@@ -37,6 +37,9 @@ export interface JiraIssueFields {
   customfield_30445?: { value: string }               // Segmento (was customfield_11378)
   customfield_30110?: { value: string }               // Portfólio (was customfield_15919)
   customfield_21499?: string                          // Diretoria (was customfield_10904)
+  // Preenchido pelo backend com o valor do campo "Tecnologia" — customfield_ID
+  // resolvido em runtime pelo NOME do campo (ver resolveTecnologiaFieldId em jira.ts)
+  tecnologia?: { value: string } | string | null
   // Preenchido pelo backend com o último comentário (texto plano)
   lastComment?: string | null
   // Prioridade padrão do Jira
@@ -77,6 +80,8 @@ export interface EpicDetail {
   key: string
   nome: string
   status: JiraStatus
+  parentKey: string | null
+  tecnologia: string | null
   sponsor: string | null
   bo: string | null
   complexidade: string | null
