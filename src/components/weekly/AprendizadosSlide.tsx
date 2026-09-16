@@ -45,7 +45,7 @@ function AprendizadoCell({ icon: Icon, texto }: Aprendizado) {
   )
 }
 
-export default function AprendizadosSlide({ data }: { data: WeeklyData }) {
+export default function AprendizadosSlide({ data, onMaximize }: { data: WeeklyData; onMaximize?: () => void }) {
   const slideRef = useRef<HTMLDivElement>(null)
   const concluidos = data.stages.find(s => s.id === 'concluidos')?.quantidade ?? 0
   const pctDocumentado = concluidos > 0 ? Math.round((data.aprendizadosAcionaveis / concluidos) * 100) : 0
@@ -59,7 +59,7 @@ export default function AprendizadosSlide({ data }: { data: WeeklyData }) {
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-end">
-        <SlideDownloadButtons targetRef={slideRef} filename="weekly-principais-aprendizados" />
+        <SlideDownloadButtons targetRef={slideRef} filename="weekly-principais-aprendizados" onMaximize={onMaximize} />
       </div>
 
       {/* ═══ Slide 1280×720 (16:9 — dimensão de slide de PowerPoint) ═══ */}

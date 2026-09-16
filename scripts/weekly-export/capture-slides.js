@@ -40,7 +40,7 @@ const STAGES = [
   { id: 'piloto', label: 'Piloto' },
   { id: 'escala', label: 'Em escala' },
 ]
-const MAIN_SLIDE_COUNT = 4 // Intake, Pipeline, Aprendizados, Patrocinadores — nessa ordem no DOM
+const MAIN_SLIDE_COUNT = 5 // Governança, Bloqueios, Pipeline, Aprendizados, Patrocinadores — nessa ordem no DOM
 
 function escapeRegExp(s) {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
@@ -86,11 +86,12 @@ async function main() {
     console.log('  saved', fname)
   }
 
-  console.log('Capturando os 4 slides principais...')
+  console.log('Capturando os 5 slides principais...')
   await downloadNth(0, 'governanca_beon_labs')
-  await downloadNth(1, 'pipeline_experimentos')
-  await downloadNth(2, 'principais_aprendizados')
-  await downloadNth(3, 'principais_patrocinadores')
+  await downloadNth(1, 'bloqueios_acao_executivo')
+  await downloadNth(2, 'pipeline_experimentos')
+  await downloadNth(3, 'principais_aprendizados')
+  await downloadNth(4, 'principais_patrocinadores')
 
   console.log('Capturando "Ver detalhes" de cada fase...')
   for (const stage of STAGES) {
