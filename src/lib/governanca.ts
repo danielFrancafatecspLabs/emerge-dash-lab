@@ -1,5 +1,4 @@
-import { DashboardData, EpicDetail, Iniciativa } from './types'
-import { getPipelineStage } from './mappers'
+import { DashboardData, EpicDetail, Iniciativa, JiraStatus } from './types'
 
 /**
  * Dados para o slide "Governança beOn Labs" (slide 1 da Weekly) — um
@@ -83,24 +82,39 @@ function buildDot(epic: EpicDetail): GovernancaDot {
   }
 }
 
+// Checagens por id+nome EXATAS às já usadas (e validadas contra o Jira real)
+// em buildWeeklyData (src/lib/weekly.ts) — de propósito, NÃO usamos o mapa
+// STATUS_PIPELINE/getPipelineStage compartilhado aqui: ele mistura IDs dos
+// boards 2734 (Ideação) e 2735 (Experimentação) numa tabela só, e há pelo
+// menos uma contradição comprovada (id '12848' == EM EXPERIMENTAÇÃO nesse
+// mapa, mas as próprias iniciativas de Em Escala do weekly.ts usam esse
+// MESMO id). Reusar os filtros específicos de cada board, já testados no
+// slide de pipeline, evita esse tipo de contaminação cruzada.
+function statusIs(status: JiraStatus | undefined, ids: string[], names: string[]): boolean {
+  if (!status) return false
+  return ids.includes(status.id) || names.includes(status.name)
+}
+
 export function buildGovernancaData(data: DashboardData): GovernancaData {
   const iniciativaByKey = new Map<string, Iniciativa>(data.iniciativas.map(i => [i.key, i]))
 
   function columnFor(epic: EpicDetail): string | null {
-    const ownStage = getPipelineStage(epic.status)
-    if (ownStage === 'BACKLOG') return 'pre-analise'
-    if (ownStage === 'EM REFINAMENTO') return 'prospeccao'
-    if (ownStage === 'EM EXPERIMENTAÇÃO') return 'em-andamento'
-    if (ownStage === 'CANCELADO') return null   // cancelados não fazem parte desta visão
+    const status = epic.status
+    if (statusIs(status, ['10004'], ['BACKLOG'])) return 'pre-analise'
+    if (statusIs(status, ['10139'], ['Em refinamento', 'EM REFINAMENTO'])) return 'prospeccao'
+    if (statusIs(status, ['3'], ['Em andamento'])) return 'em-andamento'
+    if (statusIs(status, ['10204'], ['EM VALIDAÇÃO', 'Em validação'])) return 'em-andamento'
+    if (statusIs(status, ['10015'], ['Cancelado', 'CANCELADO'])) return null   // cancelados não fazem parte desta visão
+    if (!statusIs(status, ['10019'], [])) return null   // qualquer outro status próprio não mapeado fica fora
 
     // A partir daqui o Epic já foi concluído — o que importa agora é onde
     // a Iniciativa-mãe está no funil de validação de campo (board de Ideação).
     const parent = epic.parentKey ? iniciativaByKey.get(epic.parentKey) : undefined
     if (!parent) return null
-    const parentStage = getPipelineStage(parent.status)
-    if (parentStage === 'AGUARDANDO PILOTO') return 'concluidos'
-    if (parentStage === 'EM PILOTO') return 'piloto-andamento'
-    if (parentStage === 'EM ESCALA') return 'em-escala'
+    const parentStatus = parent.status
+    if (statusIs(parentStatus, ['13045'], ['Aguardando Piloto'])) return 'concluidos'
+    if (statusIs(parentStatus, ['12847'], ['EM PILOTO', 'Em Piloto'])) return 'piloto-andamento'
+    if (statusIs(parentStatus, ['12848'], ['EM ESCALA', 'Em Escala', 'Em escala', 'FINALIZADO', 'Finalizado'])) return 'em-escala'
     return null
   }
 
