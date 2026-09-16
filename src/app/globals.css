@@ -19,6 +19,12 @@ html, body {
   min-height: 100dvh;
 }
 
+/* Modo de apresentação da Weekly — reaproveita a mesma classe .no-print já
+   usada nos botões de download de cada slide para escondê-los em tela cheia. */
+.weekly-presentation .no-print {
+  display: none !important;
+}
+
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: #f1f1f1; }
 ::-webkit-scrollbar-thumb { background: #ccc; border-radius: 3px; }

@@ -1,16 +1,23 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { Presentation } from 'lucide-react'
 import type { WeeklyData } from '@/lib/weekly'
-import IntakeSlide from './IntakeSlide'
+import { filterBloqueados } from '@/lib/governanca'
+import GovernancaSlide from './GovernancaSlide'
 import PipelineSlide from './PipelineSlide'
+import AprendizadosSlide from './AprendizadosSlide'
+import PatrocinadoresSlide from './PatrocinadoresSlide'
+import PresentationOverlay from './PresentationOverlay'
+import { WARNING_INK, WARNING_LIGHT, WARNING_LIGHTER, WARNING_RAMP } from './palette'
 
 const RED = '#8B0000'
-const WARNING_INK = '#92400E'
+const BLOQUEIOS_THEME = { accent: WARNING_INK, accentLight: WARNING_LIGHT, accentLighter: WARNING_LIGHTER, ramp: WARNING_RAMP }
 
 export default function WeeklySlide() {
   const [data, setData] = useState<WeeklyData | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [presentIndex, setPresentIndex] = useState<number | null>(null)
 
   useEffect(() => {
     fetch('/jira/api/weekly', { credentials: 'include' })
@@ -19,10 +26,38 @@ export default function WeeklySlide() {
       .catch(err => setError(err.message))
   }, [])
 
+  // Hooks sempre no topo, antes de qualquer return condicional (loading/erro)
+  // — senão a ordem de hooks muda entre renders e o React quebra.
+  const bloqueiosData = useMemo(() => data ? filterBloqueados(data.governanca) : null, [data])
+
+  const slides = useMemo(() => {
+    if (!data || !bloqueiosData) return []
+    return [
+      { key: 'governanca', label: 'Governança beOn Labs', node: <GovernancaSlide data={data.governanca} /> },
+      {
+        key: 'bloqueios', label: 'Bloqueios — Ação do Executivo', node: (
+          <GovernancaSlide
+            data={bloqueiosData}
+            titulo="Bloqueios"
+            tituloDestaque="— Ação do Executivo"
+            totalLabel="Total Bloqueados"
+            filename="weekly-bloqueios-beon-labs"
+            theme={BLOQUEIOS_THEME}
+            showBloqueioBadge={false}
+            emptyState="Nenhum Epic bloqueado nesta semana."
+          />
+        ),
+      },
+      { key: 'pipeline', label: 'Nossa pipeline de experimentos', node: <PipelineSlide data={data} /> },
+      { key: 'aprendizados', label: 'Principais aprendizados', node: <AprendizadosSlide data={data} /> },
+      { key: 'patrocinadores', label: 'Principais patrocinadores', node: <PatrocinadoresSlide data={data} /> },
+    ]
+  }, [data, bloqueiosData])
+
   if (error) {
     return <p className="text-sm" style={{ color: RED }}>Erro ao carregar dados: {error}</p>
   }
-  if (!data) {
+  if (!data || !bloqueiosData) {
     return <p className="text-sm text-gray-400">Carregando…</p>
   }
 
@@ -30,20 +65,47 @@ export default function WeeklySlide() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center gap-2">
-        {data.isSample && (
-          <span
-            style={{ fontSize: 11, fontWeight: 700, color: WARNING_INK, background: '#FEF3C7', padding: '3px 8px', borderRadius: 999 }}
-            title="O Jira não respondeu; estes são dados de exemplo para pré-visualizar o layout."
-          >
-            Dados de exemplo (Jira indisponível)
-          </span>
-        )}
-        <span className="text-xs text-gray-400">Gerado em {geradoEmLabel}</span>
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          {data.isSample && (
+            <span
+              style={{ fontSize: 11, fontWeight: 700, color: WARNING_INK, background: '#FEF3C7', padding: '3px 8px', borderRadius: 999 }}
+              title="O Jira não respondeu; estes são dados de exemplo para pré-visualizar o layout."
+            >
+              Dados de exemplo (Jira indisponível)
+            </span>
+          )}
+          <span className="text-xs text-gray-400">Gerado em {geradoEmLabel}</span>
+        </div>
+        <button
+          onClick={() => setPresentIndex(0)}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white transition-colors"
+          style={{ background: RED }}
+        >
+          <Presentation size={13} />
+          Apresentar
+        </button>
       </div>
 
-      <IntakeSlide experimentosAprovados={data.experimentosAprovados} pendenteAnalise={data.pendenteAnalise.quantidade} />
-      <PipelineSlide data={data} />
+      <GovernancaSlide data={data.governanca} onMaximize={() => setPresentIndex(0)} />
+      <GovernancaSlide
+        data={bloqueiosData}
+        titulo="Bloqueios"
+        tituloDestaque="— Ação do Executivo"
+        totalLabel="Total Bloqueados"
+        filename="weekly-bloqueios-beon-labs"
+        theme={BLOQUEIOS_THEME}
+        showBloqueioBadge={false}
+        emptyState="Nenhum Epic bloqueado nesta semana."
+        onMaximize={() => setPresentIndex(1)}
+      />
+      <PipelineSlide data={data} onMaximize={() => setPresentIndex(2)} />
+      <AprendizadosSlide data={data} onMaximize={() => setPresentIndex(3)} />
+      <PatrocinadoresSlide data={data} onMaximize={() => setPresentIndex(4)} />
+
+      {presentIndex !== null && (
+        <PresentationOverlay slides={slides} initialIndex={presentIndex} onClose={() => setPresentIndex(null)} />
+      )}
     </div>
   )
 }

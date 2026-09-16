@@ -161,6 +161,7 @@ export default function ExperimentoModal({ epic, onClose }: Props) {
               <Field label="Segmento"     value={epic.segmento ?? epic.mercado} />
               <Field label="Portfólio"    value={epic.portfolio} />
               <Field label="Complexidade" value={epic.complexidade} />
+              <Field label="Tecnologia"   value={epic.tecnologia} />
             </div>
           </div>
 
