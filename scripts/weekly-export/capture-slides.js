@@ -87,7 +87,7 @@ async function main() {
   }
 
   console.log('Capturando os 4 slides principais...')
-  await downloadNth(0, 'entrada_laboratorio')
+  await downloadNth(0, 'governanca_beon_labs')
   await downloadNth(1, 'pipeline_experimentos')
   await downloadNth(2, 'principais_aprendizados')
   await downloadNth(3, 'principais_patrocinadores')

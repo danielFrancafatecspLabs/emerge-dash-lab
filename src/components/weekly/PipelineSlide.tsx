@@ -11,14 +11,8 @@ import { SlideDownloadButtons } from '@/components/report/slideExport'
 import StageDetalhesSlides from './StageDetalhesSlides'
 import AprendizadosSlide from './AprendizadosSlide'
 import PatrocinadoresSlide from './PatrocinadoresSlide'
+import { RED, WARNING_INK, RAMP } from './palette'
 
-/* ── Paleta — rampa ordinal de um único matiz (vinho/vermelho escuro da
-   marca), monotônica, ΔL >= 0.06, matiz único (spread 2°), contraste do
-   texto branco entre 5.8:1 e 19.9:1 em todas as etapas. Validado com a
-   skill de dataviz — scripts/validate_palette.js --ordinal. ── */
-const RED = '#8B0000'
-const WARNING_INK = '#92400E'
-const RAMP = ['#C42420', '#A81715', '#8B1210', '#6E0E0D', '#500908', '#350505', '#1A0202']
 // Ordem: Backlog, Em andamento, Cancelados, Concluídos (funil principal) —
 // Aguardando piloto, Piloto, Em escala continuam a rampa, mas nascem DENTRO
 // de Concluídos (ver ramo abaixo), não como fases sequenciais independentes.
@@ -260,8 +254,7 @@ export default function PipelineSlide({ data }: { data: WeeklyData }) {
           </div>
 
           {/* Funil principal — Backlog até Concluídos (experimentos já
-              aprovados, board de Experimentação). "Pendente para Análise"
-              (ideias cruas do board de Ideação) fica no slide 1. */}
+              aprovados, board de Experimentação). */}
           <div style={{ display: 'flex', gap: 10 }}>
             <div style={{ width: LABEL_COLUMN_WIDTH, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', paddingBottom: 66, flexShrink: 0 }}>
               <div style={{ fontSize: 10, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: 0.5, lineHeight: 1.4 }}>
@@ -288,7 +281,7 @@ export default function PipelineSlide({ data }: { data: WeeklyData }) {
                   Em andamento + Concluídos = {data.emAndamentoMaisConcluidos}
                 </span>
                 <span style={{ fontSize: 9, color: '#9CA3AF' }}>
-                  de {data.experimentosAprovados} experimentos aprovados (slide 1) já em execução real ou concluída
+                  de {data.experimentosAprovados} experimentos aprovados já em execução real ou concluída
                 </span>
               </div>
             </div>
