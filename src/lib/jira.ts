@@ -163,16 +163,18 @@ export async function fetchDashboardRaw(): Promise<{
   iniciativas: JiraIssue[]
   epics: JiraIssue[]
   board2734Config: JiraBoardConfiguration
+  board2735Config: JiraBoardConfiguration
   epicChangelogs: Record<string, ChangelogEntry[]>
   iniciativaChangelogs: Record<string, ChangelogEntry[]>
 }> {
   const tecnologiaFieldId = await resolveTecnologiaFieldId()
   const fieldsEpicComTecnologia = tecnologiaFieldId ? `${FIELDS_EPIC},${tecnologiaFieldId}` : FIELDS_EPIC
 
-  const [iniciativas, epicsRaw, board2734Config] = await Promise.all([
+  const [iniciativas, epicsRaw, board2734Config, board2735Config] = await Promise.all([
     getAllBoardIssues(IDEACAO_BOARD_ID, FIELDS_INICIATIVA),
     getAllBoardIssues(EXPERIMENTACAO_BOARD_ID, fieldsEpicComTecnologia),
     getBoardConfiguration(IDEACAO_BOARD_ID),
+    getBoardConfiguration(EXPERIMENTACAO_BOARD_ID),
   ])
 
   // Normaliza o valor do campo "Tecnologia" (customfield_ID resolvido acima)
@@ -263,7 +265,7 @@ export async function fetchDashboardRaw(): Promise<{
     fetchChangelogsBatch(iniciativas),
   ])
 
-  return { iniciativas, epics: epicsWithComments, board2734Config, epicChangelogs, iniciativaChangelogs }
+  return { iniciativas, epics: epicsWithComments, board2734Config, board2735Config, epicChangelogs, iniciativaChangelogs }
 }
 
 export interface ChangelogEntry {
