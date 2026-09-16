@@ -1,5 +1,7 @@
 import { DashboardData, EpicDetail, Iniciativa, JiraStatus } from './types'
 
+type JiraBoardConfiguration = any
+
 /**
  * Dados para o slide "Governança beOn Labs" (slide 1 da Weekly) — um
  * swimlane com uma linha por Domínio e uma coluna por fase da jornada,
@@ -12,11 +14,8 @@ import { DashboardData, EpicDetail, Iniciativa, JiraStatus } from './types'
  * Iniciativa está no funil de validação de campo.
  */
 
-export type TecnologiaCategoria = 'web3' | 'ia-analytics' | 'future-network' | 'outras'
-
 export interface GovernancaDot {
   epic: EpicDetail
-  tecnologia: TecnologiaCategoria
   prioridade: boolean   // sub-status ⭐
   bloqueio: boolean     // sub-status 🔒
 }
@@ -60,52 +59,81 @@ function isBloqueado(epic: EpicDetail): boolean {
   return !!epic.flagged || !!(epic.motivoBloqueio && epic.motivoBloqueio.trim())
 }
 
-// Heurística de categorização por palavra-chave — o valor exato que o campo
-// "Tecnologia" retorna no Jira ainda não foi validado em produção (só
-// sabemos o NOME do campo, não os valores da lista). Ajuste os termos
-// abaixo assim que confirmarmos os valores reais; qualquer valor que não
-// bater cai em "Outras Tecnologias", então nunca quebra a visão.
-function categorizarTecnologia(raw: string | null): TecnologiaCategoria {
-  const v = (raw ?? '').toLowerCase()
-  if (v.includes('web')) return 'web3'
-  if (v.includes('analytic') || v.includes('a.i') || v.includes(' ia') || v.startsWith('ia') || v.includes('intelig')) return 'ia-analytics'
-  if (v.includes('future') || v.includes('network')) return 'future-network'
-  return 'outras'
-}
-
 function buildDot(epic: EpicDetail): GovernancaDot {
   return {
     epic,
-    tecnologia: categorizarTecnologia(epic.tecnologia),
     prioridade: isPrioridadeAlta(epic),
     bloqueio: isBloqueado(epic),
   }
 }
 
-// Checagens por id+nome EXATAS às já usadas (e validadas contra o Jira real)
-// em buildWeeklyData (src/lib/weekly.ts) — de propósito, NÃO usamos o mapa
-// STATUS_PIPELINE/getPipelineStage compartilhado aqui: ele mistura IDs dos
-// boards 2734 (Ideação) e 2735 (Experimentação) numa tabela só, e há pelo
-// menos uma contradição comprovada (id '12848' == EM EXPERIMENTAÇÃO nesse
-// mapa, mas as próprias iniciativas de Em Escala do weekly.ts usam esse
-// MESMO id). Reusar os filtros específicos de cada board, já testados no
-// slide de pipeline, evita esse tipo de contaminação cruzada.
+// Checagens por id+nome EXATAS — usadas como FALLBACK caso a configuração
+// live do board 2735 não esteja disponível. Não usar como fonte primária:
+// hardcodar status IDs já causou classificação errada de Epics cancelados
+// aparecendo em Pré-análise, porque a coluna real de um status no board pode
+// divergir do que está fixo aqui. Preferir sempre buildColunaPorStatusId().
 function statusIs(status: JiraStatus | undefined, ids: string[], names: string[]): boolean {
   if (!status) return false
   return ids.includes(status.id) || names.includes(status.name)
 }
 
-export function buildGovernancaData(data: DashboardData): GovernancaData {
+function columnForFallback(status: JiraStatus | undefined): 'pre-analise' | 'prospeccao' | 'em-andamento' | 'concluido' | 'cancelado' | null {
+  if (statusIs(status, ['10004'], ['BACKLOG'])) return 'pre-analise'
+  if (statusIs(status, ['10139'], ['Em refinamento', 'EM REFINAMENTO'])) return 'prospeccao'
+  if (statusIs(status, ['3'], ['Em andamento'])) return 'em-andamento'
+  if (statusIs(status, ['10204'], ['EM VALIDAÇÃO', 'Em validação'])) return 'em-andamento'
+  if (statusIs(status, ['10015'], ['Cancelado', 'CANCELADO'])) return 'cancelado'
+  if (statusIs(status, ['10019'], [])) return 'concluido'
+  return null
+}
+
+/**
+ * Mapa status.id -> nome REAL da coluna no board 2735 (Experimentação), a
+ * partir da configuração live do board (GET /board/2735/configuration).
+ * É a fonte de verdade sobre "esse status pertence a qual coluna hoje" —
+ * mais confiável do que qualquer lista fixa de IDs, porque reflete a
+ * reconfiguração atual do board (ex.: um status pode ter sido movido para a
+ * coluna CANCELADO sem que o nome/ID do status em si tenha mudado).
+ */
+function buildColunaPorStatusId(boardConfig?: JiraBoardConfiguration): Map<string, string> {
+  const map = new Map<string, string>()
+  const columns = boardConfig?.columnConfig?.columns
+  if (!Array.isArray(columns)) return map
+  for (const col of columns) {
+    const nome = (col?.name ?? '').toString().trim().toUpperCase()
+    for (const s of col?.statuses ?? []) {
+      if (s?.id) map.set(s.id, nome)
+    }
+  }
+  return map
+}
+
+// Classifica pelo NOME real da coluna (substring, robusto a variações de
+// grafia) em vez de comparar o nome inteiro — mesmo padrão já usado em
+// mappers.ts (colunaParaPipelineKey) para o board 2734.
+function classifyColumnName(nome: string): 'pre-analise' | 'prospeccao' | 'em-andamento' | 'concluido' | 'cancelado' | null {
+  if (nome.includes('CANCEL')) return 'cancelado'
+  if (nome.includes('BACKLOG')) return 'pre-analise'
+  if (nome.includes('REFINAMENTO')) return 'prospeccao'
+  if (nome.includes('CONCLU')) return 'concluido'
+  if (nome.includes('VALID') || nome.includes('ANDAMENTO')) return 'em-andamento'
+  return null
+}
+
+export function buildGovernancaData(data: DashboardData, board2735Config?: JiraBoardConfiguration): GovernancaData {
   const iniciativaByKey = new Map<string, Iniciativa>(data.iniciativas.map(i => [i.key, i]))
+  const colunaPorStatusId = buildColunaPorStatusId(board2735Config)
 
   function columnFor(epic: EpicDetail): string | null {
     const status = epic.status
-    if (statusIs(status, ['10004'], ['BACKLOG'])) return 'pre-analise'
-    if (statusIs(status, ['10139'], ['Em refinamento', 'EM REFINAMENTO'])) return 'prospeccao'
-    if (statusIs(status, ['3'], ['Em andamento'])) return 'em-andamento'
-    if (statusIs(status, ['10204'], ['EM VALIDAÇÃO', 'Em validação'])) return 'em-andamento'
-    if (statusIs(status, ['10015'], ['Cancelado', 'CANCELADO'])) return null   // cancelados não fazem parte desta visão
-    if (!statusIs(status, ['10019'], [])) return null   // qualquer outro status próprio não mapeado fica fora
+    const colNome = status ? colunaPorStatusId.get(status.id) : undefined
+    const bucket = colNome ? classifyColumnName(colNome) : null
+    const efetivo = bucket ?? columnForFallback(status)
+
+    if (efetivo === 'pre-analise') return 'pre-analise'
+    if (efetivo === 'prospeccao') return 'prospeccao'
+    if (efetivo === 'em-andamento') return 'em-andamento'
+    if (efetivo === 'cancelado' || efetivo === null) return null   // cancelados e status não mapeados não fazem parte desta visão
 
     // A partir daqui o Epic já foi concluído — o que importa agora é onde
     // a Iniciativa-mãe está no funil de validação de campo (board de Ideação).
