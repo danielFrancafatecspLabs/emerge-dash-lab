@@ -1,6 +1,7 @@
 import { DashboardData, EpicDetail, Iniciativa } from './types'
 import type { ChangelogEntry } from './jira'
 import { formatBeneficioMM, limparDescricao } from './report-utils'
+import { buildGovernancaData, SAMPLE_GOVERNANCA_DATA, type GovernancaData } from './governanca'
 
 export interface WeeklyStageMotivo {
   motivo: string
@@ -33,6 +34,7 @@ export interface WeeklyRanking {
 
 export interface WeeklyData {
   geradoEm: string
+  governanca: GovernancaData          // slide 1 — swimlane por Domínio × fase da jornada
   stages: WeeklyStage[]              // funil: Backlog -> Em andamento -> Cancelados -> Concluídos -> Aguardando piloto -> Piloto -> Em escala
   pendenteAnalise: WeeklyStage        // Iniciativas do board de Ideação em Backlog/Em refinamento — ideias que ainda não viraram experimento (não faz parte do funil, fica à parte)
   beneficioTotal?: number            // resumo da aba Estratégia, exposto para o slide semanal
@@ -339,6 +341,7 @@ export function buildWeeklyData(data: DashboardData, epicChangelogs: Record<stri
   return {
     geradoEm: new Date().toISOString(),
     isSample: false,
+    governanca: buildGovernancaData(data),
     stages,
     pendenteAnalise,
     beneficioTotal: data.beneficioTotal,
@@ -466,6 +469,7 @@ const SAMPLE_INSIGHTS = buildInsights(SAMPLE_CONVERSAO_PILOTO, SAMPLE_CONVERSAO_
 export const SAMPLE_WEEKLY_DATA: WeeklyData = {
   geradoEm: new Date().toISOString(),
   isSample: true,
+  governanca: SAMPLE_GOVERNANCA_DATA,
   stages: SAMPLE_STAGES,
   pendenteAnalise: SAMPLE_PENDENTE_ANALISE,
   beneficioTotal: 0,

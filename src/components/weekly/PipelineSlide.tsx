@@ -9,16 +9,8 @@ import {
 import type { WeeklyData, WeeklyStageMotivo } from '@/lib/weekly'
 import { SlideDownloadButtons } from '@/components/report/slideExport'
 import StageDetalhesSlides from './StageDetalhesSlides'
-import AprendizadosSlide from './AprendizadosSlide'
-import PatrocinadoresSlide from './PatrocinadoresSlide'
+import { RED, WARNING_INK, RAMP } from './palette'
 
-/* ── Paleta — rampa ordinal de um único matiz (vinho/vermelho escuro da
-   marca), monotônica, ΔL >= 0.06, matiz único (spread 2°), contraste do
-   texto branco entre 5.8:1 e 19.9:1 em todas as etapas. Validado com a
-   skill de dataviz — scripts/validate_palette.js --ordinal. ── */
-const RED = '#8B0000'
-const WARNING_INK = '#92400E'
-const RAMP = ['#C42420', '#A81715', '#8B1210', '#6E0E0D', '#500908', '#350505', '#1A0202']
 // Ordem: Backlog, Em andamento, Cancelados, Concluídos (funil principal) —
 // Aguardando piloto, Piloto, Em escala continuam a rampa, mas nascem DENTRO
 // de Concluídos (ver ramo abaixo), não como fases sequenciais independentes.
@@ -210,6 +202,7 @@ function MetricCard({
   )
 }
 
+<<<<<<< HEAD
 function StrategyCard({
   icon: Icon,
   title,
@@ -353,7 +346,7 @@ function StrategicGoalsCard() {
   )
 }
 
-export default function PipelineSlide({ data }: { data: WeeklyData }) {
+export default function PipelineSlide({ data, onMaximize }: { data: WeeklyData; onMaximize?: () => void }) {
   const slideRef = useRef<HTMLDivElement>(null)
   const [stageAberta, setStageAberta] = useState<string | null>(null)
   const experimentosNoPortfolio = data.conversaoDenominador
@@ -369,7 +362,7 @@ export default function PipelineSlide({ data }: { data: WeeklyData }) {
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-end">
-        <SlideDownloadButtons targetRef={slideRef} filename="weekly-pipeline-experimentos" />
+        <SlideDownloadButtons targetRef={slideRef} filename="weekly-pipeline-experimentos" onMaximize={onMaximize} />
       </div>
 
       {/* ═══ Slide 1280×720 (16:9 — dimensão de slide de PowerPoint) ═══ */}
@@ -425,8 +418,7 @@ export default function PipelineSlide({ data }: { data: WeeklyData }) {
           </div>
 
           {/* Funil principal — Backlog até Concluídos (experimentos já
-              aprovados, board de Experimentação). "Pendente para Análise"
-              (ideias cruas do board de Ideação) fica no slide 1. */}
+              aprovados, board de Experimentação). */}
           <div style={{ display: 'flex', gap: 10 }}>
             <div style={{ width: LABEL_COLUMN_WIDTH, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', paddingBottom: 66, flexShrink: 0 }}>
               <div style={{ fontSize: 10, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: 0.5, lineHeight: 1.4 }}>
@@ -445,7 +437,18 @@ export default function PipelineSlide({ data }: { data: WeeklyData }) {
               concluída; (2) Aguardando piloto/Piloto/Em escala nascem DENTRO
               do total de Concluídos, não são uma continuação sequencial. */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-            
+<div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <div style={{ width: FUNNEL_START_OFFSET, flexShrink: 0 }} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <Link2 size={11} color={RED} strokeWidth={2.5} />
+                <span style={{ fontSize: 9, fontWeight: 800, color: RED, textTransform: 'uppercase', letterSpacing: 0.3 }}>
+                  Em andamento + Concluídos = {data.emAndamentoMaisConcluidos}
+                </span>
+                <span style={{ fontSize: 9, color: '#9CA3AF' }}>
+                  de {data.experimentosAprovados} experimentos aprovados já em execução real ou concluída
+                </span>
+              </div>
+            </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <div style={{ width: FUNNEL_START_OFFSET, flexShrink: 0 }} />
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -507,14 +510,10 @@ export default function PipelineSlide({ data }: { data: WeeklyData }) {
         </div>
       </div>
 
-      <AprendizadosSlide data={data} />
-
-      <PatrocinadoresSlide data={data} />
-
       {/* Ver detalhes por etapa — fora do slide exportável: cada clique abre a
           lista de experimentos daquela fase, vinda do Jira, como slides
           tabulares próprios (reusa o mesmo padrão de IniciativasSlides). */}
-      <div className="flex flex-wrap items-center gap-2 mt-1">
+      <div className="no-print flex flex-wrap items-center gap-2 mt-1">
         <span className="flex items-center gap-1.5 text-xs font-semibold text-gray-400 uppercase tracking-wide mr-1">
           <ListFilter size={13} /> Ver detalhes:
         </span>
@@ -539,7 +538,7 @@ export default function PipelineSlide({ data }: { data: WeeklyData }) {
       </div>
 
       {stageAberta && (
-        <div className="mt-1">
+        <div className="no-print mt-1">
           {(() => {
             const stage = data.stages.find(s => s.id === stageAberta)!
             return <StageDetalhesSlides stageId={stage.id} stageLabel={stage.label} rows={stage.experimentos} />
