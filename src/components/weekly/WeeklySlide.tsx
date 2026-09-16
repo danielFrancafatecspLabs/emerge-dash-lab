@@ -87,7 +87,7 @@ export default function WeeklySlide() {
         </button>
       </div>
 
-      <GovernancaSlide data={data.governanca} onMaximize={() => setPresentIndex(0)} />
+      <GovernancaSlide data={data.governanca} onMaximize={() => setPresentIndex(0)} fitToContainer />
       <GovernancaSlide
         data={bloqueiosData}
         titulo="Bloqueios"
@@ -98,6 +98,7 @@ export default function WeeklySlide() {
         showBloqueioBadge={false}
         emptyState="Nenhum Epic bloqueado nesta semana."
         onMaximize={() => setPresentIndex(1)}
+        fitToContainer
       />
       <PipelineSlide data={data} onMaximize={() => setPresentIndex(2)} />
       <AprendizadosSlide data={data} onMaximize={() => setPresentIndex(3)} />

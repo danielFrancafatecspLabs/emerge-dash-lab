@@ -202,7 +202,6 @@ function MetricCard({
   )
 }
 
-<<<<<<< HEAD
 function StrategyCard({
   icon: Icon,
   title,

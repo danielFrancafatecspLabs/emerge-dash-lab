@@ -1,10 +1,10 @@
 'use client'
 
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   Star, Lock, Inbox, Search, Cog, CheckCircle2, FlaskConical, Rocket as StageRocket,
 } from 'lucide-react'
-import type { GovernancaData, GovernancaDot, TecnologiaCategoria } from '@/lib/governanca'
+import type { GovernancaData, GovernancaDot } from '@/lib/governanca'
 import type { EpicDetail } from '@/lib/types'
 import { SlideDownloadButtons } from '@/components/report/slideExport'
 import ExperimentoModal from '@/components/dashboard/ExperimentoModal'
@@ -18,30 +18,14 @@ export interface GovernancaTheme {
   ramp: string[]
 }
 
-// Paleta categórica (4 séries) validada com a skill de dataviz para uso em
-// "all-pairs" (chips espalhados livremente, não empilhados em ordem fixa):
-// node scripts/validate_palette.js "#e34948,#4a3aa7,#1baf7a,#2a78d6" --mode light --pairs all
-// → todos os checks passam (2 pares em WARN de CVD/contraste — por isso a
-// legenda abaixo é sempre visível com texto, nunca só cor, e cada chip já
-// mostra o nome do Epic ao lado do marcador).
-const TECNOLOGIA_COLORS: Record<TecnologiaCategoria, string> = {
-  'web3': '#e34948',
-  'ia-analytics': '#4a3aa7',
-  'future-network': '#1baf7a',
-  'outras': '#2a78d6',
-}
-const TECNOLOGIA_LABELS: Record<TecnologiaCategoria, string> = {
-  'web3': 'WEB 3',
-  'ia-analytics': 'A.I e Analytics',
-  'future-network': 'Future Network',
-  'outras': 'Outras Tecnologias',
-}
-const TECNOLOGIA_ORDER: TecnologiaCategoria[] = ['web3', 'ia-analytics', 'future-network', 'outras']
 const COLUMN_ICONS = [Inbox, Search, Cog, CheckCircle2, FlaskConical, StageRocket]
 
 const CHIP_HEIGHT = 19
 const CHIP_GAP = 2
-const CELL_WIDTH = 172
+// Preenche a largura útil do slide (1280 - padding lateral 24px*2 = 1232) com
+// as 6 colunas fixas + a coluna de Domínio + os gaps entre elas, sem sobrar
+// nem faltar espaço: 132 (domínio) + 6*178 + 6*5(gap) = 1230.
+const CELL_WIDTH = 178
 const DOMAIN_COL_WIDTH = 132
 const GRID_GAP = 5
 const HEADER_H = 44
@@ -80,7 +64,6 @@ function capacidadeCelula(rowHeightPx: number): number {
 const BADGE_SLOT_WIDTH = 20
 
 function Chip({ dot, showBloqueioBadge, onClick }: { dot: GovernancaDot; showBloqueioBadge: boolean; onClick: () => void }) {
-  const color = TECNOLOGIA_COLORS[dot.tecnologia]
   return (
     <button
       onClick={onClick}
@@ -91,7 +74,6 @@ function Chip({ dot, showBloqueioBadge, onClick }: { dot: GovernancaDot; showBlo
         background: '#FFFFFF', border: '1px solid #E5E7EB', borderRadius: 5, textAlign: 'left',
       }}
     >
-      <span style={{ width: 7, height: 7, borderRadius: '50%', background: color, flexShrink: 0 }} />
       <span style={{ fontSize: 9.5, fontWeight: 700, color: '#1F2937', lineHeight: 1, overflow: 'hidden', whiteSpace: 'nowrap', flex: 1, minWidth: 0 }}>
         {truncate(dot.epic.nome, 20)}
       </span>
@@ -131,11 +113,6 @@ function SummaryTile({ dots, dominio, colunaLabel, theme, showBloqueioBadge, onC
   showBloqueioBadge: boolean
   onClick: () => void
 }) {
-  const porTecnologia = useMemo(() => {
-    const counts = new Map<TecnologiaCategoria, number>()
-    for (const d of dots) counts.set(d.tecnologia, (counts.get(d.tecnologia) ?? 0) + 1)
-    return TECNOLOGIA_ORDER.filter(t => (counts.get(t) ?? 0) > 0).map(t => ({ t, n: counts.get(t)! }))
-  }, [dots])
   const nPrioridade = dots.filter(d => d.prioridade).length
   const nBloqueio = showBloqueioBadge ? dots.filter(d => d.bloqueio).length : 0
 
@@ -151,11 +128,6 @@ function SummaryTile({ dots, dominio, colunaLabel, theme, showBloqueioBadge, onC
     >
       <span style={{ fontSize: 12, fontWeight: 800, color: theme.accent, lineHeight: 1, flexShrink: 0 }}>
         {dots.length}
-      </span>
-      <span style={{ display: 'flex', gap: 2, flexShrink: 0 }}>
-        {porTecnologia.map(({ t, n }) => (
-          <span key={t} style={{ width: 7, height: 7, borderRadius: '50%', background: TECNOLOGIA_COLORS[t] }} title={`${n} ${TECNOLOGIA_LABELS[t]}`} />
-        ))}
       </span>
       {(nPrioridade > 0 || nBloqueio > 0) && (
         <span style={{ display: 'flex', gap: 4, fontSize: 8, fontWeight: 700, color: '#6B7280', marginLeft: 'auto', flexShrink: 0 }}>
@@ -224,6 +196,7 @@ export default function GovernancaSlide({
   showBloqueioBadge = true,
   emptyState,
   onMaximize,
+  fitToContainer = false,
 }: {
   data: GovernancaData
   titulo?: string
@@ -234,10 +207,32 @@ export default function GovernancaSlide({
   showBloqueioBadge?: boolean
   emptyState?: string
   onMaximize?: () => void
+  // Escala o card 1280×720 para preencher a largura do container (via CSS
+  // transform num ANCESTRAL do nó exportado, não no próprio nó — o mesmo
+  // truque já usado em PresentationOverlay). Usado só na renderização normal
+  // em tela: dentro do PresentationOverlay o próprio overlay já escala o
+  // slide inteiro, então aqui NÃO passamos essa prop, pra não escalar 2x.
+  fitToContainer?: boolean
 }) {
   const slideRef = useRef<HTMLDivElement>(null)
+  const outerRef = useRef<HTMLDivElement>(null)
+  const [scale, setScale] = useState(1)
   const [selectedEpic, setSelectedEpic] = useState<EpicDetail | null>(null)
   const [selectedCell, setSelectedCell] = useState<{ title: string; epics: EpicDetail[] } | null>(null)
+
+  useEffect(() => {
+    if (!fitToContainer) return
+    const el = outerRef.current
+    if (!el) return
+    function computeScale() {
+      const w = el!.getBoundingClientRect().width
+      if (w > 0) setScale(w / 1280)
+    }
+    computeScale()
+    const ro = new ResizeObserver(computeScale)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [fitToContainer])
 
   // Altura de linha em px FIXO (não flex:1/flexBasis:0) de propósito: o
   // html2canvas usado no export não respeita flex-grow+maxHeight em linhas
@@ -253,6 +248,11 @@ export default function GovernancaSlide({
   const extraPorLinha = (numRows - 1) * GRID_GAP
   const rowHeight = Math.max(30, Math.floor((rowsArea - extraPorLinha) / numRows))
 
+  // Mesmo gridTemplateColumns usado na régua (cabeçalho) e em cada linha do
+  // corpo — garante que as colunas caiam exatamente no mesmo x nos dois
+  // blocos (ver comentário na régua, abaixo).
+  const GRID_TEMPLATE_COLUMNS = `${DOMAIN_COL_WIDTH}px repeat(${data.columns.length}, ${CELL_WIDTH}px)`
+
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-end">
@@ -260,14 +260,17 @@ export default function GovernancaSlide({
       </div>
 
       {/* ═══ Slide 1280×720 (16:9 — dimensão de slide de PowerPoint) ═══ */}
-      <div className="rounded-2xl shadow-xl" style={{ width: 1280, overflow: 'hidden', boxShadow: '0 12px 40px rgba(17,24,39,0.14)' }}>
-        <div
-          ref={slideRef}
-          style={{
-            width: 1280, height: 720, background: '#FFFFFF', padding: '20px 24px 16px',
-            boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: 8,
-          }}
-        >
+      <div ref={outerRef} style={{ width: fitToContainer ? '100%' : 1280 }}>
+        <div style={fitToContainer ? { width: 1280 * scale, height: 720 * scale } : undefined}>
+          <div style={fitToContainer ? { transform: `scale(${scale})`, transformOrigin: 'top left' } : undefined}>
+            <div className="rounded-2xl shadow-xl" style={{ width: 1280, overflow: 'hidden', boxShadow: '0 12px 40px rgba(17,24,39,0.14)' }}>
+              <div
+                ref={slideRef}
+                style={{
+                  width: 1280, height: 720, background: '#FFFFFF', padding: '20px 24px 16px',
+                  boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: 8,
+                }}
+              >
           {/* Cabeçalho */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
@@ -293,34 +296,23 @@ export default function GovernancaSlide({
             </div>
           </div>
 
-          {/* Legendas: sub-status + tipo de tecnologia */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 9.5, borderTop: '1px solid #F3F4F6', borderBottom: '1px solid #F3F4F6', padding: '6px 2px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-              <span style={{ fontWeight: 800, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: 0.5, fontSize: 9 }}>Sub-status</span>
-              <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                <span style={{ width: 11, height: 11, borderRadius: '50%', background: '#FBBF24', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Star size={7} color="#78350F" strokeWidth={3} fill="#78350F" />
-                </span>
-                <span style={{ color: '#374151', fontWeight: 600 }}>Prioridade</span>
+          {/* Legenda: sub-status */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14, fontSize: 9.5, borderTop: '1px solid #F3F4F6', borderBottom: '1px solid #F3F4F6', padding: '6px 2px' }}>
+            <span style={{ fontWeight: 800, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: 0.5, fontSize: 9 }}>Sub-status</span>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <span style={{ width: 11, height: 11, borderRadius: '50%', background: '#FBBF24', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Star size={7} color="#78350F" strokeWidth={3} fill="#78350F" />
               </span>
-              {showBloqueioBadge && (
-                <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                  <span style={{ width: 11, height: 11, borderRadius: '50%', background: '#111827', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <Lock size={7} color="#FFFFFF" strokeWidth={3} />
-                  </span>
-                  <span style={{ color: '#374151', fontWeight: 600 }}>Bloqueio</span>
+              <span style={{ color: '#374151', fontWeight: 600 }}>Prioridade</span>
+            </span>
+            {showBloqueioBadge && (
+              <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                <span style={{ width: 11, height: 11, borderRadius: '50%', background: '#111827', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Lock size={7} color="#FFFFFF" strokeWidth={3} />
                 </span>
-              )}
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <span style={{ fontWeight: 800, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: 0.5, fontSize: 9 }}>Tipo de Tecnologia</span>
-              {TECNOLOGIA_ORDER.map(t => (
-                <span key={t} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                  <span style={{ width: 9, height: 9, borderRadius: '50%', background: TECNOLOGIA_COLORS[t], flexShrink: 0 }} />
-                  <span style={{ color: '#374151', fontWeight: 600 }}>{TECNOLOGIA_LABELS[t]}</span>
-                </span>
-              ))}
-            </div>
+                <span style={{ color: '#374151', fontWeight: 600 }}>Bloqueio</span>
+              </span>
+            )}
           </div>
 
           {/* Esteira de experimentação — cabeçalho das colunas em formato de
@@ -328,9 +320,19 @@ export default function GovernancaSlide({
               deixando visualmente claro que é uma esteira única: as 3
               primeiras fases olham o status do próprio Epic (board de
               Experimentação); as 3 últimas, o status da Iniciativa-mãe no
-              board de Ideação. */}
-          <div style={{ display: 'flex' }}>
-            <div style={{ width: DOMAIN_COL_WIDTH, flexShrink: 0, display: 'flex', alignItems: 'flex-end', paddingBottom: 4 }}>
+              board de Ideação.
+              CSS Grid com o MESMO gridTemplateColumns das linhas do corpo
+              (ver abaixo) — de propósito: a régua usava flex sem gap com
+              sobreposição por marginLeft negativo, enquanto as linhas do
+              corpo usavam flex COM gap, dois cálculos de largura diferentes
+              que divergiam progressivamente coluna a coluna (até ~80px na
+              última). Isso fazia a régua terminar antes do fim real das
+              colunas e os chips aparecerem sob a cor errada. Com o mesmo
+              grid nos dois, cada coluna cai exatamente no mesmo x nos dois
+              blocos — o marginLeft negativo abaixo agora é só cosmético
+              (efeito de seta conectada), não afeta mais o alinhamento. */}
+          <div style={{ display: 'grid', gridTemplateColumns: GRID_TEMPLATE_COLUMNS, columnGap: GRID_GAP }}>
+            <div style={{ display: 'flex', alignItems: 'flex-end', paddingBottom: 4 }}>
               <span style={{ fontSize: 9.5, fontWeight: 800, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: 0.5 }}>
                 Domínio
               </span>
@@ -347,7 +349,7 @@ export default function GovernancaSlide({
               const Icon = COLUMN_ICONS[i]
               return (
                 <div key={col.id} style={{
-                  width: CELL_WIDTH, flexShrink: 0, marginLeft: isFirst ? 0 : -notch, clipPath,
+                  marginLeft: isFirst ? 0 : -notch, clipPath,
                   background: theme.ramp[i], boxSizing: 'border-box',
                   paddingLeft: isFirst ? 10 : notch + 8, paddingRight: isLast ? 8 : notch + 10,
                   paddingTop: 5, paddingBottom: 5,
@@ -380,11 +382,11 @@ export default function GovernancaSlide({
             <div style={{ display: 'flex', flexDirection: 'column', gap: GRID_GAP, overflow: 'hidden' }}>
               {data.domains.map((row, i) => (
                 <div key={row.dominio} style={{
-                  display: 'flex', gap: GRID_GAP, height: rowHeight, flexShrink: 0,
+                  display: 'grid', gridTemplateColumns: GRID_TEMPLATE_COLUMNS, columnGap: GRID_GAP, height: rowHeight,
                   borderTop: i === 0 ? 'none' : '1px solid #F3F4F6', paddingTop: i === 0 ? 0 : GRID_GAP,
                 }}>
                   <div style={{
-                    width: DOMAIN_COL_WIDTH, flexShrink: 0, display: 'flex', alignItems: 'center', gap: 6,
+                    display: 'flex', alignItems: 'center', gap: 6, minWidth: 0,
                     fontSize: 10.5, fontWeight: 800, color: '#111827', letterSpacing: 0.1,
                   }}>
                     <span style={{
@@ -412,6 +414,9 @@ export default function GovernancaSlide({
               ))}
             </div>
           )}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
