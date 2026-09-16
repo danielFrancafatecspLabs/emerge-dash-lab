@@ -232,7 +232,7 @@ function buildTopMotivosCancelamento(
  *   foi concluído — Backlog (não começou) e Cancelados (não seguiu) ficam de
  *   fora dessa leitura.
  */
-export function buildWeeklyData(data: DashboardData, epicChangelogs: Record<string, ChangelogEntry[]> = {}): WeeklyData {
+export function buildWeeklyData(data: DashboardData, epicChangelogs: Record<string, ChangelogEntry[]> = {}, board2735Config?: unknown): WeeklyData {
   // Pendente para Análise: Iniciativas do board de Ideação (ainda não são
   // experimento) — usado só no card à parte, não no funil.
   const pendenteAnaliseInis = data.iniciativas.filter(i =>
@@ -338,7 +338,7 @@ export function buildWeeklyData(data: DashboardData, epicChangelogs: Record<stri
   return {
     geradoEm: new Date().toISOString(),
     isSample: false,
-    governanca: buildGovernancaData(data),
+    governanca: buildGovernancaData(data, board2735Config),
     stages,
     pendenteAnalise,
     experimentosAprovados,
