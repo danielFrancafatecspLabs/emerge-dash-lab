@@ -39,12 +39,12 @@ const TECNOLOGIA_LABELS: Record<TecnologiaCategoria, string> = {
 const TECNOLOGIA_ORDER: TecnologiaCategoria[] = ['web3', 'ia-analytics', 'future-network', 'outras']
 const COLUMN_ICONS = [Inbox, Search, Cog, CheckCircle2, FlaskConical, StageRocket]
 
-const CHIP_HEIGHT = 17
+const CHIP_HEIGHT = 19
 const CHIP_GAP = 2
 const CELL_WIDTH = 172
 const DOMAIN_COL_WIDTH = 132
 const GRID_GAP = 5
-const HEADER_H = 40
+const HEADER_H = 44
 
 // Trunca em JS (não CSS text-overflow:ellipsis) — essa combinação já
 // vazou texto por cima de vizinhos numa exportação anterior deste projeto
@@ -91,25 +91,25 @@ function Chip({ dot, showBloqueioBadge, onClick }: { dot: GovernancaDot; showBlo
         background: '#FFFFFF', border: '1px solid #E5E7EB', borderRadius: 5, textAlign: 'left',
       }}
     >
-      <span style={{ width: 6, height: 6, borderRadius: '50%', background: color, flexShrink: 0 }} />
-      <span style={{ fontSize: 8.5, fontWeight: 700, color: '#1F2937', lineHeight: 1, overflow: 'hidden', whiteSpace: 'nowrap', flex: 1, minWidth: 0 }}>
+      <span style={{ width: 7, height: 7, borderRadius: '50%', background: color, flexShrink: 0 }} />
+      <span style={{ fontSize: 9.5, fontWeight: 700, color: '#1F2937', lineHeight: 1, overflow: 'hidden', whiteSpace: 'nowrap', flex: 1, minWidth: 0 }}>
         {truncate(dot.epic.nome, 20)}
       </span>
       <span style={{ width: BADGE_SLOT_WIDTH, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 2 }}>
         {dot.prioridade && (
           <span style={{
-            width: 9, height: 9, borderRadius: '50%', background: '#FBBF24', flexShrink: 0,
+            width: 10, height: 10, borderRadius: '50%', background: '#FBBF24', flexShrink: 0,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
-            <Star size={5} color="#78350F" strokeWidth={3} fill="#78350F" />
+            <Star size={6} color="#78350F" strokeWidth={3} fill="#78350F" />
           </span>
         )}
         {dot.bloqueio && showBloqueioBadge && (
           <span style={{
-            width: 9, height: 9, borderRadius: '50%', background: '#111827', flexShrink: 0,
+            width: 10, height: 10, borderRadius: '50%', background: '#111827', flexShrink: 0,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
-            <Lock size={5} color="#FFFFFF" strokeWidth={3} />
+            <Lock size={6} color="#FFFFFF" strokeWidth={3} />
           </span>
         )}
       </span>
@@ -149,16 +149,16 @@ function SummaryTile({ dots, dominio, colunaLabel, theme, showBloqueioBadge, onC
         background: theme.accentLighter, border: `1px solid ${theme.accentLight}`, borderRadius: 5, textAlign: 'left',
       }}
     >
-      <span style={{ fontSize: 10.5, fontWeight: 800, color: theme.accent, lineHeight: 1, flexShrink: 0 }}>
+      <span style={{ fontSize: 12, fontWeight: 800, color: theme.accent, lineHeight: 1, flexShrink: 0 }}>
         {dots.length}
       </span>
       <span style={{ display: 'flex', gap: 2, flexShrink: 0 }}>
         {porTecnologia.map(({ t, n }) => (
-          <span key={t} style={{ width: 6, height: 6, borderRadius: '50%', background: TECNOLOGIA_COLORS[t] }} title={`${n} ${TECNOLOGIA_LABELS[t]}`} />
+          <span key={t} style={{ width: 7, height: 7, borderRadius: '50%', background: TECNOLOGIA_COLORS[t] }} title={`${n} ${TECNOLOGIA_LABELS[t]}`} />
         ))}
       </span>
       {(nPrioridade > 0 || nBloqueio > 0) && (
-        <span style={{ display: 'flex', gap: 4, fontSize: 7, fontWeight: 700, color: '#6B7280', marginLeft: 'auto', flexShrink: 0 }}>
+        <span style={{ display: 'flex', gap: 4, fontSize: 8, fontWeight: 700, color: '#6B7280', marginLeft: 'auto', flexShrink: 0 }}>
           {nPrioridade > 0 && <span>★{nPrioridade}</span>}
           {nBloqueio > 0 && <span>⛔{nBloqueio}</span>}
         </span>
@@ -223,6 +223,7 @@ export default function GovernancaSlide({
   theme = DEFAULT_THEME,
   showBloqueioBadge = true,
   emptyState,
+  onMaximize,
 }: {
   data: GovernancaData
   titulo?: string
@@ -232,6 +233,7 @@ export default function GovernancaSlide({
   theme?: GovernancaTheme
   showBloqueioBadge?: boolean
   emptyState?: string
+  onMaximize?: () => void
 }) {
   const slideRef = useRef<HTMLDivElement>(null)
   const [selectedEpic, setSelectedEpic] = useState<EpicDetail | null>(null)
@@ -244,14 +246,17 @@ export default function GovernancaSlide({
   // px fixo, calculado a partir dos mesmos números usados no layout, reproduz
   // igual nos dois casos.
   const numRows = Math.max(1, data.domains.length)
-  const rowsArea = 720 - 20 - 16 /* padding do slide */ - 46 /* cabeçalho */ - 15 /* legenda */ - HEADER_H - 8 * 3 /* gaps entre blocos */
-  const extraPorLinha = (numRows - 1) * (GRID_GAP * 2) /* gap da linha + paddingTop da borda */
+  const rowsArea = 720 - 20 - 16 /* padding do slide */ - 57 /* cabeçalho, medido */ - 29 /* legenda, medida */ - HEADER_H - 8 * 3 /* gaps entre blocos */
+  // Só o gap do flex entre linhas conta como altura extra — o paddingTop da
+  // borda de separação NÃO soma (box-sizing:border-box faz o padding caber
+  // dentro da altura fixa da própria linha, não crescer o container).
+  const extraPorLinha = (numRows - 1) * GRID_GAP
   const rowHeight = Math.max(30, Math.floor((rowsArea - extraPorLinha) / numRows))
 
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-end">
-        <SlideDownloadButtons targetRef={slideRef} filename={filename} />
+        <SlideDownloadButtons targetRef={slideRef} filename={filename} onMaximize={onMaximize} />
       </div>
 
       {/* ═══ Slide 1280×720 (16:9 — dimensão de slide de PowerPoint) ═══ */}
@@ -266,52 +271,52 @@ export default function GovernancaSlide({
           {/* Cabeçalho */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
-              <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: 2, color: '#9CA3AF', textTransform: 'uppercase' }}>
+              <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 2, color: '#9CA3AF', textTransform: 'uppercase' }}>
                 Jornada de Experimentação · Weekly
               </div>
-              <div style={{ fontSize: 22, fontWeight: 800, color: '#111827', marginTop: 3, letterSpacing: -0.3 }}>
+              <div style={{ fontSize: 25, fontWeight: 800, color: '#111827', marginTop: 3, letterSpacing: -0.3 }}>
                 {titulo} <span style={{ color: theme.accent }}>{tituloDestaque}</span>
               </div>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
               <div style={{ textAlign: 'right' }}>
-                <div style={{ fontSize: 9, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                <div style={{ fontSize: 10, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: 0.5 }}>
                   {totalLabel}
                 </div>
-                <div style={{ fontSize: 26, fontWeight: 800, color: theme.accent, lineHeight: 1 }}>
+                <div style={{ fontSize: 29, fontWeight: 800, color: theme.accent, lineHeight: 1 }}>
                   {data.totalEpics}
                 </div>
               </div>
-              <div style={{ width: 1, height: 34, background: '#E5E7EB' }} />
+              <div style={{ width: 1, height: 36, background: '#E5E7EB' }} />
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/jira/logobeonlabs.png" alt="beOn Labs" style={{ height: 30, width: 'auto' }} />
+              <img src="/jira/logobeonlabs.png" alt="beOn Labs" style={{ height: 32, width: 'auto' }} />
             </div>
           </div>
 
           {/* Legendas: sub-status + tipo de tecnologia */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 8.5, borderTop: '1px solid #F3F4F6', borderBottom: '1px solid #F3F4F6', padding: '5px 2px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 9.5, borderTop: '1px solid #F3F4F6', borderBottom: '1px solid #F3F4F6', padding: '6px 2px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-              <span style={{ fontWeight: 800, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: 0.5, fontSize: 8 }}>Sub-status</span>
+              <span style={{ fontWeight: 800, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: 0.5, fontSize: 9 }}>Sub-status</span>
               <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#FBBF24', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Star size={6} color="#78350F" strokeWidth={3} fill="#78350F" />
+                <span style={{ width: 11, height: 11, borderRadius: '50%', background: '#FBBF24', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Star size={7} color="#78350F" strokeWidth={3} fill="#78350F" />
                 </span>
                 <span style={{ color: '#374151', fontWeight: 600 }}>Prioridade</span>
               </span>
               {showBloqueioBadge && (
                 <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                  <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#111827', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <Lock size={6} color="#FFFFFF" strokeWidth={3} />
+                  <span style={{ width: 11, height: 11, borderRadius: '50%', background: '#111827', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Lock size={7} color="#FFFFFF" strokeWidth={3} />
                   </span>
                   <span style={{ color: '#374151', fontWeight: 600 }}>Bloqueio</span>
                 </span>
               )}
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <span style={{ fontWeight: 800, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: 0.5, fontSize: 8 }}>Tipo de Tecnologia</span>
+              <span style={{ fontWeight: 800, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: 0.5, fontSize: 9 }}>Tipo de Tecnologia</span>
               {TECNOLOGIA_ORDER.map(t => (
                 <span key={t} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: TECNOLOGIA_COLORS[t], flexShrink: 0 }} />
+                  <span style={{ width: 9, height: 9, borderRadius: '50%', background: TECNOLOGIA_COLORS[t], flexShrink: 0 }} />
                   <span style={{ color: '#374151', fontWeight: 600 }}>{TECNOLOGIA_LABELS[t]}</span>
                 </span>
               ))}
@@ -326,7 +331,7 @@ export default function GovernancaSlide({
               board de Ideação. */}
           <div style={{ display: 'flex' }}>
             <div style={{ width: DOMAIN_COL_WIDTH, flexShrink: 0, display: 'flex', alignItems: 'flex-end', paddingBottom: 4 }}>
-              <span style={{ fontSize: 8.5, fontWeight: 800, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+              <span style={{ fontSize: 9.5, fontWeight: 800, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: 0.5 }}>
                 Domínio
               </span>
             </div>
@@ -348,12 +353,12 @@ export default function GovernancaSlide({
                   paddingTop: 5, paddingBottom: 5,
                   display: 'flex', alignItems: 'center', gap: 5, height: HEADER_H,
                 }}>
-                  <Icon size={13} color="#FFFFFF" strokeWidth={2.25} style={{ flexShrink: 0 }} />
+                  <Icon size={15} color="#FFFFFF" strokeWidth={2.25} style={{ flexShrink: 0 }} />
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 8, fontWeight: 800, color: '#FFFFFF', lineHeight: 1.15, width: '100%', overflowWrap: 'break-word' }}>
+                    <div style={{ fontSize: 9, fontWeight: 800, color: '#FFFFFF', lineHeight: 1.15, width: '100%', overflowWrap: 'break-word' }}>
                       {truncate(col.label, 16)}
                     </div>
-                    <div style={{ fontSize: 12, fontWeight: 800, color: '#FFFFFF', lineHeight: 1.2 }}>{col.total}</div>
+                    <div style={{ fontSize: 14, fontWeight: 800, color: '#FFFFFF', lineHeight: 1.2 }}>{col.total}</div>
                   </div>
                 </div>
               )
@@ -380,11 +385,11 @@ export default function GovernancaSlide({
                 }}>
                   <div style={{
                     width: DOMAIN_COL_WIDTH, flexShrink: 0, display: 'flex', alignItems: 'center', gap: 6,
-                    fontSize: 9.5, fontWeight: 800, color: '#111827', letterSpacing: 0.1,
+                    fontSize: 10.5, fontWeight: 800, color: '#111827', letterSpacing: 0.1,
                   }}>
                     <span style={{
-                      width: 18, height: 18, borderRadius: '50%', background: theme.accentLight, color: theme.accent,
-                      fontSize: 8.5, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                      width: 20, height: 20, borderRadius: '50%', background: theme.accentLight, color: theme.accent,
+                      fontSize: 9.5, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
                     }}>
                       {row.total}
                     </span>
