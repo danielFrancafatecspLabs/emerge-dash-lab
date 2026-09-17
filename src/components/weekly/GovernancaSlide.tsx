@@ -10,6 +10,7 @@ import { SlideDownloadButtons } from '@/components/report/slideExport'
 import ExperimentoModal from '@/components/dashboard/ExperimentoModal'
 import EpicModal from '@/components/dashboard/EpicModal'
 import { CLARO_RED, CLARO_LIGHT, CLARO_LIGHTER, RAMP } from './palette'
+import { formatBeneficioMM } from '@/lib/report-utils'
 
 export interface GovernancaTheme {
   accent: string
@@ -197,6 +198,11 @@ export default function GovernancaSlide({
   emptyState,
   onMaximize,
   fitToContainer = false,
+  // Big numbers opcionais para exibir no cabeçalho
+  beneficioPotencial,
+  experimentosConcluidos,
+  experimentosCancelados,
+  totalEpicsGeral,
 }: {
   data: GovernancaData
   titulo?: string
@@ -207,6 +213,10 @@ export default function GovernancaSlide({
   showBloqueioBadge?: boolean
   emptyState?: string
   onMaximize?: () => void
+  beneficioPotencial?: string
+  experimentosConcluidos?: number
+  experimentosCancelados?: number
+  totalEpicsGeral?: number
   // Escala o card 1280×720 para preencher a largura do container (via CSS
   // transform num ANCESTRAL do nó exportado, não no próprio nó — o mesmo
   // truque já usado em PresentationOverlay). Usado só na renderização normal
@@ -281,15 +291,60 @@ export default function GovernancaSlide({
                 {titulo} <span style={{ color: theme.accent }}>{tituloDestaque}</span>
               </div>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              {/* Total de Epics */}
               <div style={{ textAlign: 'right' }}>
                 <div style={{ fontSize: 10, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: 0.5 }}>
                   {totalLabel}
                 </div>
                 <div style={{ fontSize: 29, fontWeight: 800, color: theme.accent, lineHeight: 1 }}>
-                  {data.totalEpics}
+                  {totalEpicsGeral ?? data.totalEpics}
                 </div>
               </div>
+
+              {/* Big numbers: Benefício Potencial, Concluídos, Cancelados */}
+              {beneficioPotencial !== undefined && (
+                <>
+                  <div style={{ width: 1, height: 32, background: '#E5E7EB' }} />
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontSize: 8, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: 0.4, lineHeight: 1.2 }}>
+                      Benefício potencial
+                    </div>
+                    <div style={{ fontSize: 18, fontWeight: 800, color: '#DC2626', lineHeight: 1.1 }}>
+                      {formatBeneficioMM(Number(beneficioPotencial))}
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {experimentosConcluidos !== undefined && (
+                <>
+                  <div style={{ width: 1, height: 32, background: '#E5E7EB' }} />
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontSize: 8, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: 0.4, lineHeight: 1.2 }}>
+                      Concluídos
+                    </div>
+                    <div style={{ fontSize: 18, fontWeight: 800, color: '#059669', lineHeight: 1.1 }}>
+                      {experimentosConcluidos}
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {experimentosCancelados !== undefined && (
+                <>
+                  <div style={{ width: 1, height: 32, background: '#E5E7EB' }} />
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontSize: 8, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: 0.4, lineHeight: 1.2 }}>
+                      Cancelados
+                    </div>
+                    <div style={{ fontSize: 18, fontWeight: 800, color: '#DC2626', lineHeight: 1.1 }}>
+                      {experimentosCancelados}
+                    </div>
+                  </div>
+                </>
+              )}
+
               <div style={{ width: 1, height: 36, background: '#E5E7EB' }} />
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src="/jira/logobeonlabs.png" alt="beOn Labs" style={{ height: 32, width: 'auto' }} />

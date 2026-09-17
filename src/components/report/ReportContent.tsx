@@ -67,6 +67,8 @@ interface ReportContentProps {
   conversaoPiloto: string
   conversaoEscala: string
   beneficioPotencialEstimado: number
+  experimentosConcluidos: number
+  experimentosCancelados: number
 }
 
 function formatCurrency(v: number): string {
@@ -97,6 +99,8 @@ export default function ReportContent({
   conversaoPiloto,
   conversaoEscala,
   beneficioPotencialEstimado,
+  experimentosConcluidos,
+  experimentosCancelados,
 }: ReportContentProps) {
 
   const [deliveryData, setDeliveryData] = useState(initialDelivery)
@@ -232,38 +236,30 @@ export default function ReportContent({
       </div>
 
       {/* ═══════════════ BIG NUMBERS ═══════════════ */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+      <div className="grid grid-cols-3 gap-3 md:gap-4">
         <div className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
           <div className="flex items-center gap-2 mb-1">
             <Zap size={16} className="text-amber-500" />
-            <p className="text-xs text-gray-400 uppercase tracking-wider">Total Iniciativas</p>
+            <p className="text-xs text-gray-400 uppercase tracking-wider">Benefício Potencial</p>
           </div>
-          <p className="text-3xl font-bold text-gray-800">{totalIniciativasPipeline}</p>
-          <p className="text-xs text-gray-400 mt-1">no pipeline de inovação</p>
+          <p className="text-2xl font-bold text-amber-600">{formatCurrency(beneficioPotencialEstimado)}</p>
+          <p className="text-xs text-gray-400 mt-1">estimado do portfólio</p>
         </div>
         <div className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
           <div className="flex items-center gap-2 mb-1">
-            <TrendingUp size={16} className="text-blue-500" />
-            <p className="text-xs text-gray-400 uppercase tracking-wider">Em Piloto/Escala</p>
+            <CheckCircle2 size={16} className="text-emerald-500" />
+            <p className="text-xs text-gray-400 uppercase tracking-wider">Concluídos</p>
           </div>
-          <p className="text-3xl font-bold text-blue-600">{iniciativasEmPilotoOuEscala}</p>
-          <p className="text-xs text-gray-400 mt-1">iniciativas (Piloto + Escala)</p>
-        </div>
-        <div className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
-          <div className="flex items-center gap-2 mb-1">
-            <Target size={16} className="text-green-500" />
-            <p className="text-xs text-gray-400 uppercase tracking-wider">Conversão → Piloto</p>
-          </div>
-          <p className="text-3xl font-bold text-green-600">{conversaoPiloto}</p>
-          <p className="text-xs text-gray-400 mt-1">iniciativas → Piloto/Escala</p>
+          <p className="text-3xl font-bold text-emerald-600">{experimentosConcluidos}</p>
+          <p className="text-xs text-gray-400 mt-1">experimentos concluídos</p>
         </div>
         <div className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
           <div className="flex items-center gap-2 mb-1">
             <AlertTriangle size={16} className="text-red-500" />
-            <p className="text-xs text-gray-400 uppercase tracking-wider">Benefício Potencial</p>
+            <p className="text-xs text-gray-400 uppercase tracking-wider">Cancelados</p>
           </div>
-          <p className="text-2xl font-bold text-red-600">{formatCurrency(beneficioPotencialEstimado)}</p>
-          <p className="text-xs text-gray-400 mt-1">estimado do portfólio</p>
+          <p className="text-3xl font-bold text-red-600">{experimentosCancelados}</p>
+          <p className="text-xs text-gray-400 mt-1">experimentos cancelados</p>
         </div>
       </div>
 

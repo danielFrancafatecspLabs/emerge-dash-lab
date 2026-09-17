@@ -59,6 +59,8 @@ export interface WeeklyData {
   semSponsor: { count: number; pct: number }
   topSponsors: WeeklyRanking[]       // top 6 sponsors por quantidade de experimentos (todas as fases do funil)
   topDiretorias: WeeklyRanking[]     // top 6 diretorias/domínios por quantidade de experimentos (idem)
+  experimentosConcluidos: number     // Epics no board de Experimentação com status Concluído
+  experimentosCancelados: number     // Epics no board de Experimentação com status Cancelado
   aprendizadosSemEscalar: number     // Concluídos - (Aguardando piloto + Piloto + Em escala): geraram aprendizado mas não seguiram adiante
   aprendizadosAcionaveis: number
   insightPrincipal: string    // maior gargalo do funil (conversão piloto -> escala)
@@ -465,6 +467,8 @@ export function buildWeeklyData(data: DashboardData, epicChangelogs: Record<stri
     semSponsor: { count: semSponsorCount, pct: pct(semSponsorCount, totalEpics) },
     topSponsors,
     topDiretorias,
+    experimentosConcluidos: concluidosCount,
+    experimentosCancelados: canceladosCount,
     aprendizadosSemEscalar,
     aprendizadosAcionaveis,
     insightPrincipal: principal,
@@ -597,6 +601,8 @@ export const SAMPLE_WEEKLY_DATA: WeeklyData = {
   semSponsor: { count: 29, pct: pct(29, SAMPLE_TOTAL_EPICS) },
   topSponsors: SAMPLE_TOP_SPONSORS,
   topDiretorias: SAMPLE_TOP_DIRETORIAS,
+  experimentosConcluidos: 42,
+  experimentosCancelados: 31,
   aprendizadosSemEscalar: SAMPLE_APRENDIZADOS_SEM_ESCALAR,
   aprendizadosAcionaveis: SAMPLE_APRENDIZADOS,
   insightPrincipal: SAMPLE_INSIGHTS.principal,
