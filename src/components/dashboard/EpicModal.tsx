@@ -16,16 +16,11 @@ const COLS: { label: string; render: (e: EpicDetail) => string | null }[] = [
   { label: 'Experimento',   render: e => e.nome },
   { label: 'Status',        render: e => e.status.name },
   { label: 'Domínio',       render: e => e.dominio },
-  { label: 'Meta',          render: e => e.metaCategoria },
   { label: 'Sponsor',       render: e => e.sponsor },
-  { label: 'BO',            render: e => e.bo },
-  { label: 'Complexidade',  render: e => e.complexidade },
   { label: 'Time',          render: e => e.timeResponsavel },
-  { label: 'Diretoria',     render: e => e.diretoria },
   { label: 'Benef. Quant.', render: e => e.beneficioQuantitativo ? formatBRL(e.beneficioQuantitativo) : null },
-  { label: 'Benef. Qual.',  render: e => e.beneficioQualitativo },
-  { label: 'Custo Est.',    render: e => e.custoEstimado ? formatBRL(e.custoEstimado) : null },
-  { label: 'Custo Real.',   render: e => e.custoRealizado },
+  { label: 'Segmento',      render: e => e.segmento },
+  { label: 'Portfólio',     render: e => e.portfolio },
 ]
 
 export default function EpicModal({ title, epics, onClose }: Props) {
