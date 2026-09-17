@@ -74,15 +74,17 @@ export default function StageDetalhesSlides({ stageId, stageLabel, rows }: Props
 
               <table className="w-full border-collapse" style={{ tableLayout: 'fixed' }}>
                 <colgroup>
-                  <col style={{ width: '22%' }} />
-                  <col style={{ width: '33%' }} />
-                  <col style={{ width: '12%' }} />
-                  <col style={{ width: '20%' }} />
-                  <col style={{ width: '13%' }} />
+                  <col style={{ width: '18%' }} />
+                  <col style={{ width: '25%' }} />
+                  <col style={{ width: '9%' }} />
+                  <col style={{ width: '11%' }} />
+                  <col style={{ width: '11%' }} />
+                  <col style={{ width: '15%' }} />
+                  <col style={{ width: '11%' }} />
                 </colgroup>
                 <thead>
                   <tr className="align-bottom">
-                    {['Nome da Iniciativa', 'Objetivo', 'Fase', 'Sponsor / Domínio', 'Benefício Potencial'].map(h => (
+                    {['Nome da Iniciativa', 'Objetivo', 'Fase', 'Previsão de Conclusão', 'Lab', 'Sponsor / Domínio', 'Benefício Potencial'].map(h => (
                       <th
                         key={h}
                         className="pb-2.5 font-bold text-gray-500 uppercase text-left"
@@ -94,7 +96,12 @@ export default function StageDetalhesSlides({ stageId, stageLabel, rows }: Props
                   </tr>
                 </thead>
                 <tbody>
-                  {pageRows.map((row, i) => (
+                  {pageRows.map((row, i) => {
+                    const temBloqueio = !!row.motivoBloqueio
+                    const dataLimite = row.duedate
+                      ? new Date(row.duedate).toLocaleDateString('pt-BR', { timeZone: 'UTC' })
+                      : null
+                    return (
                     <tr key={row.key} className={i < pageRows.length - 1 ? 'border-b' : ''} style={{ borderColor: '#F3F4F6' }}>
                       <td className="py-3 pr-3 align-top">
                         <p className="font-bold text-gray-900" style={{ fontSize: 13, lineHeight: 1.3 }}>{row.nome}</p>
@@ -114,6 +121,28 @@ export default function StageDetalhesSlides({ stageId, stageLabel, rows }: Props
                         </span>
                       </td>
                       <td className="py-3 pr-3 align-top">
+                        {temBloqueio ? (
+                          <div className="flex items-start gap-1">
+                            <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-amber-500 text-white font-bold flex-shrink-0 mt-0.5" style={{ fontSize: 10, lineHeight: 1 }}>
+                              !
+                            </span>
+                            <div>
+                              <p className="font-bold text-amber-600" style={{ fontSize: 11, lineHeight: 1.3 }}>Pendente</p>
+                              <p className="text-gray-500" style={{ fontSize: 10, lineHeight: 1.3 }}>{row.motivoBloqueio}</p>
+                            </div>
+                          </div>
+                        ) : dataLimite ? (
+                          <p className="text-gray-700" style={{ fontSize: 11.5, lineHeight: 1.3 }}>{dataLimite}</p>
+                        ) : (
+                          <p className="text-gray-400 italic" style={{ fontSize: 11, lineHeight: 1.3 }}>—</p>
+                        )}
+                      </td>
+                      <td className="py-3 pr-3 align-top">
+                        <p className="text-gray-700" style={{ fontSize: 11.5, lineHeight: 1.3 }}>
+                          {row.timeResponsavel || '—'}
+                        </p>
+                      </td>
+                      <td className="py-3 pr-3 align-top">
                         <p className="text-gray-700" style={{ fontSize: 11.5, lineHeight: 1.3 }}>{row.sponsor}</p>
                         <p className="font-bold text-gray-900 mt-0.5" style={{ fontSize: 11.5, lineHeight: 1.3 }}>{row.dominio}</p>
                       </td>
@@ -123,7 +152,8 @@ export default function StageDetalhesSlides({ stageId, stageLabel, rows }: Props
                         </p>
                       </td>
                     </tr>
-                  ))}
+                    )
+                  })}
                 </tbody>
               </table>
             </div>
