@@ -33,7 +33,7 @@ export default function WeeklySlide() {
   const slides = useMemo(() => {
     if (!data || !bloqueiosData) return []
     return [
-      { key: 'governanca', label: 'Governança beOn Labs', node: <GovernancaSlide data={data.governanca} /> },
+      { key: 'governanca', label: 'Governança beOn Labs', node: <GovernancaSlide data={data.governanca} beneficioPotencial={data.beneficioTotal} experimentosConcluidos={data.experimentosConcluidos} experimentosCancelados={data.experimentosCancelados} totalEpicsGeral={data.totalEpics} /> },
       {
         key: 'bloqueios', label: 'Bloqueios — Ação do Executivo', node: (
           <GovernancaSlide
@@ -87,7 +87,7 @@ export default function WeeklySlide() {
         </button>
       </div>
 
-      <GovernancaSlide data={data.governanca} onMaximize={() => setPresentIndex(0)} fitToContainer />
+      <GovernancaSlide data={data.governanca} beneficioPotencial={data.beneficioTotal} experimentosConcluidos={data.experimentosConcluidos} experimentosCancelados={data.experimentosCancelados} totalEpicsGeral={data.totalEpics} onMaximize={() => setPresentIndex(0)} fitToContainer />
       <GovernancaSlide
         data={bloqueiosData}
         titulo="Bloqueios"
