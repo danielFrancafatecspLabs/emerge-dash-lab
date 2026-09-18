@@ -13,7 +13,6 @@ Use only the smallest relevant context for every Copilot call.
 
 ## Prefer these anchors
 - `src/app/report/page.tsx`
-- `src/app/report/mbr/page.tsx`
 - `src/components/report/*`
 - `src/components/dashboard/*`
 - `src/lib/mappers.ts`

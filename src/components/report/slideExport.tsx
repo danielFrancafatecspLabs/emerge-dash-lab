@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, type RefObject } from 'react'
-import { Download, Loader2 } from 'lucide-react'
+import { Download, Loader2, Maximize2 } from 'lucide-react'
 
 export const SLIDE_PAGE_SIZE = 10
 
@@ -12,7 +12,7 @@ export function chunk<T>(items: T[], size: number): T[][] {
   return out
 }
 
-export function SlideDownloadButtons({ targetRef, filename }: { targetRef: RefObject<HTMLDivElement>; filename: string }) {
+export function SlideDownloadButtons({ targetRef, filename, onMaximize }: { targetRef: RefObject<HTMLDivElement>; filename: string; onMaximize?: () => void }) {
   const [busy, setBusy] = useState<'png' | 'jpg' | null>(null)
 
   async function exportAs(format: 'png' | 'jpg') {
@@ -42,6 +42,16 @@ export function SlideDownloadButtons({ targetRef, filename }: { targetRef: RefOb
 
   return (
     <div className="no-print flex items-center gap-2">
+      {onMaximize && (
+        <button
+          onClick={onMaximize}
+          title="Apresentar em tela cheia"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors"
+        >
+          <Maximize2 size={13} />
+          Apresentar
+        </button>
+      )}
       <button
         onClick={() => exportAs('png')}
         disabled={busy !== null}

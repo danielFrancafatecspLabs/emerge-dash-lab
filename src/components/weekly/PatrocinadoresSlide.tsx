@@ -62,13 +62,13 @@ function RankingPanel({
   )
 }
 
-export default function PatrocinadoresSlide({ data }: { data: WeeklyData }) {
+export default function PatrocinadoresSlide({ data, onMaximize }: { data: WeeklyData; onMaximize?: () => void }) {
   const slideRef = useRef<HTMLDivElement>(null)
 
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-end">
-        <SlideDownloadButtons targetRef={slideRef} filename="weekly-principais-patrocinadores" />
+        <SlideDownloadButtons targetRef={slideRef} filename="weekly-principais-patrocinadores" onMaximize={onMaximize} />
       </div>
 
       {/* ═══ Slide 1280×720 (16:9 — dimensão de slide de PowerPoint) ═══ */}

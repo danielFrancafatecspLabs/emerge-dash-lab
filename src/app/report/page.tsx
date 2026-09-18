@@ -339,6 +339,12 @@ export default async function ReportPage() {
   ).length
   const totalExperimentosIniciados = emAndamentoCount + emValidacaoCount + concluidosCount
   const totalExperimentosConcluidos = concluidosCount
+  const experimentosConcluidos = data.allEpics.filter(e =>
+    e.status?.id === '10019' || e.status?.name === 'Concluído' || e.status?.name === 'FINALIZADO'
+  ).length
+  const experimentosCancelados = data.allEpics.filter(e =>
+    e.status?.id === '10015' || e.status?.name === 'Cancelado' || e.status?.name === 'CANCELADO'
+  ).length
 
   // Conversões (mesma lógica do PipelineInovacao):
   // % de iniciativas que chegaram a Piloto (EM PILOTO + EM ESCALA / total)
@@ -399,6 +405,8 @@ export default async function ReportPage() {
           conversaoPiloto={conversaoPiloto}
           conversaoEscala={conversaoEscala}
           beneficioPotencialEstimado={beneficioPotencialEstimado}
+          experimentosConcluidos={experimentosConcluidos}
+          experimentosCancelados={experimentosCancelados}
           totalExperimentosIniciados={totalExperimentosIniciados}
           totalExperimentosConcluidos={totalExperimentosConcluidos}
           funilEmAndamento={emAndamentoCount}
