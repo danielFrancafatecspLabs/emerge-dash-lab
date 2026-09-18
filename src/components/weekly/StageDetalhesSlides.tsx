@@ -218,6 +218,102 @@ export default function StageDetalhesSlides({ stageId, stageLabel, rows }: Props
                     ))}
                   </tbody>
                 </table>
+              ) : stageId === 'andamento' ? (
+                /* ── Layout Em Andamento: Fase vira "Fase / Pendências" + Previsão de Conclusão ── */
+                <table className="w-full border-collapse" style={{ tableLayout: 'fixed' }}>
+                  <colgroup>
+                    <col style={{ width: '16%' }} />
+                    <col style={{ width: '22%' }} />
+                    <col style={{ width: '12%' }} />
+                    <col style={{ width: '11%' }} />
+                    <col style={{ width: '10%' }} />
+                    <col style={{ width: '16%' }} />
+                    <col style={{ width: '10%' }} />
+                  </colgroup>
+                  <thead>
+                    <tr className="align-bottom">
+                      {['Nome da Iniciativa', 'Objetivo', 'Fase / Pendências', 'Previsão de Conclusão', 'Lab', 'Sponsor / Domínio', 'Benefício Potencial'].map(h => (
+                        <th
+                          key={h}
+                          className="pb-2.5 font-bold text-gray-500 uppercase text-left"
+                          style={{ fontSize: 10.5, letterSpacing: '0.02em', lineHeight: 1.25 }}
+                        >
+                          {h}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {pageRows.map((row, i) => {
+                      const temBloqueio = !!row.motivoBloqueio
+                      const dataLimite = row.duedate
+                        ? new Date(row.duedate).toLocaleDateString('pt-BR', { timeZone: 'UTC' })
+                        : null
+                      const pend = getPendenciaEmAndamento(row.nome)
+                      return (
+                      <tr key={row.key} className={i < pageRows.length - 1 ? 'border-b' : ''} style={{ borderColor: '#F3F4F6' }}>
+                        <td className="py-3 pr-3 align-top">
+                          <p className="font-bold text-gray-900" style={{ fontSize: 13, lineHeight: 1.3 }}>{row.nome}</p>
+                          <p className="text-gray-400" style={{ fontSize: 10 }}>{row.key}</p>
+                        </td>
+                        <td className="py-3 pr-3 align-top">
+                          <p className="text-gray-600" style={{ fontSize: 11.5, lineHeight: 1.35 }} title={row.objetivo}>
+                            {row.objetivo.length > 160 ? row.objetivo.slice(0, 160) + '…' : row.objetivo}
+                          </p>
+                        </td>
+                        <td className="py-3 pr-3 align-top">
+                          {pend ? (
+                            <span
+                              className="inline-block rounded-full px-3 py-0.5 font-semibold"
+                              style={{ fontSize: 10.5, background: '#F3F4F6', color: '#374151' }}
+                            >
+                              {pend}
+                            </span>
+                          ) : (
+                            <span
+                              className="inline-block rounded-full px-3 py-0.5 font-bold text-white"
+                              style={{ fontSize: 10.5, background: RED }}
+                            >
+                              {row.fase}
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-3 pr-3 align-top">
+                          {temBloqueio ? (
+                            <div className="flex items-start gap-1">
+                              <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-amber-500 text-white font-bold flex-shrink-0 mt-0.5" style={{ fontSize: 10, lineHeight: 1 }}>
+                                !
+                              </span>
+                              <div>
+                                <p className="font-bold text-amber-600" style={{ fontSize: 11, lineHeight: 1.3 }}>Pendente</p>
+                                <p className="text-gray-500" style={{ fontSize: 10, lineHeight: 1.3 }}>{row.motivoBloqueio}</p>
+                              </div>
+                            </div>
+                          ) : dataLimite ? (
+                            <p className="text-gray-700" style={{ fontSize: 11.5, lineHeight: 1.3 }}>{dataLimite}</p>
+                          ) : (
+                            <p className="text-gray-400 italic" style={{ fontSize: 11, lineHeight: 1.3 }}>—</p>
+                          )}
+                        </td>
+                        <td className="py-3 pr-3 align-top">
+                          <p className="text-gray-700" style={{ fontSize: 11.5, lineHeight: 1.3 }}>
+                            {row.timeResponsavel || '—'}
+                          </p>
+                        </td>
+                        <td className="py-3 pr-3 align-top">
+                          <p className="text-gray-700" style={{ fontSize: 11.5, lineHeight: 1.3 }}>{row.sponsor}</p>
+                          <p className="font-bold text-gray-900 mt-0.5" style={{ fontSize: 11.5, lineHeight: 1.3 }}>{row.dominio}</p>
+                        </td>
+                        <td className="py-3 align-top">
+                          <p className={row.beneficioLabel === 'Não Mapeado' ? 'italic text-gray-400' : 'font-bold text-gray-900'} style={{ fontSize: 12 }}>
+                            {row.beneficioLabel}
+                          </p>
+                        </td>
+                      </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
               ) : (
                 /* ── Layout padrão (demais fases) ── */
                 <table className="w-full border-collapse" style={{ tableLayout: 'fixed' }}>
