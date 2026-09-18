@@ -209,7 +209,7 @@ export interface DashboardData {
   topSponsors: { nome: string; count: number }[]
   statusDistribuicao: { name: string; value: number; color: string }[]
   metasAgregadas: Record<'EBITDA' | 'NPS' | 'Receita', { count: number; valor: number }>
-  iniciativasPorMeta: Record<'EBITDA' | 'NPS' | 'Receita', Iniciativa[]>
+  epicsPorMeta: Record<'EBITDA' | 'NPS' | 'Receita', EpicDetail[]>
   leadTime: LeadTimeStats
   cycleTimeIdeacao: CycleTimeEstagio[]
   cycleTimeExperimentacao: CycleTimeEstagio[]       // quebrado por porte (P/M/G)

@@ -163,24 +163,28 @@ function filtrarDashboardData(data: DashboardData, periodo: PeriodoFiltro): Dash
     }
   })
 
-  // ── Metas agregadas ──
+  // ── Metas agregadas (baseado em Epics, não iniciativas) ──
   const metasAgregadas: Record<MetaCategoria, { count: number; valor: number }> = {
     EBITDA: { count: 0, valor: 0 },
     NPS: { count: 0, valor: 0 },
     Receita: { count: 0, valor: 0 },
   }
-  const iniciativasPorMeta: Record<MetaCategoria, Iniciativa[]> = {
+  const epicsPorMeta: Record<MetaCategoria, EpicDetail[]> = {
     EBITDA: [], NPS: [], Receita: [],
   }
+  for (const epic of allEpicsFiltrados) {
+    const meta = epic.metaCategoria as MetaCategoria | null
+    if (!meta) continue
+    epicsPorMeta[meta].push(epic)
+    metasAgregadas[meta].count++
+  }
+  // Valor: benefício total da iniciativa-mãe (uma vez por meta)
   for (const ini of iniciativasFiltradas) {
-    const seenMetas = new Set<MetaCategoria>()
-    for (const epic of ini.epics) {
-      const meta = epic.metaCategoria as MetaCategoria | null
-      if (!meta || seenMetas.has(meta)) continue
-      seenMetas.add(meta)
-      metasAgregadas[meta].count++
-      metasAgregadas[meta].valor += ini.beneficioQuantitativoTotal
-      iniciativasPorMeta[meta].push(ini)
+    for (const meta of Object.keys(epicsPorMeta) as MetaCategoria[]) {
+      const temEpicNaMeta = ini.epics.some(e => e.metaCategoria === meta)
+      if (temEpicNaMeta) {
+        metasAgregadas[meta].valor += ini.beneficioQuantitativoTotal
+      }
     }
   }
 
@@ -204,7 +208,7 @@ function filtrarDashboardData(data: DashboardData, periodo: PeriodoFiltro): Dash
     topSponsors,
     statusDistribuicao,
     metasAgregadas,
-    iniciativasPorMeta,
+    epicsPorMeta,
   }
 }
 

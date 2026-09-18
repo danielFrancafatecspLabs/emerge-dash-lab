@@ -28,6 +28,7 @@ const META_STYLE: Record<string, { bar: string; dot: string; from: string; via: 
 
 export default function ResumoExecutivo({ data, beneficioValidadoTotal }: Props) {
   const [modal, setModal] = useState<{ title: string; items: Iniciativa[] } | null>(null)
+  const [metasModal, setMetasModal] = useState<{ title: string; epics: EpicDetail[] } | null>(null)
   const [epicModal, setEpicModal] = useState<{ title: string; epics: EpicDetail[] } | null>(null)
   const pctValidado = data.beneficioTotal > 0 ? Math.round((beneficioValidadoTotal / data.beneficioTotal) * 100) : 0
 
@@ -174,8 +175,8 @@ export default function ResumoExecutivo({ data, beneficioValidadoTotal }: Props)
                 key={meta}
                 className="group relative rounded-xl border border-gray-100 bg-white px-2.5 py-2 cursor-pointer hover:shadow-md hover:border-gray-200 transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0"
                 onClick={() => {
-                  const items = data.iniciativasPorMeta[meta] ?? []
-                  if (items.length > 0) setModal({ title: META_LABELS[meta] ?? meta, items })
+                  const epics = data.epicsPorMeta[meta] ?? []
+                  if (epics.length > 0) setMetasModal({ title: META_LABELS[meta] ?? meta, epics })
                 }}
               >
                 {/* Faixa decorativa lateral */}
@@ -205,7 +206,7 @@ export default function ResumoExecutivo({ data, beneficioValidadoTotal }: Props)
                     </div>
                     <div className="flex items-center justify-between mt-0.5">
                       <span className="text-[8px] text-gray-400 font-medium">
-                        {stats.count} {stats.count === 1 ? 'iniciativa' : 'iniciativas'}
+                        {stats.count} {stats.count === 1 ? 'experimento' : 'experimentos'}
                       </span>
                       <span className="text-[8px] font-bold text-gray-400">{pct}%</span>
                     </div>
@@ -228,6 +229,15 @@ export default function ResumoExecutivo({ data, beneficioValidadoTotal }: Props)
           title={modal.title}
           iniciativas={modal.items}
           onClose={() => setModal(null)}
+        />
+      )}
+
+      {/* ── Modal de Metas Estratégicas (experimentos por meta) ── */}
+      {metasModal && (
+        <EpicModal
+          title={metasModal.title}
+          epics={metasModal.epics}
+          onClose={() => setMetasModal(null)}
         />
       )}
 

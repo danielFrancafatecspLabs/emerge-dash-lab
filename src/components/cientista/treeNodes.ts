@@ -103,12 +103,12 @@ function makeMetaLeaf(meta: 'EBITDA' | 'Receita' | 'NPS', icon: string): ChatNod
     message: '',
     options: [{ label: '🔙 Metas & Impacto', nextId: 'metas_impacto' }, { label: '🏠 Menu Principal', nextId: 'root' }],
     computeAnswer: (d) => {
-      const list = d.iniciativasPorMeta[meta]
-      let r = `**${icon} Iniciativas de ${labels[meta]}** (${list.length})\n\n`
-      list.slice(0, 10).forEach((i, idx) => {
-        r += `${idx+1}. **${i.nome}** — ${formatBRL(i.beneficioQuantitativoTotal)}\n   Status: ${i.status.name} | Epics: ${i.epics.length}\n\n`
+      const list = d.epicsPorMeta[meta]
+      let r = `**${icon} Experimentos de ${labels[meta]}** (${list.length})\n\n`
+      list.slice(0, 20).forEach((e, idx) => {
+        r += `${idx+1}. **${e.nome}** — ${formatBRL(e.beneficioQuantitativo ?? 0)}\n   Key: ${e.key} | Status: ${e.status?.name ?? '?'} | Domínio: ${e.dominio ?? '?'}\n\n`
       })
-      if (list.length > 10) r += `...e mais ${list.length - 10} iniciativa(s).`
+      if (list.length > 20) r += `...e mais ${list.length - 20} experimento(s).`
       return r
     },
   }

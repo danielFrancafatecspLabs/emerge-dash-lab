@@ -97,6 +97,46 @@ function normalizeSponsor(raw: string): string {
   return SPONSOR_ALIASES[trimmed] ?? trimmed
 }
 
+// Aliases de Labs — normaliza variações de digitação do mesmo laboratório
+const LAB_ALIASES: Record<string, string> = {
+  'Beon Labs': 'Beon Labs',
+  'BeOn Labs': 'Beon Labs',
+  'BeON Labs': 'Beon Labs',
+  'Beon Labs - TI': 'Beon Labs',
+  'BeOn Labs - TI': 'Beon Labs',
+  'BeON Labs - TI': 'Beon Labs',
+  'Beon Labs-TI': 'Beon Labs',
+  'BeOn Labs-TI': 'Beon Labs',
+  'BeON Labs-TI': 'Beon Labs',
+  'BeonLabs': 'Beon Labs',
+  'Beonlabs': 'Beon Labs',
+  'beon labs': 'Beon Labs',
+  'beon labs - ti': 'Beon Labs',
+  'LABORATÓRIO DE DADOS E IA': 'Laboratório de Dados e IA',
+  'LAB DE DADOS E IA': 'Laboratório de Dados e IA',
+  'Lab de Dados e IA': 'Laboratório de Dados e IA',
+  'LAB DE DADOS': 'Laboratório de Dados e IA',
+  'Lab de Dados': 'Laboratório de Dados e IA',
+  'CIENTISTA DE DADOS': 'Laboratório de Dados e IA',
+  'Cientista de Dados': 'Laboratório de Dados e IA',
+  'CX LAB': 'CX Lab',
+  'CX Lab': 'CX Lab',
+  'Cx Lab': 'CX Lab',
+}
+
+function normalizeLab(raw: string | null | undefined): string | null {
+  if (!raw) return null
+  const trimmed = raw.trim()
+  const direct = LAB_ALIASES[trimmed]
+  if (direct) return direct
+  // Fallback case-insensitive: busca parcial no alias map
+  const upper = trimmed.toUpperCase()
+  for (const [key, value] of Object.entries(LAB_ALIASES)) {
+    if (key.toUpperCase() === upper) return value
+  }
+  return trimmed
+}
+
 function mapEpicToDetail(epic: JiraIssue, changelog?: ChangelogEntry[]): EpicDetail {
   const f = epic.fields
 
@@ -131,7 +171,7 @@ function mapEpicToDetail(epic: JiraIssue, changelog?: ChangelogEntry[]): EpicDet
     sponsor: f.customfield_30394 ? normalizeSponsor(f.customfield_30394) : null,
     bo: f.customfield_30340 ?? null,
     complexidade: (typeof (f.customfield_30358 as any) === 'object' && (f.customfield_30358 as any) !== null) ? ((f.customfield_30358 as any).value ?? null) : (f.customfield_30358 ?? null),
-    timeResponsavel: (typeof (f.customfield_31438 as any) === 'object' && (f.customfield_31438 as any) != null) ? ((f.customfield_31438 as any).value ?? ((typeof (f.customfield_30357 as any) === 'object' && (f.customfield_30357 as any) != null) ? (f.customfield_30357 as any).value : f.customfield_30357) ?? null) : ((typeof (f.customfield_30357 as any) === 'object' && (f.customfield_30357 as any) != null) ? ((f.customfield_30357 as any).value ?? null) : (f.customfield_30357 ?? null)),
+    timeResponsavel: normalizeLab((typeof (f.customfield_31438 as any) === 'object' && (f.customfield_31438 as any) != null) ? ((f.customfield_31438 as any).value ?? ((typeof (f.customfield_30357 as any) === 'object' && (f.customfield_30357 as any) != null) ? (f.customfield_30357 as any).value : f.customfield_30357) ?? null) : ((typeof (f.customfield_30357 as any) === 'object' && (f.customfield_30357 as any) != null) ? ((f.customfield_30357 as any).value ?? null) : (f.customfield_30357 ?? null))),
     beneficioQuantitativo: f.customfield_30216 ?? null,
     beneficioQualitativo: f.customfield_30222 ?? null,
     dominio: f.customfield_30021?.value ?? f.customfield_11987?.value ?? f.customfield_11991?.value ?? null,
@@ -249,9 +289,9 @@ export function buildDashboardData(
     const parent = iniciativaParentMap.get(parentKey)
     if (!parent) continue
     const parentFields = parent.fields
-    const timeResp = (typeof (parentFields.customfield_31438 as any) === 'object' && (parentFields.customfield_31438 as any) != null)
+    const timeResp = normalizeLab((typeof (parentFields.customfield_31438 as any) === 'object' && (parentFields.customfield_31438 as any) != null)
       ? ((parentFields.customfield_31438 as any).value ?? ((typeof (parentFields.customfield_30357 as any) === 'object' && (parentFields.customfield_30357 as any) != null) ? (parentFields.customfield_30357 as any).value : parentFields.customfield_30357) ?? null)
-      : ((typeof (parentFields.customfield_30357 as any) === 'object' && (parentFields.customfield_30357 as any) != null) ? ((parentFields.customfield_30357 as any).value ?? null) : (parentFields.customfield_30357 ?? null))
+      : ((typeof (parentFields.customfield_30357 as any) === 'object' && (parentFields.customfield_30357 as any) != null) ? ((parentFields.customfield_30357 as any).value ?? null) : (parentFields.customfield_30357 ?? null)))
     const dominio = (typeof (parentFields.customfield_30021 as any) === 'object' && (parentFields.customfield_30021 as any) != null)
       ? ((parentFields.customfield_30021 as any).value ?? (typeof (parentFields.customfield_11987 as any) === 'object' && (parentFields.customfield_11987 as any) != null ? (parentFields.customfield_11987 as any).value : parentFields.customfield_11987) ?? (typeof (parentFields.customfield_11991 as any) === 'object' && (parentFields.customfield_11991 as any) != null ? (parentFields.customfield_11991 as any).value : parentFields.customfield_11991) ?? null)
       : (parentFields.customfield_30021?.value ?? parentFields.customfield_11987?.value ?? parentFields.customfield_11991?.value ?? null)
@@ -297,7 +337,7 @@ export function buildDashboardData(
       dominios: Array.from(new Set(myEpics.map(e => e.dominio).filter(Boolean) as string[])),
       sponsors: Array.from(new Set(myEpics.map(e => e.sponsor).filter(Boolean) as string[])),
       segmentos: Array.from(new Set(myEpics.map(e => e.segmento).filter(Boolean) as string[])),
-      timeResponsavel: ini.fields.customfield_31438?.value ?? ini.fields.customfield_30357 ?? null,
+      timeResponsavel: normalizeLab(ini.fields.customfield_31438?.value ?? ini.fields.customfield_30357 ?? null),
       sponsor: ini.fields.customfield_30394 ? normalizeSponsor(ini.fields.customfield_30394) : null,
       criadoEm: ini.fields.created ?? null,
       descricao: ini.fields.description ?? null,
@@ -496,27 +536,52 @@ export function buildDashboardData(
     .filter(d => d.value > 0)
 
   // 9. Metas agregadas por categoria LLM
+  // Cada Epic é classificado individualmente. O count reflete número de experimentos, não de iniciativas.
   const metasAgregadas: Record<MetaCategoria, { count: number; valor: number }> = {
     EBITDA:  { count: 0, valor: 0 },
     NPS:     { count: 0, valor: 0 },
     Receita: { count: 0, valor: 0 },
   }
 
-  const iniciativasPorMeta: Record<MetaCategoria, Iniciativa[]> = {
+  const epicsPorMeta: Record<MetaCategoria, EpicDetail[]> = {
     EBITDA: [],
     NPS: [],
     Receita: [],
   }
-  // Distribuir iniciativas para cada meta com base nos epics que carregam essa meta
+  // Distribuir epics para cada meta com base na classificação LLM de cada epic
+  for (const epic of allEpicDetails) {
+    const meta = epic.metaCategoria as MetaCategoria | null
+    if (!meta) continue
+    epicsPorMeta[meta].push(epic)
+    metasAgregadas[meta].count++
+    // Valor: benefício total da iniciativa-mãe quando o epic contribui
+    const iniciativaMae = iniciativas.find(i => i.epics.some(e => e.key === epic.key))
+    if (iniciativaMae) {
+      metasAgregadas[meta].valor += iniciativaMae.beneficioQuantitativoTotal
+    }
+  }
+  // Normalizar: evitar dupla contagem do valor quando múltiplos epics da mesma iniciativa
+  // caem na mesma meta — somamos o benefícioTotal da iniciativa apenas uma vez por meta.
   for (const iniciativa of iniciativas) {
-    const seenMetas = new Set<MetaCategoria>()
-    for (const epic of iniciativa.epics) {
-      const meta = epic.metaCategoria as MetaCategoria | null
-      if (!meta || seenMetas.has(meta)) continue
-      seenMetas.add(meta)
-      metasAgregadas[meta].count++
-      metasAgregadas[meta].valor += iniciativa.beneficioQuantitativoTotal
-      iniciativasPorMeta[meta].push(iniciativa)
+    for (const meta of Object.keys(epicsPorMeta) as MetaCategoria[]) {
+      const temEpicNaMeta = iniciativa.epics.some(e => e.metaCategoria === meta)
+      if (temEpicNaMeta) {
+        metasAgregadas[meta].valor += iniciativa.beneficioQuantitativoTotal
+      }
+    }
+  }
+  // Subtrai o valor que foi adicionado individualmente no loop anterior,
+  // pois agora vamos somar por iniciativa (uma vez por meta) em vez de por epic.
+  // Primeiro zera e recalda corretamente:
+  for (const meta of Object.keys(metasAgregadas) as MetaCategoria[]) {
+    metasAgregadas[meta].valor = 0
+  }
+  for (const iniciativa of iniciativas) {
+    for (const meta of Object.keys(epicsPorMeta) as MetaCategoria[]) {
+      const temEpicNaMeta = iniciativa.epics.some(e => e.metaCategoria === meta)
+      if (temEpicNaMeta) {
+        metasAgregadas[meta].valor += iniciativa.beneficioQuantitativoTotal
+      }
     }
   }
 
@@ -546,7 +611,7 @@ export function buildDashboardData(
     topSponsors,
     statusDistribuicao,
     metasAgregadas,
-    iniciativasPorMeta,
+    epicsPorMeta,
     leadTime: leadTimeResult,
     cycleTimeIdeacao: cycleTimeIdeacaoResult,
     cycleTimeExperimentacao: cycleTimeExpResult.ciclos,
