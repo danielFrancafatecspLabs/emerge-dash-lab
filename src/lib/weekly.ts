@@ -1,6 +1,7 @@
-import { DashboardData, EpicDetail, Iniciativa } from './types'
+import { DashboardData, EpicDetail, Iniciativa, JiraBoardConfiguration } from './types'
 import type { ChangelogEntry } from './jira'
 import { formatBeneficioMM, limparDescricao } from './report-utils'
+import { buildGovernancaData, SAMPLE_GOVERNANCA_DATA, type GovernancaData } from './governanca'
 
 export interface WeeklyStageMotivo {
   motivo: string
@@ -12,9 +13,15 @@ export interface WeeklyExperimentoRow {
   nome: string
   objetivo: string
   fase: string
+  statusId: string
+  statusNome: string
   sponsor: string
   dominio: string
   beneficioLabel: string
+  prioridade: string | null
+  timeResponsavel: string | null
+  duedate: string | null
+  motivoBloqueio: string | null
 }
 
 export interface WeeklyStage {
@@ -33,6 +40,7 @@ export interface WeeklyRanking {
 
 export interface WeeklyData {
   geradoEm: string
+  governanca: GovernancaData          // slide 1 — swimlane por Domínio × fase da jornada
   stages: WeeklyStage[]              // funil: Backlog -> Em andamento -> Cancelados -> Concluídos -> Aguardando piloto -> Piloto -> Em escala
   pendenteAnalise: WeeklyStage        // Iniciativas do board de Ideação em Backlog/Em refinamento — ideias que ainda não viraram experimento (não faz parte do funil, fica à parte)
   beneficioTotal?: number            // resumo da aba Estratégia, exposto para o slide semanal
@@ -51,6 +59,8 @@ export interface WeeklyData {
   semSponsor: { count: number; pct: number }
   topSponsors: WeeklyRanking[]       // top 6 sponsors por quantidade de experimentos (todas as fases do funil)
   topDiretorias: WeeklyRanking[]     // top 6 diretorias/domínios por quantidade de experimentos (idem)
+  experimentosConcluidos: number     // Epics no board de Experimentação com status Concluído
+  experimentosCancelados: number     // Epics no board de Experimentação com status Cancelado
   aprendizadosSemEscalar: number     // Concluídos - (Aguardando piloto + Piloto + Em escala): geraram aprendizado mas não seguiram adiante
   aprendizadosAcionaveis: number
   insightPrincipal: string    // maior gargalo do funil (conversão piloto -> escala)
@@ -87,6 +97,23 @@ function semBeneficioPotencial(e: EpicDetail): boolean {
 }
 
 /**
+ * Mapa status.id -> nome REAL da coluna no board 2735 (Experimentação), a
+ * partir da configuração live do board (GET /board/2735/configuration).
+ */
+function buildColunaPorStatusId(boardConfig?: JiraBoardConfiguration): Map<string, string> {
+  const map = new Map<string, string>()
+  const columns = boardConfig?.columnConfig?.columns
+  if (!Array.isArray(columns)) return map
+  for (const col of columns) {
+    const nome = (col?.name ?? '').toString().trim().toUpperCase()
+    for (const s of col?.statuses ?? []) {
+      if (s?.id) map.set(s.id, nome)
+    }
+  }
+  return map
+}
+
+/**
  * Linhas de detalhe por fase, para o "Ver detalhes" do funil. As fases
  * Backlog/Aguardando piloto/Piloto/Em escala vêm de Iniciativas (board de
  * Ideação — sem campos ricos próprios, por isso usamos os agregados dos
@@ -94,27 +121,85 @@ function semBeneficioPotencial(e: EpicDetail): boolean {
  * Concluídos vêm direto dos Epics (board de Experimentação, fonte dos
  * dados ricos de negócio).
  */
+/**
+ * Normaliza o nome de um status do Jira para exibição amigável.
+ * Ex.: "Em refinamento (migrated)" → "Em refinamento"
+ */
+function normalizarFase(nome: string): string {
+  const lower = nome.toLowerCase()
+  if (lower.startsWith('em refinamento')) return 'Em refinamento'
+  return nome
+}
+
+/** Ordem de prioridade Jira para ordenação. */
+const PRIORITY_SORT_ORDER: Record<string, number> = {
+  Highest: 0,
+  High: 1,
+  Medium: 2,
+  Low: 3,
+  Lowest: 4,
+}
+
+/**
+ * Ordena experimentos por prioridade (Highest → Lowest) e, para High e Medium,
+ * desempata pelo lab responsável (timeResponsavel).
+ */
+function sortByPrioridadeELab(rows: WeeklyExperimentoRow[]): WeeklyExperimentoRow[] {
+  return [...rows].sort((a, b) => {
+    const pa = PRIORITY_SORT_ORDER[a.prioridade ?? ''] ?? 99
+    const pb = PRIORITY_SORT_ORDER[b.prioridade ?? ''] ?? 99
+    if (pa !== pb) return pa - pb
+
+    // Para High (1) e Medium (2), desempata pelo lab responsável
+    const precisaDesempate = (p: number) => p === 1 || p === 2
+    if (precisaDesempate(pa) && precisaDesempate(pb)) {
+      const la = (a.timeResponsavel ?? '').toLowerCase()
+      const lb = (b.timeResponsavel ?? '').toLowerCase()
+      if (la < lb) return -1
+      if (la > lb) return 1
+    }
+
+    return 0
+  })
+}
+
 function rowFromIniciativa(i: Iniciativa): WeeklyExperimentoRow {
   return {
     key: i.key,
     nome: i.nome,
     objetivo: limparDescricao(i.descricao),
-    fase: i.status.name,
+    fase: normalizarFase(i.status.name),
+    statusId: i.status.id,
+    statusNome: i.status.name,
     sponsor: i.sponsor ?? i.sponsors[0] ?? '—',
     dominio: i.dominio ?? i.dominios[0] ?? '—',
     beneficioLabel: formatBeneficioMM(i.beneficioQuantitativoTotal || i.beneficioQuantitativo),
+    prioridade: null,
+    timeResponsavel: i.timeResponsavel ?? null,
+    duedate: null,
+    motivoBloqueio: null,
   }
 }
 
-function rowFromEpic(e: EpicDetail): WeeklyExperimentoRow {
+function rowFromEpic(e: EpicDetail, parentLabLookup?: Map<string, string | null>): WeeklyExperimentoRow {
+  // O lab responsável vem do campo "Lab Responsável" da Iniciativa-pai,
+  // não do próprio épico. Se o pai não tiver lab definido, usa o do épico
+  // como fallback.
+  const labDaIniciativa = parentLabLookup?.get(e.parentKey ?? '') ?? undefined
   return {
     key: e.key,
     nome: e.nome,
     objetivo: limparDescricao(e.descricao),
-    fase: e.status.name,
+    fase: normalizarFase(e.status.name),
+    statusId: e.status.id,
+    statusNome: e.status.name,
     sponsor: e.sponsor ?? '—',
     dominio: e.dominio ?? '—',
     beneficioLabel: formatBeneficioMM(e.beneficioQuantitativo),
+    prioridade: e.prioridade ?? null,
+    timeResponsavel: labDaIniciativa ?? e.timeResponsavel ?? null,
+    duedate: e.duedate ?? null,
+    motivoBloqueio: e.motivoBloqueio ?? null,
   }
 }
 
@@ -232,22 +317,38 @@ function buildTopMotivosCancelamento(
  *   foi concluído — Backlog (não começou) e Cancelados (não seguiu) ficam de
  *   fora dessa leitura.
  */
-export function buildWeeklyData(data: DashboardData, epicChangelogs: Record<string, ChangelogEntry[]> = {}): WeeklyData {
-  const backlogStatusIds = new Set(['10004', '10139'])
-  const backlogStatusNames = new Set(['BACKLOG', 'EM REFINAMENTO', 'Em refinamento'])
-
-  // Pendente para Análise: Iniciativas do board de Ideação (ainda não são
-  // experimento) — usado só no card à parte, não no funil.
+export function buildWeeklyData(data: DashboardData, epicChangelogs: Record<string, ChangelogEntry[]> = {}, board2735Config?: JiraBoardConfiguration): WeeklyData {
+  // Pendente para Análise: Iniciativas do board de Ideação (2706) em
+  // BACKLOG (10004) + EM REFINAMENTO (10139) — ideias que ainda não
+  // passaram pelos critérios de entrada, portanto ainda não são um
+  // experimento. Usa IDs fixos porque o board de Ideação tem mapeamento
+  // próprio e estável.
+  const ideacaoBacklogIds = new Set(['10004', '10139'])
   const pendenteAnaliseInis = data.iniciativas.filter(i =>
-    backlogStatusIds.has(i.status.id) || backlogStatusNames.has(i.status.name)
+    ideacaoBacklogIds.has(i.status.id)
   )
 
-  // Backlog do slide 2: apenas Epics do board de Experimentação em
-  // BACKLOG + EM REFINAMENTO. Isso exclui Iniciativas do board de Ideação.
-  const backlogEpics = data.allEpics.filter(e =>
-    backlogStatusIds.has(e.status.id) || backlogStatusNames.has(e.status.name)
-  )
-  const backlogCount = 11
+  // Backlog do slide 2: apenas Epics do board de Experimentação (2735)
+  // cujo status pertence à coluna BACKLOG ou REFINAMENTO no board 2735.
+  // Descobre esses status IDs a partir da configuração live do board — é
+  // a fonte de verdade, mais confiável do que IDs fixos (o Jira reusa o
+  // mesmo status ID para colunas diferentes em boards diferentes).
+  const colunaPorStatusId = buildColunaPorStatusId(board2735Config)
+  const backlogStatusIds = new Set<string>()
+  for (const [statusId, colNome] of colunaPorStatusId) {
+    if (colNome.includes('BACKLOG') || colNome.includes('REFINAMENTO')) {
+      backlogStatusIds.add(statusId)
+    }
+  }
+  // Fallback: se o board config não tiver colunas (ex.: dados de amostra),
+  // usa os IDs fixos conhecidos do board de Experimentação.
+  if (backlogStatusIds.size === 0) {
+    backlogStatusIds.add('10004')
+    backlogStatusIds.add('10139')
+  }
+
+  const backlogEpics = data.allEpics.filter(e => backlogStatusIds.has(e.status.id))
+  const backlogCount = backlogEpics.length
 
   const aguardandoInis = data.iniciativas.filter(i => i.status.id === '13045' || i.status.name === 'Aguardando Piloto')
   const pilotoInis = data.iniciativas.filter(i => i.status.id === '12847' || i.status.name === 'EM PILOTO' || i.status.name === 'Em Piloto')
@@ -266,14 +367,22 @@ export function buildWeeklyData(data: DashboardData, epicChangelogs: Record<stri
 
   const topMotivosCancelamento = buildTopMotivosCancelamento(canceladosEpics, epicChangelogs)
 
+  // Mapa: key da Iniciativa → timeResponsavel (Lab Responsável)
+  // Usado para propagar o lab da iniciativa-pai para os épicos filhos.
+  const parentLabLookup = new Map<string, string | null>()
+  for (const ini of data.iniciativas) {
+    parentLabLookup.set(ini.key, ini.timeResponsavel ?? null)
+  }
+  const re = (e: EpicDetail) => rowFromEpic(e, parentLabLookup)
+
   const stages: WeeklyStage[] = [
-    { id: 'backlog', label: 'Backlog', descricao: 'Experimento aprovado, ainda não iniciado', quantidade: backlogCount, experimentos: backlogEpics.map(rowFromEpic) },
-    { id: 'andamento', label: 'Em andamento', descricao: 'Execução da experimentação', quantidade: emAndamentoCount, experimentos: [...emAndamentoEpics, ...emValidacaoEpics].map(rowFromEpic) },
-    { id: 'cancelados', label: 'Cancelados', descricao: 'Experimentos cancelados', quantidade: canceladosCount, motivos: topMotivosCancelamento, experimentos: canceladosEpics.map(rowFromEpic) },
-    { id: 'concluidos', label: 'Concluídos', descricao: 'Experimentação encerrada', quantidade: concluidosCount, experimentos: concluidosEpics.map(rowFromEpic) },
+    { id: 'backlog', label: 'Backlog', descricao: 'Experimento aprovado, ainda não iniciado', quantidade: backlogCount, experimentos: backlogEpics.map(re) },
+    { id: 'andamento', label: 'Em andamento', descricao: 'Execução da experimentação', quantidade: emAndamentoCount, experimentos: sortByPrioridadeELab([...emAndamentoEpics, ...emValidacaoEpics].map(re)) },
+    { id: 'cancelados', label: 'Cancelados', descricao: 'Experimentos cancelados', quantidade: canceladosCount, motivos: topMotivosCancelamento, experimentos: canceladosEpics.map(re) },
+    { id: 'concluidos', label: 'Concluídos', descricao: 'Experimentação encerrada', quantidade: concluidosCount, experimentos: concluidosEpics.map(re) },
     { id: 'aguardando', label: 'Aguardando piloto', descricao: 'Concluído, em avaliação', quantidade: aguardandoInis.length, experimentos: aguardandoInis.map(rowFromIniciativa) },
-    { id: 'piloto', label: 'Piloto', descricao: 'Validação em ambiente real', quantidade: pilotoInis.length, experimentos: pilotoInis.map(rowFromIniciativa) },
-    { id: 'escala', label: 'Em escala', descricao: 'Solução em implementação', quantidade: escalaInis.length, experimentos: escalaInis.map(rowFromIniciativa) },
+    { id: 'piloto', label: 'Piloto', descricao: 'Validação em ambiente real', quantidade: pilotoInis.length, experimentos: sortByPrioridadeELab(pilotoInis.map(rowFromIniciativa)) },
+    { id: 'escala', label: 'Em escala', descricao: 'Solução em implementação', quantidade: escalaInis.length, experimentos: sortByPrioridadeELab(escalaInis.map(rowFromIniciativa)) },
   ]
 
   // Experimentos aprovados = total de Epics no board de Experimentação
@@ -286,7 +395,7 @@ export function buildWeeklyData(data: DashboardData, epicChangelogs: Record<stri
 
   // Ranking de sponsors/diretorias sobre o MESMO universo do total acima —
   // todos os Epics do board de Experimentação.
-  const todosEpicsRows = data.allEpics.map(rowFromEpic)
+  const todosEpicsRows = data.allEpics.map(re)
   const topSponsors = buildRanking(todosEpicsRows, 'sponsor')
   const topDiretorias = buildRanking(todosEpicsRows, 'dominio')
 
@@ -339,6 +448,7 @@ export function buildWeeklyData(data: DashboardData, epicChangelogs: Record<stri
   return {
     geradoEm: new Date().toISOString(),
     isSample: false,
+    governanca: buildGovernancaData(data, board2735Config),
     stages,
     pendenteAnalise,
     beneficioTotal: data.beneficioTotal,
@@ -357,6 +467,8 @@ export function buildWeeklyData(data: DashboardData, epicChangelogs: Record<stri
     semSponsor: { count: semSponsorCount, pct: pct(semSponsorCount, totalEpics) },
     topSponsors,
     topDiretorias,
+    experimentosConcluidos: concluidosCount,
+    experimentosCancelados: canceladosCount,
     aprendizadosSemEscalar,
     aprendizadosAcionaveis,
     insightPrincipal: principal,
@@ -372,7 +484,7 @@ const SAMPLE_MOTIVOS_CANCELAMENTO: WeeklyStageMotivo[] = [
 ]
 
 function sampleRow(i: number, nome: string, fase: string, sponsor: string, dominio: string, beneficio: string): WeeklyExperimentoRow {
-  return { key: `GL-${1000 + i}`, nome, objetivo: 'Reduzir custo operacional e melhorar a experiência do cliente com automação.', fase, sponsor, dominio, beneficioLabel: beneficio }
+  return { key: `GL-${1000 + i}`, nome, objetivo: 'Reduzir custo operacional e melhorar a experiência do cliente com automação.', fase, statusId: '', statusNome: fase, sponsor, dominio, beneficioLabel: beneficio }
 }
 
 const SAMPLE_PENDENTE_ANALISE: WeeklyStage = {
@@ -466,6 +578,7 @@ const SAMPLE_INSIGHTS = buildInsights(SAMPLE_CONVERSAO_PILOTO, SAMPLE_CONVERSAO_
 export const SAMPLE_WEEKLY_DATA: WeeklyData = {
   geradoEm: new Date().toISOString(),
   isSample: true,
+  governanca: SAMPLE_GOVERNANCA_DATA,
   stages: SAMPLE_STAGES,
   pendenteAnalise: SAMPLE_PENDENTE_ANALISE,
   beneficioTotal: 0,
@@ -488,6 +601,8 @@ export const SAMPLE_WEEKLY_DATA: WeeklyData = {
   semSponsor: { count: 29, pct: pct(29, SAMPLE_TOTAL_EPICS) },
   topSponsors: SAMPLE_TOP_SPONSORS,
   topDiretorias: SAMPLE_TOP_DIRETORIAS,
+  experimentosConcluidos: 42,
+  experimentosCancelados: 31,
   aprendizadosSemEscalar: SAMPLE_APRENDIZADOS_SEM_ESCALAR,
   aprendizadosAcionaveis: SAMPLE_APRENDIZADOS,
   insightPrincipal: SAMPLE_INSIGHTS.principal,

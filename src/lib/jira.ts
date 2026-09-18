@@ -127,6 +127,35 @@ async function getBoardConfiguration(boardId: number): Promise<JiraBoardConfigur
   return data
 }
 
+// Resolve em runtime o customfield da "Tecnologia" pelo NOME do campo — não
+// sabemos o customfield_ID exato (varia por instância), então descobrimos
+// via /rest/api/3/field (lista todos os campos do Jira, com nome e id) em vez
+// de arriscar um ID errado. Cacheado no módulo: só resolve uma vez por processo.
+let cachedTecnologiaFieldId: string | null | undefined = undefined
+
+async function resolveTecnologiaFieldId(): Promise<string | null> {
+  if (cachedTecnologiaFieldId !== undefined) return cachedTecnologiaFieldId
+  const base = process.env.JIRA_BASE_URL
+  if (!base) { cachedTecnologiaFieldId = null; return null }
+  try {
+    const res = await fetch(`${base}/rest/api/3/field`, {
+      headers: getHeaders(),
+      next: { revalidate: 3600 },
+    })
+    if (!res.ok) { cachedTecnologiaFieldId = null; return null }
+    const fields: Array<{ id: string; name: string }> = await res.json()
+    const match = fields.find(f => f.name?.trim().toLowerCase() === 'tecnologia')
+    cachedTecnologiaFieldId = match?.id ?? null
+    if (!cachedTecnologiaFieldId) {
+      console.warn('[jira] Campo "Tecnologia" não encontrado via /rest/api/3/field — cor por tecnologia ficará vazia.')
+    }
+  } catch (err) {
+    console.warn('[jira] Falha ao resolver o campo "Tecnologia":', err)
+    cachedTecnologiaFieldId = null
+  }
+  return cachedTecnologiaFieldId
+}
+
 async function getAllBoardIssues(boardId: number, fields: string): Promise<JiraIssue[]> {
   const base = process.env.JIRA_BASE_URL
   if (!base) throw new Error('JIRA_BASE_URL é obrigatório')
@@ -172,14 +201,26 @@ export async function fetchDashboardRaw(): Promise<{
   iniciativas: JiraIssue[]
   epics: JiraIssue[]
   board2734Config: JiraBoardConfiguration
+  board2735Config: JiraBoardConfiguration
   epicChangelogs: Record<string, ChangelogEntry[]>
   iniciativaChangelogs: Record<string, ChangelogEntry[]>
 }> {
-  const [iniciativas, epics, board2734Config] = await Promise.all([
+  const tecnologiaFieldId = await resolveTecnologiaFieldId()
+  const fieldsEpicComTecnologia = tecnologiaFieldId ? `${FIELDS_EPIC},${tecnologiaFieldId}` : FIELDS_EPIC
+
+  const [iniciativas, epicsRaw, board2734Config, board2735Config] = await Promise.all([
     getAllBoardIssues(IDEACAO_BOARD_ID, FIELDS_INICIATIVA),
-    getAllBoardIssues(EXPERIMENTACAO_BOARD_ID, FIELDS_EPIC),
+    getAllBoardIssues(EXPERIMENTACAO_BOARD_ID, fieldsEpicComTecnologia),
     getBoardConfiguration(IDEACAO_BOARD_ID),
+    getBoardConfiguration(EXPERIMENTACAO_BOARD_ID),
   ])
+
+  // Normaliza o valor do campo "Tecnologia" (customfield_ID resolvido acima)
+  // para uma chave fixa `tecnologia` — assim o resto do código não precisa
+  // conhecer o ID dinâmico do campo.
+  const epics: JiraIssue[] = tecnologiaFieldId
+    ? epicsRaw.map(e => ({ ...e, fields: { ...e.fields, tecnologia: (e.fields as any)[tecnologiaFieldId] ?? null } }))
+    : epicsRaw
 
   // Buscar último comentário (texto plano) apenas para Epics em refinamento/andamento/validação
   async function getIssueLastComment(issueKey: string): Promise<string | null> {
@@ -262,7 +303,7 @@ export async function fetchDashboardRaw(): Promise<{
     fetchChangelogsBatch(iniciativas),
   ])
 
-  return { iniciativas, epics: epicsWithComments, board2734Config, epicChangelogs, iniciativaChangelogs }
+  return { iniciativas, epics: epicsWithComments, board2734Config, board2735Config, epicChangelogs, iniciativaChangelogs }
 }
 
 export interface ChangelogEntry {
