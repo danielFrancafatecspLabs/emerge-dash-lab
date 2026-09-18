@@ -7,3 +7,4 @@
 - `EpicsListModal` was fixed to avoid nested button hydration errors.
 - `src/lib/bloqueios-data.ts` is the shared source for bloqueios data.
 - Domain rules for Iniciativa vs Experimento live in `CLAUDE.md`.
+- `normalizeLab()` added in `src/lib/mappers.ts` to normalize lab name variations (BeOn Labs, BeON Labs, etc. → "Beon Labs").

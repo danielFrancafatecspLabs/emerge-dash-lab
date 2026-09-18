@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { verifyAuthSession } from '@/lib/auth-session'
 
-const PUBLIC_PATHS = ['/login', '/bem-vindo', '/api/auth']
+const PUBLIC_PATHS = ['/login', '/bem-vindo', '/api/auth', '/api/clear-cache']
 const BASE = '/jira'
 
 export async function middleware(request: NextRequest) {

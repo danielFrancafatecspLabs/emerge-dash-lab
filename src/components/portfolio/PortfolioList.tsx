@@ -123,9 +123,34 @@ export default function PortfolioList({ data }: Props) {
   const pctReceita = totalMetas > 0 ? (filteredMetas.Receita / totalMetas * 100).toFixed(0) : '0'
   const pctNPS     = totalMetas > 0 ? (filteredMetas.NPS     / totalMetas * 100).toFixed(0) : '0'
 
-  // Agregações para o resumo
-  const activeCount   = epics.filter(e => !['Concluído','Cancelado'].includes(e.status.name)).length
-  const concludedCount = epics.filter(e => e.status.name === 'Concluído').length
+  // Agregações para o resumo — mesma lógica do FunilExperimentos
+  const EXCLUIR_CONCLUIDOS = new Set([
+    'Otimiza APP - Ciclo 1 (Análise de comentários das lojas de apps)',
+    "IA para IP'S de rede",
+    'Assistente IA Ágil - Ciclo 2',
+    'Sumarização dos Contratos',
+    'Jurisquery - Consulta de Pareceres Juridicos',
+  ])
+  // Mesma lógica exata do FunilExperimentos.tsx (board 2735 — Epics)
+  const emAndamento  = data.allEpics.filter(e =>
+    e.status?.id === '3' || e.status?.name === 'Em andamento'
+  ).length
+  const emValidacao  = data.allEpics.filter(e =>
+    e.status?.id === '10204' || e.status?.name === 'EM VALIDAÇÃO' || e.status?.name === 'Em validação'
+  ).length
+  const concluidos  = data.allEpics.filter(e =>
+    e.status?.id === '10019' && !EXCLUIR_CONCLUIDOS.has(e.nome)
+  ).length
+  // Piloto e Escala vêm do pipeline de Iniciativas (board 2734)
+  const emPiloto     = data.pipeline['EM PILOTO'] ?? 0
+  const emEscala     = data.pipeline['EM ESCALA'] ?? 0
+  const concludedCount = concluidos
+  // Ativos = experimentos em EM EXPERIMENTAÇÃO (inclui andamento e validação) + iniciativas em piloto + escala
+  const activeCount    = emAndamento + emPiloto + emEscala
+  // DEBUG: add temporary filter breakdown
+  const cancelados = data.allEpics.filter(e =>
+    e.status?.id === '10015' || e.status?.name === 'Cancelado'
+  ).length
 
   return (
     <>
@@ -150,6 +175,15 @@ export default function PortfolioList({ data }: Props) {
             <span>Ativos: <strong className="text-green-600">{activeCount}</strong></span>
             <span className="w-px h-4 bg-gray-200" />
             <span>Concluídos: <strong className="text-blue-600">{concludedCount}</strong></span>
+          </div>
+          {/* DEBUG: valores do resumo */}
+          <div className="px-5 pb-1 flex gap-3 text-[8px] text-gray-300">
+            <span>andamento:{emAndamento}</span>
+            <span>validação:{emValidacao}</span>
+            <span>piloto:{emPiloto}</span>
+            <span>escala:{emEscala}</span>
+            <span>total:{activeCount}</span>
+            <span>pipeline:{JSON.stringify(data.pipeline)}</span>
           </div>
         </div>
 
