@@ -80,6 +80,14 @@ const BUILTIN_USERS: User[] = [
     createdAt: "2026-07-23T00:00:00.000Z",
     active: true,
   },
+  {
+    id: "6",
+    username: "alexandra.ferreira@claro.com.br",
+    passwordHash: "57da5726881f64a34845e81da48817ed:97ae927f7b1a6b75ef89b5cf5590f8252c8200e3b7a94beb5befc4cb763d223b194f8699b04e7cbcaa40ff9c9350707c687aa850c2a85cdc1800ec2a5fe702d1",
+    role: "admin",
+    createdAt: "2026-09-18T00:00:00.000Z",
+    active: true,
+  },
 ]
 
 export function loadUsers(): User[] {
