@@ -120,6 +120,20 @@ function classifyColumnName(nome: string): 'pre-analise' | 'prospeccao' | 'em-an
   return null
 }
 
+// Domínios que mais experimentam (maior total de Epics) primeiro — são eles
+// que mais precisam de espaço para mostrar os Epics pelo nome (ver alocação
+// proporcional de altura de linha em GovernancaSlide.tsx). Tentamos agrupar
+// os domínios menores numa linha "Outras Áreas" única, mas isso piorou a
+// visualização: um domínio pequeno com 1 Epic por célula já mostrava o nome
+// sozinho, e ao somar vários desses domínios numa célula só, o total
+// facilmente passa da capacidade e vira número — trocando vários nomes
+// visíveis por UM card resumido. Mantemos todos os domínios como linhas
+// separadas; quem precisa de mais altura ganha mais altura (proporcional),
+// em vez de perder a própria linha.
+function ordenarDominios(domains: GovernancaDomainRow[]): GovernancaDomainRow[] {
+  return [...domains].sort((a, b) => b.total - a.total || a.dominio.localeCompare(b.dominio, 'pt-BR'))
+}
+
 export function buildGovernancaData(data: DashboardData, board2735Config?: JiraBoardConfiguration): GovernancaData {
   const iniciativaByKey = new Map<string, Iniciativa>(data.iniciativas.map(i => [i.key, i]))
   const colunaPorStatusId = buildColunaPorStatusId(board2735Config)
@@ -158,19 +172,15 @@ export function buildGovernancaData(data: DashboardData, board2735Config?: JiraB
     cols.get(columnId)!.push(buildDot(epic))
   }
 
-  const domains: GovernancaDomainRow[] = [...domainMap.entries()]
-    .map(([dominio, cols]) => {
-      const columns: GovernancaColumn[] = COLUMN_DEFS.map(def => ({ ...def, dots: cols.get(def.id) ?? [] }))
-      const total = columns.reduce((sum, c) => sum + c.dots.length, 0)
-      return { dominio, total, columns }
-    })
-    .filter(row => row.total > 0)
-    .sort((a, b) => {
-      const aOutras = a.dominio === 'Sem Domínio' || /outra/i.test(a.dominio)
-      const bOutras = b.dominio === 'Sem Domínio' || /outra/i.test(b.dominio)
-      if (aOutras !== bOutras) return aOutras ? 1 : -1
-      return a.dominio.localeCompare(b.dominio, 'pt-BR')
-    })
+  const domains: GovernancaDomainRow[] = ordenarDominios(
+    [...domainMap.entries()]
+      .map(([dominio, cols]) => {
+        const columns: GovernancaColumn[] = COLUMN_DEFS.map(def => ({ ...def, dots: cols.get(def.id) ?? [] }))
+        const total = columns.reduce((sum, c) => sum + c.dots.length, 0)
+        return { dominio, total, columns }
+      })
+      .filter(row => row.total > 0)
+  )
 
   const columns = COLUMN_DEFS.map(def => ({
     ...def,
@@ -267,6 +277,9 @@ const SAMPLE_SHAPE: [string, number[]][] = [
   ['Digital', [4, 5, 9, 3, 1, 2]],
   ['HITSS', [1, 1, 3, 0, 1, 0]],
   ['Outras Frentes', [8, 6, 15, 4, 0, 3]],
+  ['Segurança', [1, 0, 1, 0, 0, 0]],
+  ['Vendas', [0, 1, 0, 0, 0, 0]],
+  ['TV', [1, 0, 2, 0, 0, 0]],
 ]
 const TECNOLOGIAS = ['Web 3', 'A.I e Analytics', 'Future Network', 'Outras Tecnologias']
 const NOMES_EXEMPLO = [
@@ -282,27 +295,29 @@ function proximoNomeExemplo(): string {
 }
 
 export const SAMPLE_GOVERNANCA_DATA: GovernancaData = (() => {
-  const domains: GovernancaDomainRow[] = SAMPLE_SHAPE.map(([dominio, counts]) => {
-    const columns: GovernancaColumn[] = COLUMN_DEFS.map((def, i) => ({
-      ...def,
-      dots: Array.from({ length: counts[i] }, (_, j) => buildDot(sampleEpic(
-        proximoNomeExemplo(),
-        dominio,
-        TECNOLOGIAS[(i + j) % TECNOLOGIAS.length],
-        {
-          // Espalha alguns bloqueios por fases diferentes (não só "Em
-          // andamento") para o slide de Bloqueios ter exemplo variado.
-          flagged: (j === 0 && (i === 2 || i === 4)) || (i === 0 && j === 1) ? true : null,
-          motivoBloqueio: (j === 0 && i === 2) ? 'Aguardando priorização da área'
-            : (j === 0 && i === 4) ? 'Time de negócio sem disponibilidade para validar'
-              : (i === 0 && j === 1) ? 'Falta acesso ao ambiente de dados' : null,
-          prioridade: j === 0 ? 'Alta' : null,
-        }
-      ))),
-    }))
-    const total = columns.reduce((sum, c) => sum + c.dots.length, 0)
-    return { dominio, total, columns }
-  }).filter(row => row.total > 0)
+  const domains: GovernancaDomainRow[] = ordenarDominios(
+    SAMPLE_SHAPE.map(([dominio, counts]) => {
+      const columns: GovernancaColumn[] = COLUMN_DEFS.map((def, i) => ({
+        ...def,
+        dots: Array.from({ length: counts[i] }, (_, j) => buildDot(sampleEpic(
+          proximoNomeExemplo(),
+          dominio,
+          TECNOLOGIAS[(i + j) % TECNOLOGIAS.length],
+          {
+            // Espalha alguns bloqueios por fases diferentes (não só "Em
+            // andamento") para o slide de Bloqueios ter exemplo variado.
+            flagged: (j === 0 && (i === 2 || i === 4)) || (i === 0 && j === 1) ? true : null,
+            motivoBloqueio: (j === 0 && i === 2) ? 'Aguardando priorização da área'
+              : (j === 0 && i === 4) ? 'Time de negócio sem disponibilidade para validar'
+                : (i === 0 && j === 1) ? 'Falta acesso ao ambiente de dados' : null,
+            prioridade: j === 0 ? 'Alta' : null,
+          }
+        ))),
+      }))
+      const total = columns.reduce((sum, c) => sum + c.dots.length, 0)
+      return { dominio, total, columns }
+    }).filter(row => row.total > 0)
+  )
 
   const columns = COLUMN_DEFS.map(def => ({
     ...def,
