@@ -534,14 +534,36 @@ export default function PipelineSlide({ data, onMaximize }: { data: WeeklyData; 
             </button>
           )
         })}
+        {/* ── Oportunidades: Iniciativas do board de Ideação em Backlog/Refinamento ── */}
+        {(() => {
+          const aberta = stageAberta === 'oportunidades'
+          return (
+            <button
+              onClick={() => setStageAberta(aberta ? null : 'oportunidades')}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors"
+              style={{
+                background: aberta ? '#D97706' : '#F3F4F6',
+                color: aberta ? '#FFFFFF' : '#374151',
+                border: `1px solid ${aberta ? '#D97706' : '#E5E7EB'}`,
+              }}
+            >
+              Oportunidades ({data.pendenteAnalise.quantidade})
+              {aberta ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+            </button>
+          )
+        })()}
       </div>
 
       {stageAberta && (
         <div className="no-print mt-1">
-          {(() => {
-            const stage = data.stages.find(s => s.id === stageAberta)!
-            return <StageDetalhesSlides stageId={stage.id} stageLabel={stage.label} rows={stage.experimentos} />
-          })()}
+          {stageAberta === 'oportunidades' ? (
+            <StageDetalhesSlides stageId="oportunidades" stageLabel="Oportunidades" rows={data.pendenteAnalise.experimentos} />
+          ) : (
+            (() => {
+              const stage = data.stages.find(s => s.id === stageAberta)!
+              return <StageDetalhesSlides stageId={stage.id} stageLabel={stage.label} rows={stage.experimentos} />
+            })()
+          )}
         </div>
       )}
     </div>

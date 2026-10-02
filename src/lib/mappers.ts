@@ -694,9 +694,71 @@ function calculateLeadTime(iniciativas: Iniciativa[], epicChangelogs: Record<str
 }
 
 /**
+ * Calcula o tempo médio (em dias) que os Epics do board de experimentação (2735)
+ * passaram nos status BACKLOG e EM REFINAMENTO — fase de "Exploração".
+ * Usa o changelog dos Epics para rastrear entrada e saída desses status.
+ * Considera APENAS Epics CONCLUÍDOS (status 10003 ou 10019).
+ */
+function calculateExploracaoDias(
+  epicChangelogs: Record<string, ChangelogEntry[]>,
+  epicsRaw: JiraIssue[]
+): number {
+  const MS_POR_DIA = 1000 * 60 * 60 * 24
+  const EXPLORACAO_NAMES = new Set(['Backlog', 'BACKLOG', 'Em refinamento', 'EM REFINAMENTO'])
+  const CONCLUIDO_IDS = new Set(['10003', '10019'])
+  const todosDias: number[] = []
+
+  const epicsConcluidos = epicsRaw.filter(e => CONCLUIDO_IDS.has(e.fields.status.id))
+
+  for (const epic of epicsConcluidos) {
+    const changelog = epicChangelogs[epic.key]
+    if (!changelog || changelog.length === 0) continue
+
+    const sorted = [...changelog].sort(
+      (a, b) => new Date(a.created).getTime() - new Date(b.created).getTime()
+    )
+
+    // Coletar períodos em exploração como intervalos { inicio, fim }
+    const periodos: { inicio: number; fim: number }[] = []
+    let entrouEm: number | null = null
+
+    for (const entry of sorted) {
+      for (const item of entry.items) {
+        if (item.field !== 'status') continue
+
+        const entrou = EXPLORACAO_NAMES.has(item.toString ?? '')
+        const saiu = EXPLORACAO_NAMES.has(item.fromString ?? '')
+
+        if (entrou && !saiu) {
+          entrouEm = new Date(entry.created).getTime()
+        } else if (saiu && !entrou) {
+          if (entrouEm !== null) {
+            periodos.push({ inicio: entrouEm, fim: new Date(entry.created).getTime() })
+            entrouEm = null
+          }
+        }
+      }
+    }
+
+    if (periodos.length === 0) continue
+
+    // Subtrair dias bloqueados que caem dentro dos períodos de exploração
+    const bloqueios = getPeriodosBloqueio(epic.key, epicChangelogs)
+    const totalExploracao = subtrairBloqueios(periodos, bloqueios)
+
+    if (totalExploracao > 0) {
+      todosDias.push(totalExploracao)
+    }
+  }
+
+  if (todosDias.length === 0) return 0
+  return Math.round(todosDias.reduce((s, d) => s + d, 0) / todosDias.length)
+}
+
+/**
  * Calcula o Lead Time da Jornada de Adoção de Tecnologia.
  * Usa os dados de cycleTimeIdeacao (já calculados via changelog) para montar
- * as fases da jornada: Backlog → Experimentação → Transição para Piloto → Piloto → Escala.
+ * as fases da jornada: Exploração → Experimentação → Transição para Piloto → Piloto → Escala.
  */
 function calculateLeadTimeJornada(
   cycleTimeIdeacao: CycleTimeEstagio[],
@@ -712,28 +774,30 @@ function calculateLeadTimeJornada(
   }
 
   // Fases da jornada (agregadas)
-  // Backlog é mantido apenas para o cálculo de tempoEsperaTransicaoDias, mas NÃO entra no totalDias
-  const backlogDias = (mapa['BACKLOG'] ?? 0) + (mapa['EM REFINAMENTO'] ?? 0) + (mapa['PRONTO PARA EXECUÇÃO'] ?? 0)
+  // Exploração: tempo que os Epics ficaram em BACKLOG + EM REFINAMENTO (board 2735)
+  const exploracaoDias = calculateExploracaoDias(epicChangelogs, epicsRaw)
   const experimentacaoDias = cicloGeral.mediaDias  // usa o cycle time geral de experimentação (já desconta bloqueio)
   const transicaoPilotoDias = mapa['AGUARDANDO PILOTO'] ?? 0
   const pilotoDias = mapa['EM PILOTO'] ?? 0
   const escalaDias = mapa['EM ESCALA'] ?? 0
 
-  // Total considera apenas as fases visíveis (Experimentação, Transição, Piloto, Escala)
-  const totalDias = experimentacaoDias + transicaoPilotoDias + pilotoDias + (escalaDias > 0 ? escalaDias : 0)
+  // Total considera todas as fases visíveis (Exploração, Experimentação, Transição, Piloto, Escala)
+  const totalDias = exploracaoDias + experimentacaoDias + transicaoPilotoDias + pilotoDias + (escalaDias > 0 ? escalaDias : 0)
   const totalComFallback = totalDias > 0 ? totalDias : experimentacaoDias
 
   const calcPct = (d: number) => totalComFallback > 0 ? Math.round((d / totalComFallback) * 100) : 0
 
-  // Fases exibidas (sem Backlog — começa na Experimentação)
+  // Fases exibidas (começa na Exploração)
   const fases: LeadTimeJornadaFase[] = totalDias > 0
     ? [
+        { fase: 'Exploração', dias: exploracaoDias, pct: calcPct(exploracaoDias), cor: '#6366F1', destaque: false },
         { fase: 'Experimentação', dias: experimentacaoDias, pct: calcPct(experimentacaoDias), cor: '#F59E0B', destaque: true },
         { fase: 'Transição para Piloto', dias: transicaoPilotoDias, pct: calcPct(transicaoPilotoDias), cor: '#9CA3AF' },
         { fase: 'Piloto', dias: pilotoDias, pct: calcPct(pilotoDias), cor: '#6B7280' },
         ...(escalaDias > 0 ? [{ fase: 'Escala', dias: escalaDias, pct: calcPct(escalaDias), cor: '#4B5563' }] : []),
       ]
     : [
+        { fase: 'Exploração', dias: exploracaoDias, pct: exploracaoDias > 0 ? calcPct(exploracaoDias) : 0, cor: '#6366F1' },
         { fase: 'Experimentação', dias: experimentacaoDias, pct: 100, cor: '#F59E0B', destaque: true },
       ]
 
@@ -744,14 +808,15 @@ function calculateLeadTimeJornada(
     : { fase: 'N/A', dias: 0, pct: 0 }
 
   // Decomposição
+  const tempoExploracaoDias = exploracaoDias
   const tempoGeracaoValorDias = experimentacaoDias + pilotoDias
-  const tempoEsperaTransicaoDias = backlogDias + transicaoPilotoDias
+  const tempoEsperaTransicaoDias = transicaoPilotoDias
   const tempoImplantacaoEscalaDias = escalaDias
 
   // Insights
   const insights: string[] = []
-  if (bottleneck.fase === 'Backlog' && bottleneck.dias > 0) {
-    insights.push(`O backlog consome ${bottleneck.pct}% do lead time total (${bottleneck.dias}d). Avalie se há excesso de iniciativas paradas nas fases iniciais.`)
+  if (bottleneck.fase === 'Exploração' && bottleneck.dias > 0) {
+    insights.push(`A exploração (Backlog + Refinamento) consome ${bottleneck.pct}% do lead time total (${bottleneck.dias}d). Avalie se há excesso de experimentos parados nas fases iniciais.`)
   }
   if (bottleneck.fase === 'Experimentação' && bottleneck.dias > 0) {
     insights.push(`A experimentação é o maior gargalo (${bottleneck.dias}d, ${bottleneck.pct}% do total). O cycle time varia por complexidade: P=${cycleTimeExperimentacao.find(c => c.label.includes('P'))?.mediaDias ?? '?'}d, M=${cycleTimeExperimentacao.find(c => c.label.includes('M'))?.mediaDias ?? '?'}d, G=${cycleTimeExperimentacao.find(c => c.label.includes('G'))?.mediaDias ?? '?'}d.`)
@@ -764,7 +829,7 @@ function calculateLeadTimeJornada(
   }
   if (tempoGeracaoValorDias > 0 && totalDias > 0) {
     const pctValor = Math.round((tempoGeracaoValorDias / totalDias) * 100)
-    insights.push(`Apenas ${pctValor}% do lead time é dedicado à geração de valor (Experimentação + Piloto). ${100 - pctValor}% é consumido em espera e transições.`)
+    insights.push(`Apenas ${pctValor}% do lead time é dedicado à geração de valor (Experimentação + Piloto). ${100 - pctValor}% é consumido em exploração, espera e transições.`)
   }
 
   // ── Blocked Time: média de dias bloqueados dos experimentos concluídos ──
@@ -842,6 +907,7 @@ function calculateLeadTimeJornada(
     totalDias,
     fases,
     bottleneck,
+    tempoExploracaoDias,
     tempoGeracaoValorDias,
     tempoEsperaTransicaoDias,
     tempoImplantacaoEscalaDias,

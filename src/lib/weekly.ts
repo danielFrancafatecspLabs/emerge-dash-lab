@@ -310,7 +310,7 @@ function buildTopMotivosCancelamento(
  * - Sem benefício potencial / Sem sponsor: sobre TODOS os Epics do board de
  *   Experimentação — benefício considera os campos quantitativo E qualitativo juntos.
  * - Pendente para Análise: Iniciativas do board de Ideação em "BACKLOG"
- *   (id 10004) + "EM REFINAMENTO" (id 10139) — ideias que ainda não passaram
+ *   (id 10057) + "EM REFINAMENTO" (id 14538) — ideias que ainda não passaram
  *   pelos critérios de entrada, portanto ainda não são um experimento.
  * - Em andamento + Concluídos: a soma das duas fases representa quanto do
  *   total de Experimentos Aprovados (slide 1) já está em execução real ou já
@@ -318,12 +318,12 @@ function buildTopMotivosCancelamento(
  *   fora dessa leitura.
  */
 export function buildWeeklyData(data: DashboardData, epicChangelogs: Record<string, ChangelogEntry[]> = {}, board2735Config?: JiraBoardConfiguration): WeeklyData {
-  // Pendente para Análise: Iniciativas do board de Ideação (2706) em
-  // BACKLOG (10004) + EM REFINAMENTO (10139) — ideias que ainda não
+  // Pendente para Análise: Iniciativas do board de Ideação (2734) em
+  // BACKLOG (10057) + EM REFINAMENTO (14538) — ideias que ainda não
   // passaram pelos critérios de entrada, portanto ainda não são um
   // experimento. Usa IDs fixos porque o board de Ideação tem mapeamento
   // próprio e estável.
-  const ideacaoBacklogIds = new Set(['10004', '10139'])
+  const ideacaoBacklogIds = new Set(['10057', '14538'])
   const pendenteAnaliseInis = data.iniciativas.filter(i =>
     ideacaoBacklogIds.has(i.status.id)
   )

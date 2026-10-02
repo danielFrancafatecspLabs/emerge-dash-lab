@@ -1,11 +1,9 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { Radio, Eye, EyeOff } from 'lucide-react'
 
 export default function LoginPage() {
-  const router = useRouter()
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [showPass, setShowPass] = useState(false)
@@ -28,7 +26,7 @@ export default function LoginPage() {
         const data = await res.json()
         localStorage.setItem('user_role', data.role)
         localStorage.setItem('username', data.username)
-        router.replace(`/bem-vindo?role=${data.role}&username=${encodeURIComponent(data.username)}`)
+        window.location.replace(`/jira/bem-vindo?role=${data.role}&username=${encodeURIComponent(data.username)}`)
       } else {
         const data = await res.json()
         setError(data.error ?? 'Erro ao fazer login')
