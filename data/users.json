@@ -22,5 +22,21 @@
     "role": "admin",
     "createdAt": "2026-09-18T00:00:00.000Z",
     "active": true
+  },
+  {
+    "id": "local-dev",
+    "username": "teste@beonlab.com.br",
+    "passwordHash": "4e13c3656abefbf3c64ac9da31d17068:46cb673216d747dafe627c092471009df10dee86604d5f8453237a68d1b5e5158f3347d850b0960e364b7a809a7c39554827dedbb1e566bc65a152ddaf01726c",
+    "role": "admin",
+    "createdAt": "2026-09-18T00:00:00.000Z",
+    "active": true
+  },
+  {
+    "id": "local-admin",
+    "username": "admin",
+    "passwordHash": "e666a2f05d6f720e045ff29175f863ec:b3b581b8482350615bf13f82b18cbc82d8fb8bb18ca6bc0d80fc4140e80c8c798d868044e375a32b5514c5d7cb34839872ad84e1e2d603402266b7a47925ead9",
+    "role": "admin",
+    "createdAt": "2026-09-18T00:00:00.000Z",
+    "active": true
   }
 ]

@@ -1,3 +1,5 @@
+import NormalizeManifestPlugin from './scripts/patch-next-manifest.js'
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   typescript: { ignoreBuildErrors: true },
@@ -18,6 +20,11 @@ const nextConfig = {
       canvas: false,
       encoding: false,
     }
+
+    // Normaliza drive letters nos manifests do Next.js para evitar
+    // o erro "error-boundary.js# no React Client Manifest" no Windows.
+    config.plugins.push(new NormalizeManifestPlugin())
+
     return config
   },
 }

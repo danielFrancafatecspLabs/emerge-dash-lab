@@ -160,16 +160,17 @@ export default function StageDetalhesSlides({ stageId, stageLabel, rows }: Props
                     com badge mostarda, linhas agrupadas por pendência ── */
                 <table className="w-full border-collapse" style={{ tableLayout: 'fixed' }}>
                   <colgroup>
+                    <col style={{ width: '16%' }} />
+                    <col style={{ width: '22%' }} />
                     <col style={{ width: '18%' }} />
-                    <col style={{ width: '25%' }} />
-                    <col style={{ width: '20%' }} />
-                    <col style={{ width: '11%' }} />
-                    <col style={{ width: '15%' }} />
+                    <col style={{ width: '10%' }} />
+                    <col style={{ width: '13%' }} />
+                    <col style={{ width: '10%' }} />
                     <col style={{ width: '11%' }} />
                   </colgroup>
                   <thead>
                     <tr className="align-bottom">
-                      {['Nome da Iniciativa', 'Descrição', 'Pendências', 'Lab', 'Sponsor / Domínio', 'Benefício Potencial'].map(h => (
+                      {['Nome da Iniciativa', 'Descrição', 'Pendências', 'Lab', 'Diretor / Ponto Focal', 'Área / Departamento', 'Benefício Potencial'].map(h => (
                         <th
                           key={h}
                           className="pb-2.5 font-bold text-gray-500 uppercase text-left"
@@ -207,7 +208,9 @@ export default function StageDetalhesSlides({ stageId, stageLabel, rows }: Props
                         </td>
                         <td className="py-3 pr-3 align-top">
                           <p className="text-gray-700" style={{ fontSize: 11.5, lineHeight: 1.3 }}>{row.sponsor}</p>
-                          <p className="font-bold text-gray-900 mt-0.5" style={{ fontSize: 11.5, lineHeight: 1.3 }}>{row.dominio}</p>
+                        </td>
+                        <td className="py-3 pr-3 align-top">
+                          <p className="font-bold text-gray-900" style={{ fontSize: 11.5, lineHeight: 1.3 }}>{row.dominio}</p>
                         </td>
                         <td className="py-3 align-top">
                           <p className={row.beneficioLabel === 'Não Mapeado' ? 'italic text-gray-400' : 'font-bold text-gray-900'} style={{ fontSize: 12 }}>
@@ -222,17 +225,18 @@ export default function StageDetalhesSlides({ stageId, stageLabel, rows }: Props
                 /* ── Layout Em Andamento: Fase vira "Fase / Pendências" + Previsão de Conclusão ── */
                 <table className="w-full border-collapse" style={{ tableLayout: 'fixed' }}>
                   <colgroup>
-                    <col style={{ width: '16%' }} />
-                    <col style={{ width: '22%' }} />
-                    <col style={{ width: '12%' }} />
+                    <col style={{ width: '14%' }} />
+                    <col style={{ width: '19%' }} />
                     <col style={{ width: '11%' }} />
                     <col style={{ width: '10%' }} />
-                    <col style={{ width: '16%' }} />
-                    <col style={{ width: '10%' }} />
+                    <col style={{ width: '9%' }} />
+                    <col style={{ width: '14%' }} />
+                    <col style={{ width: '11%' }} />
+                    <col style={{ width: '9%' }} />
                   </colgroup>
                   <thead>
                     <tr className="align-bottom">
-                      {['Nome da Iniciativa', 'Objetivo', 'Fase / Pendências', 'Previsão de Conclusão', 'Lab', 'Sponsor / Domínio', 'Benefício Potencial'].map(h => (
+                      {['Nome da Iniciativa', 'Objetivo', 'Fase / Pendências', 'Previsão de Conclusão', 'Lab', 'Diretor / Ponto Focal', 'Área / Departamento', 'Benefício Potencial'].map(h => (
                         <th
                           key={h}
                           className="pb-2.5 font-bold text-gray-500 uppercase text-left"
@@ -302,7 +306,9 @@ export default function StageDetalhesSlides({ stageId, stageLabel, rows }: Props
                         </td>
                         <td className="py-3 pr-3 align-top">
                           <p className="text-gray-700" style={{ fontSize: 11.5, lineHeight: 1.3 }}>{row.sponsor}</p>
-                          <p className="font-bold text-gray-900 mt-0.5" style={{ fontSize: 11.5, lineHeight: 1.3 }}>{row.dominio}</p>
+                        </td>
+                        <td className="py-3 pr-3 align-top">
+                          <p className="font-bold text-gray-900" style={{ fontSize: 11.5, lineHeight: 1.3 }}>{row.dominio}</p>
                         </td>
                         <td className="py-3 align-top">
                           <p className={row.beneficioLabel === 'Não Mapeado' ? 'italic text-gray-400' : 'font-bold text-gray-900'} style={{ fontSize: 12 }}>
@@ -318,16 +324,17 @@ export default function StageDetalhesSlides({ stageId, stageLabel, rows }: Props
                 /* ── Layout padrão (demais fases) ── */
                 <table className="w-full border-collapse" style={{ tableLayout: 'fixed' }}>
                   <colgroup>
-                    <col style={{ width: '18%' }} />
-                    <col style={{ width: '27%' }} />
-                    <col style={{ width: '9%' }} />
-                    <col style={{ width: '12%' }} />
-                    <col style={{ width: '18%' }} />
-                    <col style={{ width: '12%' }} />
+                    <col style={{ width: '16%' }} />
+                    <col style={{ width: '24%' }} />
+                    <col style={{ width: '8%' }} />
+                    <col style={{ width: '11%' }} />
+                    <col style={{ width: '15%' }} />
+                    <col style={{ width: '13%' }} />
+                    <col style={{ width: '11%' }} />
                   </colgroup>
                   <thead>
                     <tr className="align-bottom">
-                      {['Nome da Iniciativa', 'Objetivo', 'Fase', 'Lab', 'Sponsor / Domínio', 'Benefício Potencial'].map(h => (
+                      {['Nome da Iniciativa', 'Objetivo', 'Fase', 'Lab', 'Diretor / Ponto Focal', 'Área / Departamento', 'Benefício Potencial'].map(h => (
                         <th
                           key={h}
                           className="pb-2.5 font-bold text-gray-500 uppercase text-left"
@@ -366,7 +373,9 @@ export default function StageDetalhesSlides({ stageId, stageLabel, rows }: Props
                         </td>
                         <td className="py-3 pr-3 align-top">
                           <p className="text-gray-700" style={{ fontSize: 11.5, lineHeight: 1.3 }}>{row.sponsor}</p>
-                          <p className="font-bold text-gray-900 mt-0.5" style={{ fontSize: 11.5, lineHeight: 1.3 }}>{row.dominio}</p>
+                        </td>
+                        <td className="py-3 pr-3 align-top">
+                          <p className="font-bold text-gray-900" style={{ fontSize: 11.5, lineHeight: 1.3 }}>{row.dominio}</p>
                         </td>
                         <td className="py-3 align-top">
                           <p className={row.beneficioLabel === 'Não Mapeado' ? 'italic text-gray-400' : 'font-bold text-gray-900'} style={{ fontSize: 12 }}>

@@ -4,13 +4,21 @@ import {
   AreaChart, Area, XAxis, YAxis, Tooltip, ReferenceLine,
   ResponsiveContainer, Label, Customized,
 } from 'recharts'
-import { LeadTimeJornada, CycleTimeEstagio } from '@/lib/types'
-import { Clock, AlertTriangle, Zap, Lock, TrendingDown, TrendingUp } from 'lucide-react'
+import { LeadTimeJornada, CycleTimeEstagio, EpicDetail } from '@/lib/types'
+import { Clock, AlertTriangle, Zap, Lock, TrendingDown, TrendingUp, Filter } from 'lucide-react'
 
 interface Props {
   data?: LeadTimeJornada | null
   cycleTimeExperimentacao: CycleTimeEstagio[]
   cycleTimeExperimentacaoGeral?: CycleTimeEstagio | null
+  /** Lista de todos os epics para filtrar por domínio */
+  allEpics?: EpicDetail[]
+  /** Domínio selecionado (opcional) */
+  dominio?: string | null
+  /** Callback quando o domínio muda */
+  onDominioChange?: (dominio: string | null) => void
+  /** Lista de domínios disponíveis */
+  dominiosDisponiveis?: string[]
 }
 
 /** Gera dados determinísticos de lead time mensal para o gráfico.
@@ -49,15 +57,28 @@ function LeadTimeTooltip({ active, payload, label }: any) {
   )
 }
 
-export default function LeadTimeJornadaComponent({ data, cycleTimeExperimentacao, cycleTimeExperimentacaoGeral }: Props) {
+export default function LeadTimeJornadaComponent({
+  data,
+  cycleTimeExperimentacao,
+  cycleTimeExperimentacaoGeral,
+  allEpics,
+  dominio,
+  onDominioChange,
+  dominiosDisponiveis,
+}: Props) {
   const temDadosAuxiliares = (cycleTimeExperimentacao?.length ?? 0) > 0 || !!cycleTimeExperimentacaoGeral?.mediaDias
   const fallbackExperimentacaoDias = cycleTimeExperimentacaoGeral?.mediaDias ?? 1
   const safeData = data ?? {
     totalDias: fallbackExperimentacaoDias,
-    fases: [{ fase: 'Experimentação', dias: fallbackExperimentacaoDias, pct: 100, cor: '#F59E0B', destaque: true }],
+    fases: [{ fase: 'Exploração', dias: 0, pct: 0, cor: '#6366F1' }, { fase: 'Experimentação', dias: fallbackExperimentacaoDias, pct: 100, cor: '#F59E0B', destaque: true }],
     bottleneck: { fase: 'Experimentação', dias: fallbackExperimentacaoDias, pct: 100 },
+    tempoExploracaoDias: 0,
+    tempoGeracaoValorDias: 0,
+    tempoEsperaTransicaoDias: 0,
+    tempoImplantacaoEscalaDias: 0,
     blockedTimeDias: 0,
     blockedTimePct: 0,
+    insights: [],
   }
 
   if (!data && !temDadosAuxiliares) {
@@ -101,13 +122,52 @@ export default function LeadTimeJornadaComponent({ data, cycleTimeExperimentacao
     ? leadTimeMensal[leadTimeMensal.length - 1].dias - leadTimeMensal[leadTimeMensal.length - 2].dias
     : 0
 
+  // ── Filtro por domínio ──
+  const dominios = dominiosDisponiveis ?? []
+  const temFiltroDominio = dominios.length > 0 && !!onDominioChange
+
   return (
     <div className="flex flex-col min-w-0 overflow-hidden gap-3 h-full">
+      {/* Seletor de Domínio */}
+      {temFiltroDominio && (
+        <div className="flex items-center gap-1.5 flex-shrink-0">
+          <Filter size={11} className="text-gray-400" />
+          <span className="text-[10px] font-medium text-gray-500">Domínio:</span>
+          <div className="flex flex-wrap gap-1">
+            <button
+              onClick={() => onDominioChange(null)}
+              className={`px-2 py-0.5 rounded-full text-[10px] font-medium transition-colors ${
+                !dominio
+                  ? 'text-white'
+                  : 'text-gray-600 bg-gray-100 hover:bg-gray-200'
+              }`}
+              style={!dominio ? { background: '#8B0000' } : undefined}
+            >
+              Todos
+            </button>
+            {dominios.map(d => (
+              <button
+                key={d}
+                onClick={() => onDominioChange(d)}
+                className={`px-2 py-0.5 rounded-full text-[10px] font-medium transition-colors ${
+                  dominio === d
+                    ? 'text-white'
+                    : 'text-gray-600 bg-gray-100 hover:bg-gray-200'
+                }`}
+                style={dominio === d ? { background: '#8B0000' } : undefined}
+              >
+                {d}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Timeline compacta */}
       <div className="flex-shrink-0">
         {/* Blocos da timeline */}
         <div className="flex rounded-full overflow-hidden" style={{ height: 22 }}>
-          {(fasesVisiveis.length > 0 ? fasesVisiveis : [{ fase: 'Experimentação', dias: experimentacaoDias, pct: 100, cor: '#F59E0B', destaque: true }]).map((fase, i, arr) => {
+          {(fasesVisiveis.length > 0 ? fasesVisiveis : [{ fase: 'Exploração', dias: 0, pct: 0, cor: '#6366F1' }, { fase: 'Experimentação', dias: experimentacaoDias, pct: 100, cor: '#F59E0B', destaque: true }]).map((fase, i, arr) => {
             const widthPct = totalDias > 0 ? (fase.dias / totalDias) * 100 : 0
             return (
               <div
@@ -135,7 +195,7 @@ export default function LeadTimeJornadaComponent({ data, cycleTimeExperimentacao
 
         {/* Labels abaixo dos blocos */}
         <div className="flex mt-1">
-          {(fasesVisiveis.length > 0 ? fasesVisiveis : [{ fase: 'Experimentação', dias: experimentacaoDias, pct: 100, cor: '#F59E0B', destaque: true }]).map((fase) => {
+          {(fasesVisiveis.length > 0 ? fasesVisiveis : [{ fase: 'Exploração', dias: 0, pct: 0, cor: '#6366F1' }, { fase: 'Experimentação', dias: experimentacaoDias, pct: 100, cor: '#F59E0B', destaque: true }]).map((fase) => {
             const widthPct = totalDias > 0 ? (fase.dias / totalDias) * 100 : 0
             return (
               <div
@@ -280,7 +340,7 @@ export default function LeadTimeJornadaComponent({ data, cycleTimeExperimentacao
                 strokeWidth={1.5}
               >
                 <Label
-                  value="Meta 90d"
+                  value="Curva Saudável 90d"
                   position="insideTopRight"
                   fill="#EF4444"
                   fontSize={9}
@@ -328,7 +388,7 @@ export default function LeadTimeJornadaComponent({ data, cycleTimeExperimentacao
             </span>
             <span style={{ fontSize: 9, color: '#94A3B8' }}>·</span>
             <span style={{ fontSize: 9, color: '#64748B' }}>
-              Meta: <strong style={{ color: '#EF4444' }}>90d</strong>
+              Curva Saudável: <strong style={{ color: '#EF4444' }}>90d</strong>
             </span>
             <span style={{ fontSize: 9, color: '#94A3B8' }}>·</span>
             <span className={`font-medium ${diferencaMesAnterior <= 0 ? 'text-green-600' : 'text-red-600'}`} style={{ fontSize: 9 }}>
