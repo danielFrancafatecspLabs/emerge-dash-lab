@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useRef, type RefObject } from 'react'
+import React, { useMemo, useRef, type RefObject } from 'react'
 import type { WeeklyExperimentoRow } from '@/lib/weekly'
 import { SLIDE_PAGE_SIZE, chunk, SlideDownloadButtons } from '@/components/report/slideExport'
 
@@ -86,6 +86,10 @@ const ORDEM_PENDENCIAS = [
 
 export default function StageDetalhesSlides({ stageId, stageLabel, rows }: Props) {
   const isAguardando = stageId === 'aguardando'
+  const isCanceladosStage = (
+    ['cancelados', 'cancelado', 'cancelada', 'canceladas'].includes(String(stageId).trim().toLowerCase()) ||
+    String(stageLabel).trim().toLowerCase() === 'cancelados'
+  )
 
   const paginas = useMemo(() => {
     if (!isAguardando) return chunk(rows, SLIDE_PAGE_SIZE)
@@ -325,8 +329,9 @@ export default function StageDetalhesSlides({ stageId, stageLabel, rows }: Props
                 <table className="w-full border-collapse" style={{ tableLayout: 'fixed' }}>
                   <colgroup>
                     <col style={{ width: '16%' }} />
-                    <col style={{ width: '24%' }} />
+                    <col style={{ width: '22%' }} />
                     <col style={{ width: '8%' }} />
+                    {isCanceladosStage && <col style={{ width: '18%' }} />}
                     <col style={{ width: '11%' }} />
                     <col style={{ width: '15%' }} />
                     <col style={{ width: '13%' }} />
@@ -334,7 +339,10 @@ export default function StageDetalhesSlides({ stageId, stageLabel, rows }: Props
                   </colgroup>
                   <thead>
                     <tr className="align-bottom">
-                      {['Nome da Iniciativa', 'Objetivo', 'Fase', 'Lab', 'Diretor / Ponto Focal', 'Área / Departamento', 'Benefício Potencial'].map(h => (
+                      {isCanceladosStage
+                        ? ['Nome da Iniciativa', 'Objetivo', 'Fase', 'Motivo de bloqueio', 'Lab', 'Diretor / Ponto Focal', 'Área / Departamento', 'Benefício Potencial']
+                        : ['Nome da Iniciativa', 'Objetivo', 'Fase', 'Lab', 'Diretor / Ponto Focal', 'Área / Departamento', 'Benefício Potencial']
+                      .map(h => (
                         <th
                           key={h}
                           className="pb-2.5 font-bold text-gray-500 uppercase text-left"
@@ -366,6 +374,13 @@ export default function StageDetalhesSlides({ stageId, stageLabel, rows }: Props
                             {row.fase}
                           </span>
                         </td>
+                        {isCanceladosStage && (
+                          <td className="py-3 pr-3 align-top">
+                            <p className="text-gray-700" style={{ fontSize: 11.5, lineHeight: 1.3 }}>
+                              {row.motivoBloqueio || '—'}
+                            </p>
+                          </td>
+                        )}
                         <td className="py-3 pr-3 align-top">
                           <p className="text-gray-700" style={{ fontSize: 11.5, lineHeight: 1.3 }}>
                             {row.timeResponsavel || '—'}

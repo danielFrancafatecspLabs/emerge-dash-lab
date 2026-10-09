@@ -3,6 +3,135 @@ import type { ChangelogEntry } from './jira'
 import { formatBeneficioMM, limparDescricao } from './report-utils'
 import { buildGovernancaData, SAMPLE_GOVERNANCA_DATA, type GovernancaData } from './governanca'
 
+const EPICOS_CANCELADOS_CSV = `Chave;Título;Descrição;Business Owner (BO);Sponsor;Iniciativa Pai;Data Cancelamento;Último Comentário;Link Jira
+GL-817;Agente para Treinamento Comercial;Capacitar a força de vendas através de simulações conversacionais de atendimento e contorno de objeções guiadas por IA.;Ronaldo Domingues;Leandro Bueno;GL-809;26/09/2026 00:30;Direcionado para Dados & IA avaliar solução. Área de negócio optou por não seguir realizar experimentação no dia 25/09.;https://clarobr.atlassian.net/browse/GL-817
+GL-714;Agentes de IA para QA;Implementação e validação de agentes inteligentes para suporte em esteiras de teste e garantia da qualidade de software.;Não definido;Não definido;GL-719;23/09/2026 18:21;Sem comentários registrados.;https://clarobr.atlassian.net/browse/GL-714
+GL-661;Leads PME - 2º Ciclo;Elevar a conversão de prospecção PME integrando os dados de contato enriquecidos da Neoway com a inteligência contextual do beOn labs.;Roberta Buzar;Roberta Buzar;GL-390;23/09/2026 18:14;Trocaram a carteira e precisamos de investimento em buscar dados desses clientes, experimento está em risco pela falta de engajamento do BO. Impasse com a Neoway.;https://clarobr.atlassian.net/browse/GL-661
+GL-598;Cop Rede - RAG com MCP;Validar ação de Agente de IA na operação do COP REDE, realizando interações com os técnicos e verificando oportunidades de melhorias no suporte.;Wilson Vieira;Adiel Rodrigues;GL-597;23/09/2026 17:34;DESPRIORIZADO pela AREA de NEGOCIO;https://clarobr.atlassian.net/browse/GL-598
+GL-632;Alarme situacional (Vendas);Geração de alertas e insights situacionais para alavancagem de vendas.;Cris Mattos;Não definido;GL-592;25/11/2025 14:35;Cancelado pois está contido no Alarme Situacional (Cancelamento e VT) utilizando a mesma estrutura e HLE.;https://clarobr.atlassian.net/browse/GL-632
+GL-742;Uso de AgenteForce para venda de produtos moveis;Avaliar o uso do AgentForce na automação e recomendação de produtos e planos móveis.;Rodrigo Cerqueira;Não definido;GL-741;21/09/2026 15:42;05/03: Caso permanece com o time do Radakian. Experimento ainda será iniciado. EVANDRO DIAS HENRIQUES está acompanhando.;https://clarobr.atlassian.net/browse/GL-742
+GL-738;Nova Alexa;Experimentos de integração com novas capacidades e skills do ecossistema Alexa.;TBD;TBD;GL-735;21/09/2026 15:41;Sem comentários registrados.;https://clarobr.atlassian.net/browse/GL-738
+GL-631;Piloto Agente Diagnóstico Financeiro;Piloto de IA para apoio e automação no diagnóstico de pendências financeiras e faturamento.;CELSO LUIZ TONET JUNIOR;Não definido;GL-630;21/09/2026 15:41;Sem comentários registrados.;https://clarobr.atlassian.net/browse/GL-631
+GL-822;Agente para Solução de Tickets da Rede Móvel;Agente de IA para suporte na triagem, diagnóstico e resolução de tickets de rede móvel.;João Roberto Ribeiro da Silva;Carlos Souza;GL-818;17/09/2026 01:08;Cancelado pela área de negócio 15/09. Responsável: Gabriel Rainha.;https://clarobr.atlassian.net/browse/GL-822
+GL-658;Monitoramento com IA em Altura;Uso de Inteligência Artificial para monitorar, em tempo real, atividades em altura de técnicos próprios e terceiros.;Daniel Sato;Luís Elias Marun;GL-663;07/05/2026 14:58;Cancelamento definido follow up do dia 09/02. Ficha e Relatório sendo analisados pelo Laboratório.;https://clarobr.atlassian.net/browse/GL-658
+GL-262;Conexão Logistica - Vídeos com IA;Análise e processamento de vídeos logísticos com recursos de visão computacional e IA.;Jessica Loene;Alexis Melo;GL-370;04/02/2026 16:47;Sem comentários registrados.;https://clarobr.atlassian.net/browse/GL-262
+GL-99;Contestação de Faturas;Automação e apoio à análise de processos de contestação de faturas de clientes.;Carla Tiemi;GUSTAVO SOARES SILBERT;GL-463;02/04/2026 09:42;Sem comentários registrados.;https://clarobr.atlassian.net/browse/GL-99
+GL-709;Analises de divergências de informações do RPA;Detecção e diagnóstico de inconsistências e desvios nas execuções de robôs RPA.;Joice Monuti;GUSTAVO SOARES SILBERT;GL-711;19/05/2026 11:40;Sem comentários registrados.;https://clarobr.atlassian.net/browse/GL-709
+GL-526;Copiloto para Produtos Digitais;Assistente inteligente para suporte e aceleração no desenvolvimento de produtos digitais.;Não definido;Rafael Boscolo;GL-525;06/11/2025 18:10;Sem comentários registrados.;https://clarobr.atlassian.net/browse/GL-526
+GL-807;M365;Adoção e integração de recursos avançados do Microsoft 365 e Copilot.;Ricardo Ferro;Rafael Boscolo;GL-587;22/05/2026 14:41;Sem comentários registrados.;https://clarobr.atlassian.net/browse/GL-807
+GL-896;GIA Inventário automático;Automatizar o preenchimento do inventário de contas por meio da integração entre a API corporativa e o Power Automate.;Enzo Kassawara;Rafael Felippe;GL-895;08/09/2026 09:10;Atualização completa da ferramenta GIA já em andamento pela equipe de Soluções Digitais, contemplando o escopo do experimento.;https://clarobr.atlassian.net/browse/GL-896
+GL-217;Interface Gerência -TEO - CFM - OTS;Integração e centralização de interfaces operacionais entre sistemas TEO, CFM e OTS.;Não definido;Não definido;GL-389;02/09/2026 15:53;Sem comentários registrados.;https://clarobr.atlassian.net/browse/GL-217
+GL-917;URA Resolutiva;Evolução da URA tradicional para modelos conversacionais com foco em autoatendimento resolutivo.;Não definido;Não definido;GL-374;02/09/2026 15:50;Sem comentários registrados.;https://clarobr.atlassian.net/browse/GL-917
+GL-699;Simulador de Alçadas PME;Simulação automatizada de regras e alçadas comerciais para o segmento de pequenas e médias empresas.;Não definido;Não definido;GL-716;02/09/2026 15:42;Sem comentários registrados.;https://clarobr.atlassian.net/browse/GL-699
+GL-682;Quebra de Agenda;Previsão e mitigação de perdas e quebras de agendamentos em visitas técnicas.;Wellington Cobiaki;Carlos Souza;GL-681;02/09/2026 09:31;Sem comentários registrados.;https://clarobr.atlassian.net/browse/GL-682
+GL-623;Digital Worker;Automatizar a análise de reclamações e contestações de faturas através de um trabalhador digital integrado a múltiplas bases.;Celso Tonet;Celso Tonet;GL-622;01/09/2026 17:05;IBM refez experimento; POC concluída.;https://clarobr.atlassian.net/browse/GL-623
+GL-520;Redução de Churn;Desenvolver modelos preditivos e ações preventivas automatizadas para mitigar o cancelamento voluntário de clientes.;Rodrigo Assad;Daniel Barros;GL-519;01/09/2026 16:59;Fórum com IBM (viés acadêmico). Squad em andamento com alinhamento diário com Daniel Barros.;https://clarobr.atlassian.net/browse/GL-520
+GL-518;Vendedor Online (ecommerce e demais canais remotos);Implantar assistente virtual de vendas capaz de conduzir o fluxo completo de contratação remota de serviços e produtos Claro.;Rodrigo Assad;Rodrigo Assad;GL-517;01/09/2026 16:57;Sem comentários registrados.;https://clarobr.atlassian.net/browse/GL-518
+GL-103;Análise de validade de comprovante de buscas de pagamento;Automação via OCR/IA para validação e conferência de comprovantes de pagamento.;Alexandre Campos;Alexandre Campos;GL-461;02/04/2026 09:41;Sem comentários registrados.;https://clarobr.atlassian.net/browse/GL-103
+GL-104;Utilização de IA para leitura e interpretação de documentos na análise de crédito PJ;Leitura, extração de entidades e checagem de conformidade de documentos PJ para esteiras de crédito.;Samir Oliveira;Samir Oliveira;GL-456;02/04/2026 09:41;Sem comentários registrados.;https://clarobr.atlassian.net/browse/GL-104
+GL-105;Análise de Contratos;Extração e validação automatizada de cláusulas e termos em minutas contratuais.;Ilana;Ilana;GL-455;02/04/2026 09:41;Sem comentários registrados.;https://clarobr.atlassian.net/browse/GL-105
+GL-106;Inteligência de Mercado;Coleta, estruturação e síntese de relatórios e sinais de mercado com suporte de IA.;Ilana;Ilana;GL-458;02/04/2026 09:41;Sem comentários registrados.;https://clarobr.atlassian.net/browse/GL-106
+GL-107;Assistência Virtual para Tomada de Decisões;Painel e assistente para consolidação de KPIs executivos e suporte a decisões estratégicas.;Ilana;Ilana;GL-457;02/04/2026 09:41;Sem comentários registrados.;https://clarobr.atlassian.net/browse/GL-107
+GL-102;Acelerar atendimento humano via Whatsapp;Sugestão contextual de respostas e automação de rotinas para operadores de atendimento via WhatsApp.;Wladmir;Wladmir;GL-462;02/04/2026 09:41;Sem comentários registrados.;https://clarobr.atlassian.net/browse/GL-102
+GL-101;Análise Contratual;Padronização e conferência automatizada de documentos jurídicos e anexos contratuais.;João Antunes;João Antunes;GL-459;02/04/2026 09:41;Sem comentários registrados.;https://clarobr.atlassian.net/browse/GL-101
+GL-94;URA RESOLUTIVA;Automação do fluxo da URA integrando backend de serviços e inteligência conversacional.;Sidney Neves;Sidney Neves;GL-466;02/04/2026 09:41;Sem comentários registrados.;https://clarobr.atlassian.net/browse/GL-94
+GL-92;DIRECIONAMENTO ADAPTATIVO DA CHAMADA;Roteamento inteligente de chamadas baseado no perfil e histórico do cliente.;Sidney Neves;Sidney Neves;GL-468;02/04/2026 09:41;Sem comentários registrados.;https://clarobr.atlassian.net/browse/GL-92
+GL-89;OMNICHANNEL;Unificação do contexto de atendimento entre múltiplos canais (app, web, voz, whatsapp).;Sidney Neves;Sidney Neves;GL-467;02/04/2026 09:41;Sem comentários registrados.;https://clarobr.atlassian.net/browse/GL-89
+GL-86;MELHORIA DA QUALIDADE;Monitoria de qualidade automatizada em interações com clientes através de speech-to-text e NLP.;Sidney Neves;Sidney Neves;GL-371;02/04/2026 09:41;Sem comentários registrados.;https://clarobr.atlassian.net/browse/GL-86
+GL-75;AUTOMAÇÃO DE ATIVIDADES;Automatização de processos operacionais repetitivos do atendimento.;Sidney Neves;Sidney Neves;GL-380;02/04/2026 09:41;Sem comentários registrados.;https://clarobr.atlassian.net/browse/GL-75
+GL-73;TREINAMENTOS E RECICLAGENS;Plataforma assistida por IA para onboarding, reciclagem e teste de atendentes.;Sidney Neves;Sidney Neves;GL-384;02/04/2026 09:41;Sem comentários registrados.;https://clarobr.atlassian.net/browse/GL-73
+GL-70;Bot Vendedor;Agente virtual especializado em conversão e fechamento de ofertas no ambiente digital.;Rogerio Ahouagi;Rogerio Ahouagi;GL-387;02/04/2026 09:41;Sem comentários registrados.;https://clarobr.atlassian.net/browse/GL-70
+GL-69;Gen AI - Esteira de Privacy by Design;Mecanismos automatizados para governança, mascaramento e conformidade de privacidade em soluções de IA Generativa.;JOÃO GASTALDELLI;JOÃO GASTALDELLI;GL-388;02/04/2026 09:41;Sem comentários registrados.;https://clarobr.atlassian.net/browse/GL-69
+GL-67;Atendimento por Voz (Respostas do KB);Assistente de voz alimentado pela base de conhecimento oficial para dúvidas de suporte.;Celso Tonet;Celso Tonet;GL-394;02/04/2026 09:41;Sem comentários registrados.;https://clarobr.atlassian.net/browse/GL-67
+GL-66;Assistente AI;Copiloto de produtividade para equipes internas de operação.;Caio Barreiro- Bain;Caio Barreiro- Bain;GL-395;02/04/2026 09:41;Sem comentários registrados.;https://clarobr.atlassian.net/browse/GL-66
+GL-65;Interactions analytics;Análise semântica e comportamental em larga escala de interações telefônicas e digitais.;Caio Barreiro- Bain;Caio Barreiro- Bain;GL-393;02/04/2026 09:41;Sem comentários registrados.;https://clarobr.atlassian.net/browse/GL-65
+GL-64;Assistencia em lojas;Apoio ao consultor de loja física com informações rápidas sobre planos e aparelhos.;Caio Barreiro- Bain;Caio Barreiro- Bain;GL-396;02/04/2026 09:41;Sem comentários registrados.;https://clarobr.atlassian.net/browse/GL-64
+GL-63;Leitura textual: de todos os documentos da Anatel;Processamento massivo e indexação vetorial de regulamentações e publicações da Anatel.;Maria do Carmo;Maria do Carmo;GL-398;02/04/2026 09:41;Sem comentários registrados.;https://clarobr.atlassian.net/browse/GL-63
+GL-48;Análise de resolução de Problemas;Classificação e diagnósticos automáticos de causa raiz em falhas técnicas relatadas.;Camilo;Camilo;GL-429;02/04/2026 09:41;Sem comentários registrados.;https://clarobr.atlassian.net/browse/GL-48
+GL-42;Upscaling / Downscaling na transmissão de vídeo;Otimização inteligente da compressão e taxa de bits de streaming de vídeo.;Oliver;Oliver;GL-430;02/04/2026 09:41;Sem comentários registrados.;https://clarobr.atlassian.net/browse/GL-42
+GL-39;Finep é STT/TTS Português Brasil;Projeto de P&D Finep para desenvolvimento de modelos próprios de fala e síntese de voz em PT-BR.;Assad;Assad;GL-436;02/04/2026 09:41;Sem comentários registrados.;https://clarobr.atlassian.net/browse/GL-39
+GL-38;Finep - LLM Específica para Atendimento;Desenvolvimento de modelo de linguagem ajustado para termos técnicos e atendimento de telecom.;Assad;Assad;GL-437;02/04/2026 09:41;Sem comentários registrados.;https://clarobr.atlassian.net/browse/GL-38
+GL-37;Finep - LLM Genérica Otimizada;Arquitetura e infraestrutura de inferência eficiente para modelos generativos em larga escala.;Assad;Assad;GL-442;02/04/2026 09:41;Sem comentários registrados.;https://clarobr.atlassian.net/browse/GL-37
+GL-36;LLM Cache;Estratégia de cache semântico de respostas de LLMs para redução de custo e latência de inferência.;Marco Aurélio;Marco Aurélio;GL-443;02/04/2026 09:41;Sem comentários registrados.;https://clarobr.atlassian.net/browse/GL-36
+GL-28;Agente de IA para Colaboradores;Assistente interno corporativo para suporte a dúvidas de RH, TI e processos internos.;Carlos Mendes / Luciene / Gaiotto;Carlos Mendes / Luciene / Gaiotto;GL-403;02/04/2026 09:41;Sem comentários registrados.;https://clarobr.atlassian.net/browse/GL-28
+GL-25;Análise de Contatos de Retenção - Motivo Cancelamento;Mineração de dados de ligações e chats de retenção para identificação preditiva de ofensores.;Andreia Maldonado;Andreia Maldonado;GL-406;02/04/2026 09:41;Sem comentários registrados.;https://clarobr.atlassian.net/browse/GL-25
+GL-19;Cálculo Trabalhista;Automação de planilhas e cálculos de contingências trabalhistas via algoritmos dedicados.;Paulo Viveiros / Poliana;Paulo Viveiros / Poliana;GL-416;12/03/2025 11:18;Sem comentários registrados.;https://clarobr.atlassian.net/browse/GL-19
+GL-18;Análise de Comentários das lojas de apps;Classificação de sentimento e tópicos das avaliações dos aplicativos Minha Claro e Claro TV+.;Mario Rachid;Mario Rachid;GL-421;22/04/2026 15:52;Sem comentários registrados.;https://clarobr.atlassian.net/browse/GL-18
+GL-108;chat inteligente para duvidas do portal de notas e retenções fiscais;Chatbot para esclarecimento de regras tributárias e emissão de notas fiscais.;Rodrigo Bazo;Rodrigo Bazo;GL-454;02/04/2026 09:41;Sem comentários registrados.;https://clarobr.atlassian.net/browse/GL-108
+GL-109;IA em CO PILOTO para validação de documentos;Copiloto para auditoria e conferência cadastral de documentos anexos.;Alexandre Vailatti;Alexandre Vailatti;GL-453;02/04/2026 09:41;Sem comentários registrados.;https://clarobr.atlassian.net/browse/GL-109
+GL-110;Chat TOA;Assistente de suporte às operações de campo com integração ao Oracle Field Service (TOA).;Wilson Luiz Vieira;Wilson Luiz Vieira;GL-452;02/04/2026 09:41;Sem comentários registrados.;https://clarobr.atlassian.net/browse/GL-110
+GL-111;Chat DTC;Canal conversacional integrado ao sistema DTC para dúvidas técnicas.;Rafael Gallao;Rafael Gallao;GL-449;02/04/2026 09:41;Sem comentários registrados.;https://clarobr.atlassian.net/browse/GL-111
+GL-112;Veracidade de Fotos de Vandalismo;Visão computacional para autenticação e detecção de fraudes em fotos de cabos e estruturas vandalizadas.;Paulo R Soares Furtado;Paulo R Soares Furtado;GL-448;02/04/2026 09:41;Sem comentários registrados.;https://clarobr.atlassian.net/browse/GL-112
+GL-113;Validações de correções mecânica;Validação visual assistida por IA de reparos e intervenções técnicas na rede externa.;Paulo R Soares Furtado;Paulo R Soares Furtado;GL-451;02/04/2026 09:41;Sem comentários registrados.;https://clarobr.atlassian.net/browse/GL-113
+GL-114;Chatbot no Portal de Processos;Agente conversacional para navegação e consultas à documentação do portal de processos.;Dailane Vasconcelos;Dailane Vasconcelos;GL-450;02/04/2026 09:41;Sem comentários registrados.;https://clarobr.atlassian.net/browse/GL-114
+GL-115;Análise as características do(s) produto(s);Comparador automático e sumarizador de fichas técnicas de produtos e ofertas.;Edna Félix;Edna Félix;GL-444;02/04/2026 09:41;Sem comentários registrados.;https://clarobr.atlassian.net/browse/GL-115
+GL-116;Roteiro de video Puxadas de Venda e palestras;Geração e sugestão de scripts de comunicação e pitches comerciais com Gen AI.;Pâmella Lopes;Pâmella Lopes;GL-447;02/04/2026 09:41;Sem comentários registrados.;https://clarobr.atlassian.net/browse/GL-116
+GL-132;SD-WAN: Jornada do Consultor de Soluções;Mapeamento e otimização das etapas de venda técnica e configuração de SD-WAN corporativo.;Não definido;Não definido;GL-375;02/04/2026 09:41;Sem comentários registrados.;https://clarobr.atlassian.net/browse/GL-132
+GL-133;SD-WAN - Busca cruzada;Mecanismo de busca cruzada e correlação de logs de telemetria de redes SD-WAN.;Não definido;Não definido;GL-373;02/04/2026 09:41;Sem comentários registrados.;https://clarobr.atlassian.net/browse/GL-133
+GL-211;CoE EA;Iniciativas de arquitetura empresarial suportadas pelo Centro de Excelência.;Giovana Arquitetura;Não definido;GL-435;02/04/2026 09:41;Sem comentários registrados.;https://clarobr.atlassian.net/browse/GL-211
+GL-212;Análise de Proposta de Fornecedores;Automação da leitura e comparação de tabelas de preços e minutas comerciais de fornecedores.;Não definido;Não definido;GL-324;02/04/2026 09:41;Sem comentários registrados.;https://clarobr.atlassian.net/browse/GL-212
+GL-218;Automação de RFQs;Agilização no preenchimento e respostas técnicas em processos concorrenciais de compras (RFQs).;Heloisa;Márcio Nunes;GL-392;02/04/2026 09:41;Sem comentários registrados.;https://clarobr.atlassian.net/browse/GL-218
+GL-219;COE - Qualidade de Código com IA;Uso de ferramentas generativas para auditoria estática e boas práticas de desenvolvimento.;Não definido;Não definido;GL-391;02/04/2026 09:41;Sem comentários registrados.;https://clarobr.atlassian.net/browse/GL-219
+GL-221;Pauta na ATA das reuniões/comitês;Geração automática de atas e extração de compromissos a partir de transcrições de reuniões.;Não definido;Não definido;GL-385;03/11/2025 15:00;Sem comentários registrados.;https://clarobr.atlassian.net/browse/GL-221
+GL-222;Controle nos Status dos Projetos;Consolidação preditiva de cronogramas e alertas de desvios em portfólio de projetos.;Não definido;Não definido;GL-382;02/04/2026 09:41;Sem comentários registrados.;https://clarobr.atlassian.net/browse/GL-222
+GL-223;OBZ com payback acima de 3 anos;Modelagem e priorização de iniciativas no modelo de Orçamento Base Zero.;Não definido;Não definido;GL-407;02/04/2026 09:41;Sem comentários registrados.;https://clarobr.atlassian.net/browse/GL-223
+GL-713;Oportunidades IA no fluxo PLM;Identificação de pontos de automação e ganhos no ciclo de vida de produtos (PLM).;Não definido;Não definido;GL-718;04/08/2026 09:12;Sem comentários registrados.;https://clarobr.atlassian.net/browse/GL-713
+GL-265;Atendimento por Voz na URA (Inadimplência);URA cognitiva específica para negociação, parcelamento e regularização de faturas em atraso.;Bienis;Bienis;GL-365;24/03/2026 15:00;Sem comentários registrados.;https://clarobr.atlassian.net/browse/GL-265
+GL-645;CNPJ Alfanumerico;Adequação dos sistemas de cobrança, faturamento e cadastro ao novo formato de CNPJ alfanumérico.;Não definido;Não definido;GL-644;02/04/2026 09:41;Sem comentários registrados.;https://clarobr.atlassian.net/browse/GL-645
+GL-662;Gameficação no Minha Claro;Mecanismos de engajamento e fidelização através de desafios e recompensas no app.;Não definido;Não definido;GL-668;02/04/2026 09:41;Sem comentários registrados.;https://clarobr.atlassian.net/browse/GL-662
+GL-656;IA para Mercado Desenvolvimento;Solução de IA para prospecção de novas contas e identificação de tendências no mercado corporativo.;Não definido;Não definido;GL-665;09/02/2026 14:00;Sem comentários registrados.;https://clarobr.atlassian.net/browse/GL-656
+GL-648;Jornada Delta;Otimização da jornada digital e presencial integrada em rotinas de campo.;Roberto Canuto;Jessica Varçal;GL-666;03/08/2026 11:14;Sem comentários registrados.;https://clarobr.atlassian.net/browse/GL-648
+GL-672;Monitoramento de Consumo de Materiais;Controle inteligente de estoque e previsão de consumo de insumos por técnicos de campo.;Edgar Ribeiro;Não definido;GL-671;06/07/2026 17:00;Sem comentários registrados.;https://clarobr.atlassian.net/browse/GL-672
+GL-687;[Experimento] - Logoff Whatsapp;Validação do impacto operacional e de satisfação do logout assistido em canais de atendimento.;Não definido;Não definido;GL-473;25/03/2026 11:06;Sem comentários registrados.;https://clarobr.atlassian.net/browse/GL-687
+GL-715;[Experimento] - RPA "com" IA;Evolução de robôs legados com agentes cognitivos para tratamento de exceções em processos.;Não definido;Não definido;GL-711;02/04/2026 09:41;Sem comentários registrados.;https://clarobr.atlassian.net/browse/GL-715
+GL-778;[Experimento] - Agente de IA para QA;Laboratório de testes automatizados com geração dinâmica de cenários e asserções via IA.;Não definido;Não definido;GL-719;22/06/2026 10:35;Sem comentários registrados.;https://clarobr.atlassian.net/browse/GL-778
+GL-514;Claro GPT - Análise de dados do Call Center e Bases IN;Utilização do Claro GPT para cruzamento de métricas operacionais e bases de inteligência de rede.;Rodrigo Assad;Rodrigo Assad;GL-513;18/12/2025 10:22;Sem comentários registrados.;https://clarobr.atlassian.net/browse/GL-514
+GL-634;Homologação de Faturamento NFCOM nas faturas;Validação e compliance do faturamento eletrônico com a Nota Fiscal de Comunicação (NFCOM).;Francis David;Juliano Martins;GL-633;13/03/2026 11:20;Sem comentários registrados.;https://clarobr.atlassian.net/browse/GL-634
+GL-119;Previsão de Custos e Duração de Demandas de TI;Modelos de regressão e ML para estimativa de esforço e custo de projetos de tecnologia.;Gustavo Barreto;Cesar;GL-397;30/10/2025 00:37;Sem comentários registrados.;https://clarobr.atlassian.net/browse/GL-119
+GL-739;RAG na Ativação Simplificada;Mecanismo RAG para consulta de procedimentos rápidos durante a ativação simplificada de planos.;Não definido;Não definido;GL-736;06/07/2026 17:47;Sem comentários registrados.;https://clarobr.atlassian.net/browse/GL-739
+GL-26;Open WebUI;Interface de chat web corporativa para múltiplos modelos de inteligência artificial aberta.;Gaiotto;Gaiotto;GL-401;12/03/2025 11:18;Sem comentários registrados.;https://clarobr.atlassian.net/browse/GL-26
+GL-261;Análise de Vídeo para Autoinstalação;Visão computacional para orientar e validar a correta instalação de modems e decodificadores pelo próprio cliente.;Não definido;Não definido;GL-361;02/04/2026 09:34;Sem comentários registrados.;https://clarobr.atlassian.net/browse/GL-261`
+
+function normalizeEpicTitle(value: string): string {
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim()
+}
+
+function parseMotivosCanceladosCsv(csv: string): Map<string, string> {
+  const lines = csv.split(/\r?\n/).filter(Boolean)
+  if (lines.length < 2) return new Map()
+
+  const headers = lines[0].split(';').map(h => h.trim())
+  const tituloIndex = headers.findIndex(h => /título|titulo/i.test(h))
+  const motivoIndex = headers.findIndex(h => /motivo|último comentário|ultimo comentario|comentario/i.test(h))
+  if (tituloIndex === -1 || motivoIndex === -1) return new Map()
+
+  const map = new Map<string, string>()
+  for (const line of lines.slice(1)) {
+    const cells = line.split(';')
+    const titulo = (cells[tituloIndex] ?? '').trim()
+    const motivo = (cells[motivoIndex] ?? '').trim()
+    if (!titulo || !motivo || /sem comentários registrados|sem comentarios registrados/i.test(motivo)) continue
+    map.set(normalizeEpicTitle(titulo), motivo)
+  }
+  return map
+}
+
+const MOTIVOS_CANCELADOS_POR_EPIC = parseMotivosCanceladosCsv(EPICOS_CANCELADOS_CSV)
+
+export function resolveMotivoBloqueio(epicNome: string, jiraMotivo?: string | null): string | null {
+  const nomeNormalizado = normalizeEpicTitle(epicNome)
+  const motivoDoCsv = MOTIVOS_CANCELADOS_POR_EPIC.get(nomeNormalizado)
+  if (motivoDoCsv) return motivoDoCsv
+
+  const motivo = (jiraMotivo ?? '').trim()
+  return motivo || null
+}
+
 export interface WeeklyStageMotivo {
   motivo: string
   count: number
@@ -181,11 +310,16 @@ function rowFromIniciativa(i: Iniciativa): WeeklyExperimentoRow {
   }
 }
 
-function rowFromEpic(e: EpicDetail, parentLabLookup?: Map<string, string | null>): WeeklyExperimentoRow {
+function rowFromEpic(e: EpicDetail, parentLabLookup?: Map<string, string | null>, epicChangelogs?: Record<string, ChangelogEntry[]>): WeeklyExperimentoRow {
   // O lab responsável vem do campo "Lab Responsável" da Iniciativa-pai,
   // não do próprio épico. Se o pai não tiver lab definido, usa o do épico
   // como fallback.
   const labDaIniciativa = parentLabLookup?.get(e.parentKey ?? '') ?? undefined
+  const motivoBloqueio = resolveMotivoBloqueio(
+    e.nome,
+    e.motivoBloqueio ?? getMotivoDoChangelog(e.key, epicChangelogs ?? {})
+  )
+
   return {
     key: e.key,
     nome: e.nome,
@@ -199,7 +333,7 @@ function rowFromEpic(e: EpicDetail, parentLabLookup?: Map<string, string | null>
     prioridade: e.prioridade ?? null,
     timeResponsavel: labDaIniciativa ?? e.timeResponsavel ?? null,
     duedate: e.duedate ?? null,
-    motivoBloqueio: e.motivoBloqueio ?? null,
+    motivoBloqueio,
   }
 }
 
@@ -263,7 +397,10 @@ function buildTopMotivosCancelamento(
 ): WeeklyStageMotivo[] {
   const counts = new Map<string, number>()
   for (const e of canceladosEpics) {
-    const motivo = e.motivoBloqueio ?? getMotivoDoChangelog(e.key, epicChangelogs)
+    const motivo = resolveMotivoBloqueio(
+      e.nome,
+      e.motivoBloqueio ?? getMotivoDoChangelog(e.key, epicChangelogs)
+    )
     if (!motivo) continue
     counts.set(motivo, (counts.get(motivo) ?? 0) + 1)
   }
@@ -373,7 +510,7 @@ export function buildWeeklyData(data: DashboardData, epicChangelogs: Record<stri
   for (const ini of data.iniciativas) {
     parentLabLookup.set(ini.key, ini.timeResponsavel ?? null)
   }
-  const re = (e: EpicDetail) => rowFromEpic(e, parentLabLookup)
+  const re = (e: EpicDetail) => rowFromEpic(e, parentLabLookup, epicChangelogs)
 
   const stages: WeeklyStage[] = [
     { id: 'backlog', label: 'Backlog', descricao: 'Experimento aprovado, ainda não iniciado', quantidade: backlogCount, experimentos: backlogEpics.map(re) },
@@ -484,7 +621,21 @@ const SAMPLE_MOTIVOS_CANCELAMENTO: WeeklyStageMotivo[] = [
 ]
 
 function sampleRow(i: number, nome: string, fase: string, sponsor: string, dominio: string, beneficio: string): WeeklyExperimentoRow {
-  return { key: `GL-${1000 + i}`, nome, objetivo: 'Reduzir custo operacional e melhorar a experiência do cliente com automação.', fase, statusId: '', statusNome: fase, sponsor, dominio, beneficioLabel: beneficio }
+  return {
+    key: `GL-${1000 + i}`,
+    nome,
+    objetivo: 'Reduzir custo operacional e melhorar a experiência do cliente com automação.',
+    fase,
+    statusId: '',
+    statusNome: fase,
+    sponsor,
+    dominio,
+    beneficioLabel: beneficio,
+    prioridade: null,
+    timeResponsavel: null,
+    duedate: null,
+    motivoBloqueio: null,
+  }
 }
 
 const SAMPLE_PENDENTE_ANALISE: WeeklyStage = {
