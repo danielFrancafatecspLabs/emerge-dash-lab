@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, type RefObject } from 'react'
+import React, { useState, type RefObject } from 'react'
 import { Download, Loader2, Maximize2 } from 'lucide-react'
 
 export const SLIDE_PAGE_SIZE = 10
