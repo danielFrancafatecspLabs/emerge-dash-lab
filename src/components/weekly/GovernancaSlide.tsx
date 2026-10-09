@@ -22,7 +22,6 @@ export interface GovernancaTheme {
 const COLUMN_ICONS = [Inbox, Search, Cog, CheckCircle2, FlaskConical, StageRocket]
 
 const CHIP_HEIGHT = 19
-const CHIP_GAP = 2
 // Preenche a largura útil do slide (1280 - padding lateral 24px*2 = 1232) com
 // as 6 colunas fixas + a coluna de Domínio + os gaps entre elas, sem sobrar
 // nem faltar espaço: 132 (domínio) + 6*178 + 6*5(gap) = 1230.
@@ -30,6 +29,17 @@ const CELL_WIDTH = 178
 const DOMAIN_COL_WIDTH = 132
 const GRID_GAP = 5
 const HEADER_H = 44
+
+// Cada Epic é uma bolinha (marcador redondo) com o nome embaixo, várias
+// lado a lado — em vez de uma barra que ocupa a largura inteira da coluna
+// e força empilhar 1 por linha. 3 bolinhas cabem lado a lado em CELL_WIDTH
+// (178px), o que triplica quantos Epics aparecem pelo nome no mesmo espaço
+// vertical, comparado à barra horizontal anterior.
+const BUBBLE_SIZE = 10
+const BUBBLE_TOKEN_WIDTH = 56
+const BUBBLE_TOKEN_HEIGHT = 19
+const BUBBLE_GRID_GAP_X = 4
+const BUBBLE_GRID_GAP_Y = 3
 
 // Trunca em JS (não CSS text-overflow:ellipsis) — essa combinação já
 // vazou texto por cima de vizinhos numa exportação anterior deste projeto
@@ -48,53 +58,55 @@ function hashKey(key: string): number {
   return h
 }
 
-// Quantos chips NOMEADOS cabem, de pé, numa célula desta altura — decide o
-// corte entre "lista alguns pelo nome" e "resume num card único" (ver Cell).
-// Isso é o que garante que a visão não quebra com uma célula tendo 2 épicos
-// ou 40: o espaço ocupado por qualquer célula é sempre <= esse número de
-// linhas, nunca cresce junto com a quantidade real de dados.
+// Quantas bolinhas NOMEADAS cabem numa célula desta altura, em grade (3 por
+// linha, várias linhas) — decide o corte entre "lista pelo nome" e "resume
+// num card único" (ver Cell). Isso é o que garante que a visão não quebra
+// com uma célula tendo 2 épicos ou 40: o espaço ocupado por qualquer célula
+// é sempre <= esse número de bolinhas, nunca cresce junto com a quantidade
+// real de dados.
+const BOLINHAS_POR_LINHA = Math.max(1, Math.floor((CELL_WIDTH + BUBBLE_GRID_GAP_X) / (BUBBLE_TOKEN_WIDTH + BUBBLE_GRID_GAP_X)))
+
 function capacidadeCelula(rowHeightPx: number): number {
   const usavel = rowHeightPx - 8
-  return Math.max(1, Math.floor((usavel + CHIP_GAP) / (CHIP_HEIGHT + CHIP_GAP)))
+  const linhas = Math.max(1, Math.floor((usavel + BUBBLE_GRID_GAP_Y) / (BUBBLE_TOKEN_HEIGHT + BUBBLE_GRID_GAP_Y)))
+  return BOLINHAS_POR_LINHA * linhas
 }
 
-// Slot de badges com largura FIXA (preenchida ou não) — assim o orçamento de
-// caracteres do nome é sempre o mesmo, em vez de encolher chip a chip
-// conforme tem ou não sub-status (o que deixava a coluna com truncamento
-// irregular e nomes ilegíveis demais).
-const BADGE_SLOT_WIDTH = 20
+// Cada Epic é uma bolinha redonda com o nome embaixo — o marcador em si
+// carrega o sub-status: dourada com estrela = prioridade, escura com cadeado
+// = bloqueio (mesmo vocabulário da legenda "Sub-status" no topo do slide).
+// Sem sub-status, é só uma bolinha neutra.
+function Bolinha({ dot, showBloqueioBadge, onClick }: { dot: GovernancaDot; showBloqueioBadge: boolean; onClick: () => void }) {
+  const bloqueado = dot.bloqueio && showBloqueioBadge
+  const bubbleBg = bloqueado ? '#111827' : dot.prioridade ? '#FBBF24' : '#FFFFFF'
+  const bubbleBorder = bloqueado ? '2px solid #FBBF24' : dot.prioridade ? 'none' : '1px solid #D1D5DB'
 
-function Chip({ dot, showBloqueioBadge, onClick }: { dot: GovernancaDot; showBloqueioBadge: boolean; onClick: () => void }) {
   return (
     <button
       onClick={onClick}
       title={`${dot.epic.key} · ${dot.epic.nome}`}
       style={{
-        width: '100%', height: CHIP_HEIGHT, flexShrink: 0, cursor: 'pointer',
-        display: 'flex', alignItems: 'center', gap: 4, padding: '0 4px', boxSizing: 'border-box',
-        background: '#FFFFFF', border: '1px solid #E5E7EB', borderRadius: 5, textAlign: 'left',
+        width: BUBBLE_TOKEN_WIDTH, flexShrink: 0, cursor: 'pointer',
+        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1,
+        background: 'transparent', border: 'none', padding: 0, textAlign: 'center',
       }}
     >
-      <span style={{ fontSize: 9.5, fontWeight: 700, color: '#1F2937', lineHeight: 1, overflow: 'hidden', whiteSpace: 'nowrap', flex: 1, minWidth: 0 }}>
-        {truncate(dot.epic.nome, 20)}
+      <span style={{
+        width: BUBBLE_SIZE, height: BUBBLE_SIZE, borderRadius: '50%', flexShrink: 0,
+        background: bubbleBg, border: bubbleBorder, boxSizing: 'border-box',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}>
+        {bloqueado
+          ? <Lock size={6} color="#FFFFFF" strokeWidth={3} />
+          : dot.prioridade
+            ? <Star size={6} color="#78350F" strokeWidth={3} fill="#78350F" />
+            : null}
       </span>
-      <span style={{ width: BADGE_SLOT_WIDTH, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 2 }}>
-        {dot.prioridade && (
-          <span style={{
-            width: 10, height: 10, borderRadius: '50%', background: '#FBBF24', flexShrink: 0,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>
-            <Star size={6} color="#78350F" strokeWidth={3} fill="#78350F" />
-          </span>
-        )}
-        {dot.bloqueio && showBloqueioBadge && (
-          <span style={{
-            width: 10, height: 10, borderRadius: '50%', background: '#111827', flexShrink: 0,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>
-            <Lock size={6} color="#FFFFFF" strokeWidth={3} />
-          </span>
-        )}
+      <span style={{
+        fontSize: 7.5, fontWeight: 700, color: '#374151', lineHeight: 1.05,
+        width: '100%', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'clip',
+      }}>
+        {truncate(dot.epic.nome, 11)}
       </span>
     </button>
   )
@@ -102,10 +114,10 @@ function Chip({ dot, showBloqueioBadge, onClick }: { dot: GovernancaDot; showBlo
 
 // Card de resumo — usado quando uma célula tem mais épicos do que cabe
 // nomeados (real em produção: uma fase/domínio concentrado pode facilmente
-// ter dezenas). Em vez de listar 1-2 nomes soltos com um "+N mais" quase
-// vazio de informação, mostra a contagem, a mistura de tecnologia e quantos
-// têm prioridade/bloqueio — cabe no MESMO espaço de 1 chip, então o
-// tamanho da célula nunca depende de quantos épicos ela realmente tem.
+// ter dezenas). Em vez de listar bolinhas soltas ilegíveis, mostra a
+// contagem e quantos têm prioridade/bloqueio — cabe no espaço de 1 linha de
+// bolinhas, então o tamanho da célula nunca depende de quantos épicos ela
+// realmente tem.
 function SummaryTile({ dots, dominio, colunaLabel, theme, showBloqueioBadge, onClick }: {
   dots: GovernancaDot[]
   dominio: string
@@ -155,8 +167,9 @@ function Cell({
   const capacidade = capacidadeCelula(rowHeight)
   const ordenados = useMemo(() => [...dots].sort((a, b) => hashKey(a.epic.key) - hashKey(b.epic.key)), [dots])
   const wrapStyle = {
-    width: CELL_WIDTH, height: '100%', display: 'flex', flexDirection: 'column' as const,
-    gap: CHIP_GAP, padding: '3px 4px', boxSizing: 'border-box' as const, overflow: 'hidden', flexShrink: 0,
+    width: CELL_WIDTH, height: '100%', boxSizing: 'border-box' as const, overflow: 'hidden', flexShrink: 0,
+    display: 'flex', flexWrap: 'wrap' as const, alignContent: 'flex-start' as const,
+    gap: `${BUBBLE_GRID_GAP_Y}px ${BUBBLE_GRID_GAP_X}px`, padding: '3px 4px',
   }
 
   if (ordenados.length === 0) return <div style={wrapStyle} />
@@ -165,14 +178,14 @@ function Cell({
     return (
       <div style={wrapStyle}>
         {ordenados.map(dot => (
-          <Chip key={dot.epic.key} dot={dot} showBloqueioBadge={showBloqueioBadge} onClick={() => onSelectEpic(dot.epic)} />
+          <Bolinha key={dot.epic.key} dot={dot} showBloqueioBadge={showBloqueioBadge} onClick={() => onSelectEpic(dot.epic)} />
         ))}
       </div>
     )
   }
 
   return (
-    <div style={wrapStyle}>
+    <div style={{ ...wrapStyle, flexWrap: 'nowrap' as const }}>
       <SummaryTile
         dots={ordenados}
         dominio={dominio}
@@ -250,13 +263,36 @@ export default function GovernancaSlide({
   // "encolhe" no PNG exportado e sobra espaço em branco embaixo. Um valor em
   // px fixo, calculado a partir dos mesmos números usados no layout, reproduz
   // igual nos dois casos.
+  //
+  // A altura NÃO é dividida igualmente entre as linhas: um domínio com uma
+  // célula lotada (ex.: 8 Epics numa fase) precisa de bem mais altura para
+  // mostrar os nomes do que um domínio onde toda célula tem 1-2 Epics — dar
+  // a mesma altura pros dois faz o lotado colapsar em card-resumo e
+  // desperdiça altura no domínio pequeno, que já cabia com folga. Cada linha
+  // recebe uma base mínima (MIN_ROW_HEIGHT) e o espaço restante é distribuído
+  // proporcionalmente ao "pico" de cada domínio — o maior número de Epics em
+  // uma única célula sua, que é o que realmente determina quanto essa linha
+  // precisa crescer para mostrar mais nomes antes de resumir.
   const numRows = Math.max(1, data.domains.length)
   const rowsArea = 720 - 20 - 16 /* padding do slide */ - 57 /* cabeçalho, medido */ - 29 /* legenda, medida */ - HEADER_H - 8 * 3 /* gaps entre blocos */
   // Só o gap do flex entre linhas conta como altura extra — o paddingTop da
   // borda de separação NÃO soma (box-sizing:border-box faz o padding caber
   // dentro da altura fixa da própria linha, não crescer o container).
   const extraPorLinha = (numRows - 1) * GRID_GAP
-  const rowHeight = Math.max(30, Math.floor((rowsArea - extraPorLinha) / numRows))
+  const MIN_ROW_HEIGHT = 30
+  const totalBudget = Math.max(numRows * MIN_ROW_HEIGHT, rowsArea - extraPorLinha)
+  const extra = totalBudget - numRows * MIN_ROW_HEIGHT
+  const picos = data.domains.map(row => Math.max(1, ...row.columns.map(c => c.dots.length)))
+  const somaPicos = picos.reduce((s, p) => s + p, 0) || 1
+  const rowHeights: number[] = (() => {
+    let usado = 0
+    return picos.map((pico, i) => {
+      if (i === picos.length - 1) return Math.max(MIN_ROW_HEIGHT, totalBudget - usado)
+      const h = MIN_ROW_HEIGHT + Math.floor(extra * pico / somaPicos)
+      usado += h
+      return h
+    })
+  })()
 
   // Mesmo gridTemplateColumns usado na régua (cabeçalho) e em cada linha do
   // corpo — garante que as colunas caiam exatamente no mesmo x nos dois
@@ -437,7 +473,7 @@ export default function GovernancaSlide({
             <div style={{ display: 'flex', flexDirection: 'column', gap: GRID_GAP, overflow: 'hidden' }}>
               {data.domains.map((row, i) => (
                 <div key={row.dominio} style={{
-                  display: 'grid', gridTemplateColumns: GRID_TEMPLATE_COLUMNS, columnGap: GRID_GAP, height: rowHeight,
+                  display: 'grid', gridTemplateColumns: GRID_TEMPLATE_COLUMNS, columnGap: GRID_GAP, height: rowHeights[i],
                   borderTop: i === 0 ? 'none' : '1px solid #F3F4F6', paddingTop: i === 0 ? 0 : GRID_GAP,
                 }}>
                   <div style={{
@@ -456,7 +492,7 @@ export default function GovernancaSlide({
                     <Cell
                       key={col.id}
                       dots={col.dots}
-                      rowHeight={rowHeight}
+                      rowHeight={rowHeights[i]}
                       dominio={row.dominio}
                       colunaLabel={col.label}
                       theme={theme}

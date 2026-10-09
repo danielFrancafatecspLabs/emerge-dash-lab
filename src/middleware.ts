@@ -22,7 +22,7 @@ export async function middleware(request: NextRequest) {
   const session = await verifyAuthSession(request.cookies.get('auth_session')?.value, secret)
   if (session) {
     // Proteger rotas que só admin pode acessar
-    const ADMIN_ONLY = ['/admin/users', '/api/admin', '/beneficios', '/pesquisas', '/api/pesquisas', '/weekly', '/api/weekly']
+    const ADMIN_ONLY = ['/admin/users', '/api/admin', '/beneficios', '/pesquisas', '/api/pesquisas', '/weekly', '/api/weekly', '/semanal', '/api/semanal']
     const isAdminOnly = ADMIN_ONLY.some(p => stripped.startsWith(p))
     if (isAdminOnly) {
       if (session?.role !== 'admin') {
