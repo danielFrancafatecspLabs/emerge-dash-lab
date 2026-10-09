@@ -1,5 +1,5 @@
 'use client'
-import { Target, BarChart2, Activity, Users, FileText, Bot, Flag, ListOrdered, Settings, PanelRightOpen, HeartHandshake, Wallet, BookOpen, CalendarDays } from 'lucide-react'
+import { Target, BarChart2, Activity, Users, FileText, Bot, Flag, ListOrdered, Settings, PanelRightOpen, HeartHandshake, Wallet, BookOpen, CalendarDays, CalendarCheck } from 'lucide-react'
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
@@ -11,6 +11,7 @@ const NAV_ALL = [
   { label: 'Portfólio',  icon: BarChart2, href: '/portfolio',     inactive: false, roles: ['admin'] },
   { label: 'Report',     icon: FileText, href: '/report',         inactive: false, roles: ['admin'] },
   { label: 'Weekly',     icon: CalendarDays, href: '/weekly',      inactive: false, roles: ['admin'] },
+  { label: 'Semanal',    icon: CalendarCheck, href: '/semanal',    inactive: false, roles: ['admin'] },
   { label: 'Cientista',  icon: Bot,       href: '/cientista',     inactive: false, roles: ['admin'] },
   { label: 'Comunidade', icon: HeartHandshake, href: '/comunidade', inactive: false, roles: ['admin'] },
   { label: 'Pesquisas',  icon: BookOpen,      href: '/pesquisas',  inactive: false, roles: ['admin'] },
