@@ -59,7 +59,7 @@ const BUILTIN_USERS: User[] = [
   {
     id: "3",
     username: "marco_asterito",
-    passwordHash: "8fb46fb90b6b7760b5d917bfa1edb006:407da17f8dd72480420cf64665de6102f04b760c980b9147b931c6b58d51231806765701c9da29fbdf65d7d90592950d68a7e8621b797fca83d51f22b7d7de48",
+    passwordHash: "3cc8ec237bb8f145abd60670fd3173c3:14afa870728b4fb99c243a66d1a18c3021aac2ae3940d56f1639b184b06e4afbfb6eaa4b3fa144819c314bbbe15b6044ee792e8d1e428ba22baf41d5b0ff8479",
     role: "admin",
     createdAt: "2026-07-23T00:00:00.000Z",
     active: true,
@@ -78,6 +78,14 @@ const BUILTIN_USERS: User[] = [
     passwordHash: "56d2a97954ec4cb9f3f74e8d636925f1:0bd826612bdeeb37d9abb32277f0ee71783524a67ad2fba1f325ec264a531a79f89e8b4df2513cc791593bbe296bff9ed623fe759f58bd8cf8c59c7e4143fe77",
     role: "admin",
     createdAt: "2026-07-23T00:00:00.000Z",
+    active: true,
+  },
+  {
+    id: "6",
+    username: "alexandra.ferreira@claro.com.br",
+    passwordHash: "57da5726881f64a34845e81da48817ed:97ae927f7b1a6b75ef89b5cf5590f8252c8200e3b7a94beb5befc4cb763d223b194f8699b04e7cbcaa40ff9c9350707c687aa850c2a85cdc1800ec2a5fe702d1",
+    role: "admin",
+    createdAt: "2026-09-18T00:00:00.000Z",
     active: true,
   },
 ]

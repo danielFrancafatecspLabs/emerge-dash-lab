@@ -43,7 +43,7 @@ const COLUMN_DEFS: { id: string; label: string }[] = [
   { id: 'pre-analise', label: 'Pré-análise' },
   { id: 'prospeccao', label: 'Prospecção' },
   { id: 'em-andamento', label: 'Em andamento' },
-  { id: 'concluidos', label: 'Concluídos' },
+  { id: 'aguardando-piloto', label: 'Aguardando Piloto' },
   { id: 'piloto-andamento', label: 'Piloto' },
   { id: 'em-escala', label: 'Em Escala' },
 ]
@@ -131,7 +131,54 @@ function classifyColumnName(nome: string): 'pre-analise' | 'prospeccao' | 'em-an
 // separadas; quem precisa de mais altura ganha mais altura (proporcional),
 // em vez de perder a própria linha.
 function ordenarDominios(domains: GovernancaDomainRow[]): GovernancaDomainRow[] {
-  return [...domains].sort((a, b) => b.total - a.total || a.dominio.localeCompare(b.dominio, 'pt-BR'))
+  const ehOutras = (d: string) => d === 'Sem Domínio' || /outra/i.test(d)
+  return [...domains].sort((a, b) =>
+    Number(ehOutras(a.dominio)) - Number(ehOutras(b.dominio)) ||
+    b.total - a.total ||
+    a.dominio.localeCompare(b.dominio, 'pt-BR'))
+}
+
+function iniciativaToDot(iniciativa: Iniciativa): GovernancaDot {
+  // Converte uma Iniciativa em um dot para exibição no swimlane,
+  // usando o primeiro Epic filho como referência para campos que
+  // só existem em EpicDetail.
+  const primeiroEpic = iniciativa.epics[0]
+  return {
+    epic: {
+      key: iniciativa.key,
+      nome: iniciativa.nome,
+      status: iniciativa.status,
+      parentKey: null,
+      tecnologia: primeiroEpic?.tecnologia ?? null,
+      sponsor: iniciativa.sponsor,
+      bo: iniciativa.bo,
+      complexidade: null,
+      timeResponsavel: iniciativa.timeResponsavel,
+      beneficioQuantitativo: iniciativa.beneficioQuantitativo,
+      beneficioQualitativo: null,
+      dominio: iniciativa.dominio ?? iniciativa.dominios[0] ?? null,
+      custoEstimado: null,
+      custoRealizado: null,
+      segmento: iniciativa.segmentos[0] ?? null,
+      portfolio: null,
+      diretoria: null,
+      metaCategoria: iniciativa.metaCategoria,
+      tipo: 'Iniciativa',
+      mercado: '',
+      descricao: iniciativa.descricao,
+      motivoBloqueio: null,
+      flagged: null,
+      tipoImpedimento: null,
+      statusDetalhado: null,
+      prioridade: null,
+      duedate: null,
+      criadoEm: iniciativa.criadoEm,
+      concluidoEm: null,
+      anexos: null,
+    },
+    prioridade: false,
+    bloqueio: false,
+  }
 }
 
 export function buildGovernancaData(data: DashboardData, board2735Config?: JiraBoardConfiguration): GovernancaData {
@@ -144,6 +191,11 @@ export function buildGovernancaData(data: DashboardData, board2735Config?: JiraB
     const bucket = colNome ? classifyColumnName(colNome) : null
     const efetivo = bucket ?? columnForFallback(status)
 
+    // Cancela Epics cujo status individual é de cancelado — mesmo que a
+    // coluna do board 2735 tenha "BACKLOG" no nome (ex.: coluna que agrupa
+    // backlog + cancelados), o Epic não deve aparecer como "Pré-análise".
+    if (status && statusIs(status, ['10015'], ['Cancelado', 'CANCELADO'])) return null
+
     if (efetivo === 'pre-analise') return 'pre-analise'
     if (efetivo === 'prospeccao') return 'prospeccao'
     if (efetivo === 'em-andamento') return 'em-andamento'
@@ -154,7 +206,6 @@ export function buildGovernancaData(data: DashboardData, board2735Config?: JiraB
     const parent = epic.parentKey ? iniciativaByKey.get(epic.parentKey) : undefined
     if (!parent) return null
     const parentStatus = parent.status
-    if (statusIs(parentStatus, ['13045'], ['Aguardando Piloto'])) return 'concluidos'
     if (statusIs(parentStatus, ['12847'], ['EM PILOTO', 'Em Piloto'])) return 'piloto-andamento'
     if (statusIs(parentStatus, ['12848'], ['EM ESCALA', 'Em Escala', 'Em escala', 'FINALIZADO', 'Finalizado'])) return 'em-escala'
     return null
@@ -162,6 +213,7 @@ export function buildGovernancaData(data: DashboardData, board2735Config?: JiraB
 
   const domainMap = new Map<string, Map<string, GovernancaDot[]>>()
 
+  // Primeiro: popula as 3 primeiras colunas com Epics (board de Experimentação)
   for (const epic of data.allEpics) {
     const columnId = columnFor(epic)
     if (!columnId) continue
@@ -170,6 +222,18 @@ export function buildGovernancaData(data: DashboardData, board2735Config?: JiraB
     const cols = domainMap.get(dominio)!
     if (!cols.has(columnId)) cols.set(columnId, [])
     cols.get(columnId)!.push(buildDot(epic))
+  }
+
+  // Depois: popula "Aguardando Piloto" diretamente com as Iniciativas
+  // que estão nesse status no board de Ideação.
+  for (const iniciativa of data.iniciativas) {
+    const s = iniciativa.status
+    if (!statusIs(s, ['13045'], ['Aguardando Piloto'])) continue
+    const dominio = iniciativa.dominio?.trim() || iniciativa.dominios[0]?.trim() || 'Sem Domínio'
+    if (!domainMap.has(dominio)) domainMap.set(dominio, new Map())
+    const cols = domainMap.get(dominio)!
+    if (!cols.has('aguardando-piloto')) cols.set('aguardando-piloto', [])
+    cols.get('aguardando-piloto')!.push(iniciativaToDot(iniciativa))
   }
 
   const domains: GovernancaDomainRow[] = ordenarDominios(

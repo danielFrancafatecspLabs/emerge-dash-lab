@@ -1,18 +1,12 @@
 'use client'
 
 import { EpicDetail } from '@/lib/types'
-import { formatBRL, META_LABELS } from '@/lib/mappers'
+import { formatBRL } from '@/lib/mappers'
 import { X } from 'lucide-react'
 
 interface Props {
   epic: EpicDetail
   onClose: () => void
-}
-
-const META_COLORS: Record<string, { background: string; color: string }> = {
-  'EBITDA':  { background: '#DBEAFE', color: '#1D4ED8' },
-  'Receita': { background: '#DCFCE7', color: '#166534' },
-  'NPS':     { background: '#FEE2E2', color: '#991B1B' },
 }
 
 function Field({ label, value }: { label: string; value: string | null | undefined }) {
@@ -58,14 +52,7 @@ export default function ExperimentoModal({ epic, onClose }: Props) {
                   {epic.tipo}
                 </span>
               )}
-              {epic.metaCategoria && (
-                <span
-                  className="text-xs px-2 py-0.5 rounded font-semibold"
-                  style={META_COLORS[epic.metaCategoria] ?? { background: '#F3F4F6', color: '#374151' }}
-                >
-                  {META_LABELS[epic.metaCategoria] ?? epic.metaCategoria}
-                </span>
-              )}
+
             </div>
             <p className="font-bold text-gray-900 leading-snug" style={{ fontSize: 15 }}>
               {epic.nome}
@@ -101,45 +88,19 @@ export default function ExperimentoModal({ epic, onClose }: Props) {
             </div>
           )}
 
-          {/* Financeiro */}
+          {/* Financeiro — só Benefício Potencial */}
           <div className="rounded-lg p-3 border" style={{ background: '#FFF8F8', borderColor: '#FECACA' }}>
             <p className="text-xs font-semibold uppercase tracking-widest mb-3" style={{ color: '#CC0000' }}>
               Financeiro
             </p>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <div>
-                <p className="text-gray-400 uppercase font-semibold tracking-widest mb-0.5" style={{ fontSize: 9 }}>
-                  Benefício Potencial
-                </p>
-                <p className="font-bold" style={{ fontSize: 16, color: epic.beneficioQuantitativo ? '#CC0000' : '#D1D5DB' }}>
-                  {epic.beneficioQuantitativo ? formatBRL(epic.beneficioQuantitativo) : '—'}
-                </p>
-              </div>
-              <div>
-                <p className="text-gray-400 uppercase font-semibold tracking-widest mb-0.5" style={{ fontSize: 9 }}>
-                  Custo Estimado
-                </p>
-                <p className="font-bold text-gray-800" style={{ fontSize: 16 }}>
-                  {epic.custoEstimado ? formatBRL(epic.custoEstimado) : '—'}
-                </p>
-              </div>
-              <div className="sm:col-span-2">
-                <p className="text-gray-400 uppercase font-semibold tracking-widest mb-0.5" style={{ fontSize: 9 }}>
-                  Custo Realizado
-                </p>
-                <p className="font-medium text-gray-800" style={{ fontSize: 12 }}>
-                  {epic.custoRealizado ?? <span className="text-gray-300">—</span>}
-                </p>
-              </div>
+            <div>
+              <p className="text-gray-400 uppercase font-semibold tracking-widest mb-0.5" style={{ fontSize: 9 }}>
+                Benefício Potencial
+              </p>
+              <p className="font-bold" style={{ fontSize: 16, color: epic.beneficioQuantitativo ? '#CC0000' : '#D1D5DB' }}>
+                {epic.beneficioQuantitativo ? formatBRL(epic.beneficioQuantitativo) : '—'}
+              </p>
             </div>
-            {epic.beneficioQualitativo && (
-              <div className="mt-3">
-                <p className="text-gray-400 uppercase font-semibold tracking-widest mb-0.5" style={{ fontSize: 9 }}>
-                  Benefício Qualitativo
-                </p>
-                <p className="text-gray-700" style={{ fontSize: 12 }}>{epic.beneficioQualitativo}</p>
-              </div>
-            )}
           </div>
 
           {/* Responsáveis */}
@@ -147,9 +108,7 @@ export default function ExperimentoModal({ epic, onClose }: Props) {
             <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-3">Responsáveis</p>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
               <Field label="Sponsor"          value={epic.sponsor} />
-              <Field label="Business Owner"   value={epic.bo} />
               <Field label="Time Responsável" value={epic.timeResponsavel} />
-              <Field label="Diretoria"        value={epic.diretoria} />
             </div>
           </div>
 
@@ -157,11 +116,10 @@ export default function ExperimentoModal({ epic, onClose }: Props) {
           <div>
             <p className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-3">Classificação</p>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-              <Field label="Domínio"      value={epic.dominio} />
-              <Field label="Segmento"     value={epic.segmento ?? epic.mercado} />
-              <Field label="Portfólio"    value={epic.portfolio} />
-              <Field label="Complexidade" value={epic.complexidade} />
-              <Field label="Tecnologia"   value={epic.tecnologia} />
+              <Field label="Domínio"    value={epic.dominio} />
+              <Field label="Segmento"   value={epic.segmento ?? epic.mercado} />
+              <Field label="Portfólio"  value={epic.portfolio} />
+              <Field label="Tecnologia" value={epic.tecnologia} />
             </div>
           </div>
 

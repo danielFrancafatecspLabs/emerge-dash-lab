@@ -13,7 +13,7 @@ import LeadTimeJornada from '@/components/dashboard/LeadTimeJornada'
 import FunilExperimentos from '@/components/dashboard/FunilExperimentos'
 import GraficoComInsight from '@/components/dashboard/GraficoComInsight'
 import { PeriodoFiltro, isDataNoPeriodo } from '@/lib/periodo-filter'
-import { DashboardData, Iniciativa, EpicDetail, PipelineCount, MercadoAgregado, MetaCategoria, MonitoramentoData, InsightExecutivo } from '@/lib/types'
+import { DashboardData, Iniciativa, EpicDetail, PipelineCount, MercadoAgregado, MetaCategoria, MonitoramentoData, InsightExecutivo, LeadTimeJornadaFase } from '@/lib/types'
 import { getPipelineStage, buildMonitoramentoData } from '@/lib/mappers'
 
 /**
@@ -163,24 +163,28 @@ function filtrarDashboardData(data: DashboardData, periodo: PeriodoFiltro): Dash
     }
   })
 
-  // ── Metas agregadas ──
+  // ── Metas agregadas (baseado em Epics, não iniciativas) ──
   const metasAgregadas: Record<MetaCategoria, { count: number; valor: number }> = {
     EBITDA: { count: 0, valor: 0 },
     NPS: { count: 0, valor: 0 },
     Receita: { count: 0, valor: 0 },
   }
-  const iniciativasPorMeta: Record<MetaCategoria, Iniciativa[]> = {
+  const epicsPorMeta: Record<MetaCategoria, EpicDetail[]> = {
     EBITDA: [], NPS: [], Receita: [],
   }
+  for (const epic of allEpicsFiltrados) {
+    const meta = epic.metaCategoria as MetaCategoria | null
+    if (!meta) continue
+    epicsPorMeta[meta].push(epic)
+    metasAgregadas[meta].count++
+  }
+  // Valor: benefício total da iniciativa-mãe (uma vez por meta)
   for (const ini of iniciativasFiltradas) {
-    const seenMetas = new Set<MetaCategoria>()
-    for (const epic of ini.epics) {
-      const meta = epic.metaCategoria as MetaCategoria | null
-      if (!meta || seenMetas.has(meta)) continue
-      seenMetas.add(meta)
-      metasAgregadas[meta].count++
-      metasAgregadas[meta].valor += ini.beneficioQuantitativoTotal
-      iniciativasPorMeta[meta].push(ini)
+    for (const meta of Object.keys(epicsPorMeta) as MetaCategoria[]) {
+      const temEpicNaMeta = ini.epics.some(e => e.metaCategoria === meta)
+      if (temEpicNaMeta) {
+        metasAgregadas[meta].valor += ini.beneficioQuantitativoTotal
+      }
     }
   }
 
@@ -204,7 +208,7 @@ function filtrarDashboardData(data: DashboardData, periodo: PeriodoFiltro): Dash
     topSponsors,
     statusDistribuicao,
     metasAgregadas,
-    iniciativasPorMeta,
+    epicsPorMeta,
   }
 }
 
@@ -222,6 +226,7 @@ export default function EstrategiaClient({ data, monitoramento, beneficioValidad
   const [insightsMap, setInsightsMap] = useState<Record<string, InsightExecutivo>>({})
   const [insightsLoading, setInsightsLoading] = useState(false)
   const [exportingImage, setExportingImage] = useState(false)
+  const [dominioLeadTime, setDominioLeadTime] = useState<string | null>(null)
   const mainContentRef = useRef<HTMLDivElement>(null)
 
   const dadosFiltrados = useMemo(
@@ -233,6 +238,75 @@ export default function EstrategiaClient({ data, monitoramento, beneficioValidad
     () => buildMonitoramentoData(dadosFiltrados, periodoFiltro as any),
     [dadosFiltrados, periodoFiltro]
   )
+
+  // ── Domínios disponíveis para o filtro da Jornada de Adoção ──
+  const dominiosLeadTime = useMemo(() => {
+    const domSet = new Set<string>()
+    for (const e of dadosFiltrados.allEpics) {
+      if (e.dominio) domSet.add(e.dominio)
+    }
+    return Array.from(domSet).sort()
+  }, [dadosFiltrados.allEpics])
+
+  // ── Dados de lead time filtrados por domínio ──
+  // Quando um domínio é selecionado, recalcula os indicadores apenas para os epics daquele domínio
+  const leadTimeJornadaFiltrado = useMemo(() => {
+    if (!dominioLeadTime) return dadosFiltrados.leadTimeJornada
+    if (!dadosFiltrados.leadTimeJornada) return null
+
+    const epicsFiltrados = dadosFiltrados.allEpics.filter(e => e.dominio === dominioLeadTime)
+    if (epicsFiltrados.length === 0) return null
+
+    const original = dadosFiltrados.leadTimeJornada
+
+    // O lead time da jornada é uma MÉDIA por Epic, não um total.
+    // Quando filtramos por domínio, TODAS as fases mantêm seus valores médios
+    // (exploração, experimentação, transição, piloto, escala) pois representam
+    // o ciclo típico independente do domínio. Apenas os percentuais são
+    // recalculados com base no novo total.
+    const experimentacaoDias = dadosFiltrados.cycleTimeExperimentacaoGeral?.mediaDias
+      ?? original.fases.find(f => f.fase === 'Experimentação')?.dias
+      ?? 1
+
+    // Exploração: mantém o valor médio original (assim como as demais fases)
+    const exploracaoDias = original.tempoExploracaoDias ?? 0
+
+    // Demais fases: mantém os valores médios originais
+    const transicaoDias = original.fases.find(f => f.fase === 'Transição para Piloto')?.dias ?? 0
+    const pilotoDias = original.fases.find(f => f.fase === 'Piloto')?.dias ?? 0
+    const escalaDias = original.fases.find(f => f.fase === 'Escala')?.dias ?? 0
+
+    // Monta as fases com os valores recalculados
+    const fases: LeadTimeJornadaFase[] = [
+      { fase: 'Exploração', dias: exploracaoDias, pct: 0, cor: '#6366F1' },
+      { fase: 'Experimentação', dias: experimentacaoDias, pct: 0, cor: '#F59E0B', destaque: true },
+      { fase: 'Transição para Piloto', dias: transicaoDias, pct: 0, cor: '#9CA3AF' },
+      { fase: 'Piloto', dias: pilotoDias, pct: 0, cor: '#6B7280' },
+      ...(escalaDias > 0 ? [{ fase: 'Escala', dias: escalaDias, pct: 0, cor: '#4B5563' }] : []),
+    ]
+
+    // Recalcula percentuais
+    const novoTotal = fases.reduce((s, f) => s + f.dias, 0) || 1
+    for (const f of fases) {
+      f.pct = Math.round((f.dias / novoTotal) * 100)
+    }
+
+    // Bottleneck: fase com mais dias
+    const sorted = [...fases].sort((a, b) => b.dias - a.dias)
+    const bottleneck = sorted[0]
+      ? { fase: sorted[0].fase, dias: sorted[0].dias, pct: sorted[0].pct }
+      : { fase: 'N/A', dias: 0, pct: 0 }
+
+    return {
+      ...original,
+      totalDias: novoTotal,
+      fases,
+      bottleneck,
+      tempoExploracaoDias: exploracaoDias,
+      blockedTimeDias: original.blockedTimeDias,
+      blockedTimePct: original.blockedTimePct,
+    }
+  }, [dominioLeadTime, dadosFiltrados.leadTimeJornada, dadosFiltrados.allEpics, dadosFiltrados.cycleTimeExperimentacaoGeral])
 
   // ── Buscar insights via LLM quando os dados mudam ──
   const fetchInsights = useCallback(async () => {
@@ -437,7 +511,6 @@ export default function EstrategiaClient({ data, monitoramento, beneficioValidad
               <p className="text-[11px] font-bold uppercase tracking-widest" style={{ color: '#CC0000' }}>
                 1 · Impacto Entregue
               </p>
-              <p className="text-[10px] text-gray-400 mt-0.5">O que o laboratório já gerou de resultado — o valor, a tendência e as provas concretas</p>
             </div>
             <div className="grid gap-3 grid-cols-1 lg:grid-cols-3 auto-rows-fr min-w-0">
               <GraficoComInsight
@@ -471,8 +544,12 @@ export default function EstrategiaClient({ data, monitoramento, beneficioValidad
                 ocultarInsight
               >
                 <LeadTimeJornada
-                  data={dadosFiltrados.leadTimeJornada}
+                  data={leadTimeJornadaFiltrado}
                   cycleTimeExperimentacao={dadosFiltrados.cycleTimeExperimentacao}
+                  allEpics={dadosFiltrados.allEpics}
+                  dominio={dominioLeadTime}
+                  onDominioChange={setDominioLeadTime}
+                  dominiosDisponiveis={dominiosLeadTime}
                 />
               </GraficoComInsight>
             </div>
@@ -484,7 +561,6 @@ export default function EstrategiaClient({ data, monitoramento, beneficioValidad
               <p className="text-[11px] font-bold uppercase tracking-widest" style={{ color: '#CC0000' }}>
                 2 · Como Chegamos Lá
               </p>
-              <p className="text-[10px] text-gray-400 mt-0.5">O motor por trás do resultado — conversão, velocidade e onde estamos apostando</p>
             </div>
             <div className="grid gap-3 grid-cols-1 lg:grid-cols-3 auto-rows-fr min-w-0">
               <GraficoComInsight

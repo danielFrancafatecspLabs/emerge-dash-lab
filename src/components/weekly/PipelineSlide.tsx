@@ -32,6 +32,11 @@ function truncate(str: string, max: number): string {
   return str.slice(0, max - 1).trimEnd() + '…'
 }
 
+function formatCurrencyInMillions(value: number): string {
+  const millions = Math.round(value / 1_000_000)
+  return `R$ ${millions.toLocaleString('pt-BR')} milhões`
+}
+
 // Fileira de setas: TODOS os cards mantêm a MESMA altura fixa (172px) — inclusive
 // o card de Cancelados, que encaixa a lista de motivos no mesmo espaço em vez de
 // crescer. Misturar alturas diferentes na mesma linha já quebrou o clip-path no
@@ -49,7 +54,6 @@ function StageCard({ label, descricao, quantidade, index, total, motivos }: { la
   } else {
     clipPath = `polygon(0% 0%, calc(100% - ${notch}px) 0%, 100% 50%, calc(100% - ${notch}px) 100%, 0% 100%, ${notch}px 50%)`
   }
-  const temMotivos = !!motivos && motivos.length > 0
   return (
     <div
       style={{
@@ -82,25 +86,9 @@ function StageCard({ label, descricao, quantidade, index, total, motivos }: { la
       <div style={{ fontSize: 22, fontWeight: 800, color: text, marginTop: 3, lineHeight: 1 }}>
         {quantidade}
       </div>
-      {temMotivos ? (
-        <div style={{ width: '100%', marginTop: 6, display: 'flex', flexDirection: 'column', gap: 2 }}>
-          <div style={{ fontSize: 7, fontWeight: 700, color: muted, textAlign: 'center', textTransform: 'uppercase', letterSpacing: 0.4 }}>
-            Principais motivos
-          </div>
-          {motivos!.map((m, i) => (
-            <div key={i} style={{
-              fontSize: 8, color: '#FFFFFF', lineHeight: 1.3, textAlign: 'left',
-              width: '100%', overflowWrap: 'break-word',
-            }}>
-              <b>{m.count}×</b> {truncate(m.motivo, 20)}
-            </div>
-          ))}
-        </div>
-      ) : (
-        <div style={{ fontSize: 8.5, color: muted, textAlign: 'center', lineHeight: 1.3, marginTop: 3, width: '100%', overflowWrap: 'break-word', minHeight: 22 }}>
-          {descricao}
-        </div>
-      )}
+      <div style={{ fontSize: 8.5, color: muted, textAlign: 'center', lineHeight: 1.3, marginTop: 3, width: '100%', overflowWrap: 'break-word', minHeight: 22 }}>
+        {descricao}
+      </div>
     </div>
   )
 }
@@ -174,6 +162,7 @@ function AprendizadoRamoCard({ quantidade }: { quantidade: number }) {
   )
 }
 
+
 const TONE_STYLES = {
   neutral: { bar: '#9CA3AF', chip: '#F3F4F6', value: '#111827', bg: '#FAFAFA', border: '#EFEFEF' },
   accent: { bar: RED, chip: '#FBEAEA', value: RED, bg: '#FDF6F6', border: '#F5DEDE' },
@@ -213,9 +202,161 @@ function MetricCard({
   )
 }
 
+function StrategyCard({
+  icon: Icon,
+  title,
+  value,
+  descricao,
+}: {
+  icon: typeof Rocket
+  title: string
+  value: string
+  descricao: string
+}) {
+  return (
+    <div style={{
+      flex: 1,
+      minWidth: 0,
+      background: '#FFF7F7',
+      border: '1px solid #F6D5D5',
+      borderRadius: 14,
+      padding: '14px 16px',
+      display: 'flex',
+      flexDirection: 'column',
+      gap: 8,
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div style={{
+          width: 30,
+          height: 30,
+          borderRadius: 999,
+          background: '#FCEAEA',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexShrink: 0,
+        }}>
+          <Icon size={16} color={RED} strokeWidth={2} />
+        </div>
+        <div style={{ fontSize: 12.5, fontWeight: 800, color: '#111827', lineHeight: 1.2 }}>{title}</div>
+      </div>
+      <div style={{ fontSize: 22, fontWeight: 800, color: RED, lineHeight: 1.05 }}>{value}</div>
+      <div style={{ fontSize: 10.5, color: '#6B7280', lineHeight: 1.35 }}>{descricao}</div>
+    </div>
+  )
+}
+
+function StrategicGoalsCard() {
+  const items = [
+    { label: 'Eficiência Operacional', count: 68, pct: '57,1%' },
+    { label: 'Receita', count: 25, pct: '21%' },
+    { label: 'NPS', count: 26, pct: '21,8%' },
+  ]
+
+  return (
+    <div style={{
+      flex: 1,
+      minWidth: 0,
+      background: 'linear-gradient(180deg, #FFF8F8 0%, #FFFDFD 100%)',
+      border: '1px solid #F2CFCF',
+      borderRadius: 12,
+      padding: '8px 10px',
+      display: 'flex',
+      flexDirection: 'column',
+      gap: 6,
+      boxShadow: '0 4px 14px rgba(139,0,0,0.04)',
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+          <div style={{
+            width: 22,
+            height: 22,
+            borderRadius: 999,
+            background: '#FCEAEA',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0,
+          }}>
+            <Target size={11} color={RED} strokeWidth={2.2} />
+          </div>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: 10.5, fontWeight: 800, color: '#111827', lineHeight: 1.05 }}>
+              Metas estratégicas
+            </div>
+            <div style={{ fontSize: 8.5, color: '#6B7280', lineHeight: 1.05 }}>
+              Distribuição dos experimentos alinhados à estratégia
+            </div>
+          </div>
+        </div>
+        <div style={{
+          flexShrink: 0,
+          padding: '4px 7px',
+          borderRadius: 999,
+          background: '#8B0000',
+          color: '#FFFFFF',
+          fontSize: 9,
+          fontWeight: 800,
+          letterSpacing: 0.2,
+          whiteSpace: 'nowrap',
+        }}>
+          Total: 119
+        </div>
+      </div>
+
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: '1fr',
+        gap: 4,
+      }}>
+        {items.map((item) => (
+          <div key={item.label} style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 8,
+            background: '#FFFFFF',
+            border: '1px solid #F4DADA',
+            borderRadius: 9,
+            padding: '6px 8px',
+          }}>
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <div style={{ fontSize: 10.5, fontWeight: 800, color: '#111827', lineHeight: 1.05 }}>
+                {item.label}
+              </div>
+              <div style={{ fontSize: 8.5, color: '#6B7280', lineHeight: 1.05, marginTop: 0 }}>
+                {item.count} experimentos
+              </div>
+            </div>
+            <div style={{
+              flexShrink: 0,
+              minWidth: 54,
+              textAlign: 'right',
+              paddingLeft: 6,
+            }}>
+              <div style={{ fontSize: 13.5, fontWeight: 800, color: RED, lineHeight: 1 }}>
+                {item.pct}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 export default function PipelineSlide({ data, onMaximize }: { data: WeeklyData; onMaximize?: () => void }) {
   const slideRef = useRef<HTMLDivElement>(null)
   const [stageAberta, setStageAberta] = useState<string | null>(null)
+  const experimentosNoPortfolio = data.conversaoDenominador
+  const beneficioPotencial = typeof data.beneficioTotal === 'number'
+    ? formatCurrencyInMillions(data.beneficioTotal)
+    : 'Sem benefício carregado'
+  const metasEstrategicas = data.metasAgregadas
+    ? Object.entries(data.metasAgregadas)
+        .map(([meta, info]) => `${meta}: ${info.count}`)
+        .join(' · ')
+    : 'Sem metas carregadas'
 
   return (
     <div className="flex flex-col gap-3">
@@ -251,6 +392,30 @@ export default function PipelineSlide({ data, onMaximize }: { data: WeeklyData; 
             </div>
           </div>
 
+          <div style={{ display: 'flex', alignItems: 'stretch', gap: 12 }}>
+            <div style={{ width: 210, flexShrink: 0, background: '#F9FAFB', border: '1px solid #E5E7EB', borderRadius: 14, padding: '16px 14px', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 8 }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: 0.5, lineHeight: 1.4 }}>
+                Experimentos no portfólio
+              </div>
+              <div style={{ fontSize: 34, fontWeight: 800, color: RED, lineHeight: 1 }}>
+                {experimentosNoPortfolio}
+              </div>
+              <div style={{ fontSize: 11, color: '#6B7280', lineHeight: 1.35 }}>
+                Total de experimentos aprovados que compõem a jornada e alimentam os cards estratégicos.
+              </div>
+            </div>
+
+            <div style={{ flex: 1, display: 'flex', gap: 12, minWidth: 0 }}>
+              <StrategyCard
+                icon={TrendingDown}
+                title="Benefício potencial"
+                value={beneficioPotencial}
+                descricao="Valor do benefício potencial total, todos experimentos tem beneficio potencial concedidos pelas áreas de negócio."
+              />
+              <StrategicGoalsCard />
+            </div>
+          </div>
+
           {/* Funil principal — Backlog até Concluídos (experimentos já
               aprovados, board de Experimentação). */}
           <div style={{ display: 'flex', gap: 10 }}>
@@ -271,7 +436,7 @@ export default function PipelineSlide({ data, onMaximize }: { data: WeeklyData; 
               concluída; (2) Aguardando piloto/Piloto/Em escala nascem DENTRO
               do total de Concluídos, não são uma continuação sequencial. */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+<div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <div style={{ width: FUNNEL_START_OFFSET, flexShrink: 0 }} />
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <Link2 size={11} color={RED} strokeWidth={2.5} />
@@ -310,13 +475,13 @@ export default function PipelineSlide({ data, onMaximize }: { data: WeeklyData; 
               formato de card para leitura rápida e comparável */}
           <div>
             <div style={{ fontSize: 10, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 }}>
-              Métricas da semana
+              Principais Métricas
             </div>
             <div style={{ display: 'flex', gap: 10 }}>
               <MetricCard icon={Target} label="Conversão para Piloto" value={`${data.conversaoPiloto}%`} caption={`${data.conversaoPilotoNumerador} de ${data.conversaoDenominador} experimentos aprovados já em piloto`} tone="accent" />
               <MetricCard icon={Award} label="Conversão para Escala" value={`${data.conversaoEscala}%`} caption={`${data.conversaoEscalaNumerador} de ${data.conversaoDenominador} experimentos aprovados já em escala`} tone="accent" />
-              <MetricCard icon={AlertTriangle} label="Sem benefício potencial" value={String(data.semBeneficio.count)} caption={`${data.semBeneficio.pct}% dos experimentos, sem R$ nem relato`} tone="warn" />
-              <MetricCard icon={User} label="Sem sponsor identificado" value={String(data.semSponsor.count)} caption={`${data.semSponsor.pct}% dos experimentos sem sponsor`} tone="warn" />
+              <MetricCard icon={AlertTriangle} label="Sem benefício potencial" value={`${data.semBeneficio.pct}%`} caption={`${data.semBeneficio.count} experimentos sem benefício potencial registrado ou relato de valor esperado.`} tone="warn" />
+              <MetricCard icon={User} label="Sem patrocínio formal da diretoria" value={`${data.semSponsor.pct}%`} caption={`${data.semSponsor.count} experimentos sem patrocínio formal da diretoria.`} tone="warn" />
             </div>
           </div>
 
@@ -369,14 +534,36 @@ export default function PipelineSlide({ data, onMaximize }: { data: WeeklyData; 
             </button>
           )
         })}
+        {/* ── Oportunidades: Iniciativas do board de Ideação em Backlog/Refinamento ── */}
+        {(() => {
+          const aberta = stageAberta === 'oportunidades'
+          return (
+            <button
+              onClick={() => setStageAberta(aberta ? null : 'oportunidades')}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors"
+              style={{
+                background: aberta ? '#D97706' : '#F3F4F6',
+                color: aberta ? '#FFFFFF' : '#374151',
+                border: `1px solid ${aberta ? '#D97706' : '#E5E7EB'}`,
+              }}
+            >
+              Oportunidades ({data.pendenteAnalise.quantidade})
+              {aberta ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+            </button>
+          )
+        })()}
       </div>
 
       {stageAberta && (
         <div className="no-print mt-1">
-          {(() => {
-            const stage = data.stages.find(s => s.id === stageAberta)!
-            return <StageDetalhesSlides stageId={stage.id} stageLabel={stage.label} rows={stage.experimentos} />
-          })()}
+          {stageAberta === 'oportunidades' ? (
+            <StageDetalhesSlides stageId="oportunidades" stageLabel="Oportunidades" rows={data.pendenteAnalise.experimentos} />
+          ) : (
+            (() => {
+              const stage = data.stages.find(s => s.id === stageAberta)!
+              return <StageDetalhesSlides stageId={stage.id} stageLabel={stage.label} rows={stage.experimentos} />
+            })()
+          )}
         </div>
       )}
     </div>

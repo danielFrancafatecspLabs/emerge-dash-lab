@@ -97,6 +97,46 @@ function normalizeSponsor(raw: string): string {
   return SPONSOR_ALIASES[trimmed] ?? trimmed
 }
 
+// Aliases de Labs — normaliza variações de digitação do mesmo laboratório
+const LAB_ALIASES: Record<string, string> = {
+  'Beon Labs': 'Beon Labs',
+  'BeOn Labs': 'Beon Labs',
+  'BeON Labs': 'Beon Labs',
+  'Beon Labs - TI': 'Beon Labs',
+  'BeOn Labs - TI': 'Beon Labs',
+  'BeON Labs - TI': 'Beon Labs',
+  'Beon Labs-TI': 'Beon Labs',
+  'BeOn Labs-TI': 'Beon Labs',
+  'BeON Labs-TI': 'Beon Labs',
+  'BeonLabs': 'Beon Labs',
+  'Beonlabs': 'Beon Labs',
+  'beon labs': 'Beon Labs',
+  'beon labs - ti': 'Beon Labs',
+  'LABORATÓRIO DE DADOS E IA': 'Laboratório de Dados e IA',
+  'LAB DE DADOS E IA': 'Laboratório de Dados e IA',
+  'Lab de Dados e IA': 'Laboratório de Dados e IA',
+  'LAB DE DADOS': 'Laboratório de Dados e IA',
+  'Lab de Dados': 'Laboratório de Dados e IA',
+  'CIENTISTA DE DADOS': 'Laboratório de Dados e IA',
+  'Cientista de Dados': 'Laboratório de Dados e IA',
+  'CX LAB': 'CX Lab',
+  'CX Lab': 'CX Lab',
+  'Cx Lab': 'CX Lab',
+}
+
+function normalizeLab(raw: string | null | undefined): string | null {
+  if (!raw) return null
+  const trimmed = raw.trim()
+  const direct = LAB_ALIASES[trimmed]
+  if (direct) return direct
+  // Fallback case-insensitive: busca parcial no alias map
+  const upper = trimmed.toUpperCase()
+  for (const [key, value] of Object.entries(LAB_ALIASES)) {
+    if (key.toUpperCase() === upper) return value
+  }
+  return trimmed
+}
+
 function mapEpicToDetail(epic: JiraIssue, changelog?: ChangelogEntry[]): EpicDetail {
   const f = epic.fields
 
@@ -133,7 +173,7 @@ function mapEpicToDetail(epic: JiraIssue, changelog?: ChangelogEntry[]): EpicDet
     sponsor: f.customfield_30394 ? normalizeSponsor(f.customfield_30394) : null,
     bo: f.customfield_30340 ?? null,
     complexidade: (typeof (f.customfield_30358 as any) === 'object' && (f.customfield_30358 as any) !== null) ? ((f.customfield_30358 as any).value ?? null) : (f.customfield_30358 ?? null),
-    timeResponsavel: (typeof (f.customfield_31438 as any) === 'object' && (f.customfield_31438 as any) != null) ? ((f.customfield_31438 as any).value ?? ((typeof (f.customfield_30357 as any) === 'object' && (f.customfield_30357 as any) != null) ? (f.customfield_30357 as any).value : f.customfield_30357) ?? null) : ((typeof (f.customfield_30357 as any) === 'object' && (f.customfield_30357 as any) != null) ? ((f.customfield_30357 as any).value ?? null) : (f.customfield_30357 ?? null)),
+    timeResponsavel: normalizeLab((typeof (f.customfield_31438 as any) === 'object' && (f.customfield_31438 as any) != null) ? ((f.customfield_31438 as any).value ?? ((typeof (f.customfield_30357 as any) === 'object' && (f.customfield_30357 as any) != null) ? (f.customfield_30357 as any).value : f.customfield_30357) ?? null) : ((typeof (f.customfield_30357 as any) === 'object' && (f.customfield_30357 as any) != null) ? ((f.customfield_30357 as any).value ?? null) : (f.customfield_30357 ?? null))),
     beneficioQuantitativo: f.customfield_30216 ?? null,
     beneficioQualitativo: f.customfield_30222 ?? null,
     dominio: f.customfield_30021?.value ?? f.customfield_11987?.value ?? f.customfield_11991?.value ?? null,
@@ -183,7 +223,6 @@ const STATUS_NAME_PIPELINE: Record<string, keyof PipelineCount> = {
   'EM PILOTO': 'EM PILOTO',
   'EM EXPERIMENTAÇÃO': 'EM EXPERIMENTAÇÃO',
   'EM ANDAMENTO': 'EM EXPERIMENTAÇÃO',
-  'EM VALIDAÇÃO': 'EM EXPERIMENTAÇÃO',
   'FINALIZADO': 'FINALIZADO',
   'CONCLUÍDO': 'FINALIZADO',
   'CONCLUIDO': 'FINALIZADO',
@@ -252,9 +291,9 @@ export function buildDashboardData(
     const parent = iniciativaParentMap.get(parentKey)
     if (!parent) continue
     const parentFields = parent.fields
-    const timeResp = (typeof (parentFields.customfield_31438 as any) === 'object' && (parentFields.customfield_31438 as any) != null)
+    const timeResp = normalizeLab((typeof (parentFields.customfield_31438 as any) === 'object' && (parentFields.customfield_31438 as any) != null)
       ? ((parentFields.customfield_31438 as any).value ?? ((typeof (parentFields.customfield_30357 as any) === 'object' && (parentFields.customfield_30357 as any) != null) ? (parentFields.customfield_30357 as any).value : parentFields.customfield_30357) ?? null)
-      : ((typeof (parentFields.customfield_30357 as any) === 'object' && (parentFields.customfield_30357 as any) != null) ? ((parentFields.customfield_30357 as any).value ?? null) : (parentFields.customfield_30357 ?? null))
+      : ((typeof (parentFields.customfield_30357 as any) === 'object' && (parentFields.customfield_30357 as any) != null) ? ((parentFields.customfield_30357 as any).value ?? null) : (parentFields.customfield_30357 ?? null)))
     const dominio = (typeof (parentFields.customfield_30021 as any) === 'object' && (parentFields.customfield_30021 as any) != null)
       ? ((parentFields.customfield_30021 as any).value ?? (typeof (parentFields.customfield_11987 as any) === 'object' && (parentFields.customfield_11987 as any) != null ? (parentFields.customfield_11987 as any).value : parentFields.customfield_11987) ?? (typeof (parentFields.customfield_11991 as any) === 'object' && (parentFields.customfield_11991 as any) != null ? (parentFields.customfield_11991 as any).value : parentFields.customfield_11991) ?? null)
       : (parentFields.customfield_30021?.value ?? parentFields.customfield_11987?.value ?? parentFields.customfield_11991?.value ?? null)
@@ -300,7 +339,7 @@ export function buildDashboardData(
       dominios: Array.from(new Set(myEpics.map(e => e.dominio).filter(Boolean) as string[])),
       sponsors: Array.from(new Set(myEpics.map(e => e.sponsor).filter(Boolean) as string[])),
       segmentos: Array.from(new Set(myEpics.map(e => e.segmento).filter(Boolean) as string[])),
-      timeResponsavel: ini.fields.customfield_31438?.value ?? ini.fields.customfield_30357 ?? null,
+      timeResponsavel: normalizeLab(ini.fields.customfield_31438?.value ?? ini.fields.customfield_30357 ?? null),
       sponsor: ini.fields.customfield_30394 ? normalizeSponsor(ini.fields.customfield_30394) : null,
       criadoEm: ini.fields.created ?? null,
       descricao: ini.fields.description ?? null,
@@ -499,27 +538,52 @@ export function buildDashboardData(
     .filter(d => d.value > 0)
 
   // 9. Metas agregadas por categoria LLM
+  // Cada Epic é classificado individualmente. O count reflete número de experimentos, não de iniciativas.
   const metasAgregadas: Record<MetaCategoria, { count: number; valor: number }> = {
     EBITDA:  { count: 0, valor: 0 },
     NPS:     { count: 0, valor: 0 },
     Receita: { count: 0, valor: 0 },
   }
 
-  const iniciativasPorMeta: Record<MetaCategoria, Iniciativa[]> = {
+  const epicsPorMeta: Record<MetaCategoria, EpicDetail[]> = {
     EBITDA: [],
     NPS: [],
     Receita: [],
   }
-  // Distribuir iniciativas para cada meta com base nos epics que carregam essa meta
+  // Distribuir epics para cada meta com base na classificação LLM de cada epic
+  for (const epic of allEpicDetails) {
+    const meta = epic.metaCategoria as MetaCategoria | null
+    if (!meta) continue
+    epicsPorMeta[meta].push(epic)
+    metasAgregadas[meta].count++
+    // Valor: benefício total da iniciativa-mãe quando o epic contribui
+    const iniciativaMae = iniciativas.find(i => i.epics.some(e => e.key === epic.key))
+    if (iniciativaMae) {
+      metasAgregadas[meta].valor += iniciativaMae.beneficioQuantitativoTotal
+    }
+  }
+  // Normalizar: evitar dupla contagem do valor quando múltiplos epics da mesma iniciativa
+  // caem na mesma meta — somamos o benefícioTotal da iniciativa apenas uma vez por meta.
   for (const iniciativa of iniciativas) {
-    const seenMetas = new Set<MetaCategoria>()
-    for (const epic of iniciativa.epics) {
-      const meta = epic.metaCategoria as MetaCategoria | null
-      if (!meta || seenMetas.has(meta)) continue
-      seenMetas.add(meta)
-      metasAgregadas[meta].count++
-      metasAgregadas[meta].valor += iniciativa.beneficioQuantitativoTotal
-      iniciativasPorMeta[meta].push(iniciativa)
+    for (const meta of Object.keys(epicsPorMeta) as MetaCategoria[]) {
+      const temEpicNaMeta = iniciativa.epics.some(e => e.metaCategoria === meta)
+      if (temEpicNaMeta) {
+        metasAgregadas[meta].valor += iniciativa.beneficioQuantitativoTotal
+      }
+    }
+  }
+  // Subtrai o valor que foi adicionado individualmente no loop anterior,
+  // pois agora vamos somar por iniciativa (uma vez por meta) em vez de por epic.
+  // Primeiro zera e recalda corretamente:
+  for (const meta of Object.keys(metasAgregadas) as MetaCategoria[]) {
+    metasAgregadas[meta].valor = 0
+  }
+  for (const iniciativa of iniciativas) {
+    for (const meta of Object.keys(epicsPorMeta) as MetaCategoria[]) {
+      const temEpicNaMeta = iniciativa.epics.some(e => e.metaCategoria === meta)
+      if (temEpicNaMeta) {
+        metasAgregadas[meta].valor += iniciativa.beneficioQuantitativoTotal
+      }
     }
   }
 
@@ -549,7 +613,7 @@ export function buildDashboardData(
     topSponsors,
     statusDistribuicao,
     metasAgregadas,
-    iniciativasPorMeta,
+    epicsPorMeta,
     leadTime: leadTimeResult,
     cycleTimeIdeacao: cycleTimeIdeacaoResult,
     cycleTimeExperimentacao: cycleTimeExpResult.ciclos,
@@ -630,9 +694,71 @@ function calculateLeadTime(iniciativas: Iniciativa[], epicChangelogs: Record<str
 }
 
 /**
+ * Calcula o tempo médio (em dias) que os Epics do board de experimentação (2735)
+ * passaram nos status BACKLOG e EM REFINAMENTO — fase de "Exploração".
+ * Usa o changelog dos Epics para rastrear entrada e saída desses status.
+ * Considera APENAS Epics CONCLUÍDOS (status 10003 ou 10019).
+ */
+function calculateExploracaoDias(
+  epicChangelogs: Record<string, ChangelogEntry[]>,
+  epicsRaw: JiraIssue[]
+): number {
+  const MS_POR_DIA = 1000 * 60 * 60 * 24
+  const EXPLORACAO_NAMES = new Set(['Backlog', 'BACKLOG', 'Em refinamento', 'EM REFINAMENTO'])
+  const CONCLUIDO_IDS = new Set(['10003', '10019'])
+  const todosDias: number[] = []
+
+  const epicsConcluidos = epicsRaw.filter(e => CONCLUIDO_IDS.has(e.fields.status.id))
+
+  for (const epic of epicsConcluidos) {
+    const changelog = epicChangelogs[epic.key]
+    if (!changelog || changelog.length === 0) continue
+
+    const sorted = [...changelog].sort(
+      (a, b) => new Date(a.created).getTime() - new Date(b.created).getTime()
+    )
+
+    // Coletar períodos em exploração como intervalos { inicio, fim }
+    const periodos: { inicio: number; fim: number }[] = []
+    let entrouEm: number | null = null
+
+    for (const entry of sorted) {
+      for (const item of entry.items) {
+        if (item.field !== 'status') continue
+
+        const entrou = EXPLORACAO_NAMES.has(item.toString ?? '')
+        const saiu = EXPLORACAO_NAMES.has(item.fromString ?? '')
+
+        if (entrou && !saiu) {
+          entrouEm = new Date(entry.created).getTime()
+        } else if (saiu && !entrou) {
+          if (entrouEm !== null) {
+            periodos.push({ inicio: entrouEm, fim: new Date(entry.created).getTime() })
+            entrouEm = null
+          }
+        }
+      }
+    }
+
+    if (periodos.length === 0) continue
+
+    // Subtrair dias bloqueados que caem dentro dos períodos de exploração
+    const bloqueios = getPeriodosBloqueio(epic.key, epicChangelogs)
+    const totalExploracao = subtrairBloqueios(periodos, bloqueios)
+
+    if (totalExploracao > 0) {
+      todosDias.push(totalExploracao)
+    }
+  }
+
+  if (todosDias.length === 0) return 0
+  return Math.round(todosDias.reduce((s, d) => s + d, 0) / todosDias.length)
+}
+
+/**
  * Calcula o Lead Time da Jornada de Adoção de Tecnologia.
  * Usa os dados de cycleTimeIdeacao (já calculados via changelog) para montar
- * as fases da jornada: Backlog → Experimentação → Transição para Piloto → Piloto → Escala.
+ * as fases da jornada: Exploração → Experimentação → Transição para Piloto → Piloto → Escala.
  */
 function calculateLeadTimeJornada(
   cycleTimeIdeacao: CycleTimeEstagio[],
@@ -641,56 +767,56 @@ function calculateLeadTimeJornada(
   epicChangelogs: Record<string, ChangelogEntry[]>,
   epicsRaw: JiraIssue[]
 ): LeadTimeJornada {
-  const mapa = new Map<string, number>()
+  // Constrói um mapa: estagio → mediaDias
+  const mapa: Record<string, number> = {}
   for (const c of cycleTimeIdeacao) {
-    mapa.set(c.estagio, c.mediaDias)
+    mapa[c.estagio] = c.mediaDias
   }
 
-  const experimentacaoBaseDias = cicloGeral?.mediaDias ?? 0
-  const experimentacaoDetalhadaDias = cycleTimeExperimentacao.reduce((acc, item) => acc + (item.mediaDias ?? 0), 0)
-  const experimentacaoDias = experimentacaoBaseDias > 0 ? experimentacaoBaseDias : experimentacaoDetalhadaDias
+  // Fases da jornada (agregadas)
+  // Exploração: tempo que os Epics ficaram em BACKLOG + EM REFINAMENTO (board 2735)
+  const exploracaoDias = calculateExploracaoDias(epicChangelogs, epicsRaw)
+  const experimentacaoDias = cicloGeral.mediaDias  // usa o cycle time geral de experimentação (já desconta bloqueio)
+  const transicaoPilotoDias = mapa['AGUARDANDO PILOTO'] ?? 0
+  const pilotoDias = mapa['EM PILOTO'] ?? 0
+  const escalaDias = mapa['EM ESCALA'] ?? 0
 
-  const experimentacaoDiasNormalizado = Math.max(experimentacaoDias, 1)
-  const aguardandoPilotoDias = mapa.get('AGUARDANDO PILOTO') ?? 0
-  const pilotoDias = mapa.get('EM PILOTO') ?? 0
-
-  const fasesBase: LeadTimeJornadaFase[] = [
-    { fase: 'Experimentação', dias: experimentacaoDiasNormalizado, pct: 0, cor: '#F59E0B', destaque: true },
-    { fase: 'Aguardando Piloto', dias: aguardandoPilotoDias, pct: 0, cor: '#9CA3AF' },
-    { fase: 'Piloto', dias: pilotoDias, pct: 0, cor: '#6B7280' },
-  ]
-
-  const fases = fasesBase.filter(fase => fase.dias > 0 || fase.fase === 'Experimentação')
-
-  const backlogDias = 0
-  const transicaoPilotoDias = aguardandoPilotoDias
-  const escalaDias = 0
-
-  const totalDias = fases.reduce((acc, fase) => acc + fase.dias, 0)
-  const totalComFallback = totalDias > 0 ? totalDias : 1
+  // Total considera todas as fases visíveis (Exploração, Experimentação, Transição, Piloto, Escala)
+  const totalDias = exploracaoDias + experimentacaoDias + transicaoPilotoDias + pilotoDias + (escalaDias > 0 ? escalaDias : 0)
+  const totalComFallback = totalDias > 0 ? totalDias : experimentacaoDias
 
   const calcPct = (d: number) => totalComFallback > 0 ? Math.round((d / totalComFallback) * 100) : 0
 
-  const fasesComPct: LeadTimeJornadaFase[] = fases.map(fase => ({
-    ...fase,
-    pct: calcPct(fase.dias),
-  }))
+  // Fases exibidas (começa na Exploração)
+  const fases: LeadTimeJornadaFase[] = totalDias > 0
+    ? [
+        { fase: 'Exploração', dias: exploracaoDias, pct: calcPct(exploracaoDias), cor: '#6366F1', destaque: false },
+        { fase: 'Experimentação', dias: experimentacaoDias, pct: calcPct(experimentacaoDias), cor: '#F59E0B', destaque: true },
+        { fase: 'Transição para Piloto', dias: transicaoPilotoDias, pct: calcPct(transicaoPilotoDias), cor: '#9CA3AF' },
+        { fase: 'Piloto', dias: pilotoDias, pct: calcPct(pilotoDias), cor: '#6B7280' },
+        ...(escalaDias > 0 ? [{ fase: 'Escala', dias: escalaDias, pct: calcPct(escalaDias), cor: '#4B5563' }] : []),
+      ]
+    : [
+        { fase: 'Exploração', dias: exploracaoDias, pct: exploracaoDias > 0 ? calcPct(exploracaoDias) : 0, cor: '#6366F1' },
+        { fase: 'Experimentação', dias: experimentacaoDias, pct: 100, cor: '#F59E0B', destaque: true },
+      ]
 
   // Bottleneck: fase com mais dias
-  const sorted = [...fasesComPct].sort((a, b) => b.dias - a.dias)
+  const sorted = [...fases].sort((a, b) => b.dias - a.dias)
   const bottleneck = sorted[0]
     ? { fase: sorted[0].fase, dias: sorted[0].dias, pct: sorted[0].pct }
     : { fase: 'N/A', dias: 0, pct: 0 }
 
   // Decomposição
-  const tempoGeracaoValorDias = experimentacaoDiasNormalizado + pilotoDias
-  const tempoEsperaTransicaoDias = backlogDias + transicaoPilotoDias
+  const tempoExploracaoDias = exploracaoDias
+  const tempoGeracaoValorDias = experimentacaoDias + pilotoDias
+  const tempoEsperaTransicaoDias = transicaoPilotoDias
   const tempoImplantacaoEscalaDias = escalaDias
 
   // Insights
   const insights: string[] = []
-  if (bottleneck.fase === 'Backlog' && bottleneck.dias > 0) {
-    insights.push(`O backlog consome ${bottleneck.pct}% do lead time total (${bottleneck.dias}d). Avalie se há excesso de iniciativas paradas nas fases iniciais.`)
+  if (bottleneck.fase === 'Exploração' && bottleneck.dias > 0) {
+    insights.push(`A exploração (Backlog + Refinamento) consome ${bottleneck.pct}% do lead time total (${bottleneck.dias}d). Avalie se há excesso de experimentos parados nas fases iniciais.`)
   }
   if (bottleneck.fase === 'Experimentação' && bottleneck.dias > 0) {
     insights.push(`A experimentação é o maior gargalo (${bottleneck.dias}d, ${bottleneck.pct}% do total). O cycle time varia por complexidade: P=${cycleTimeExperimentacao.find(c => c.label.includes('P'))?.mediaDias ?? '?'}d, M=${cycleTimeExperimentacao.find(c => c.label.includes('M'))?.mediaDias ?? '?'}d, G=${cycleTimeExperimentacao.find(c => c.label.includes('G'))?.mediaDias ?? '?'}d.`)
@@ -703,12 +829,12 @@ function calculateLeadTimeJornada(
   }
   if (tempoGeracaoValorDias > 0 && totalDias > 0) {
     const pctValor = Math.round((tempoGeracaoValorDias / totalDias) * 100)
-    insights.push(`Apenas ${pctValor}% do lead time é dedicado à geração de valor (Experimentação + Piloto). ${100 - pctValor}% é consumido em espera e transições.`)
+    insights.push(`Apenas ${pctValor}% do lead time é dedicado à geração de valor (Experimentação + Piloto). ${100 - pctValor}% é consumido em exploração, espera e transições.`)
   }
 
   // ── Blocked Time: média de dias bloqueados dos experimentos concluídos ──
-  const CONCLUIDO_ID = '10019'
-  const epicsConcluidos = epicsRaw.filter(e => e.fields.status.id === CONCLUIDO_ID)
+  const CONCLUIDO_IDS = new Set(['10003', '10019'])
+  const epicsConcluidos = epicsRaw.filter(e => CONCLUIDO_IDS.has(e.fields.status.id))
   const blockedTotals: number[] = []
   const lifecycleTotals: number[] = []
 
@@ -723,7 +849,7 @@ function calculateLeadTimeJornada(
       const sorted = [...changelog].sort((a, b) => new Date(a.created).getTime() - new Date(b.created).getTime())
       for (const entry of sorted) {
         for (const item of entry.items) {
-          if (item.field === 'status' && item.toString === CONCLUIDO_ID) {
+          if (item.field === 'status' && CONCLUIDO_IDS.has(item.toString)) {
             fimCiclo = new Date(entry.created).getTime()
             break
           }
@@ -779,8 +905,9 @@ function calculateLeadTimeJornada(
 
   return {
     totalDias,
-    fases: fasesComPct,
+    fases,
     bottleneck,
+    tempoExploracaoDias,
     tempoGeracaoValorDias,
     tempoEsperaTransicaoDias,
     tempoImplantacaoEscalaDias,
@@ -801,11 +928,11 @@ function calculateCycleTimeExperimentacao(
   epicsRaw: JiraIssue[]
 ): number {
   const EXPERIMENTACAO_NAMES = new Set(['Em andamento', 'In Progress', 'EM VALIDAÇÃO'])
-  const CONCLUIDO_ID = '10019'
+  const CONCLUIDO_IDS = new Set(['10003', '10019'])
   const todosCycleTimes: number[] = []
 
   // Apenas Epics CONCLUÍDOS
-  const epicsConcluidos = epicsRaw.filter(e => e.fields.status.id === CONCLUIDO_ID)
+  const epicsConcluidos = epicsRaw.filter(e => CONCLUIDO_IDS.has(e.fields.status.id))
 
   for (const epic of epicsConcluidos) {
     const changelog = epicChangelogs[epic.key]
@@ -866,7 +993,7 @@ function calculateCycleTimeExperimentacaoDetalhado(
   epicsRaw: JiraIssue[]
 ): { ciclos: CycleTimeEstagio[]; geral: CycleTimeEstagio; diagnostico: CycleTimeDiagnostico } {
   const EXPERIMENTACAO_NAMES = new Set(['Em andamento', 'In Progress', 'EM VALIDAÇÃO'])
-  const CONCLUIDO_ID = '10019'
+  const CONCLUIDO_IDS = new Set(['10003', '10019'])
 
   // Mapeia complexidade → label de porte
   // O Jira retorna diretamente "P", "M", "G" (valores abreviados)
@@ -892,7 +1019,7 @@ function calculateCycleTimeExperimentacaoDetalhado(
   let naoConcluidos = 0
 
   // Filtrar apenas Epics CONCLUÍDOS
-  const epicsConcluidos = epicsRaw.filter(e => e.fields.status.id === CONCLUIDO_ID)
+  const epicsConcluidos = epicsRaw.filter(e => CONCLUIDO_IDS.has(e.fields.status.id))
 
   for (const epic of epicsConcluidos) {
     const changelog = epicChangelogs[epic.key]
@@ -1586,6 +1713,7 @@ export function buildMonitoramentoData(data: DashboardData, periodo: PeriodoFilt
     iniciativasPorLab,
     cycleTimeExperimentacao: data.cycleTimeExperimentacao,
     cycleTimeExperimentacaoGeral: data.cycleTimeExperimentacaoGeral,
+    leadTimeJornada: data.leadTimeJornada,
   }
 }
 

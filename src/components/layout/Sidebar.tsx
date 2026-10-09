@@ -5,16 +5,12 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 
 const NAV_ALL = [
-  { label: 'OKRs',      icon: Flag,     href: '/okrs',          inactive: false, roles: ['admin'] },
   { label: 'Estratégia', icon: Target,   href: '/estrategia',    inactive: false, roles: ['admin', 'executivo'] },
   { label: 'Operacional',icon: Activity,  href: '/operacional',   inactive: false, roles: ['admin'] },
   { label: 'Benefícios', icon: Wallet,   href: '/beneficios',    inactive: false, roles: ['admin', 'executivo', 'financeiro'] },
   { label: 'Portfólio',  icon: BarChart2, href: '/portfolio',     inactive: false, roles: ['admin'] },
-  { label: 'Priorização',icon: ListOrdered,href: '/priorizacao',  inactive: false, roles: ['admin'] },
   { label: 'Report',     icon: FileText, href: '/report',         inactive: false, roles: ['admin'] },
-  { label: 'MBR',        icon: PanelRightOpen, href: '/report/mbr', inactive: false, roles: ['admin'] },
   { label: 'Weekly',     icon: CalendarDays, href: '/weekly',      inactive: false, roles: ['admin'] },
-  { label: 'Monitoram.', icon: Activity,  href: '/monitoramento', inactive: false, roles: ['admin'] },
   { label: 'Cientista',  icon: Bot,       href: '/cientista',     inactive: false, roles: ['admin'] },
   { label: 'Comunidade', icon: HeartHandshake, href: '/comunidade', inactive: false, roles: ['admin'] },
   { label: 'Pesquisas',  icon: BookOpen,      href: '/pesquisas',  inactive: false, roles: ['admin'] },

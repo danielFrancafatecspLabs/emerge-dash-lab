@@ -172,7 +172,7 @@ export interface CycleTimeEstagio {
 }
 
 export interface LeadTimeJornadaFase {
-  fase: string           // nome da fase: "Backlog", "Experimentação", "Transição para Piloto", "Piloto", "Escala"
+  fase: string           // nome da fase: "Exploração", "Experimentação", "Transição para Piloto", "Piloto", "Escala"
   dias: number           // dias gastos nessa fase
   pct: number            // percentual do lead time total
   cor: string            // cor do bloco na timeline
@@ -180,11 +180,12 @@ export interface LeadTimeJornadaFase {
 }
 
 export interface LeadTimeJornada {
-  totalDias: number                    // lead time total (Backlog → Escala)
+  totalDias: number                    // lead time total (Exploração → Escala)
   fases: LeadTimeJornadaFase[]         // fases da jornada
   bottleneck: { fase: string; dias: number; pct: number }  // fase que mais consome tempo
+  tempoExploracaoDias: number          // tempo de backlog + refinamento (exploração inicial)
   tempoGeracaoValorDias: number        // tempo de experimentação + piloto (geração de valor)
-  tempoEsperaTransicaoDias: number     // tempo de backlog + transições (espera)
+  tempoEsperaTransicaoDias: number     // tempo de transições (espera)
   tempoImplantacaoEscalaDias: number   // tempo em escala
   blockedTimeDias: number              // média de dias bloqueados dos experimentos concluídos
   blockedTimePct: number               // % do blocked time sobre o total de dias dos concluídos
@@ -214,7 +215,7 @@ export interface DashboardData {
   topSponsors: { nome: string; count: number }[]
   statusDistribuicao: { name: string; value: number; color: string }[]
   metasAgregadas: Record<'EBITDA' | 'NPS' | 'Receita', { count: number; valor: number }>
-  iniciativasPorMeta: Record<'EBITDA' | 'NPS' | 'Receita', Iniciativa[]>
+  epicsPorMeta: Record<'EBITDA' | 'NPS' | 'Receita', EpicDetail[]>
   leadTime: LeadTimeStats
   cycleTimeIdeacao: CycleTimeEstagio[]
   cycleTimeExperimentacao: CycleTimeEstagio[]       // quebrado por porte (P/M/G)
@@ -302,6 +303,7 @@ export interface MonitoramentoData {
   iniciativasPorLab: IniciativaLab[]
   cycleTimeExperimentacao?: CycleTimeEstagio[]
   cycleTimeExperimentacaoGeral?: CycleTimeEstagio
+  leadTimeJornada?: LeadTimeJornada
 }
 
 export type PeriodoFiltro =

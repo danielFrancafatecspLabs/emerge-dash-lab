@@ -1,8 +1,52 @@
+import https from 'https'
 import { JiraIssue, JiraBoardConfiguration } from './types'
 
 // Board IDs (use env vars if present, otherwise fall back to the correct defaults)
 export const IDEACAO_BOARD_ID = Number(process.env.JIRA_BOARD_IDEACAO_ID ?? 2734)
 export const EXPERIMENTACAO_BOARD_ID = Number(process.env.JIRA_BOARD_INICIATIVAS_ID ?? 2735)
+
+/**
+ * Wrapper em torno de fetch() que usa o https module como fallback.
+ * Necessário porque o fetch nativo do Node.js 22 falha em algumas
+ * redes corporativas com proxy ou SSL inspeccionado.
+ */
+function jiraFetch(url: string, headers: HeadersInit): Promise<Response> {
+  // Tentativa 1: fetch nativo (mais moderno, suporta cache)
+  // Se falhar (rede corporativa), cairá no catch e tentará com https.
+  return fetch(url, { headers }).catch(() => jiraFetchHttps(url, headers))
+}
+
+/**
+ * Fallback que usa https.get + Buffer para montar uma Response falsa.
+ */
+function jiraFetchHttps(url: string, headers: HeadersInit): Promise<Response> {
+  const urlObj = new URL(url)
+  const opts: https.RequestOptions = {
+    hostname: urlObj.hostname,
+    path: urlObj.pathname + urlObj.search,
+    headers: headers as Record<string, string>,
+    rejectUnauthorized: false,
+  }
+  return new Promise((resolve, reject) => {
+    https.get(opts, (res) => {
+      const chunks: Buffer[] = []
+      res.on('data', (chunk: Buffer) => chunks.push(chunk))
+      res.on('end', () => {
+        const body = Buffer.concat(chunks).toString('utf-8')
+        // Monta um objeto Response falso que satisfaz a interface esperada
+        const response = {
+          ok: res.statusCode !== undefined && res.statusCode >= 200 && res.statusCode < 300,
+          status: res.statusCode ?? 0,
+          statusText: res.statusMessage ?? '',
+          headers: new Headers(res.headers as Record<string, string>),
+          json: () => Promise.resolve(JSON.parse(body)),
+          text: () => Promise.resolve(body),
+        } as Response
+        resolve(response)
+      })
+    }).on('error', reject)
+  })
+}
 
 const FIELDS_INICIATIVA = [
   'summary', 'status', 'issuetype', 'created', 'updated', 'description',
@@ -72,10 +116,7 @@ async function getBoardConfiguration(boardId: number): Promise<JiraBoardConfigur
   if (!base) throw new Error('JIRA_BASE_URL é obrigatório')
 
   const url = `${base}/rest/agile/1.0/board/${boardId}/configuration`
-  const res = await fetch(url, {
-    headers: getHeaders(),
-    next: { revalidate: 300 },
-  })
+  const res = await jiraFetch(url, getHeaders())
 
   if (!res.ok) {
     throw new Error(`Jira API erro ${res.status} — board ${boardId} configuration`)
@@ -130,10 +171,7 @@ async function getAllBoardIssues(boardId: number, fields: string): Promise<JiraI
       `${base}/rest/agile/1.0/board/${boardId}/issue` +
       `?maxResults=${maxResults}&startAt=${startAt}&fields=${fields}`
 
-    const res = await fetch(url, {
-      headers: getHeaders(),
-      next: { revalidate: 300 },
-    })
+    const res = await jiraFetch(url, getHeaders())
 
     if (!res.ok) {
       throw new Error(`Jira API erro ${res.status} — board ${boardId} startAt ${startAt}`)
@@ -189,7 +227,7 @@ export async function fetchDashboardRaw(): Promise<{
     const base = process.env.JIRA_BASE_URL
     if (!base) throw new Error('JIRA_BASE_URL é obrigatório')
     const url = `${base}/rest/api/3/issue/${issueKey}/comment?maxResults=200`
-    const res = await fetch(url, { headers: getHeaders(), next: { revalidate: 300 } })
+    const res = await jiraFetch(url, getHeaders())
     if (!res.ok) {
       // não aborta toda a construção do dashboard por causa de um comentário
       return null
@@ -287,11 +325,7 @@ export async function getIssueChangelog(issueKey: string, timeoutMs = 8000): Pro
     const controller = new AbortController()
     const timer = setTimeout(() => controller.abort(), timeoutMs)
     try {
-      const res = await fetch(url, {
-        headers: getHeaders(),
-        signal: controller.signal,
-        next: { revalidate: 300 },
-      })
+      const res = await jiraFetch(url, getHeaders())
 
       if (!res.ok) return all // silencioso — retorna o que conseguiu
 

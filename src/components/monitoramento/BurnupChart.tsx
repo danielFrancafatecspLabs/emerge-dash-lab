@@ -23,7 +23,7 @@ export default function BurnupChart({ data }: Props) {
   const totalRealizado = data.realizado[data.realizado.length - 1]?.valor ?? 0
 
   return (
-    <div className="flex flex-col h-full min-h-0 gap-0 overflow-hidden">
+    <div className="flex flex-col h-full gap-0">
       {/* Header com total */}
       <div className="flex items-center justify-between flex-shrink-0">
         <span className="text-[11px] text-gray-500">
@@ -34,7 +34,7 @@ export default function BurnupChart({ data }: Props) {
       {/* Gráfico — ocupa todo espaço disponível */}
       <div className="flex-1 min-h-0">
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={chartData} margin={{ top: 4, right: 8, left: -8, bottom: 0 }}>
+          <BarChart data={chartData} margin={{ top: 16, right: 8, left: -8, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" vertical={false} />
             <XAxis
               dataKey="label"
@@ -42,16 +42,12 @@ export default function BurnupChart({ data }: Props) {
               axisLine={false}
               tickLine={false}
               interval="preserveStartEnd"
-              height={24}
             />
             <YAxis
               tick={{ fontSize: 10, fill: '#9CA3AF' }}
               axisLine={false}
               tickLine={false}
               width={28}
-              domain={[0, 'dataMax']}
-              allowDecimals={false}
-              tickCount={5}
             />
             <Tooltip
               contentStyle={{
@@ -68,8 +64,7 @@ export default function BurnupChart({ data }: Props) {
               dataKey="Acumulado"
               fill="#CC0000"
               radius={[3, 3, 0, 0]}
-              barSize={22}
-              maxBarSize={28}
+              barSize={24}
               label={{
                 position: 'top',
                 fontSize: 10,

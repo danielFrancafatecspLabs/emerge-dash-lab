@@ -9,10 +9,34 @@
   },
   {
     "id": "local-2",
-    "username": "test_login",
-    "passwordHash": "b7f3d2c4a1e9f0d8:d98f9a3d3dd0a2aa277e223257706a91fcdbcdb106e348d0b36c8ca56afd6e10a0e72c7d88294b2aebe0c5077ba3b6e33d5c05a5190557e5c90965454ac6318b",
+    "username": "marco_asterito",
+    "passwordHash": "3cc8ec237bb8f145abd60670fd3173c3:14afa870728b4fb99c243a66d1a18c3021aac2ae3940d56f1639b184b06e4afbfb6eaa4b3fa144819c314bbbe15b6044ee792e8d1e428ba22baf41d5b0ff8479",
     "role": "admin",
-    "createdAt": "2026-09-11T00:00:00.000Z",
+    "createdAt": "2026-09-10T16:55:00.000Z",
+    "active": true
+  },
+  {
+    "id": "local-3",
+    "username": "alexandra.ferreira@claro.com.br",
+    "passwordHash": "57da5726881f64a34845e81da48817ed:97ae927f7b1a6b75ef89b5cf5590f8252c8200e3b7a94beb5befc4cb763d223b194f8699b04e7cbcaa40ff9c9350707c687aa850c2a85cdc1800ec2a5fe702d1",
+    "role": "admin",
+    "createdAt": "2026-09-18T00:00:00.000Z",
+    "active": true
+  },
+  {
+    "id": "local-dev",
+    "username": "teste@beonlab.com.br",
+    "passwordHash": "4e13c3656abefbf3c64ac9da31d17068:46cb673216d747dafe627c092471009df10dee86604d5f8453237a68d1b5e5158f3347d850b0960e364b7a809a7c39554827dedbb1e566bc65a152ddaf01726c",
+    "role": "admin",
+    "createdAt": "2026-09-18T00:00:00.000Z",
+    "active": true
+  },
+  {
+    "id": "local-admin",
+    "username": "admin",
+    "passwordHash": "e666a2f05d6f720e045ff29175f863ec:b3b581b8482350615bf13f82b18cbc82d8fb8bb18ca6bc0d80fc4140e80c8c798d868044e375a32b5514c5d7cb34839872ad84e1e2d603402266b7a47925ead9",
+    "role": "admin",
+    "createdAt": "2026-09-18T00:00:00.000Z",
     "active": true
   }
 ]

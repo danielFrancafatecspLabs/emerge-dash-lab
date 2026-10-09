@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { verifyAuthSession } from '@/lib/auth-session'
 
-const PUBLIC_PATHS = ['/login', '/bem-vindo', '/api/auth']
+const PUBLIC_PATHS = ['/login', '/bem-vindo', '/api/auth', '/api/clear-cache']
 const BASE = '/jira'
 
 export async function middleware(request: NextRequest) {
@@ -22,7 +22,7 @@ export async function middleware(request: NextRequest) {
   const session = await verifyAuthSession(request.cookies.get('auth_session')?.value, secret)
   if (session) {
     // Proteger rotas que só admin pode acessar
-    const ADMIN_ONLY = ['/admin/users', '/api/admin', '/beneficios', '/pesquisas', '/api/pesquisas', '/report/mbr', '/weekly', '/api/weekly']
+    const ADMIN_ONLY = ['/admin/users', '/api/admin', '/beneficios', '/pesquisas', '/api/pesquisas', '/weekly', '/api/weekly']
     const isAdminOnly = ADMIN_ONLY.some(p => stripped.startsWith(p))
     if (isAdminOnly) {
       if (session?.role !== 'admin') {
