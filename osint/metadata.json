@@ -1,0 +1,6 @@
+{
+  "name": "Aegis Signals: Strategic OSINT Intelligence Dashboard",
+  "description": "Strategic OSINT intelligence dashboard for monitoring and plotting geospatial signals, regulatory developments, market expansions, and satellite infrastructure.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
