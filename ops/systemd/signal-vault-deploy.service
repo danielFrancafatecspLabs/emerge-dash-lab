@@ -1,0 +1,13 @@
+[Unit]
+Description=Update the signal-vault vault snapshot
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=azureuser
+Group=azureuser
+ExecStart=/usr/local/bin/signal-vault-deploy
+
+[Install]
+WantedBy=multi-user.target
