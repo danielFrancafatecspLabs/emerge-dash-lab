@@ -4,6 +4,9 @@
     "username": "local_admin",
     "passwordHash": "1e64c514abc5ba5994985828725191cf:136ed19b773926dfc98e9d222008fcbce73ba8a6e74ef551a948da3cd85a0f14ebe634ee33693356c6d7abe9e78782c7a5bffa0f28ba3f8760a087e6544dc676",
     "role": "admin",
+    "nome": "Admin Local",
+    "laboratorio": "BeOn Lab",
+    "avatar": "",
     "createdAt": "2026-09-08T14:53:55.357Z",
     "active": true
   },
@@ -12,6 +15,9 @@
     "username": "marco_asterito",
     "passwordHash": "3cc8ec237bb8f145abd60670fd3173c3:14afa870728b4fb99c243a66d1a18c3021aac2ae3940d56f1639b184b06e4afbfb6eaa4b3fa144819c314bbbe15b6044ee792e8d1e428ba22baf41d5b0ff8479",
     "role": "admin",
+    "nome": "Marco Asterito",
+    "laboratorio": "BeOn Lab",
+    "avatar": "",
     "createdAt": "2026-09-10T16:55:00.000Z",
     "active": true
   },
@@ -20,6 +26,9 @@
     "username": "alexandra.ferreira@claro.com.br",
     "passwordHash": "57da5726881f64a34845e81da48817ed:97ae927f7b1a6b75ef89b5cf5590f8252c8200e3b7a94beb5befc4cb763d223b194f8699b04e7cbcaa40ff9c9350707c687aa850c2a85cdc1800ec2a5fe702d1",
     "role": "admin",
+    "nome": "Alexandra Ferreira",
+    "laboratorio": "BeOn Lab",
+    "avatar": "",
     "createdAt": "2026-09-18T00:00:00.000Z",
     "active": true
   },
@@ -28,6 +37,9 @@
     "username": "teste@beonlab.com.br",
     "passwordHash": "4e13c3656abefbf3c64ac9da31d17068:46cb673216d747dafe627c092471009df10dee86604d5f8453237a68d1b5e5158f3347d850b0960e364b7a809a7c39554827dedbb1e566bc65a152ddaf01726c",
     "role": "admin",
+    "nome": "Teste BeOn",
+    "laboratorio": "BeOn Lab",
+    "avatar": "",
     "createdAt": "2026-09-18T00:00:00.000Z",
     "active": true
   },
@@ -36,7 +48,21 @@
     "username": "admin",
     "passwordHash": "e666a2f05d6f720e045ff29175f863ec:b3b581b8482350615bf13f82b18cbc82d8fb8bb18ca6bc0d80fc4140e80c8c798d868044e375a32b5514c5d7cb34839872ad84e1e2d603402266b7a47925ead9",
     "role": "admin",
+    "nome": "Administrador",
+    "laboratorio": "BeOn Lab",
+    "avatar": "",
     "createdAt": "2026-09-18T00:00:00.000Z",
+    "active": true
+  },
+  {
+    "id": "local-6",
+    "username": "daniel",
+    "passwordHash": "8b93d00e33cf24e42efe7a74eec2dbbb:73cd5b9a16ae48ecfcfb9f01faaf080634b9d144f320d2496dd9d57f98dabb03f7890800c920ba7df8f54dfcf3bffee19dc0333c1053610b68d33e87539e28f4",
+    "role": "admin",
+    "nome": "Daniel França",
+    "laboratorio": "BeOn Lab",
+    "avatar": "",
+    "createdAt": "2026-10-16T21:46:24.448Z",
     "active": true
   }
 ]

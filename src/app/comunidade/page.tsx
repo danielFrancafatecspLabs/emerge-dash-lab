@@ -4,6 +4,9 @@ import { useState, useMemo, useCallback } from 'react'
 import Link from 'next/link'
 import Sidebar from '@/components/layout/Sidebar'
 import LogoutButton from '@/components/layout/LogoutButton'
+import StoriesBar from '@/components/comunidade/StoriesBar'
+import CommunityFeed from '@/components/comunidade/CommunityFeed'
+import CommunityChat from '@/components/comunidade/CommunityChat'
 import {
   HeartHandshake, Search, Plus, Upload, BookOpen, FlaskConical, FileText,
   Lightbulb, ArrowRight, Clock, Users, TrendingUp, Star, Eye, Heart,
@@ -226,6 +229,11 @@ export default function ComunidadePage() {
         <div className="flex-1 overflow-y-auto">
           <div className="px-4 sm:px-6 lg:px-8 py-8 space-y-14">
 
+            {/* ========== STORIES BAR (estilo Instagram) ========== */}
+            <section>
+              <StoriesBar />
+            </section>
+
             {/* ========== SEÇÃO 1: DESTAQUES / HERO ========== */}
             <section>
               {/* Hero Banner compacto */}
@@ -430,6 +438,22 @@ export default function ComunidadePage() {
                   </Link>
                 ))}
               </div>
+            </section>
+
+            {/* ========== SEÇÃO 2.5: FEED DA COMUNIDADE ========== */}
+            <section>
+              <div className="flex items-center gap-3 mb-5">
+                <span className="text-xs font-semibold text-red-600 uppercase tracking-widest bg-red-50 px-3 py-1 rounded-full">Feed da Comunidade</span>
+              </div>
+              <CommunityFeed />
+            </section>
+
+            {/* ========== SEÇÃO 2.6: CHAT DA COMUNIDADE ========== */}
+            <section>
+              <div className="flex items-center gap-3 mb-5">
+                <span className="text-xs font-semibold text-red-600 uppercase tracking-widest bg-red-50 px-3 py-1 rounded-full">Chat ao Vivo</span>
+              </div>
+              <CommunityChat />
             </section>
 
             {/* ========== SEÇÃO 3: JORNADA DE EXPERIMENTAÇÃO ========== */}
