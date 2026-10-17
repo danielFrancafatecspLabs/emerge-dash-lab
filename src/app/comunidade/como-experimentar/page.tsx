@@ -1012,8 +1012,8 @@ export default function ComoExperimentarPage() {
   const [completedModules, setCompletedModules] = useState<Set<number>>(new Set())
   const contentRef = useRef<HTMLDivElement>(null)
 
-  const module = MODULES[activeModule]
-  const ModuleIcon = module.icon
+  const modulo = MODULES[activeModule]
+  const ModuleIcon = modulo.icon
 
   const progress = ((completedModules.size) / MODULES.length) * 100
 
@@ -1122,11 +1122,11 @@ export default function ComoExperimentarPage() {
               <div className="mb-6 sm:mb-8">
                 <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-2">
                   <span className="text-[11px] sm:text-xs font-bold text-red-700 bg-red-50 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full">
-                    MÓDULO {module.num} DE {MODULES.length}
+                    MÓDULO {modulo.num} DE {MODULES.length}
                   </span>
                   <span className="text-[11px] sm:text-xs text-slate-400 flex items-center gap-1">
                     <Clock className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-                    {module.duration}
+                    {modulo.duration}
                   </span>
                 </div>
                 <div className="flex items-start gap-3 sm:gap-4">
@@ -1135,10 +1135,10 @@ export default function ComoExperimentarPage() {
                   </div>
                   <div className="min-w-0">
                     <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-slate-800 mb-0.5 sm:mb-1">
-                      {module.title}
+                      {modulo.title}
                     </h1>
                     <p className="text-slate-500 text-xs sm:text-sm lg:text-base">
-                      {module.subtitle}
+                      {modulo.subtitle}
                     </p>
                   </div>
                 </div>
@@ -1146,7 +1146,7 @@ export default function ComoExperimentarPage() {
 
               {/* Module Content */}
               <div className="space-y-4 sm:space-y-5">
-                {module.content.map((block, i) => (
+                {modulo.content.map((block, i) => (
                   <ContentBlockView key={i} block={block} />
                 ))}
               </div>

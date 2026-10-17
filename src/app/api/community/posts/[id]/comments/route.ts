@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { getSessionUser } from '@/lib/auth/request'
 import { randomUUID } from 'crypto'
-import { loadPosts, savePosts } from '@/lib/posts-store'
-import { POST_LIMITS, type CommunityComment } from '@/lib/community'
-import { badRequest, getMember, unauthorized } from '@/lib/community-server'
+import { loadPosts, savePosts } from '@/lib/community/posts-store'
+import { POST_LIMITS, type CommunityComment } from '@/lib/community/model'
+import { badRequest, unauthorized } from '@/lib/community/server'
 
 export const dynamic = 'force-dynamic'
 
 export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
-  const member = await getMember(request)
+  const member = await getSessionUser(request)
   if (!member) return unauthorized()
 
   let content = ''

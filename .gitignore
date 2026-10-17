@@ -1,53 +1,42 @@
-logs
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-lerna-debug.log*
-
-node_modules
-dist
-dist-ssr
-*.local
-
-# Saída gerada por scripts/weekly-export (PNGs, PPTX, PDF)
-/weekly-export/
-
-# Editor directories and files
-.vscode/*
-!.vscode/extensions.json
-.idea
-.DS_Store
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
-
-# Environment files (do not commit secrets)
-.env
-.env.*
-frontend/.env
-backend/.env
-**/.env.local
-**/.env.development.local
-**/.env.production.local
-.next/
+# Dependências e build
+node_modules/
 .next/
 out/
 build/
-/.env
-/.env.*
-!/.env.example
+dist/
+next-env.d.ts.bak
+*.tsbuildinfo
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# Variáveis de ambiente (nunca versionar segredos)
+.env
+.env.*
+!.env.example
+
+# Caches gerados em tempo de execução
 .portfolio-cache.json
-.DS_Store
+.segmento-cache-v2.json
+
+# Dados gravados pela aplicação em tempo de execução (Comunidade)
+data/posts.json
+data/community-profiles.json
+data/community-messages.json
+data/chat-presence.json
+data/stories.json
+
+# Saídas de scripts
+/weekly-export/
+public/comunidade/
+.tmp/
 .worktrees/
 
-# Test files and large assets
-test_azure.js
-test_azure2.js
-public/comunidade/
-
-# Temporary debug files
-.tmp/
+# Editores e sistema
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+*.sw?

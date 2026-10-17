@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getMember, memberDirectory, unauthorized } from '@/lib/community-server'
+import { getSessionUser } from '@/lib/auth/request'
+import { memberDirectory, unauthorized } from '@/lib/community/server'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest) {
-  if (!await getMember(request)) return unauthorized()
+  if (!await getSessionUser(request)) return unauthorized()
   return NextResponse.json(memberDirectory())
 }

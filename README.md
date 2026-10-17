@@ -1,117 +1,105 @@
-# Welcome to your Lovable project
+# beOn Labs — Dashboard Executivo e Comunidade
 
-## Project info
+Aplicação Next.js do beOn Labs (Claro Brasil) com duas experiências:
 
-**URL**: https://lovable.dev/projects/eabf079f-9485-4c8b-8bae-84913578dde4
+- **Painel executivo** — portfólio de inovação lido do Jira (projeto `GL`): estratégia, operacional, portfólio,
+  benefícios, priorização, OKRs, monitoramento, Report/MBR, Weekly e Semanal.
+- **Comunidade** — rede de tecnologias emergentes e experimentação: feed, Cientista (chat inteligente),
+  Pesquisas, Future Thinking, Trilha de Experimentação, pessoas e mensagens. Detalhes em [docs/comunidade.md](docs/comunidade.md).
 
-## How can I edit this code?
+O modelo de domínio (Iniciativa × Experimento, boards, campos customizados) está em [CLAUDE.md](CLAUDE.md).
 
-There are several ways of editing your application.
+## Stack
 
-**Use Lovable**
+Next.js 14 (App Router, `basePath: /jira`) · React 18 · TypeScript · Tailwind CSS · Recharts · Vitest
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/eabf079f-9485-4c8b-8bae-84913578dde4) and start prompting.
+## Como rodar
 
-Changes made via Lovable will be committed automatically to this repo.
+Requisito: Node.js 20+.
 
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+```bash
+npm install
+cp .env.example .env.local        # preencha AUTH_SECRET, Jira e as chaves de IA
+npm run dev                       # http://localhost:3003/jira
 ```
 
-**Edit a file directly in GitHub**
+Para criar ou redefinir um administrador em `data/users.json`:
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+```bash
+ADMIN_PASSWORD='uma-senha-forte-de-12+' node scripts/create_admin.js nome.sobrenome "Nome Sobrenome"
+```
 
-**Use GitHub Codespaces**
+| Comando | O que faz |
+|---|---|
+| `npm run dev` | Servidor de desenvolvimento na porta 3003 |
+| `npm test` | Testes (Vitest) |
+| `npm run lint` | ESLint (`next/core-web-vitals`) |
+| `npx tsc --noEmit` | Checagem de tipos (o build também falha com erro de tipo) |
+| `npm run build && npm start` | Build e servidor de produção |
+| `npm run weekly:export` | Gera o PPTX da Weekly a partir das telas (ver `scripts/weekly-export`) |
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+Todas as variáveis de ambiente estão descritas em [.env.example](.env.example).
 
-## Estrutura do Projeto
+## Estrutura
 
-O projeto está organizado em duas principais camadas:
+```
+src/
+├── app/                    Rotas (páginas e API). Cada área do painel tem sua pasta.
+│   ├── api/                Rotas de API (Jira, IA, admin, comunidade…)
+│   ├── comunidade/         Experiência da Comunidade (layout próprio)
+│   └── admin/              Usuários e stories
+├── components/             Componentes por área (dashboard, report, weekly, comunidade…)
+├── lib/
+│   ├── auth/               Sessão assinada, usuários, política de acesso, limite de tentativas
+│   ├── community/          Modelo e regras da Comunidade, stores e integração com o Cientista
+│   ├── storage/            Persistência em JSON (escrita atômica)
+│   ├── validation/         Validação de entrada (URLs)
+│   ├── jira.ts, mappers.ts Cliente do Jira e montagem dos dados do painel
+│   └── …                   Regras do painel (weekly, semanal, governança, benefícios, report, IA)
+└── middleware.ts           Aplica a política de acesso a todas as requisições
+data/                       Usuários e validações de benefício; arquivos da Comunidade (não versionados)
+docs/                       Documentação funcional e referências
+ops/                        Implantação do acervo de pesquisas (systemd)
+scripts/                    Exportação da Weekly e utilitários
+```
 
-- **frontend/**: Aplicação React, Vite, TypeScript, Tailwind, shadcn-ui
-- **backend/**: API Node.js/Express, MongoDB, com camadas Controller, Service, Model, Route
+## Acesso e perfis
 
-## Tecnologias Utilizadas
+A sessão é um cookie `HttpOnly` assinado com HMAC (`AUTH_SECRET`), válido por 7 dias. Toda a política de acesso
+fica em [`src/lib/auth/access-policy.ts`](src/lib/auth/access-policy.ts) e é aplicada pelo middleware:
 
-- **Frontend**: Vite, TypeScript, React, shadcn-ui, Tailwind CSS
-- **Backend**: Node.js, Express, MongoDB (Mongoose)
+| Perfil | O que acessa |
+|---|---|
+| `admin` | Tudo, incluindo Admin, Benefícios, Pesquisas, Weekly, Semanal e o Cientista do painel |
+| `executivo` | Painéis executivos, insights de IA e atualização do cache |
+| `financeiro` | Painéis executivos; edita validações de benefício |
+| `viewer` | Painéis executivos sem áreas restritas |
+| `community` | Somente a Comunidade (e leitura do acervo de pesquisas) |
 
-## Como rodar o projeto localmente
+As rotas de API conferem também o cadastro: um usuário desativado perde o acesso na hora, mesmo com cookie válido.
 
-### Backend
+## Segurança
 
-1. Instale as dependências (se necessário):
-   ```sh
-   cd backend
-   npm install
-   ```
-2. Configure o arquivo `.env` com as variáveis:
-   ```env
-   MONGODB_URI=<sua_string_de_conexao>
-   JWT_SECRET=<sua_chave_secreta>
-   ```
-3. Inicie o servidor:
-   ```sh
-   npm start
-   # ou
-   node server.js
-   ```
+- Senhas com PBKDF2-SHA512 (100 mil iterações) e comparação em tempo constante.
+- Login limitado a 8 tentativas por IP e usuário a cada 15 minutos.
+- Cookies `HttpOnly`, `SameSite=Lax` e `Secure` em produção.
+- Cabeçalhos de segurança em todas as respostas (CSP `frame-ancestors`, `X-Frame-Options`, `nosniff`, HSTS…).
+- Senhas definidas no Admin precisam de 10+ caracteres e não podem ser triviais; nenhum admin consegue
+  desativar ou excluir o próprio acesso.
+- Links e imagens enviados por pessoas usuárias só aceitam `http(s)` ou caminhos internos.
+- O Cientista (cientista-lab) não tem login próprio: a Comunidade o acessa por um proxy que exige sessão
+  e restringe cada conversa à pessoa que a criou.
 
-### Frontend
+Pontos de atenção para quem implanta:
 
-1. Instale as dependências:
-   ```sh
-   cd frontend
-   npm install
-   ```
-2. Inicie o servidor de desenvolvimento:
-   ```sh
-   npm run dev
-   ```
+- Use um `AUTH_SECRET` longo e aleatório e sirva a aplicação só por HTTPS.
+- `src/lib/auth/users.ts` traz usuários de reserva (usados quando `data/users.json` não existe, como no build da
+  Vercel). Prefira manter os usuários no arquivo de dados e troque as senhas que já foram versionadas.
+- Os stores em `data/` gravam em disco. Em ambiente com sistema de arquivos somente leitura (serverless), as
+  gravações não persistem; use um volume persistente ou migre os stores para um banco.
 
-## Deploy
+## Documentação
 
-Consulte Lovable ou utilize seu serviço de hospedagem preferido para frontend e backend.
-
-## Observações
-
-- O backend segue Clean Code e Design Patterns modernos (Controller, Service, Model, Route).
-- O frontend está totalmente separado e pode consumir a API do backend.
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/eabf079f-9485-4c8b-8bae-84913578dde4) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+- [CLAUDE.md](CLAUDE.md) — domínio do Jira: Iniciativas, Experimentos, boards e campos
+- [docs/comunidade.md](docs/comunidade.md) — Comunidade, Cientista e dados da Comunidade
+- [ops/README-research-vault.md](ops/README-research-vault.md) — sincronização do acervo de pesquisas

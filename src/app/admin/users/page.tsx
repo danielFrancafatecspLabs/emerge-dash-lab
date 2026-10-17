@@ -3,9 +3,9 @@
 import { useState, useEffect, useCallback } from 'react'
 import Sidebar from '@/components/layout/Sidebar'
 import LogoutButton from '@/components/layout/LogoutButton'
-import { UserPublic } from '@/lib/users'
+import { UserPublic } from '@/lib/auth/users'
 import { Users, Plus, Pencil, Trash2, X, Check, Shield, Eye, Wallet, HeartHandshake } from 'lucide-react'
-import type { AuthSessionRole } from '@/lib/auth-session'
+import type { AuthSessionRole } from '@/lib/auth/session'
 
 type FormState = { username: string; password: string; role: AuthSessionRole; nome: string; laboratorio: string }
 const EMPTY_FORM: FormState = { username: '', password: '', role: 'viewer', nome: '', laboratorio: '' }

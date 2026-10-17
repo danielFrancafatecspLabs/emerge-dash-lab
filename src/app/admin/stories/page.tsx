@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import Sidebar from '@/components/layout/Sidebar'
 import LogoutButton from '@/components/layout/LogoutButton'
-import { Story, STORY_CATEGORIA_LABEL, type StoryCategoria } from '@/lib/stories'
+import { Story, STORY_CATEGORIA_LABEL, type StoryCategoria } from '@/lib/community/stories'
 import { Image, Plus, Pencil, Trash2, X, Check, Eye, EyeOff, GripVertical } from 'lucide-react'
 
 type FormState = { title: string; imageUrl: string; linkUrl: string; order: number; categoria: StoryCategoria; texto: string }

@@ -3,7 +3,7 @@ import { mkdtempSync, rmSync, writeFileSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
 import { NextRequest } from 'next/server'
-import { createAuthSession } from '@/lib/auth-session'
+import { createAuthSession } from '@/lib/auth/session'
 import { GET, POST } from './cientista/[...path]/route'
 
 let dir = ''

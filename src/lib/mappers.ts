@@ -849,7 +849,7 @@ function calculateLeadTimeJornada(
       const sorted = [...changelog].sort((a, b) => new Date(a.created).getTime() - new Date(b.created).getTime())
       for (const entry of sorted) {
         for (const item of entry.items) {
-          if (item.field === 'status' && CONCLUIDO_IDS.has(item.toString)) {
+          if (item.field === 'status' && item.toString && CONCLUIDO_IDS.has(item.toString)) {
             fimCiclo = new Date(entry.created).getTime()
             break
           }

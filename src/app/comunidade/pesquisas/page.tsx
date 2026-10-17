@@ -6,8 +6,8 @@ import { ArrowUpRight, Bookmark, BookOpen, FileText, FlaskConical, Library, Sear
 import {
   MATERIAL_STATUS_LABEL, MATERIAL_TIPO_LABEL, matchesSearch,
   type CommunityPost, type MaterialStatus, type MaterialTipo,
-} from '@/lib/community'
-import { COMMUNITY_TOPICS, topicLabel } from '@/lib/community-topics'
+} from '@/lib/community/model'
+import { COMMUNITY_TOPICS, topicLabel } from '@/lib/community/topics'
 import type { ResearchDocument, ResearchDocumentContent, ResearchVault } from '@/components/research/types'
 import { ResearchDocumentPanel } from '@/components/research/ResearchDocumentPanel'
 import { api, errorMessage } from '@/components/comunidade/api'

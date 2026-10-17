@@ -294,7 +294,7 @@ export interface MonitoramentoData {
   roi: number | null             // beneficio / custo (se custo > 0)
 
   // Gráficos
-  burnup: SerieMensal
+  burnup: SerieMensalComEpics
   beneficioPorArea: BeneficioPorArea[]
   funil: FunilEtapa[]
   conclusoesMensais: ConclusaoMensal[]

@@ -226,7 +226,7 @@ export default function GovernancaSlide({
   showBloqueioBadge?: boolean
   emptyState?: string
   onMaximize?: () => void
-  beneficioPotencial?: string
+  beneficioPotencial?: number
   experimentosConcluidos?: number
   experimentosCancelados?: number
   totalEpicsGeral?: number

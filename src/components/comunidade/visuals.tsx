@@ -6,8 +6,8 @@ import {
   Atom, BrainCircuit, Bot, Eye, FlaskConical, HelpCircle, Leaf, Lightbulb, Link2, MessagesSquare,
   MonitorSmartphone, Network, Radar, ShieldCheck, Sparkles, BarChart3, BookOpen, type LucideIcon,
 } from 'lucide-react'
-import { POST_KIND_LABEL, type PostKind } from '@/lib/community'
-import { topicLabel } from '@/lib/community-topics'
+import { POST_KIND_LABEL, type PostKind } from '@/lib/community/model'
+import { topicLabel } from '@/lib/community/topics'
 import { cx } from './ui'
 
 export const KIND_STYLE: Record<PostKind, { icon: LucideIcon; chip: string; accent: string }> = {

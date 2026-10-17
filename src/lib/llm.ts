@@ -13,8 +13,9 @@ export const DEPLOYMENT =
   process.env.AZURE_OPENAI_DEPLOYMENT_GPT4O_MINI ?? 'gpt-4o-mini'
 
 /**
- * Cliente para proxy LiteLLM com suporte a certificado self-signed.
- * Variáveis de ambiente: LLM_API_KEY, LLM_API_BASE, LLM_MODEL.
+ * Cliente para o proxy LiteLLM. Variáveis de ambiente: LLM_API_KEY, LLM_API_BASE, LLM_MODEL.
+ * O certificado TLS é verificado. Para um proxy interno com certificado autoassinado,
+ * defina LLM_TLS_INSECURE=1 (aceita qualquer certificado: use só em rede confiável).
  */
 export function getLiteLLMClient(): OpenAI {
   const apiKey   = process.env.LLM_API_KEY
@@ -25,7 +26,7 @@ export function getLiteLLMClient(): OpenAI {
   return new OpenAI({
     baseURL: endpoint,
     apiKey,
-    httpAgent: isHttps
+    httpAgent: isHttps && process.env.LLM_TLS_INSECURE === '1'
       ? new https.Agent({ rejectUnauthorized: false })
       : undefined,
   })

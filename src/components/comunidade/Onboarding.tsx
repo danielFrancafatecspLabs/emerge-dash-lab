@@ -6,7 +6,7 @@
 import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
 import { ArrowRight, FlaskConical, MessagesSquare, Route, Sparkles } from 'lucide-react'
-import { COMMUNITY_TOPICS } from '@/lib/community-topics'
+import { COMMUNITY_TOPICS } from '@/lib/community/topics'
 import { useCommunity } from './CommunityProvider'
 import { primeiroNome } from './format'
 import { Avatar, Button, Chip, Dialog, cx, focusRing } from './ui'

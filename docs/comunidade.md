@@ -26,7 +26,7 @@ e continua acessível para admins (com atalho de volta ao painel executivo).
 
 ## Dados
 
-Tudo o que é publicado é um `CommunityPost` (`src/lib/community.ts`), diferenciado por `kind`:
+Tudo o que é publicado é um `CommunityPost` (`src/lib/community/model.ts`), diferenciado por `kind`:
 `discussao`, `pergunta`, `pesquisa`, `experimento` e `sinal`. Arquivos em `data/` (caminho configurável por variável de ambiente):
 
 | Arquivo | Variável | Conteúdo |

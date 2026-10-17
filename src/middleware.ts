@@ -1,69 +1,35 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-import { verifyAuthSession } from '@/lib/auth-session'
+import { verifyAuthSession } from '@/lib/auth/session'
+import { decideAccess } from '@/lib/auth/access-policy'
 
-const PUBLIC_PATHS = ['/login', '/bem-vindo', '/api/auth', '/api/clear-cache']
+// Aplica a política de acesso (src/lib/auth/access-policy.ts) a toda requisição.
 const BASE = '/jira'
-const COMMUNITY_PATHS = ['/comunidade', '/api/community', '/api/stories', '/api/auth']
-// Imagens da pasta public/ (ex.: logo) usadas pela experiência da Comunidade
-const PUBLIC_IMAGE = /^\/[\w.-]+\.(png|jpe?g|svg|webp|gif)$/i
-
-function matchesPath(pathname: string, prefix: string) {
-  return pathname === prefix || pathname.startsWith(`${prefix}/`)
-}
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
-  const stripped = pathname.startsWith(BASE) ? pathname.slice(BASE.length) : pathname
+  const path = pathname.startsWith(BASE) ? pathname.slice(BASE.length) || '/' : pathname
+  if (path.startsWith('/_next/') || path === '/favicon.ico') return NextResponse.next()
 
-  // Ignorar assets estáticos do Next.js
-  if (stripped.startsWith('/_next/') || stripped === '/favicon.ico') {
-    return NextResponse.next()
+  const session = await verifyAuthSession(request.cookies.get('auth_session')?.value, process.env.AUTH_SECRET)
+  const decision = decideAccess(path, request.method, session)
+  const isApi = path.startsWith('/api/')
+
+  switch (decision.type) {
+    case 'allow':
+      return NextResponse.next()
+    case 'unauthenticated':
+      return isApi
+        ? NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+        : NextResponse.redirect(new URL(`${BASE}/login`, request.url))
+    case 'forbidden':
+      return isApi
+        ? NextResponse.json({ error: decision.message }, { status: 403 })
+        : NextResponse.redirect(new URL(`${BASE}${decision.redirectTo}`, request.url))
   }
-
-  // Rotas públicas (login + logout)
-  const isPublic = PUBLIC_PATHS.some(p => stripped.startsWith(p))
-  if (isPublic) return NextResponse.next()
-
-  const secret = process.env.AUTH_SECRET
-  const session = await verifyAuthSession(request.cookies.get('auth_session')?.value, secret)
-  if (session) {
-    // A role community navega só pela experiência da Comunidade (e lê o acervo de pesquisas)
-    if (session.role === 'community') {
-      const allowed = COMMUNITY_PATHS.some(p => matchesPath(stripped, p))
-        || (matchesPath(stripped, '/api/pesquisas') && request.method === 'GET')
-        || PUBLIC_IMAGE.test(stripped)
-      if (allowed) return NextResponse.next()
-      if (stripped.startsWith('/api/')) {
-        return NextResponse.json({ error: 'Acesso restrito à Comunidade' }, { status: 403 })
-      }
-      return NextResponse.redirect(new URL(`${BASE}/comunidade`, request.url))
-    }
-
-    // Proteger rotas que só admin pode acessar
-    const ADMIN_ONLY = ['/admin/users', '/api/admin', '/beneficios', '/pesquisas', '/api/pesquisas', '/weekly', '/api/weekly', '/semanal', '/api/semanal']
-    const isAdminOnly = ADMIN_ONLY.some(p => stripped.startsWith(p))
-    if (isAdminOnly) {
-      if (session?.role !== 'admin') {
-        if (stripped.startsWith('/api/')) {
-          return NextResponse.json({ error: 'Acesso restrito a admin' }, { status: 403 })
-        }
-        return NextResponse.redirect(new URL(`${BASE}/estrategia`, request.url))
-      }
-    }
-    return NextResponse.next()
-  }
-
-  // Para rotas de API, retorna 401 JSON em vez de redirecionar para HTML
-  if (stripped.startsWith('/api/')) {
-    return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
-  }
-
-  return NextResponse.redirect(new URL(`${BASE}/login`, request.url))
 }
 
 export const config = {
   // Com basePath=/jira, o matcher é relativo ao basePath.
-  // '/(.*)'  compila para /jira/(.*) — cobre /jira, /jira/, /jira/report, etc.
   matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
 }

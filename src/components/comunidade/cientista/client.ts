@@ -1,5 +1,5 @@
 // Cliente do Cientista no navegador: tudo passa pelo proxy autenticado da Comunidade.
-import { lerBlocosSse, type EstadoCientista, type EventoCientista, type Kit, type Papeis, type PapelConversa } from '@/lib/cientista'
+import { lerBlocosSse, type EstadoCientista, type EventoCientista, type Kit, type Papeis, type PapelConversa } from '@/lib/community/cientista'
 import { api, BASE_PATH } from '../api'
 
 const RAIZ = '/community/cientista'

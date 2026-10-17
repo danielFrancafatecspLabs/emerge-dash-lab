@@ -245,9 +245,6 @@ export default async function ReportPage() {
   const emAndamentoCount = data.allEpics.filter(e =>
     e.status?.id === '3' || e.status?.name === 'Em andamento'
   ).length
-  const emValidacaoCount = data.allEpics.filter(e =>
-    e.status?.id === '10204' || e.status?.name === 'EM VALIDAÇÃO' || e.status?.name === 'Em validação'
-  ).length
   const concluidosCount = data.allEpics.filter(e =>
     e.status?.id === '10019' && !EXCLUIR_CONCLUIDOS.has(e.nome)
   ).length
@@ -337,8 +334,6 @@ export default async function ReportPage() {
   const qtdExperimentosAtivos = data.allEpics.filter(
     e => e.status.name !== 'Concluído' && e.status.name !== 'Cancelado'
   ).length
-  const totalExperimentosIniciados = emAndamentoCount + emValidacaoCount + concluidosCount
-  const totalExperimentosConcluidos = concluidosCount
   const experimentosConcluidos = data.allEpics.filter(e =>
     e.status?.id === '10019' || e.status?.name === 'Concluído' || e.status?.name === 'FINALIZADO'
   ).length
@@ -407,13 +402,6 @@ export default async function ReportPage() {
           beneficioPotencialEstimado={beneficioPotencialEstimado}
           experimentosConcluidos={experimentosConcluidos}
           experimentosCancelados={experimentosCancelados}
-          totalExperimentosIniciados={totalExperimentosIniciados}
-          totalExperimentosConcluidos={totalExperimentosConcluidos}
-          funilEmAndamento={emAndamentoCount}
-          funilEmValidacao={emValidacaoCount}
-          funilAguardandoPiloto={aguardandoPilotoCount}
-          funilPiloto={pilotoCount}
-          funilEmEscala={emEscalaCount}
         />
       </main>
     </div>

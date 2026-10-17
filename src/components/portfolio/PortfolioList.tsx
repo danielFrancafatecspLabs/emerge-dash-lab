@@ -385,7 +385,7 @@ export default function PortfolioList({ data }: Props) {
                   <span className="text-[9px] text-gray-400 mr-0.5">Ativos:</span>
                   {search && (
                     <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-600 text-[9px]">
-                      Busca: "{search}"
+                      Busca: “{search}”
                       <button onClick={() => setSearch('')} className="hover:text-red-600"><X size={8} /></button>
                     </span>
                   )}

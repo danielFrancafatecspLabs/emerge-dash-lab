@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useReducer, useRef } from 'react'
-import { CONVERSA_INICIAL, conversaReducer, type EventoCientista } from '@/lib/cientista'
+import { CONVERSA_INICIAL, conversaReducer, type EventoCientista } from '@/lib/community/cientista'
 import { errorMessage } from '../api'
 import { cientista } from './client'
 

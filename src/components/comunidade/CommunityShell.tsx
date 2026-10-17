@@ -10,7 +10,7 @@ import {
   Bell, BookOpen, Bookmark, ChevronLeft, FlaskConical, Home, LogOut, MessageCircle, MoreHorizontal, PenSquare, Route,
   Settings2, Telescope, UserRound, Users, type LucideIcon,
 } from 'lucide-react'
-import { topicLabel } from '@/lib/community-topics'
+import { topicLabel } from '@/lib/community/topics'
 import { useCommunity } from './CommunityProvider'
 import { Avatar, CountBadge, IconButton, cx, focusRing } from './ui'
 import { topicIcon } from './visuals'

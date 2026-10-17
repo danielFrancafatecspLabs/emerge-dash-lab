@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { loadPosts, savePosts } from '@/lib/posts-store'
-import { badRequest, getMember, unauthorized } from '@/lib/community-server'
+import { getSessionUser } from '@/lib/auth/request'
+import { loadPosts, savePosts } from '@/lib/community/posts-store'
+import { badRequest, unauthorized } from '@/lib/community/server'
 
 export async function POST(request: NextRequest) {
-  const member = await getMember(request)
+  const member = await getSessionUser(request)
   if (!member) return unauthorized()
 
   try {

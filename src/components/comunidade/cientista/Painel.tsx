@@ -5,7 +5,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { Download, FileCode2, FileText, Info, ShieldCheck } from 'lucide-react'
-import type { EstadoCientista, Kit } from '@/lib/cientista'
+import type { EstadoCientista, Kit } from '@/lib/community/cientista'
 import { cx, EmptyState, Skeleton } from '../ui'
 import { Badge } from './Cards'
 import { cientista } from './client'
