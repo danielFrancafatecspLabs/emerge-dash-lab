@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { loadStories, saveStories } from '@/lib/stories-store'
+import { parseStoryCategoria } from '@/lib/stories'
 import { verifyAuthSession } from '@/lib/auth-session'
 import { isAdmin } from '@/lib/users'
 
@@ -27,6 +28,8 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     if (body.linkUrl !== undefined) stories[idx].linkUrl = body.linkUrl
     if (body.active !== undefined) stories[idx].active = Boolean(body.active)
     if (body.order !== undefined) stories[idx].order = body.order
+    if (body.categoria !== undefined) stories[idx].categoria = parseStoryCategoria(body.categoria) ?? stories[idx].categoria
+    if (typeof body.texto === 'string') stories[idx].texto = body.texto.trim().slice(0, 500)
 
     saveStories(stories)
     return NextResponse.json(stories[idx])

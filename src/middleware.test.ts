@@ -53,3 +53,51 @@ describe('research API access', () => {
     expect(response.headers.get('x-middleware-next')).toBe('1')
   })
 })
+
+describe('community role access', () => {
+  beforeEach(() => {
+    process.env.AUTH_SECRET = 'test-secret'
+  })
+
+  afterEach(() => {
+    delete process.env.AUTH_SECRET
+  })
+
+  async function communityCookie() {
+    const session = await createAuthSession({ username: 'membro@example.com', role: 'community' }, 'test-secret')
+    return `auth_session=${session}`
+  }
+
+  function at(path: string, cookie: string, method = 'GET') {
+    return new NextRequest(`http://localhost/jira${path}`, { method, headers: { cookie } })
+  }
+
+  it('lets a community member open the community area and its APIs', async () => {
+    const cookie = await communityCookie()
+    for (const path of ['/comunidade', '/comunidade/trilha', '/api/community/posts', '/api/stories', '/api/auth/me', '/logobeonlabs.png']) {
+      const response = await middleware(at(path, cookie))
+      expect(response.headers.get('x-middleware-next'), path).toBe('1')
+    }
+  })
+
+  it('redirects a community member away from executive pages', async () => {
+    const response = await middleware(at('/estrategia', await communityCookie()))
+
+    expect(response.status).toBe(307)
+    expect(response.headers.get('location')).toBe('http://localhost/jira/comunidade')
+  })
+
+  it('does not treat lookalike prefixes as community routes', async () => {
+    const response = await middleware(at('/comunidade-admin', await communityCookie()))
+
+    expect(response.headers.get('location')).toBe('http://localhost/jira/comunidade')
+  })
+
+  it('returns 403 for non-community APIs and allows only reading the research vault', async () => {
+    const cookie = await communityCookie()
+
+    expect((await middleware(at('/api/admin/users', cookie))).status).toBe(403)
+    expect((await middleware(at('/api/pesquisas', cookie))).headers.get('x-middleware-next')).toBe('1')
+    expect((await middleware(at('/api/pesquisas', cookie, 'POST'))).status).toBe(403)
+  })
+})

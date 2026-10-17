@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { loadUsers, saveUsers, hashPassword, toPublic, isAdmin } from '@/lib/users'
-import { verifyAuthSession } from '@/lib/auth-session'
+import { AUTH_ROLES, verifyAuthSession } from '@/lib/auth-session'
 
 async function checkAdmin(request: NextRequest): Promise<boolean> {
   const session = await verifyAuthSession(
@@ -22,7 +22,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     if (idx === -1) return NextResponse.json({ error: 'Usuário não encontrado' }, { status: 404 })
 
     if (body.username !== undefined) users[idx].username = body.username
-    if (body.role !== undefined && ['admin', 'executivo', 'viewer', 'financeiro'].includes(body.role)) users[idx].role = body.role
+    if (body.role !== undefined && (AUTH_ROLES as readonly string[]).includes(body.role)) users[idx].role = body.role
     if (body.active !== undefined) users[idx].active = Boolean(body.active)
     if (body.nome !== undefined) users[idx].nome = body.nome
     if (body.laboratorio !== undefined) users[idx].laboratorio = body.laboratorio

@@ -1,12 +1,13 @@
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'fs'
 import { pbkdf2Sync, randomBytes } from 'crypto'
 import { join, dirname } from 'path'
+import type { AuthSessionRole } from './auth-session'
 
 export interface User {
   id: string
   username: string
   passwordHash: string
-  role: 'admin' | 'executivo' | 'viewer' | 'financeiro'
+  role: AuthSessionRole
   nome: string
   laboratorio: string
   avatar: string
@@ -17,7 +18,7 @@ export interface User {
 export interface UserPublic {
   id: string
   username: string
-  role: 'admin' | 'executivo' | 'viewer' | 'financeiro'
+  role: AuthSessionRole
   nome: string
   laboratorio: string
   avatar: string

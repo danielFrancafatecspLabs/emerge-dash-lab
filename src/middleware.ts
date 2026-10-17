@@ -4,6 +4,13 @@ import { verifyAuthSession } from '@/lib/auth-session'
 
 const PUBLIC_PATHS = ['/login', '/bem-vindo', '/api/auth', '/api/clear-cache']
 const BASE = '/jira'
+const COMMUNITY_PATHS = ['/comunidade', '/api/community', '/api/stories', '/api/auth']
+// Imagens da pasta public/ (ex.: logo) usadas pela experiência da Comunidade
+const PUBLIC_IMAGE = /^\/[\w.-]+\.(png|jpe?g|svg|webp|gif)$/i
+
+function matchesPath(pathname: string, prefix: string) {
+  return pathname === prefix || pathname.startsWith(`${prefix}/`)
+}
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
@@ -21,6 +28,18 @@ export async function middleware(request: NextRequest) {
   const secret = process.env.AUTH_SECRET
   const session = await verifyAuthSession(request.cookies.get('auth_session')?.value, secret)
   if (session) {
+    // A role community navega só pela experiência da Comunidade (e lê o acervo de pesquisas)
+    if (session.role === 'community') {
+      const allowed = COMMUNITY_PATHS.some(p => matchesPath(stripped, p))
+        || (matchesPath(stripped, '/api/pesquisas') && request.method === 'GET')
+        || PUBLIC_IMAGE.test(stripped)
+      if (allowed) return NextResponse.next()
+      if (stripped.startsWith('/api/')) {
+        return NextResponse.json({ error: 'Acesso restrito à Comunidade' }, { status: 403 })
+      }
+      return NextResponse.redirect(new URL(`${BASE}/comunidade`, request.url))
+    }
+
     // Proteger rotas que só admin pode acessar
     const ADMIN_ONLY = ['/admin/users', '/api/admin', '/beneficios', '/pesquisas', '/api/pesquisas', '/weekly', '/api/weekly', '/semanal', '/api/semanal']
     const isAdminOnly = ADMIN_ONLY.some(p => stripped.startsWith(p))

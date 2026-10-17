@@ -2,8 +2,6 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import Link from 'next/link'
-import Sidebar from '@/components/layout/Sidebar'
-import LogoutButton from '@/components/layout/LogoutButton'
 import {
   Beaker, Target, Search, BarChart3, Lightbulb, CheckCircle2,
   ArrowLeft, AlertTriangle, Shuffle, EyeOff, Hash, TrendingUp,
@@ -1043,19 +1041,17 @@ export default function ComoExperimentarPage() {
 
   return (
     <div className="flex min-h-dvh bg-slate-50">
-      <Sidebar />
 
-      <div className="flex-1 flex flex-col lg:ml-[72px] min-w-0">
+      <div className="flex-1 flex flex-col min-w-0">
         {/* Header */}
-        <header className="sticky top-0 z-30 bg-white/90 backdrop-blur-sm border-b border-slate-200 px-3 sm:px-4 lg:px-6 py-2.5">
+        <header className="sticky top-14 md:top-0 z-20 bg-white/90 backdrop-blur-sm border-b border-slate-200 px-3 sm:px-4 lg:px-6 py-2.5">
           <div className="flex items-center justify-between w-full">
             <div className="flex items-center gap-3">
-              <Link href="/comunidade" className="flex items-center gap-2 text-slate-500 hover:text-slate-700 transition-colors">
+              <Link href="/comunidade/trilha" className="flex items-center gap-2 text-slate-500 hover:text-slate-700 transition-colors">
                 <ArrowLeft className="w-4 h-4" />
-                <span className="text-sm">Comunidade</span>
+                <span className="text-sm">Trilha de Experimentação</span>
               </Link>
             </div>
-            <LogoutButton />
           </div>
         </header>
 

@@ -1,25 +1,14 @@
-import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'fs'
-import { join, dirname } from 'path'
-import { CommunityPost } from './community'
+import type { StoredPost } from './community'
+import { jsonStorePath, readJsonStore, writeJsonStore } from './json-store'
 
 function getPostsFilePath(): string {
-  return process.env.POSTS_FILE_PATH ?? join(process.cwd(), 'data', 'posts.json')
+  return jsonStorePath('POSTS_FILE_PATH', 'posts.json')
 }
 
-export function loadPosts(): CommunityPost[] {
-  const path = getPostsFilePath()
-  if (!existsSync(path)) return []
-  try {
-    const raw = readFileSync(path, 'utf-8')
-    return JSON.parse(raw) as CommunityPost[]
-  } catch {
-    return []
-  }
+export function loadPosts(): StoredPost[] {
+  return readJsonStore<StoredPost[]>(getPostsFilePath(), [])
 }
 
-export function savePosts(posts: CommunityPost[]): void {
-  const path = getPostsFilePath()
-  const dir = dirname(path)
-  if (!existsSync(dir)) mkdirSync(dir, { recursive: true })
-  writeFileSync(path, JSON.stringify(posts, null, 2))
+export function savePosts(posts: StoredPost[]): void {
+  writeJsonStore(getPostsFilePath(), posts)
 }

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { loadUsers, saveUsers, hashPassword, toPublic, isAdmin, User } from '@/lib/users'
 import { randomUUID } from 'crypto'
-import { verifyAuthSession } from '@/lib/auth-session'
+import { AUTH_ROLES, verifyAuthSession, type AuthSessionRole } from '@/lib/auth-session'
 
 async function checkAdmin(request: NextRequest): Promise<boolean> {
   const session = await verifyAuthSession(
@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
   }
   try {
     const { username, password, role, nome, laboratorio, avatar } = await request.json()
-    if (!username || !password || !['admin', 'executivo', 'viewer', 'financeiro'].includes(role)) {
+    if (!username || !password || !(AUTH_ROLES as readonly string[]).includes(role)) {
       return NextResponse.json({ error: 'Dados inválidos' }, { status: 400 })
     }
 
@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
       id: randomUUID(),
       username,
       passwordHash: hashPassword(password),
-      role: role as 'admin' | 'executivo' | 'viewer' | 'financeiro',
+      role: role as AuthSessionRole,
       nome: nome || '',
       laboratorio: laboratorio || '',
       avatar: avatar || '',

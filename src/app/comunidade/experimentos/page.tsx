@@ -1,8 +1,6 @@
 'use client'
 
 import { useState, useMemo, useRef, useEffect } from 'react'
-import Sidebar from '@/components/layout/Sidebar'
-import LogoutButton from '@/components/layout/LogoutButton'
 import Link from 'next/link'
 import {
   HeartHandshake, Search, X, ChevronRight, FlaskConical,
@@ -258,7 +256,6 @@ export default function ExperimentosPage() {
 
   return (
     <div className="flex min-h-dvh bg-white">
-      <Sidebar />
       <main className="flex-1 flex flex-col overflow-hidden bg-white">
         {/* --- HEADER --- */}
         <header className="flex items-center justify-between px-6 py-3 border-b border-gray-100 bg-white shrink-0">
@@ -272,7 +269,6 @@ export default function ExperimentosPage() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <LogoutButton />
           </div>
         </header>
 

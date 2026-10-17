@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { loadStories, saveStories } from '@/lib/stories-store'
-import { Story } from '@/lib/stories'
+import { Story, parseStoryCategoria } from '@/lib/stories'
 import { verifyAuthSession } from '@/lib/auth-session'
 import { isAdmin } from '@/lib/users'
 import { randomUUID } from 'crypto'
@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Não autorizado' }, { status: 403 })
   }
   try {
-    const { title, imageUrl, linkUrl, order } = await request.json()
+    const { title, imageUrl, linkUrl, order, categoria, texto } = await request.json()
     if (!title || !imageUrl) {
       return NextResponse.json({ error: 'Título e imagem são obrigatórios' }, { status: 400 })
     }
@@ -42,6 +42,8 @@ export async function POST(request: NextRequest) {
       title,
       imageUrl,
       linkUrl: linkUrl || '',
+      categoria: parseStoryCategoria(categoria) ?? 'novidade',
+      texto: typeof texto === 'string' ? texto.trim().slice(0, 500) : '',
       active: true,
       order: order ?? stories.length,
       createdAt: new Date().toISOString(),
