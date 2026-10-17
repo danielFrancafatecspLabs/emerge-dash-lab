@@ -24,3 +24,20 @@ describe('applyProfilePatch', () => {
     expect(applyProfilePatch(p, { concluirOnboarding: true }, new Date('2027-01-01')).onboardedAt).toBe(now.toISOString())
   })
 })
+
+describe('sessões do Cientista', () => {
+  it('registra a sessão no topo, sem duplicar, e reconhece o dono', async () => {
+    const { registrarSessaoCientista, isDonoSessaoCientista } = await import('./community-profile')
+    let p = registrarSessaoCientista(emptyProfile('eu'), { id: 'a', papel: 'solicitante', criadaEm: '2026-10-17T10:00:00Z' })
+    p = registrarSessaoCientista(p, { id: 'b', papel: 'desenvolvedor', criadaEm: '2026-10-17T11:00:00Z' })
+    p = registrarSessaoCientista(p, { id: 'a', papel: 'solicitante', criadaEm: '2026-10-17T10:00:00Z' })
+    expect(p.cientistaSessoes.map(s => s.id)).toEqual(['a', 'b'])
+    expect(isDonoSessaoCientista(p, 'b')).toBe(true)
+    expect(isDonoSessaoCientista(p, 'c')).toBe(false)
+  })
+
+  it('não deixa o PATCH do perfil mexer nas sessões', () => {
+    const p = applyProfilePatch(emptyProfile('eu'), { cientistaSessoes: [{ id: 'x' }] } as never)
+    expect(p.cientistaSessoes).toEqual([])
+  })
+})
