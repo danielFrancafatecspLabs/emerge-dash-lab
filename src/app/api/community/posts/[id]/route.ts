@@ -1,18 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { loadPosts, savePosts } from '@/lib/posts-store'
-import { getMember, loadNormalizedPosts, unauthorized } from '@/lib/community-server'
+import { getSessionUser } from '@/lib/auth/request'
+import { loadPosts, savePosts } from '@/lib/community/posts-store'
+import { loadNormalizedPosts, unauthorized } from '@/lib/community/server'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
-  if (!await getMember(request)) return unauthorized()
+  if (!await getSessionUser(request)) return unauthorized()
   const post = loadNormalizedPosts().find(p => p.id === params.id)
   if (!post) return NextResponse.json({ error: 'Publicação não encontrada' }, { status: 404 })
   return NextResponse.json(post)
 }
 
 export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
-  const member = await getMember(request)
+  const member = await getSessionUser(request)
   if (!member) return unauthorized()
   const post = loadNormalizedPosts().find(p => p.id === params.id)
   if (!post) return NextResponse.json({ error: 'Publicação não encontrada' }, { status: 404 })

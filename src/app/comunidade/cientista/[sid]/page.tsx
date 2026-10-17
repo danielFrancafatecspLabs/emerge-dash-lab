@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { ArrowLeft, Check, FlaskConical, Info, Map as MapIcon, Paperclip, Send, X } from 'lucide-react'
-import { etapasFeitas, type EstadoCientista, type ItemConversa, type Papeis, type Porque } from '@/lib/cientista'
+import { etapasFeitas, type EstadoCientista, type ItemConversa, type Papeis, type Porque } from '@/lib/community/cientista'
 import { RichText } from '@/components/comunidade/PostItem'
 import { Button, EmptyState, IconButton, cx, focusRing } from '@/components/comunidade/ui'
 import { Card, StatusBadge, type AcoesCard } from '@/components/comunidade/cientista/Cards'

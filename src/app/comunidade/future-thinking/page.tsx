@@ -6,7 +6,7 @@ import { MessageCircleQuestion, Radar, Telescope } from 'lucide-react'
 import {
   HORIZONTE_LABEL, SINAL_DIMENSAO_LABEL, postTitle,
   type CommunityPost, type Horizonte, type SinalDimensao,
-} from '@/lib/community'
+} from '@/lib/community/model'
 import { useCommunity } from '@/components/comunidade/CommunityProvider'
 import { PageHeader } from '@/components/comunidade/CommunityShell'
 import { PostItem } from '@/components/comunidade/PostItem'

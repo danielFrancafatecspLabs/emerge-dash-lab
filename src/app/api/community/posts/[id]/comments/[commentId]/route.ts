@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { loadPosts, savePosts } from '@/lib/posts-store'
-import { getMember, unauthorized } from '@/lib/community-server'
+import { getSessionUser } from '@/lib/auth/request'
+import { loadPosts, savePosts } from '@/lib/community/posts-store'
+import { unauthorized } from '@/lib/community/server'
 
 export const dynamic = 'force-dynamic'
 
 export async function DELETE(request: NextRequest, { params }: { params: { id: string; commentId: string } }) {
-  const member = await getMember(request)
+  const member = await getSessionUser(request)
   if (!member) return unauthorized()
   const posts = loadPosts()
   const post = posts.find(p => p.id === params.id)

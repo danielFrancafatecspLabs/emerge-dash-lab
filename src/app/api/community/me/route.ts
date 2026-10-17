@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { applyProfilePatch, getProfile, saveProfile } from '@/lib/community-profile'
-import { badRequest, getMember, unauthorized } from '@/lib/community-server'
+import { getSessionUser } from '@/lib/auth/request'
+import { applyProfilePatch, getProfile, saveProfile } from '@/lib/community/profile'
+import { badRequest, unauthorized } from '@/lib/community/server'
 
 export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest) {
-  const member = await getMember(request)
+  const member = await getSessionUser(request)
   if (!member) return unauthorized()
   return NextResponse.json({
     username: member.username,
@@ -18,7 +19,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function PATCH(request: NextRequest) {
-  const member = await getMember(request)
+  const member = await getSessionUser(request)
   if (!member) return unauthorized()
   try {
     const patch = await request.json()

@@ -13,7 +13,7 @@ import {
 import {
   HORIZONTE_LABEL, MATERIAL_STATUS_LABEL, MATERIAL_TIPO_LABEL, POST_LIMITS, SINAL_DIMENSAO_LABEL,
   type CommunityComment, type CommunityPost,
-} from '@/lib/community'
+} from '@/lib/community/model'
 import { api, BASE_PATH, errorMessage } from './api'
 import { useCommunity } from './CommunityProvider'
 import { dataHora, tempoRelativo } from './format'

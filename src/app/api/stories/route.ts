@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { loadStories } from '@/lib/stories-store'
+import { loadStories } from '@/lib/community/stories-store'
 
 export const dynamic = 'force-dynamic'
 

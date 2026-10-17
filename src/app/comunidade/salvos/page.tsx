@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { useMemo, useState } from 'react'
 import { Bookmark, Check, Plus, UsersRound } from 'lucide-react'
-import { COMMUNITY_TOPICS } from '@/lib/community-topics'
+import { COMMUNITY_TOPICS } from '@/lib/community/topics'
 import { useCommunity } from '@/components/comunidade/CommunityProvider'
 import { PageColumns, PageHeader } from '@/components/comunidade/CommunityShell'
 import { FollowButton } from '@/components/comunidade/DiscoveryRail'

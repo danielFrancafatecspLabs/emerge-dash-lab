@@ -4,10 +4,10 @@
 // o compositor de publicações e os avisos (toasts). Todas as páginas da área consomem este contexto.
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import type { CommunityPost, PostKind } from '@/lib/community'
-import type { CommunityProfile, ProfilePatch } from '@/lib/community-profile'
-import type { MemberPublic } from '@/lib/community-server'
-import type { AuthSessionRole } from '@/lib/auth-session'
+import type { CommunityPost, PostKind } from '@/lib/community/model'
+import type { CommunityProfile, ProfilePatch } from '@/lib/community/profile'
+import type { MemberPublic } from '@/lib/community/server'
+import type { AuthSessionRole } from '@/lib/auth/session'
 import { api, errorMessage } from './api'
 
 export interface Me {

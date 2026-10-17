@@ -8,8 +8,8 @@ import { Link2 } from 'lucide-react'
 import {
   HORIZONTE_LABEL, MATERIAL_STATUS_LABEL, MATERIAL_TIPO_LABEL, POST_KINDS, POST_KIND_LABEL, POST_LIMITS, SINAL_DIMENSAO_LABEL,
   type CommunityPost, type Horizonte, type MaterialStatus, type MaterialTipo, type PostKind, type SinalDimensao,
-} from '@/lib/community'
-import { COMMUNITY_TOPICS } from '@/lib/community-topics'
+} from '@/lib/community/model'
+import { COMMUNITY_TOPICS } from '@/lib/community/topics'
 import { api, errorMessage } from './api'
 import { useCommunity } from './CommunityProvider'
 import { Button, Chip, Dialog, cx, inputClass } from './ui'

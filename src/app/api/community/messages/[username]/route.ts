@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { getSessionUser } from '@/lib/auth/request'
 import { randomUUID } from 'crypto'
-import { loadUsers } from '@/lib/users'
-import { MAX_MESSAGE_LENGTH, conversationId, type Conversation, type DirectMessage } from '@/lib/community-messages'
-import { loadConversations, saveConversations } from '@/lib/community-messages-store'
-import { badRequest, getMember, unauthorized } from '@/lib/community-server'
+import { loadUsers } from '@/lib/auth/users'
+import { MAX_MESSAGE_LENGTH, conversationId, type Conversation, type DirectMessage } from '@/lib/community/messages'
+import { loadConversations, saveConversations } from '@/lib/community/messages-store'
+import { badRequest, unauthorized } from '@/lib/community/server'
 
 export const dynamic = 'force-dynamic'
 
@@ -15,7 +16,7 @@ function recipient(raw: string, me: string) {
 
 // Abrir a conversa marca as mensagens recebidas como lidas.
 export async function GET(request: NextRequest, { params }: { params: { username: string } }) {
-  const member = await getMember(request)
+  const member = await getSessionUser(request)
   if (!member) return unauthorized()
   const other = recipient(params.username, member.username)
   if (!other) return NextResponse.json({ error: 'Pessoa não encontrada' }, { status: 404 })
@@ -29,7 +30,7 @@ export async function GET(request: NextRequest, { params }: { params: { username
 }
 
 export async function POST(request: NextRequest, { params }: { params: { username: string } }) {
-  const member = await getMember(request)
+  const member = await getSessionUser(request)
   if (!member) return unauthorized()
   const other = recipient(params.username, member.username)
   if (!other) return NextResponse.json({ error: 'Pessoa não encontrada' }, { status: 404 })

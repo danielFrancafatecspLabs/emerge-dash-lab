@@ -132,7 +132,7 @@ export default function ExperimentoDetalhePage() {
             <div className="text-center">
               <FlaskConical size={48} className="mx-auto text-gray-300 mb-4" />
               <h2 className="text-xl font-bold text-gray-700">Experimento não encontrado</h2>
-              <p className="text-gray-400 mt-2">"{slug}" não corresponde a nenhum experimento.</p>
+              <p className="text-gray-400 mt-2">“{slug}” não corresponde a nenhum experimento.</p>
               <Link href="/comunidade/experimentos" className="mt-4 inline-flex items-center gap-2 text-red-600 hover:text-red-700 font-medium">
                 <ArrowLeft size={16} /> Voltar para experimentos
               </Link>

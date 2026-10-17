@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { useCallback, useEffect, useState } from 'react'
 import { Bell, MessageCircle } from 'lucide-react'
-import type { CommunityNotification, NotificationPrefs } from '@/lib/community'
+import type { CommunityNotification, NotificationPrefs } from '@/lib/community/model'
 import { api, errorMessage } from './api'
 import { useCommunity } from './CommunityProvider'
 import { tempoRelativo } from './format'

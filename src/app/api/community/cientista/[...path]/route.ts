@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { PAPEIS_CONVERSA, rotaCientista, type PapelConversa } from '@/lib/cientista'
-import { getProfile, isDonoSessaoCientista, registrarSessaoCientista, saveProfile } from '@/lib/community-profile'
-import { badRequest, getMember, unauthorized } from '@/lib/community-server'
+import { getSessionUser } from '@/lib/auth/request'
+import { PAPEIS_CONVERSA, rotaCientista, type PapelConversa } from '@/lib/community/cientista'
+import { getProfile, isDonoSessaoCientista, registrarSessaoCientista, saveProfile } from '@/lib/community/profile'
+import { badRequest, unauthorized } from '@/lib/community/server'
 
 // Ponte entre a Comunidade e o backend do Cientista (cientista-lab / METAEXP), configurado em CIENTISTA_API_URL.
 // O backend não tem login: aqui a sessão da Comunidade é exigida e cada pessoa só acessa as próprias conversas.
@@ -18,7 +19,7 @@ function backend(): string | null {
 }
 
 async function handle(request: NextRequest, { params }: { params: { path: string[] } }) {
-  const member = await getMember(request)
+  const member = await getSessionUser(request)
   if (!member) return unauthorized()
   const base = backend()
   if (!base) return json('O Cientista ainda não está conectado neste ambiente.', 503)

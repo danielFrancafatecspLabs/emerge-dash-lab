@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { NextRequest } from 'next/server'
 import { middleware } from './middleware'
-import { createAuthSession } from './lib/auth-session'
+import { createAuthSession } from '@/lib/auth/session'
 
 function request(cookie = '') {
   return new NextRequest('http://localhost/jira/api/pesquisas', {

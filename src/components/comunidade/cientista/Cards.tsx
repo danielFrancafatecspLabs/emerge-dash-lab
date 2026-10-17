@@ -5,7 +5,7 @@
 
 import type { ReactNode } from 'react'
 import { ArrowRight, Check, Code2, Download, FileText, FlaskConical, Info, KeyRound, Layers, Map as MapIcon, Search, ShieldCheck, Sparkles, type LucideIcon } from 'lucide-react'
-import { STATUS_CIENTISTA, type Abordagem, type CardItem, type MetricaTecnica, type StatusCientista } from '@/lib/cientista'
+import { STATUS_CIENTISTA, type Abordagem, type CardItem, type MetricaTecnica, type StatusCientista } from '@/lib/community/cientista'
 import { Button, cx } from '../ui'
 
 export interface AcoesCard { responder: (t: string) => void; ocupado: boolean; sid: string; sinteseConfirmada?: boolean }
@@ -91,7 +91,7 @@ function Numeros({ itens }: { itens: [string, string][] }) {
   )
 }
 
-function Amostra({ data }: { data: any }) { // eslint-disable-line @typescript-eslint/no-explicit-any
+function Amostra({ data }: { data: any }) {
   const total: number = data.total_registros ?? data.registros_validos ?? data.registros ?? 0
   const minimo: number = data.minimo ?? data.tamanho_minimo ?? 385
   const ok = total >= minimo

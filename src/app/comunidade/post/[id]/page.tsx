@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { ArrowLeft, FileX } from 'lucide-react'
-import type { CommunityPost } from '@/lib/community'
+import type { CommunityPost } from '@/lib/community/model'
 import { api, ApiError, errorMessage } from '@/components/comunidade/api'
 import { useCommunity } from '@/components/comunidade/CommunityProvider'
 import { PageColumns } from '@/components/comunidade/CommunityShell'
