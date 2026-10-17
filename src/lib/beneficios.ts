@@ -1,5 +1,4 @@
-import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'fs'
-import { join, dirname } from 'path'
+import { jsonStorePath, readJsonStore, writeJsonStore } from '@/lib/storage/json-store'
 
 export type StatusValidacao = 'nao_validado' | 'em_validacao' | 'validado' | 'rejeitado'
 
@@ -24,25 +23,15 @@ export interface ValidacaoBeneficio {
 export type ValidacoesMap = Record<string, ValidacaoBeneficio>
 
 function getBeneficiosFilePath(): string {
-  return process.env.BENEFICIOS_FILE_PATH ?? join(process.cwd(), 'data', 'beneficios.json')
+  return jsonStorePath('BENEFICIOS_FILE_PATH', 'beneficios.json')
 }
 
 export function loadValidacoes(): ValidacoesMap {
-  const path = getBeneficiosFilePath()
-  if (!existsSync(path)) return {}
-  try {
-    const raw = readFileSync(path, 'utf-8')
-    return JSON.parse(raw) as ValidacoesMap
-  } catch {
-    return {}
-  }
+  return readJsonStore<ValidacoesMap>(getBeneficiosFilePath(), {})
 }
 
 function saveValidacoes(map: ValidacoesMap): void {
-  const path = getBeneficiosFilePath()
-  const dir = dirname(path)
-  if (!existsSync(dir)) mkdirSync(dir, { recursive: true })
-  writeFileSync(path, JSON.stringify(map, null, 2))
+  writeJsonStore(getBeneficiosFilePath(), map)
 }
 
 const STATUS_LABEL: Record<StatusValidacao, string> = {

@@ -1,53 +1,47 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { loadPosts, savePosts } from '@/lib/posts-store'
-import { CommunityPost } from '@/lib/community'
-import { verifyAuthSession } from '@/lib/auth-session'
-import { loadUsers } from '@/lib/users'
+import { getSessionUser } from '@/lib/auth/request'
 import { randomUUID } from 'crypto'
+import { loadPosts, savePosts } from '@/lib/community/posts-store'
+import { validatePostInput, type CommunityPost } from '@/lib/community/model'
+import { isKnownTopic } from '@/lib/community/topics'
+import { badRequest, loadNormalizedPosts, unauthorized } from '@/lib/community/server'
 
 export const dynamic = 'force-dynamic'
 
-export async function GET() {
-  const posts = loadPosts()
-  posts.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+export async function GET(request: NextRequest) {
+  if (!await getSessionUser(request)) return unauthorized()
+  const posts = loadNormalizedPosts()
+  posts.sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt))
   return NextResponse.json(posts)
 }
 
 export async function POST(request: NextRequest) {
-  const session = await verifyAuthSession(
-    request.cookies.get('auth_session')?.value,
-    process.env.AUTH_SECRET,
-  )
-  if (!session) {
-    return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
-  }
+  const member = await getSessionUser(request)
+  if (!member) return unauthorized()
 
+  let body: unknown
   try {
-    const { content, linkUrl } = await request.json()
-    if (!content || !content.trim()) {
-      return NextResponse.json({ error: 'Conteúdo é obrigatório' }, { status: 400 })
-    }
-
-    const users = loadUsers()
-    const user = users.find(u => u.username === session.username)
-
-    const post: CommunityPost = {
-      id: randomUUID(),
-      authorId: user?.id || session.username,
-      authorName: user?.nome || session.username,
-      authorLab: user?.laboratorio || '',
-      authorAvatar: user?.avatar || '',
-      content: content.trim(),
-      linkUrl: linkUrl || '',
-      createdAt: new Date().toISOString(),
-      likes: [],
-    }
-
-    const posts = loadPosts()
-    posts.push(post)
-    savePosts(posts)
-    return NextResponse.json(post, { status: 201 })
+    body = await request.json()
   } catch {
-    return NextResponse.json({ error: 'Requisição inválida' }, { status: 400 })
+    return badRequest('Requisição inválida')
   }
+  const result = validatePostInput(body, isKnownTopic)
+  if ('error' in result) return badRequest(result.error)
+
+  const post: CommunityPost = {
+    id: randomUUID(),
+    authorId: member.user?.id || member.username,
+    authorUsername: member.username,
+    authorName: member.user?.nome || member.username,
+    authorLab: member.user?.laboratorio || '',
+    authorAvatar: member.user?.avatar || '',
+    ...result.value,
+    createdAt: new Date().toISOString(),
+    likes: [],
+    comments: [],
+  }
+  const posts = loadPosts()
+  posts.push(post)
+  savePosts(posts)
+  return NextResponse.json(post, { status: 201 })
 }

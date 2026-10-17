@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Shield, Briefcase } from 'lucide-react'
+import { Shield, Briefcase, HeartHandshake } from 'lucide-react'
 
 function BemVindoContent() {
   const router = useRouter()
@@ -11,17 +11,19 @@ function BemVindoContent() {
 
   const role = searchParams.get('role') || 'admin'
   const username = searchParams.get('username') || 'Usuário'
-  const roleLabel = role === 'admin' ? 'Administrador' : 'Executivo'
-  const RoleIcon = role === 'admin' ? Shield : Briefcase
+  const isCommunity = role === 'community'
+  const roleLabel = role === 'admin' ? 'Administrador' : isCommunity ? 'Comunidade' : 'Executivo'
+  const RoleIcon = role === 'admin' ? Shield : isCommunity ? HeartHandshake : Briefcase
+  const destino = isCommunity ? '/comunidade' : '/estrategia'
 
   useEffect(() => {
     const timer = setTimeout(() => setFadeOut(true), 2000)
-    const redirect = setTimeout(() => router.replace('/estrategia'), 2800)
+    const redirect = setTimeout(() => router.replace(destino), 2800)
     return () => {
       clearTimeout(timer)
       clearTimeout(redirect)
     }
-  }, [router])
+  }, [router, destino])
 
   return (
     <>
@@ -45,7 +47,7 @@ function BemVindoContent() {
             Bem-vindo ao beOn Labs!
           </h1>
           <p className="text-gray-400" style={{ fontSize: 13 }}>
-            Dashboard Executivo de Experimentos · Claro Brasil
+            {isCommunity ? 'Comunidade de Experimentação' : 'Dashboard Executivo de Experimentos'} · Claro Brasil
           </p>
         </div>
 
@@ -87,7 +89,7 @@ function BemVindoContent() {
         </div>
 
         <p className="text-gray-300" style={{ fontSize: 11 }}>
-          Redirecionando para o dashboard...
+          {isCommunity ? 'Entrando na Comunidade...' : 'Redirecionando para o dashboard...'}
         </p>
       </div>
 

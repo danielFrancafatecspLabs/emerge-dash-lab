@@ -5,10 +5,10 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer,
 } from 'recharts'
-import type { SerieMensal } from '@/lib/types'
+import type { SerieMensalComEpics } from '@/lib/types'
 
 interface Props {
-  data: SerieMensal
+  data: SerieMensalComEpics
 }
 
 export default function BurnupChart({ data }: Props) {

@@ -2,8 +2,6 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import Link from 'next/link'
-import Sidebar from '@/components/layout/Sidebar'
-import LogoutButton from '@/components/layout/LogoutButton'
 import {
   Beaker, Target, Search, BarChart3, Lightbulb, CheckCircle2,
   ArrowLeft, AlertTriangle, Shuffle, EyeOff, Hash, TrendingUp,
@@ -1014,8 +1012,8 @@ export default function ComoExperimentarPage() {
   const [completedModules, setCompletedModules] = useState<Set<number>>(new Set())
   const contentRef = useRef<HTMLDivElement>(null)
 
-  const module = MODULES[activeModule]
-  const ModuleIcon = module.icon
+  const modulo = MODULES[activeModule]
+  const ModuleIcon = modulo.icon
 
   const progress = ((completedModules.size) / MODULES.length) * 100
 
@@ -1043,19 +1041,17 @@ export default function ComoExperimentarPage() {
 
   return (
     <div className="flex min-h-dvh bg-slate-50">
-      <Sidebar />
 
-      <div className="flex-1 flex flex-col lg:ml-[72px] min-w-0">
+      <div className="flex-1 flex flex-col min-w-0">
         {/* Header */}
-        <header className="sticky top-0 z-30 bg-white/90 backdrop-blur-sm border-b border-slate-200 px-3 sm:px-4 lg:px-6 py-2.5">
+        <header className="sticky top-14 md:top-0 z-20 bg-white/90 backdrop-blur-sm border-b border-slate-200 px-3 sm:px-4 lg:px-6 py-2.5">
           <div className="flex items-center justify-between w-full">
             <div className="flex items-center gap-3">
-              <Link href="/comunidade" className="flex items-center gap-2 text-slate-500 hover:text-slate-700 transition-colors">
+              <Link href="/comunidade/trilha" className="flex items-center gap-2 text-slate-500 hover:text-slate-700 transition-colors">
                 <ArrowLeft className="w-4 h-4" />
-                <span className="text-sm">Comunidade</span>
+                <span className="text-sm">Trilha de Experimentação</span>
               </Link>
             </div>
-            <LogoutButton />
           </div>
         </header>
 
@@ -1126,11 +1122,11 @@ export default function ComoExperimentarPage() {
               <div className="mb-6 sm:mb-8">
                 <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-2">
                   <span className="text-[11px] sm:text-xs font-bold text-red-700 bg-red-50 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-full">
-                    MÓDULO {module.num} DE {MODULES.length}
+                    MÓDULO {modulo.num} DE {MODULES.length}
                   </span>
                   <span className="text-[11px] sm:text-xs text-slate-400 flex items-center gap-1">
                     <Clock className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-                    {module.duration}
+                    {modulo.duration}
                   </span>
                 </div>
                 <div className="flex items-start gap-3 sm:gap-4">
@@ -1139,10 +1135,10 @@ export default function ComoExperimentarPage() {
                   </div>
                   <div className="min-w-0">
                     <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-slate-800 mb-0.5 sm:mb-1">
-                      {module.title}
+                      {modulo.title}
                     </h1>
                     <p className="text-slate-500 text-xs sm:text-sm lg:text-base">
-                      {module.subtitle}
+                      {modulo.subtitle}
                     </p>
                   </div>
                 </div>
@@ -1150,7 +1146,7 @@ export default function ComoExperimentarPage() {
 
               {/* Module Content */}
               <div className="space-y-4 sm:space-y-5">
-                {module.content.map((block, i) => (
+                {modulo.content.map((block, i) => (
                   <ContentBlockView key={i} block={block} />
                 ))}
               </div>

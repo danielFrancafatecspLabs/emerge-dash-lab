@@ -1,50 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { loadStories, saveStories } from '@/lib/stories-store'
-import { verifyAuthSession } from '@/lib/auth-session'
-import { isAdmin } from '@/lib/users'
+import { getAdmin } from '@/lib/auth/request'
+import { loadStories, saveStories } from '@/lib/community/stories-store'
+import { parseStoryChanges } from '@/lib/community/stories'
 
-async function checkAdmin(request: NextRequest): Promise<boolean> {
-  const session = await verifyAuthSession(
-    request.cookies.get('auth_session')?.value,
-    process.env.AUTH_SECRET,
-  )
-  return session?.role === 'admin' && isAdmin(session.username)
-}
+const forbidden = () => NextResponse.json({ error: 'Não autorizado' }, { status: 403 })
+const notFound = () => NextResponse.json({ error: 'Story não encontrado' }, { status: 404 })
 
-export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  if (!await checkAdmin(request)) {
-    return NextResponse.json({ error: 'Não autorizado' }, { status: 403 })
-  }
-  try {
-    const { id } = await params
-    const body = await request.json()
-    const stories = loadStories()
-    const idx = stories.findIndex(s => s.id === id)
-    if (idx === -1) return NextResponse.json({ error: 'Story não encontrado' }, { status: 404 })
-
-    if (body.title !== undefined) stories[idx].title = body.title
-    if (body.imageUrl !== undefined) stories[idx].imageUrl = body.imageUrl
-    if (body.linkUrl !== undefined) stories[idx].linkUrl = body.linkUrl
-    if (body.active !== undefined) stories[idx].active = Boolean(body.active)
-    if (body.order !== undefined) stories[idx].order = body.order
-
-    saveStories(stories)
-    return NextResponse.json(stories[idx])
-  } catch {
-    return NextResponse.json({ error: 'Requisição inválida' }, { status: 400 })
-  }
-}
-
-export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  if (!await checkAdmin(request)) {
-    return NextResponse.json({ error: 'Não autorizado' }, { status: 403 })
-  }
-  const { id } = await params
+export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
+  if (!await getAdmin(request)) return forbidden()
+  const parsed = parseStoryChanges(await request.json().catch(() => null), false)
+  if ('error' in parsed) return NextResponse.json({ error: parsed.error }, { status: 400 })
   const stories = loadStories()
-  const filtered = stories.filter(s => s.id !== id)
-  if (filtered.length === stories.length) {
-    return NextResponse.json({ error: 'Story não encontrado' }, { status: 404 })
-  }
-  saveStories(filtered)
+  const story = stories.find(s => s.id === params.id)
+  if (!story) return notFound()
+  Object.assign(story, parsed.value)
+  saveStories(stories)
+  return NextResponse.json(story)
+}
+
+export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+  if (!await getAdmin(request)) return forbidden()
+  const stories = loadStories()
+  if (!stories.some(s => s.id === params.id)) return notFound()
+  saveStories(stories.filter(s => s.id !== params.id))
   return NextResponse.json({ ok: true })
 }

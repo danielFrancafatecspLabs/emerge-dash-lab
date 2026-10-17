@@ -204,7 +204,7 @@ export default function GovernancaAlinhamento({ data }: Props) {
             {/* Fields */}
             <div className="px-5 py-4 space-y-4">
               <p className="text-xs text-gray-400">
-                Escolha a fonte de cada indicador. "Do Jira" usa dados em tempo real; "Fixo" usa o valor que você digitar.
+                Escolha a fonte de cada indicador. “Do Jira” usa dados em tempo real; “Fixo” usa o valor que você digitar.
               </p>
               {FIELDS.map(f => {
                 const cfg = draft[f.key]
