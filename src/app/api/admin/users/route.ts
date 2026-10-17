@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { loadUsers, saveUsers, hashPassword, toPublic, isAdmin } from '@/lib/users'
+import { loadUsers, saveUsers, hashPassword, toPublic, isAdmin, User } from '@/lib/users'
 import { randomUUID } from 'crypto'
 import { verifyAuthSession } from '@/lib/auth-session'
 
@@ -24,8 +24,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Não autorizado' }, { status: 403 })
   }
   try {
-    const { username, password, role } = await request.json()
-    if (!username || !password || !['admin', 'viewer', 'financeiro'].includes(role)) {
+    const { username, password, role, nome, laboratorio, avatar } = await request.json()
+    if (!username || !password || !['admin', 'executivo', 'viewer', 'financeiro'].includes(role)) {
       return NextResponse.json({ error: 'Dados inválidos' }, { status: 400 })
     }
 
@@ -34,11 +34,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Usuário já existe' }, { status: 409 })
     }
 
-    const newUser = {
+    const newUser: User = {
       id: randomUUID(),
       username,
       passwordHash: hashPassword(password),
-      role: role as 'admin' | 'viewer' | 'financeiro',
+      role: role as 'admin' | 'executivo' | 'viewer' | 'financeiro',
+      nome: nome || '',
+      laboratorio: laboratorio || '',
+      avatar: avatar || '',
       createdAt: new Date().toISOString(),
       active: true,
     }

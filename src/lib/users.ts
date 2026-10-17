@@ -7,6 +7,9 @@ export interface User {
   username: string
   passwordHash: string
   role: 'admin' | 'executivo' | 'viewer' | 'financeiro'
+  nome: string
+  laboratorio: string
+  avatar: string
   createdAt: string
   active: boolean
 }
@@ -15,6 +18,9 @@ export interface UserPublic {
   id: string
   username: string
   role: 'admin' | 'executivo' | 'viewer' | 'financeiro'
+  nome: string
+  laboratorio: string
+  avatar: string
   createdAt: string
   active: boolean
 }
@@ -45,6 +51,9 @@ const BUILTIN_USERS: User[] = [
     username: "gustavo.leite@claro.com.br",
     passwordHash: "54f6b9440bd72dce0cf85664daae48d9:3f4799537559ff22ddb9dc95c6b10b46c673375031ffeae9c070ce2d6788e16529497c11eee16a267b6095cf74abffb0ed92b92962cdeeb8e11be978ede6155d",
     role: "executivo",
+    nome: "Gustavo Leite",
+    laboratorio: "BeOn Lab",
+    avatar: "",
     createdAt: "2026-07-23T00:00:00.000Z",
     active: true,
   },
@@ -53,6 +62,9 @@ const BUILTIN_USERS: User[] = [
     username: "rodrigo.assad@claro.com.br",
     passwordHash: "6e2a4566772158c2cc2163a289ee6ed6:a0c54ba65a6ad1fe4f671cac6361ab07d3784a4ea1f6683ee45b3cfd1a7964dafabdacf40a20156111c9ddcc7bb4257d9c2bf82cc915e8c8abe22b449ae41a0c",
     role: "executivo",
+    nome: "Rodrigo Assad",
+    laboratorio: "BeOn Lab",
+    avatar: "",
     createdAt: "2026-07-23T00:00:00.000Z",
     active: true,
   },
@@ -61,6 +73,9 @@ const BUILTIN_USERS: User[] = [
     username: "marco_asterito",
     passwordHash: "3cc8ec237bb8f145abd60670fd3173c3:14afa870728b4fb99c243a66d1a18c3021aac2ae3940d56f1639b184b06e4afbfb6eaa4b3fa144819c314bbbe15b6044ee792e8d1e428ba22baf41d5b0ff8479",
     role: "admin",
+    nome: "Marco Asterito",
+    laboratorio: "BeOn Lab",
+    avatar: "",
     createdAt: "2026-07-23T00:00:00.000Z",
     active: true,
   },
@@ -69,6 +84,9 @@ const BUILTIN_USERS: User[] = [
     username: "daniel_frauches",
     passwordHash: "9e788b1591a42683f00217adf66d35c8:a19c6553af525aa1777a62c4d67d0c97fede8f980037edcbb2761db2938f1542af8108250c159a25cb9f0686ea1b95960baf742c7d10c509720a90c2723a45db",
     role: "admin",
+    nome: "Daniel Frauches",
+    laboratorio: "BeOn Lab",
+    avatar: "",
     createdAt: "2026-07-23T00:00:00.000Z",
     active: true,
   },
@@ -77,6 +95,9 @@ const BUILTIN_USERS: User[] = [
     username: "daniel_franca",
     passwordHash: "56d2a97954ec4cb9f3f74e8d636925f1:0bd826612bdeeb37d9abb32277f0ee71783524a67ad2fba1f325ec264a531a79f89e8b4df2513cc791593bbe296bff9ed623fe759f58bd8cf8c59c7e4143fe77",
     role: "admin",
+    nome: "Daniel França",
+    laboratorio: "BeOn Lab",
+    avatar: "",
     createdAt: "2026-07-23T00:00:00.000Z",
     active: true,
   },
@@ -85,6 +106,9 @@ const BUILTIN_USERS: User[] = [
     username: "alexandra.ferreira@claro.com.br",
     passwordHash: "57da5726881f64a34845e81da48817ed:97ae927f7b1a6b75ef89b5cf5590f8252c8200e3b7a94beb5befc4cb763d223b194f8699b04e7cbcaa40ff9c9350707c687aa850c2a85cdc1800ec2a5fe702d1",
     role: "admin",
+    nome: "Alexandra Ferreira",
+    laboratorio: "BeOn Lab",
+    avatar: "",
     createdAt: "2026-09-18T00:00:00.000Z",
     active: true,
   },
