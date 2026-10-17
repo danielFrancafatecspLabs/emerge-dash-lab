@@ -3,11 +3,11 @@
 import { useState, useEffect, useCallback } from 'react'
 import Sidebar from '@/components/layout/Sidebar'
 import LogoutButton from '@/components/layout/LogoutButton'
-import { Story } from '@/lib/stories'
+import { Story, STORY_CATEGORIA_LABEL, type StoryCategoria } from '@/lib/community/stories'
 import { Image, Plus, Pencil, Trash2, X, Check, Eye, EyeOff, GripVertical } from 'lucide-react'
 
-type FormState = { title: string; imageUrl: string; linkUrl: string; order: number }
-const EMPTY_FORM: FormState = { title: '', imageUrl: '', linkUrl: '', order: 0 }
+type FormState = { title: string; imageUrl: string; linkUrl: string; order: number; categoria: StoryCategoria; texto: string }
+const EMPTY_FORM: FormState = { title: '', imageUrl: '', linkUrl: '', order: 0, categoria: 'novidade', texto: '' }
 
 export default function AdminStoriesPage() {
   const [stories, setStories] = useState<Story[]>([])
@@ -43,14 +43,14 @@ export default function AdminStoriesPage() {
 
   function openEdit(s: Story) {
     setEditingId(s.id)
-    setForm({ title: s.title, imageUrl: s.imageUrl, linkUrl: s.linkUrl, order: s.order })
+    setForm({ title: s.title, imageUrl: s.imageUrl, linkUrl: s.linkUrl, order: s.order, categoria: s.categoria ?? 'novidade', texto: s.texto ?? '' })
     setShowForm(true)
   }
 
   async function save() {
     setSaving(true)
     try {
-      const body: Record<string, unknown> = { title: form.title, imageUrl: form.imageUrl, linkUrl: form.linkUrl, order: form.order }
+      const body: Record<string, unknown> = { title: form.title, imageUrl: form.imageUrl, linkUrl: form.linkUrl, order: form.order, categoria: form.categoria, texto: form.texto }
       const url = editingId
         ? `/jira/api/admin/stories/${editingId}`
         : '/jira/api/admin/stories'
@@ -154,6 +154,29 @@ export default function AdminStoriesPage() {
                     className="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-red-600"
                     value={form.order}
                     onChange={e => setForm(f => ({ ...f, order: parseInt(e.target.value) || 0 }))}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Categoria</label>
+                  <select
+                    className="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-red-600"
+                    value={form.categoria}
+                    onChange={e => setForm(f => ({ ...f, categoria: e.target.value as StoryCategoria }))}
+                  >
+                    {Object.entries(STORY_CATEGORIA_LABEL).map(([value, label]) => (
+                      <option key={value} value={value}>{label}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="col-span-2">
+                  <label className="block text-xs text-gray-500 mb-1">Texto do story (opcional, até 500 caracteres)</label>
+                  <textarea
+                    className="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-red-600"
+                    rows={3}
+                    maxLength={500}
+                    value={form.texto}
+                    onChange={e => setForm(f => ({ ...f, texto: e.target.value }))}
+                    placeholder="Resumo exibido ao abrir o story"
                   />
                 </div>
                 <div className="col-span-2">

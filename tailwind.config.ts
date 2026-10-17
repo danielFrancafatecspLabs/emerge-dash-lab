@@ -16,6 +16,17 @@ const config: Config = {
           light:    '#FFE5E5',
           lighter:  '#FFF5F5',
         },
+        // Identidade da experiência Comunidade (role community)
+        comm: {
+          red:   '#D31809',
+          redhi: '#B31407',
+          tint:  '#FDF1F0',
+          ink:   '#1C1917',
+          body:  '#44403C',
+          muted: '#78716C',
+          line:  '#E7E5E4',
+          soft:  '#F7F6F4',
+        },
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],
