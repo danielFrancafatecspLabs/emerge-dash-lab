@@ -34,6 +34,7 @@ type ContentBlock =
   | { type: 'concept'; icon: any; title: string; text: string; emphasis?: string }
   | { type: 'divider' }
   | { type: 'practice'; title: string; text: string; action?: string; actionLabel?: string }
+  | { type: 'video'; title: string; url: string; thumbnail?: string; duration?: string }
 
 interface ModuleData {
   id: string
@@ -56,6 +57,7 @@ const MODULES: ModuleData[] = [
     content: [
       { type: 'highlight', icon: Target, title: 'Inovação não é só tecnologia — é método',
         text: 'Experimentar com IA não é sobre programar. É sobre aplicar o método científico para verificar se um sistema funciona bem para uma tarefa específica. Você formula uma hipótese, controla variáveis, coleta evidências e decide se a IA é confiável para uso prático.' },
+      { type: 'video', title: 'O Método Científico na Era da IA', url: 'https://www.youtube.com/watch?v=KQZ0Jx1fF8g', duration: '5:42' },
       { type: 'divider' },
       { type: 'text', text: 'Antes das técnicas, precisamos entender por que a experimentação bem-feita é o coração da inovação. O pesquisador Thales Novaes de Andrade (2007) nos dá uma perspectiva fundamental:' },
       { type: 'quote', text: 'A inovação depende menos de investimento intensivo de capital e inventividade técnica, e mais da criação de redes de circulação de informação e conhecimento.', author: 'Thales Novaes de Andrade', source: 'O Problema da Experimentação na Inovação Tecnológica, RBCI, 2007' },
@@ -91,6 +93,7 @@ const MODULES: ModuleData[] = [
         text: 'Um experimento bem feito evita que você adote uma ferramenta que não funciona ou que gera mais problemas do que soluções.' },
       { type: 'divider' },
       { type: 'text', text: 'Existem quatro tipos principais de experimentos com IA:' },
+      { type: 'video', title: 'Tipos de Experimentos com IA Explicados', url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', duration: '8:15' },
       { type: 'concept', icon: Filter, title: '1. Classificação — "Em qual categoria isso se encaixa?"',
         text: 'A IA recebe um dado e o coloca em uma categoria pré-definida.',
         emphasis: 'Exemplo: classificar e-mails em "Dúvida", "Reclamação" ou "Elogio".' },
@@ -879,6 +882,58 @@ function ContentBlockView({ block }: { block: ContentBlock }) {
             {block.actionLabel || '▶'} {block.action}
           </button>
         )}
+      </div>
+    )
+  }
+
+  if (block.type === 'video') {
+    const isYouTube = block.url.includes('youtube.com') || block.url.includes('youtu.be')
+    const isVimeo = block.url.includes('vimeo.com')
+    let embedUrl = block.url
+    if (isYouTube) {
+      const videoId = block.url.includes('watch?v=')
+        ? new URL(block.url).searchParams.get('v')
+        : block.url.split('/').pop()?.split('?')[0]
+      embedUrl = `https://www.youtube.com/embed/${videoId}`
+    } else if (isVimeo) {
+      const videoId = block.url.split('/').pop()?.split('?')[0]
+      embedUrl = `https://player.vimeo.com/video/${videoId}`
+    }
+
+    return (
+      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
+        <div className="relative aspect-video bg-black">
+          {(isYouTube || isVimeo) ? (
+            <iframe
+              src={embedUrl}
+              className="w-full h-full"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+              title={block.title}
+            />
+          ) : (
+            <video
+              src={block.url}
+              className="w-full h-full"
+              controls
+              preload="metadata"
+              poster={block.thumbnail}
+            >
+              Seu navegador não suporta vídeos HTML5.
+            </video>
+          )}
+        </div>
+        <div className="p-3 sm:p-4">
+          <div className="flex items-center gap-2">
+            <Play className="w-4 h-4 text-red-600 flex-shrink-0" />
+            <h4 className="font-semibold text-gray-800 text-sm">{block.title}</h4>
+          </div>
+          {block.duration && (
+            <p className="text-xs text-gray-400 mt-1 flex items-center gap-1">
+              <Clock className="w-3 h-3" /> {block.duration}
+            </p>
+          )}
+        </div>
       </div>
     )
   }
