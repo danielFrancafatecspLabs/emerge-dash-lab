@@ -1,4 +1,5 @@
-export type AuthSessionRole = 'admin' | 'executivo' | 'viewer' | 'financeiro'
+export const AUTH_ROLES = ['admin', 'executivo', 'viewer', 'financeiro', 'community'] as const
+export type AuthSessionRole = typeof AUTH_ROLES[number]
 
 export interface AuthSession {
   username: string
@@ -9,7 +10,7 @@ export interface AuthSession {
 const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1_000
 const encoder = new TextEncoder()
 const decoder = new TextDecoder()
-const validRoles = new Set<AuthSessionRole>(['admin', 'executivo', 'viewer', 'financeiro'])
+const validRoles = new Set<AuthSessionRole>(AUTH_ROLES)
 
 function encodeBase64Url(bytes: Uint8Array) {
   let binary = ''

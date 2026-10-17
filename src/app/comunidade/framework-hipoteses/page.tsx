@@ -2,8 +2,6 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import Sidebar from '@/components/layout/Sidebar'
-import LogoutButton from '@/components/layout/LogoutButton'
 import {
   ArrowLeft, Lightbulb, Target, FlaskConical, CheckCircle2, XCircle,
   TrendingUp, BookOpen, ChevronRight, AlertTriangle, Sparkles,
@@ -25,21 +23,19 @@ export default function FrameworkHipotesesPage() {
 
   return (
     <div className="flex min-h-dvh bg-slate-50">
-      <Sidebar />
 
-      <div className="flex-1 flex flex-col lg:ml-[72px] min-w-0">
+      <div className="flex-1 flex flex-col min-w-0">
         {/* Header */}
-        <header className="sticky top-0 z-30 bg-white/90 backdrop-blur-sm border-b border-slate-200 px-4 sm:px-6 lg:px-8 py-3">
+        <header className="sticky top-14 md:top-0 z-20 bg-white/90 backdrop-blur-sm border-b border-slate-200 px-4 sm:px-6 lg:px-8 py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <Link href="/comunidade" className="flex items-center gap-2 text-slate-500 hover:text-slate-700 transition-colors">
+              <Link href="/comunidade/trilha" className="flex items-center gap-2 text-slate-500 hover:text-slate-700 transition-colors">
                 <ArrowLeft className="w-4 h-4" />
-                <span className="text-sm">Comunidade</span>
+                <span className="text-sm">Trilha de Experimentação</span>
               </Link>
               <span className="text-slate-300">/</span>
               <span className="text-sm font-medium text-slate-700">Framework de Hipóteses</span>
             </div>
-            <LogoutButton />
           </div>
         </header>
 

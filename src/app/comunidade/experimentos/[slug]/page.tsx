@@ -2,11 +2,9 @@
 
 import { useParams } from 'next/navigation'
 import { useMemo } from 'react'
-import Sidebar from '@/components/layout/Sidebar'
-import LogoutButton from '@/components/layout/LogoutButton'
 import Link from 'next/link'
 import {
-  HeartHandshake, ChevronRight, FlaskConical, Download, FileText,
+  ChevronRight, FlaskConical, Download, FileText,
   FileSpreadsheet, FileImage, FileArchive, File, FolderOpen,
   ArrowLeft, ExternalLink, BarChart3, Tag, Gauge, Target,
   TrendingUp, BookOpen, Lightbulb, ClipboardCheck
@@ -120,17 +118,15 @@ export default function ExperimentoDetalhePage() {
   if (!experimento) {
     return (
       <div className="flex min-h-dvh">
-        <Sidebar />
         <main className="flex-1 flex flex-col overflow-hidden bg-gradient-to-br from-gray-50 via-white to-red-50/30">
           <header className="h-14 border-b border-gray-200/60 flex items-center justify-between px-6 bg-white/80 backdrop-blur-sm shrink-0">
             <div className="flex items-center gap-3">
-              <Link href="/comunidade" className="text-sm text-gray-400 hover:text-gray-600 transition-colors flex items-center gap-1">
-                <HeartHandshake size={16} />Comunidade
+              <Link href="/comunidade/pesquisas" className="text-sm text-gray-400 hover:text-gray-600 transition-colors flex items-center gap-1">
+                <BookOpen size={16} />Pesquisas
               </Link>
               <ChevronRight size={14} className="text-gray-300" />
               <Link href="/comunidade/experimentos" className="text-sm text-gray-400 hover:text-gray-600 transition-colors">Experimentos</Link>
             </div>
-            <LogoutButton />
           </header>
           <div className="flex-1 flex items-center justify-center">
             <div className="text-center">
@@ -154,19 +150,17 @@ export default function ExperimentoDetalhePage() {
 
   return (
     <div className="flex min-h-dvh">
-      <Sidebar />
       <main className="flex-1 flex flex-col overflow-hidden bg-gradient-to-br from-gray-50 via-white to-red-50/30">
         <header className="h-14 border-b border-gray-200/60 flex items-center justify-between px-6 bg-white/80 backdrop-blur-sm shrink-0">
           <div className="flex items-center gap-3 min-w-0">
-            <Link href="/comunidade" className="text-sm text-gray-400 hover:text-gray-600 transition-colors flex items-center gap-1 shrink-0">
-              <HeartHandshake size={16} />Comunidade
+            <Link href="/comunidade/pesquisas" className="text-sm text-gray-400 hover:text-gray-600 transition-colors flex items-center gap-1 shrink-0">
+              <BookOpen size={16} />Pesquisas
             </Link>
             <ChevronRight size={14} className="text-gray-300 shrink-0" />
             <Link href="/comunidade/experimentos" className="text-sm text-gray-400 hover:text-gray-600 transition-colors shrink-0">Experimentos</Link>
             <ChevronRight size={14} className="text-gray-300 shrink-0" />
             <h1 className="text-sm font-semibold text-gray-800 truncate">{experimento.folder_name}</h1>
           </div>
-          <LogoutButton />
         </header>
 
         <div className="flex-1 overflow-auto">

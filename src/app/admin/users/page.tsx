@@ -4,10 +4,15 @@ import { useState, useEffect, useCallback } from 'react'
 import Sidebar from '@/components/layout/Sidebar'
 import LogoutButton from '@/components/layout/LogoutButton'
 import { UserPublic } from '@/lib/users'
-import { Users, Plus, Pencil, Trash2, X, Check, Shield, Eye, Wallet } from 'lucide-react'
+import { Users, Plus, Pencil, Trash2, X, Check, Shield, Eye, Wallet, HeartHandshake } from 'lucide-react'
+import type { AuthSessionRole } from '@/lib/auth-session'
 
-type FormState = { username: string; password: string; role: 'admin' | 'executivo' | 'viewer' | 'financeiro'; nome: string; laboratorio: string }
+type FormState = { username: string; password: string; role: AuthSessionRole; nome: string; laboratorio: string }
 const EMPTY_FORM: FormState = { username: '', password: '', role: 'viewer', nome: '', laboratorio: '' }
+
+const ROLE_LABEL: Record<AuthSessionRole, string> = {
+  admin: 'Admin', executivo: 'Executivo', viewer: 'Viewer', financeiro: 'Financeiro', community: 'Comunidade',
+}
 
 export default function AdminUsersPage() {
   const [users, setUsers] = useState<UserPublic[]>([])
@@ -185,11 +190,12 @@ export default function AdminUsersPage() {
                   <select
                     className="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-red-600"
                     value={form.role}
-                    onChange={e => setForm(f => ({ ...f, role: e.target.value as 'admin' | 'executivo' | 'viewer' | 'financeiro' }))}
+                    onChange={e => setForm(f => ({ ...f, role: e.target.value as AuthSessionRole }))}
                   >
                     <option value="viewer">Viewer</option>
                     <option value="financeiro">Financeiro</option>
                     <option value="executivo">Executivo</option>
+                    <option value="community">Comunidade</option>
                     <option value="admin">Admin</option>
                   </select>
                 </div>
@@ -240,10 +246,12 @@ export default function AdminUsersPage() {
                             ? 'bg-red-50 text-red-700'
                             : u.role === 'financeiro'
                               ? 'bg-emerald-50 text-emerald-700'
-                              : 'bg-gray-100 text-gray-600'
+                              : u.role === 'community'
+                                ? 'bg-rose-50 text-rose-700'
+                                : 'bg-gray-100 text-gray-600'
                         }`}>
-                          {u.role === 'admin' ? <Shield size={10} /> : u.role === 'financeiro' ? <Wallet size={10} /> : <Eye size={10} />}
-                          {u.role === 'admin' ? 'Admin' : u.role === 'financeiro' ? 'Financeiro' : 'Viewer'}
+                          {u.role === 'admin' ? <Shield size={10} /> : u.role === 'financeiro' ? <Wallet size={10} /> : u.role === 'community' ? <HeartHandshake size={10} /> : <Eye size={10} />}
+                          {ROLE_LABEL[u.role] ?? u.role}
                         </span>
                       </td>
                       <td className="px-4 py-3">
