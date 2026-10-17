@@ -17,7 +17,7 @@ function normalizar(s: string) {
 
 function PersonCard({ m, motivo }: { m: MemberPublic; motivo?: string }) {
   const { me } = useCommunity()
-  const perfil = `/comunidade/cientistas/${encodeURIComponent(m.username)}`
+  const perfil = `/comunidade/pessoas/${encodeURIComponent(m.username)}`
   return (
     <li className="flex flex-col rounded-2xl border border-comm-line p-5 transition-colors hover:border-comm-muted/40">
       <div className="flex items-start gap-3.5">
@@ -78,7 +78,7 @@ export default function CientistasPage() {
 
   return (
     <div className="mx-auto max-w-[1080px]">
-      <PageHeader eyebrow="Cientista" title="Quem constrói conhecimento aqui"
+      <PageHeader eyebrow="Pessoas" title="Quem constrói conhecimento aqui"
         description="Encontre especialistas, autores de experimentos e pessoas com interesses parecidos com os seus." />
 
       <div className="space-y-3 px-4 sm:px-6">

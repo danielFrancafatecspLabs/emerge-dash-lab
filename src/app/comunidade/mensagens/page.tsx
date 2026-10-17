@@ -159,7 +159,7 @@ function Thread({ com, onActivity }: { com: string; onActivity: () => void }) {
         <Link href="/comunidade/mensagens" aria-label="Voltar às conversas" className={cx('rounded-full p-1.5 text-comm-body hover:bg-comm-soft md:hidden', focusRing)}>
           <ArrowLeft className="h-5 w-5" aria-hidden />
         </Link>
-        <Link href={`/comunidade/cientistas/${encodeURIComponent(com)}`} className={cx('flex min-w-0 items-center gap-3 rounded-xl', focusRing)}>
+        <Link href={`/comunidade/pessoas/${encodeURIComponent(com)}`} className={cx('flex min-w-0 items-center gap-3 rounded-xl', focusRing)}>
           <Avatar nome={nome} src={outro?.avatar} size={40} ativo={outro?.ativoAgora} />
           <span className="min-w-0">
             <span className="block truncate font-semibold">{nome}</span>

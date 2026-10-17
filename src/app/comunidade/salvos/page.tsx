@@ -74,14 +74,14 @@ export default function SalvosPage() {
 
         {aba === 'pessoas' && (seguidas.length === 0 ? (
           <EmptyState icon={UsersRound} title="Você ainda não segue ninguém"
-            action={<Link href="/comunidade/cientistas" className="text-sm font-medium text-comm-red hover:underline">Descobrir pessoas</Link>}>
+            action={<Link href="/comunidade/pessoas" className="text-sm font-medium text-comm-red hover:underline">Descobrir pessoas</Link>}>
             As publicações de quem você segue aparecem primeiro no feed.
           </EmptyState>
         ) : (
           <ul className="divide-y divide-comm-line px-4 sm:px-6">
             {seguidas.map(m => m && (
               <li key={m.username} className="flex items-center gap-3 py-3">
-                <Link href={`/comunidade/cientistas/${encodeURIComponent(m.username)}`} className={cx('flex min-w-0 flex-1 items-center gap-3 rounded-xl', focusRing)}>
+                <Link href={`/comunidade/pessoas/${encodeURIComponent(m.username)}`} className={cx('flex min-w-0 flex-1 items-center gap-3 rounded-xl', focusRing)}>
                   <Avatar nome={m.nome} src={m.avatar} size={42} ativo={m.ativoAgora} />
                   <span className="min-w-0"><span className="block truncate text-sm font-semibold">{m.nome}</span><span className="block truncate text-xs text-comm-muted">{m.especialidade || m.laboratorio}</span></span>
                 </Link>

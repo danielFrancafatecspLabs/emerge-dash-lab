@@ -41,7 +41,7 @@ function MaterialRow({ post }: { post: CommunityPost }) {
         <Link href={`/comunidade/post/${post.id}`} className="mt-1 block text-[16px] font-semibold leading-snug text-comm-ink hover:underline">{post.title}</Link>
         <p className="mt-1 line-clamp-2 text-sm leading-relaxed text-comm-body">{post.content}</p>
         <p className="mt-2 text-[13px] text-comm-muted">
-          Compartilhado por <Link href={`/comunidade/cientistas/${encodeURIComponent(post.authorUsername)}`} className="font-medium text-comm-body hover:underline">{post.authorName}</Link>
+          Compartilhado por <Link href={`/comunidade/pessoas/${encodeURIComponent(post.authorUsername)}`} className="font-medium text-comm-body hover:underline">{post.authorName}</Link>
           {' · '}{tempoRelativo(post.createdAt)}
           {post.tags.length > 0 && <> · {post.tags.map(topicLabel).join(', ')}</>}
         </p>

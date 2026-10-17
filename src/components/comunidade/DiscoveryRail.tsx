@@ -66,7 +66,7 @@ function MessageLink({ username, nome }: { username: string; nome: string }) {
 function PersonRow({ m, detalhe, action }: { m: MemberPublic; detalhe: string; action?: React.ReactNode }) {
   return (
     <li className="flex items-center gap-3">
-      <Link href={`/comunidade/cientistas/${encodeURIComponent(m.username)}`} className={cx('flex min-w-0 flex-1 items-center gap-3 rounded-xl', focusRing)}>
+      <Link href={`/comunidade/pessoas/${encodeURIComponent(m.username)}`} className={cx('flex min-w-0 flex-1 items-center gap-3 rounded-xl', focusRing)}>
         <Avatar nome={m.nome} src={m.avatar} size={38} ativo={m.ativoAgora} />
         <span className="min-w-0">
           <span className="block truncate text-sm font-semibold text-comm-ink">{m.nome}</span>
@@ -124,14 +124,14 @@ export function DiscoveryRail() {
       </section>
 
       <section>
-        <SectionTitle action={<Link href="/comunidade/cientistas" className="text-xs font-medium text-comm-muted hover:text-comm-ink">Ver todas</Link>}>
+        <SectionTitle action={<Link href="/comunidade/pessoas" className="text-xs font-medium text-comm-muted hover:text-comm-ink">Ver todas</Link>}>
           Pessoas para conhecer
         </SectionTitle>
         {sugestoes.length === 0 ? (
           <p className="text-sm text-comm-muted">
             {me && me.profile.interesses.length === 0
-              ? <>Escolha seus interesses no <Link className="font-medium text-comm-ink underline-offset-2 hover:underline" href={`/comunidade/cientistas/${encodeURIComponent(me.username)}`}>seu perfil</Link> para receber sugestões.</>
-              : 'Ainda não há outras pessoas com os mesmos interesses. Explore a aba Cientista.'}
+              ? <>Escolha seus interesses no <Link className="font-medium text-comm-ink underline-offset-2 hover:underline" href={`/comunidade/pessoas/${encodeURIComponent(me.username)}`}>seu perfil</Link> para receber sugestões.</>
+              : 'Ainda não há outras pessoas com os mesmos interesses. Veja todas em Pessoas.'}
           </p>
         ) : (
           <ul className="space-y-3">

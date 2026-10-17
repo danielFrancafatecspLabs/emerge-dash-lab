@@ -7,7 +7,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import {
-  Bell, BookOpen, Bookmark, ChevronLeft, Home, LogOut, MessageCircle, MoreHorizontal, PenSquare, Route,
+  Bell, BookOpen, Bookmark, ChevronLeft, FlaskConical, Home, LogOut, MessageCircle, MoreHorizontal, PenSquare, Route,
   Settings2, Telescope, UserRound, Users, type LucideIcon,
 } from 'lucide-react'
 import { topicLabel } from '@/lib/community-topics'
@@ -21,7 +21,7 @@ import { Toaster } from './Toaster'
 
 export const AREAS: { href: string; label: string; short: string; icon: LucideIcon }[] = [
   { href: '/comunidade', label: 'Comunidade', short: 'Início', icon: Home },
-  { href: '/comunidade/cientistas', label: 'Cientista', short: 'Cientista', icon: Users },
+  { href: '/comunidade/cientista', label: 'Cientista', short: 'Cientista', icon: FlaskConical },
   { href: '/comunidade/pesquisas', label: 'Pesquisas', short: 'Pesquisas', icon: BookOpen },
   { href: '/comunidade/future-thinking', label: 'Future Thinking', short: 'Futuro', icon: Telescope },
   { href: '/comunidade/trilha', label: 'Trilha de Experimentação', short: 'Trilha', icon: Route },
@@ -98,7 +98,7 @@ function ProfileMenu({ onPrefs }: { onPrefs: () => void }) {
       </button>
       {open && (
         <div role="menu" className="absolute bottom-full left-0 z-40 mb-2 w-60 rounded-xl border border-comm-line bg-white p-1.5 shadow-xl">
-          <Link role="menuitem" href={`/comunidade/cientistas/${encodeURIComponent(me.username)}`} className={itemCls} onClick={() => setOpen(false)}>
+          <Link role="menuitem" href={`/comunidade/pessoas/${encodeURIComponent(me.username)}`} className={itemCls} onClick={() => setOpen(false)}>
             <UserRound className="h-4 w-4" aria-hidden /> Meu perfil
           </Link>
           <button role="menuitem" type="button" className={itemCls} onClick={() => { setOpen(false); onPrefs() }}>
@@ -139,13 +139,16 @@ export function CommunityShell({ children }: { children: ReactNode }) {
           <span className="text-[15px] font-semibold tracking-tight">Comunidade</span>
         </Link>
         <div className="flex items-center gap-0.5">
+          <Link href="/comunidade/pessoas" aria-label="Pessoas" className={cx('inline-flex h-9 w-9 items-center justify-center rounded-full text-comm-body hover:bg-comm-soft', focusRing)}>
+            <Users className="h-[18px] w-[18px]" aria-hidden />
+          </Link>
           <IconButton icon={Bell} label="Notificações" badge={counts.notificacoes} onClick={() => setNotifOpen(true)} />
           <Link href="/comunidade/mensagens" aria-label={`Mensagens${counts.mensagens ? ` (${counts.mensagens} não lidas)` : ''}`} className={cx('relative inline-flex h-9 w-9 items-center justify-center rounded-full text-comm-body hover:bg-comm-soft', focusRing)}>
             <MessageCircle className="h-[18px] w-[18px]" aria-hidden />
             {!!counts.mensagens && <CountBadge n={counts.mensagens} className="absolute -right-0.5 -top-0.5" />}
           </Link>
           {me && (
-            <Link href={`/comunidade/cientistas/${encodeURIComponent(me.username)}`} aria-label="Meu perfil" className={cx('ml-1 rounded-full', focusRing)}>
+            <Link href={`/comunidade/pessoas/${encodeURIComponent(me.username)}`} aria-label="Meu perfil" className={cx('ml-1 rounded-full', focusRing)}>
               <Avatar nome={me.nome} src={me.avatar} size={30} />
             </Link>
           )}
@@ -168,6 +171,7 @@ export function CommunityShell({ children }: { children: ReactNode }) {
           <div className="my-4 h-px bg-comm-line" />
 
           <nav aria-label="Atalhos" className="space-y-1">
+            <NavLink href="/comunidade/pessoas" label="Pessoas" icon={Users} active={path.startsWith('/comunidade/pessoas')} compact />
             <NavLink href="/comunidade/mensagens" label="Mensagens" icon={MessageCircle} active={path.startsWith('/comunidade/mensagens')} badge={counts.mensagens} compact />
             <button
               type="button"
@@ -230,7 +234,7 @@ export function CommunityShell({ children }: { children: ReactNode }) {
           )
         })}
       </nav>
-      {!path.startsWith('/comunidade/mensagens') && (
+      {!path.startsWith('/comunidade/mensagens') && !path.startsWith('/comunidade/cientista/') && (
         <button
           type="button"
           onClick={() => openComposer()}

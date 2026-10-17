@@ -150,7 +150,7 @@ function Feed() {
           ) : (
             <EmptyState icon={Inbox} title={VAZIO[filtro][0]}
               action={filtro === 'seguindo'
-                ? <Button variant="secondary" onClick={() => router.push('/comunidade/cientistas')}>Descobrir pessoas</Button>
+                ? <Button variant="secondary" onClick={() => router.push('/comunidade/pessoas')}>Descobrir pessoas</Button>
                 : <Button variant="primary" onClick={() => openComposer({ kind: filtro === 'pesquisas' ? 'pesquisa' : filtro === 'experimentos' ? 'experimento' : filtro === 'sem-resposta' ? 'pergunta' : 'discussao' })}>Criar publicação</Button>}>
               {VAZIO[filtro][1]}
             </EmptyState>

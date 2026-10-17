@@ -1,8 +1,16 @@
 import { DEFAULT_NOTIFICATION_PREFS, type NotificationPrefs } from './community'
 import { isKnownTopic } from './community-topics'
+import type { PapelConversa } from './cientista'
 import { jsonStorePath, readJsonStore, writeJsonStore } from './json-store'
 
 // Perfil social de cada pessoa na Comunidade, separado do cadastro de acesso (data/users.json).
+
+/** Conversa com o Cientista aberta por esta pessoa (o backend do Cientista não tem login). */
+export interface SessaoCientista {
+  id: string
+  papel: PapelConversa
+  criadaEm: string
+}
 
 export interface CommunityProfile {
   username: string
@@ -17,6 +25,7 @@ export interface CommunityProfile {
   notificacoes: NotificationPrefs
   notificacoesVistasEm: string | null
   onboardedAt: string | null
+  cientistaSessoes: SessaoCientista[]
 }
 
 export function emptyProfile(username: string): CommunityProfile {
@@ -33,6 +42,7 @@ export function emptyProfile(username: string): CommunityProfile {
     notificacoes: { ...DEFAULT_NOTIFICATION_PREFS },
     notificacoesVistasEm: null,
     onboardedAt: null,
+    cientistaSessoes: [],
   }
 }
 
@@ -109,4 +119,15 @@ export function applyProfilePatch(profile: CommunityProfile, patch: ProfilePatch
   if (patch.marcarNotificacoesVistas === true) next.notificacoesVistasEm = now.toISOString()
   if (patch.concluirOnboarding === true && !next.onboardedAt) next.onboardedAt = now.toISOString()
   return next
+}
+
+const MAX_SESSOES_CIENTISTA = 50
+
+export function registrarSessaoCientista(profile: CommunityProfile, sessao: SessaoCientista): CommunityProfile {
+  const outras = profile.cientistaSessoes.filter(x => x.id !== sessao.id)
+  return { ...profile, cientistaSessoes: [sessao, ...outras].slice(0, MAX_SESSOES_CIENTISTA) }
+}
+
+export function isDonoSessaoCientista(profile: CommunityProfile, sid: string): boolean {
+  return profile.cientistaSessoes.some(x => x.id === sid)
 }

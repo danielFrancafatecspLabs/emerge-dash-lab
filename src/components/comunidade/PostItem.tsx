@@ -98,7 +98,7 @@ function PostMenu({ post, onDelete }: { post: CommunityPost; onDelete: () => voi
       </button>
       {open && (
         <div role="menu" className="absolute right-0 top-full z-20 mt-1 w-56 rounded-xl border border-comm-line bg-white p-1.5 shadow-xl">
-          <Link role="menuitem" href={`/comunidade/cientistas/${encodeURIComponent(post.authorUsername)}`} className={item}>
+          <Link role="menuitem" href={`/comunidade/pessoas/${encodeURIComponent(post.authorUsername)}`} className={item}>
             <UserRound className="h-4 w-4" aria-hidden /> {isMine ? 'Ver meu perfil' : 'Ver perfil'}
           </Link>
           {!isMine && (
@@ -195,13 +195,13 @@ function CommentView({ post, comment, onReply }: { post: CommunityPost; comment:
   const autor = member(comment.authorUsername)
   return (
     <div className="flex gap-2.5">
-      <Link href={`/comunidade/cientistas/${encodeURIComponent(comment.authorUsername)}`} className={cx('rounded-full', focusRing)} aria-label={`Perfil de ${comment.authorName}`}>
+      <Link href={`/comunidade/pessoas/${encodeURIComponent(comment.authorUsername)}`} className={cx('rounded-full', focusRing)} aria-label={`Perfil de ${comment.authorName}`}>
         <Avatar nome={comment.authorName} src={autor?.avatar} size={30} />
       </Link>
       <div className="min-w-0 flex-1">
         <div className="rounded-2xl bg-comm-soft px-3.5 py-2.5">
           <p className="text-[13px]">
-            <Link href={`/comunidade/cientistas/${encodeURIComponent(comment.authorUsername)}`} className="font-semibold text-comm-ink hover:underline">{comment.authorName}</Link>
+            <Link href={`/comunidade/pessoas/${encodeURIComponent(comment.authorUsername)}`} className="font-semibold text-comm-ink hover:underline">{comment.authorName}</Link>
             {autor?.especialidade && <span className="text-comm-muted"> · {autor.especialidade}</span>}
           </p>
           <RichText className="mt-0.5 text-sm">{comment.content}</RichText>
@@ -323,7 +323,7 @@ export function PostItem({ post, detail, onTopic }: { post: CommunityPost; detai
     }
   }
 
-  const perfil = `/comunidade/cientistas/${encodeURIComponent(post.authorUsername)}`
+  const perfil = `/comunidade/pessoas/${encodeURIComponent(post.authorUsername)}`
   const subtitulo = autor?.especialidade || autor?.cargo || post.authorLab || autor?.laboratorio
 
   return (
