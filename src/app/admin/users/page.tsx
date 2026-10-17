@@ -6,8 +6,8 @@ import LogoutButton from '@/components/layout/LogoutButton'
 import { UserPublic } from '@/lib/users'
 import { Users, Plus, Pencil, Trash2, X, Check, Shield, Eye, Wallet } from 'lucide-react'
 
-type FormState = { username: string; password: string; role: 'admin' | 'executivo' | 'viewer' | 'financeiro' }
-const EMPTY_FORM: FormState = { username: '', password: '', role: 'viewer' }
+type FormState = { username: string; password: string; role: 'admin' | 'executivo' | 'viewer' | 'financeiro'; nome: string; laboratorio: string }
+const EMPTY_FORM: FormState = { username: '', password: '', role: 'viewer', nome: '', laboratorio: '' }
 
 export default function AdminUsersPage() {
   const [users, setUsers] = useState<UserPublic[]>([])
@@ -43,14 +43,14 @@ export default function AdminUsersPage() {
 
   function openEdit(u: UserPublic) {
     setEditingId(u.id)
-    setForm({ username: u.username, password: '', role: u.role })
+    setForm({ username: u.username, password: '', role: u.role, nome: u.nome || '', laboratorio: u.laboratorio || '' })
     setShowForm(true)
   }
 
   async function save() {
     setSaving(true)
     try {
-      const body: Record<string, unknown> = { username: form.username, role: form.role }
+      const body: Record<string, unknown> = { username: form.username, role: form.role, nome: form.nome, laboratorio: form.laboratorio }
       if (form.password) body.password = form.password
       if (!editingId) body.password = form.password // obrigatório no create
 
@@ -140,7 +140,7 @@ export default function AdminUsersPage() {
                   <X size={16} className="text-gray-400 hover:text-gray-600" />
                 </button>
               </div>
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs text-gray-500 mb-1">Usuário</label>
                   <input
@@ -163,14 +163,33 @@ export default function AdminUsersPage() {
                   />
                 </div>
                 <div>
+                  <label className="block text-xs text-gray-500 mb-1">Nome</label>
+                  <input
+                    className="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-red-600"
+                    value={form.nome}
+                    onChange={e => setForm(f => ({ ...f, nome: e.target.value }))}
+                    placeholder="Nome completo"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Laboratório</label>
+                  <input
+                    className="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-red-600"
+                    value={form.laboratorio}
+                    onChange={e => setForm(f => ({ ...f, laboratorio: e.target.value }))}
+                    placeholder="Ex: BeOn Lab"
+                  />
+                </div>
+                <div>
                   <label className="block text-xs text-gray-500 mb-1">Perfil</label>
                   <select
                     className="w-full border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-red-600"
                     value={form.role}
-                    onChange={e => setForm(f => ({ ...f, role: e.target.value as 'admin' | 'viewer' | 'financeiro' }))}
+                    onChange={e => setForm(f => ({ ...f, role: e.target.value as 'admin' | 'executivo' | 'viewer' | 'financeiro' }))}
                   >
                     <option value="viewer">Viewer</option>
                     <option value="financeiro">Financeiro</option>
+                    <option value="executivo">Executivo</option>
                     <option value="admin">Admin</option>
                   </select>
                 </div>
@@ -201,6 +220,8 @@ export default function AdminUsersPage() {
                 <thead>
                   <tr className="border-b border-gray-100 bg-gray-50">
                     <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wider">Usuário</th>
+                    <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wider">Nome</th>
+                    <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wider">Laboratório</th>
                     <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wider">Perfil</th>
                     <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
                     <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-500 uppercase tracking-wider">Criado em</th>
@@ -211,6 +232,8 @@ export default function AdminUsersPage() {
                   {users.map(u => (
                     <tr key={u.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50">
                       <td className="px-4 py-3 font-medium text-gray-800">{u.username}</td>
+                      <td className="px-4 py-3 text-gray-700">{u.nome || '—'}</td>
+                      <td className="px-4 py-3 text-gray-500 text-xs">{u.laboratorio || '—'}</td>
                       <td className="px-4 py-3">
                         <span className={`inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full ${
                           u.role === 'admin'
