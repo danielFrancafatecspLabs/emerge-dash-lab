@@ -7,6 +7,10 @@ import { clientIp } from '@/lib/auth/request'
 // 8 tentativas erradas por IP + usuário a cada 15 minutos.
 const limiter = new FailureLimiter(8, 15 * 60 * 1000)
 
+function isHttps(request: Request): boolean {
+  return new URL(request.url).protocol === 'https:' || request.headers.get('x-forwarded-proto')?.split(',')[0]?.trim() === 'https'
+}
+
 export async function POST(request: Request) {
   let username = ''
   let password = ''
@@ -52,7 +56,8 @@ export async function POST(request: Request) {
 
   const cookieOpts = {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
+    // Secure só quando a requisição chegou por HTTPS: num servidor em HTTP, o navegador descartaria o cookie.
+    secure: isHttps(request),
     sameSite: 'lax' as const,
     maxAge: 60 * 60 * 24 * 7,
     path: '/',

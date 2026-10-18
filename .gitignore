@@ -22,10 +22,8 @@ npm-debug.log*
 .segmento-cache-v2.json
 
 # Dados gravados pela aplicação em tempo de execução (Comunidade)
-data/posts.json
 data/community-profiles.json
 data/community-messages.json
-data/chat-presence.json
 data/stories.json
 
 # Saídas de scripts

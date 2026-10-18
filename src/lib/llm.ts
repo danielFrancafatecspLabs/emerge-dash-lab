@@ -14,8 +14,8 @@ export const DEPLOYMENT =
 
 /**
  * Cliente para o proxy LiteLLM. Variáveis de ambiente: LLM_API_KEY, LLM_API_BASE, LLM_MODEL.
- * O certificado TLS é verificado. Para um proxy interno com certificado autoassinado,
- * defina LLM_TLS_INSECURE=1 (aceita qualquer certificado: use só em rede confiável).
+ * Como sempre funcionou em produção, o certificado TLS do proxy não é verificado (o proxy interno usa
+ * certificado autoassinado). Para exigir um certificado válido, defina LLM_TLS_VERIFY=1.
  */
 export function getLiteLLMClient(): OpenAI {
   const apiKey   = process.env.LLM_API_KEY
@@ -26,7 +26,7 @@ export function getLiteLLMClient(): OpenAI {
   return new OpenAI({
     baseURL: endpoint,
     apiKey,
-    httpAgent: isHttps && process.env.LLM_TLS_INSECURE === '1'
+    httpAgent: isHttps && process.env.LLM_TLS_VERIFY !== '1'
       ? new https.Agent({ rejectUnauthorized: false })
       : undefined,
   })
