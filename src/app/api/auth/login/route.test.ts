@@ -69,3 +69,28 @@ describe('POST /api/auth/login — cadastro pendente', () => {
     expect(response.headers.getSetCookie().join('\n')).not.toContain('auth_session=')
   })
 })
+
+describe('POST /api/auth/login — cookie Secure', () => {
+  beforeEach(async () => {
+    process.env.AUTH_SECRET = 'server-only-test-secret'
+    const users = await import('@/lib/auth/users')
+    vi.mocked(users.checkLogin).mockReturnValue({ user: { username: 'admin@example.com', role: 'admin' } } as never)
+  })
+
+  const entrar = (url: string, headers: Record<string, string> = {}) => POST(new Request(url, {
+    method: 'POST',
+    headers: { 'x-forwarded-for': '192.0.2.10', ...headers },
+    body: JSON.stringify({ username: 'admin@example.com', password: 'senha-certa-123' }),
+  }))
+
+  it('não marca Secure num servidor acessado por HTTP (o navegador descartaria o cookie)', async () => {
+    const cookies = (await entrar('http://servidor:3003/jira/api/auth/login')).headers.getSetCookie().join('\n')
+    expect(cookies).toContain('auth_session=')
+    expect(cookies).not.toMatch(/;\s*Secure/i)
+  })
+
+  it('marca Secure quando o acesso chega por HTTPS, direto ou via proxy', async () => {
+    expect((await entrar('https://servidor/jira/api/auth/login')).headers.getSetCookie().join('\n')).toMatch(/;\s*Secure/i)
+    expect((await entrar('http://servidor:3003/jira/api/auth/login', { 'x-forwarded-proto': 'https' })).headers.getSetCookie().join('\n')).toMatch(/;\s*Secure/i)
+  })
+})

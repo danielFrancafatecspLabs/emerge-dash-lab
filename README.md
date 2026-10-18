@@ -68,7 +68,7 @@ src/
 │   ├── jira.ts, mappers.ts Cliente do Jira e montagem dos dados do painel
 │   └── …                   Regras do painel (weekly, semanal, governança, benefícios, report, IA)
 └── middleware.ts           Aplica a política de acesso a todas as requisições
-data/                       Usuários e validações de benefício; arquivos da Comunidade (não versionados)
+data/                       Usuários, validações de benefício e posts; perfis, mensagens e stories da Comunidade não são versionados
 docs/                       Documentação funcional e referências
 ops/                        Implantação do acervo de pesquisas (systemd)
 scripts/                    Exportação da Weekly e criação de admin
@@ -99,6 +99,22 @@ contagem): o admin escolhe o perfil e aprova, ou recusa e o pedido é removido.
 - `POST /api/auth/register` é público, limitado a 5 pedidos por IP por hora e a 300 pedidos pendentes no total.
 - Um e-mail já cadastrado recebe a mesma resposta de um pedido novo, para não revelar quem tem conta.
 - `POST /api/admin/users/:id/aprovacao` (`{ decisao: "aprovar" | "recusar", role }`) é só para admin.
+
+## Weekly: slide do Comitê e PPTX editável
+
+A aba **Weekly** abre com o slide "beOn Labs — visão geral" do deck do Comitê (V6), montado com os dados do Jira:
+total e composição dos experimentos, funil Exploração → Experimentação → Piloto → Em escala, benefício potencial
+e principais métricas. Os números são os mesmos da aba Semanal (`buildSemanalData`), formatados uma única vez em
+`src/lib/comite-resumo.ts` — a tela e o arquivo nunca divergem.
+
+- **Na tela** (`src/components/weekly/ComiteResumoSlide.tsx`): reproduz o slide nas coordenadas, cores, fontes e
+  ícones do original. Os botões DETALHES abrem a lista correspondente na aba Semanal.
+- **Baixar PPTX editável** (`GET /api/weekly/comite/pptx`, só admin): parte do próprio slide original
+  (`templates/comite-resumo.pptx`) e troca apenas textos, ângulos dos anéis e links — o arquivo mantém o design do
+  deck e continua editável no PowerPoint. Sem o Jira, gera com os dados de exemplo (o nome do arquivo termina em
+  `-exemplo`).
+
+Para mudar o design do slide, edite o modelo no PowerPoint mantendo as formas (o gerador as encontra pelo id).
 
 ## Design system
 
@@ -132,8 +148,8 @@ substitua o arquivo ou defina `NEXT_PUBLIC_LOGIN_PHOTO_URL`.
 
 - Senhas com PBKDF2-SHA512 (100 mil iterações) e comparação em tempo constante.
 - Login limitado a 8 tentativas por IP e usuário a cada 15 minutos.
-- Cookies `HttpOnly`, `SameSite=Lax` e `Secure` em produção.
-- Cabeçalhos de segurança em todas as respostas (CSP `frame-ancestors`, `X-Frame-Options`, `nosniff`, HSTS…).
+- Cookies `HttpOnly` e `SameSite=Lax`; `Secure` quando o acesso chega por HTTPS (direto ou via proxy com `X-Forwarded-Proto`).
+- Cabeçalhos de segurança em todas as respostas (CSP `frame-ancestors`, `X-Frame-Options`, `nosniff`…). HSTS fica a cargo do servidor web/proxy.
 - Senhas definidas no Admin precisam de 10+ caracteres e não podem ser triviais; nenhum admin consegue
   desativar ou excluir o próprio acesso.
 - Links e imagens enviados por pessoas usuárias só aceitam `http(s)` ou caminhos internos.

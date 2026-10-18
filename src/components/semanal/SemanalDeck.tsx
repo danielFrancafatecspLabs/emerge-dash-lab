@@ -1,9 +1,10 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { Maximize2, Presentation } from 'lucide-react'
 import type { SemanalData, SemanalSecaoId } from '@/lib/semanal'
 import PresentationOverlay from '@/components/weekly/PresentationOverlay'
+import FitSlide from '@/components/weekly/FitSlide'
 import ResumoSlide from './ResumoSlide'
 import ListaSlide, { LINHAS_POR_PAGINA } from './ListaSlide'
 import { CapaSlide, DivisorSlide, ObjetivoSlide, ObrigadoSlide, SLIDE_H, SLIDE_W } from './SlideArt'
@@ -20,28 +21,6 @@ interface SlideDef {
 
 interface Navegacao {
   irPara: (anchor: string) => void
-}
-
-/** Escala um slide fixo de 1280×720 para a largura disponível. */
-function FitSlide({ children }: { children: ReactNode }) {
-  const ref = useRef<HTMLDivElement>(null)
-  const [scale, setScale] = useState(1)
-  useEffect(() => {
-    const el = ref.current
-    if (!el) return
-    const calc = () => setScale(Math.min(1, el.clientWidth / SLIDE_W))
-    calc()
-    const ro = new ResizeObserver(calc)
-    ro.observe(el)
-    return () => ro.disconnect()
-  }, [])
-  return (
-    <div ref={ref} style={{ width: '100%', maxWidth: SLIDE_W }}>
-      <div style={{ width: SLIDE_W * scale, height: SLIDE_H * scale, overflow: 'hidden', borderRadius: 6, boxShadow: '0 2px 10px rgba(15,23,42,0.12)' }}>
-        <div style={{ transform: `scale(${scale})`, transformOrigin: 'top left' }}>{children}</div>
-      </div>
-    </div>
-  )
 }
 
 function montarSlides(data: SemanalData): SlideDef[] {
@@ -105,6 +84,12 @@ export default function SemanalDeck() {
   }, [])
 
   const slides = useMemo(() => (data ? montarSlides(data) : []), [data])
+
+  // Links como /semanal#semanal-escala (botões DETALHES da Weekly): rola até o slide quando os dados chegam.
+  useEffect(() => {
+    if (!slides.length || !window.location.hash.startsWith('#semanal-')) return
+    requestAnimationFrame(() => document.getElementById(window.location.hash.slice(1))?.scrollIntoView({ block: 'start' }))
+  }, [slides])
 
   // Na página: rola até o slide. Na apresentação: troca o slide exibido.
   const navPagina: Navegacao = useMemo(() => ({
