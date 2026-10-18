@@ -25,6 +25,8 @@ const nextConfig = {
     },
     // Keep native/server-only packages out of the Next.js 14 webpack bundle.
     serverComponentsExternalPackages: ['@react-pdf/renderer', '@resvg/resvg-js'],
+    // O PPTX da Weekly é gerado a partir deste modelo, lido do disco em tempo de execução.
+    outputFileTracingIncludes: { '/api/weekly/comite/pptx': ['./templates/**'] },
   },
   webpack: (config) => {
     // @react-pdf/renderer needs these Node.js modules

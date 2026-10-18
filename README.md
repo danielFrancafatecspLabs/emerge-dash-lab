@@ -100,6 +100,22 @@ contagem): o admin escolhe o perfil e aprova, ou recusa e o pedido é removido.
 - Um e-mail já cadastrado recebe a mesma resposta de um pedido novo, para não revelar quem tem conta.
 - `POST /api/admin/users/:id/aprovacao` (`{ decisao: "aprovar" | "recusar", role }`) é só para admin.
 
+## Weekly: slide do Comitê e PPTX editável
+
+A aba **Weekly** abre com o slide "beOn Labs — visão geral" do deck do Comitê (V6), montado com os dados do Jira:
+total e composição dos experimentos, funil Exploração → Experimentação → Piloto → Em escala, benefício potencial
+e principais métricas. Os números são os mesmos da aba Semanal (`buildSemanalData`), formatados uma única vez em
+`src/lib/comite-resumo.ts` — a tela e o arquivo nunca divergem.
+
+- **Na tela** (`src/components/weekly/ComiteResumoSlide.tsx`): reproduz o slide nas coordenadas, cores, fontes e
+  ícones do original. Os botões DETALHES abrem a lista correspondente na aba Semanal.
+- **Baixar PPTX editável** (`GET /api/weekly/comite/pptx`, só admin): parte do próprio slide original
+  (`templates/comite-resumo.pptx`) e troca apenas textos, ângulos dos anéis e links — o arquivo mantém o design do
+  deck e continua editável no PowerPoint. Sem o Jira, gera com os dados de exemplo (o nome do arquivo termina em
+  `-exemplo`).
+
+Para mudar o design do slide, edite o modelo no PowerPoint mantendo as formas (o gerador as encontra pelo id).
+
 ## Design system
 
 Comunidade, login e painéis usam os mesmos tokens de cor (`beon-*` em `tailwind.config.ts`: `red`, `redhi`, `tint`,
