@@ -8,8 +8,8 @@ import { api, ApiError, errorMessage } from '@/components/comunidade/api'
 import { useCommunity } from '@/components/comunidade/CommunityProvider'
 import { PageColumns } from '@/components/comunidade/CommunityShell'
 import { DiscoveryRail } from '@/components/comunidade/DiscoveryRail'
-import { PostItem } from '@/components/comunidade/PostItem'
-import { EmptyState, ErrorState, PostSkeleton, cx, focusRing } from '@/components/comunidade/ui'
+import { PostItem, PostSkeleton } from '@/components/comunidade/PostItem'
+import { EmptyState, ErrorState, cx, focusRing } from '@/components/ui'
 
 export default function PostPage({ params }: { params: { id: string } }) {
   const { posts, upsertPost } = useCommunity()
@@ -31,8 +31,8 @@ export default function PostPage({ params }: { params: { id: string } }) {
 
   return (
     <PageColumns aside={<DiscoveryRail />}>
-      <div className="flex items-center gap-2 border-b border-comm-line px-2 py-2 sm:px-4">
-        <Link href="/comunidade" className={cx('inline-flex items-center gap-2 rounded-full px-3 py-2 text-sm font-medium text-comm-body hover:bg-comm-soft', focusRing)}>
+      <div className="flex items-center gap-2 border-b border-beon-line px-2 py-2 sm:px-4">
+        <Link href="/comunidade" className={cx('inline-flex items-center gap-2 rounded-full px-3 py-2 text-sm font-medium text-beon-body hover:bg-beon-soft', focusRing)}>
           <ArrowLeft className="h-4 w-4" aria-hidden /> Voltar ao feed
         </Link>
       </div>

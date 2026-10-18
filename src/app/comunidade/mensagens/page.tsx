@@ -8,7 +8,7 @@ import { MAX_MESSAGE_LENGTH, type ConversationSummary, type DirectMessage } from
 import { api, errorMessage } from '@/components/comunidade/api'
 import { useCommunity } from '@/components/comunidade/CommunityProvider'
 import { horaCurta, tempoRelativo } from '@/components/comunidade/format'
-import { Avatar, CountBadge, EmptyState, ErrorState, Skeleton, cx, focusRing, inputClass } from '@/components/comunidade/ui'
+import { Avatar, CountBadge, EmptyState, ErrorState, Skeleton, cx, focusRing, inputClass } from '@/components/ui'
 
 const POLL_MS = 8000
 
@@ -40,10 +40,10 @@ function ConversationList({ conversas, erro, atual, onRetry }: { conversas: Conv
 
   return (
     <div className="flex h-full flex-col">
-      <div className="border-b border-comm-line p-4">
+      <div className="border-b border-beon-line p-4">
         <h1 className="mb-3 text-xl font-semibold tracking-tight">Mensagens</h1>
         <div className="relative">
-          <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-comm-muted" aria-hidden />
+          <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-beon-muted" aria-hidden />
           <label htmlFor="busca-conversa" className="sr-only">Buscar pessoa para conversar</label>
           <input id="busca-conversa" type="search" value={busca} onChange={e => setBusca(e.target.value)} placeholder="Nova conversa: buscar pessoa"
             className={cx(inputClass, 'h-10 rounded-full py-2 pl-10 text-sm')} />
@@ -51,13 +51,13 @@ function ConversationList({ conversas, erro, atual, onRetry }: { conversas: Conv
       </div>
       <div className="flex-1 overflow-y-auto">
         {busca.trim() ? (
-          pessoas.length === 0 ? <p className="p-4 text-sm text-comm-muted">Ninguém encontrado com “{busca}”.</p> : (
+          pessoas.length === 0 ? <p className="p-4 text-sm text-beon-muted">Ninguém encontrado com “{busca}”.</p> : (
             <ul>
               {pessoas.map(m => (
                 <li key={m.username}>
-                  <button type="button" onClick={() => abrir(m.username)} className={cx('flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-comm-soft', focusRing)}>
+                  <button type="button" onClick={() => abrir(m.username)} className={cx('flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-beon-soft', focusRing)}>
                     <Avatar nome={m.nome} src={m.avatar} size={40} ativo={m.ativoAgora} />
-                    <span className="min-w-0"><span className="block truncate text-sm font-semibold">{m.nome}</span><span className="block truncate text-xs text-comm-muted">{m.especialidade || m.laboratorio}</span></span>
+                    <span className="min-w-0"><span className="block truncate text-sm font-semibold">{m.nome}</span><span className="block truncate text-xs text-beon-muted">{m.especialidade || m.laboratorio}</span></span>
                   </button>
                 </li>
               ))}
@@ -75,15 +75,15 @@ function ConversationList({ conversas, erro, atual, onRetry }: { conversas: Conv
               return (
                 <li key={c.id}>
                   <Link href={`${pathname}?com=${encodeURIComponent(c.com)}`} aria-current={atual === c.com ? 'page' : undefined}
-                    className={cx('flex items-center gap-3 px-4 py-3 hover:bg-comm-soft', atual === c.com && 'bg-comm-soft', focusRing)}>
+                    className={cx('flex items-center gap-3 px-4 py-3 hover:bg-beon-soft', atual === c.com && 'bg-beon-soft', focusRing)}>
                     <Avatar nome={nome} src={m?.avatar} size={44} ativo={m?.ativoAgora} />
                     <span className="min-w-0 flex-1">
                       <span className="flex items-baseline justify-between gap-2">
                         <span className={cx('truncate text-sm', c.naoLidas ? 'font-bold' : 'font-semibold')}>{nome}</span>
-                        {c.ultima && <span className="shrink-0 text-xs text-comm-muted">{tempoRelativo(c.ultima.createdAt)}</span>}
+                        {c.ultima && <span className="shrink-0 text-xs text-beon-muted">{tempoRelativo(c.ultima.createdAt)}</span>}
                       </span>
                       <span className="flex items-center gap-2">
-                        <span className={cx('truncate text-[13px]', c.naoLidas ? 'font-medium text-comm-ink' : 'text-comm-muted')}>
+                        <span className={cx('truncate text-[13px]', c.naoLidas ? 'font-medium text-beon-ink' : 'text-beon-muted')}>
                           {c.ultima?.from === me?.username ? 'Você: ' : ''}{c.ultima?.text}
                         </span>
                         {c.naoLidas > 0 && <CountBadge n={c.naoLidas} className="ml-auto shrink-0" />}
@@ -155,15 +155,15 @@ function Thread({ com, onActivity }: { com: string; onActivity: () => void }) {
 
   return (
     <div className="flex h-full flex-col">
-      <header className="flex items-center gap-3 border-b border-comm-line px-4 py-3">
-        <Link href="/comunidade/mensagens" aria-label="Voltar às conversas" className={cx('rounded-full p-1.5 text-comm-body hover:bg-comm-soft md:hidden', focusRing)}>
+      <header className="flex items-center gap-3 border-b border-beon-line px-4 py-3">
+        <Link href="/comunidade/mensagens" aria-label="Voltar às conversas" className={cx('rounded-full p-1.5 text-beon-body hover:bg-beon-soft md:hidden', focusRing)}>
           <ArrowLeft className="h-5 w-5" aria-hidden />
         </Link>
         <Link href={`/comunidade/pessoas/${encodeURIComponent(com)}`} className={cx('flex min-w-0 items-center gap-3 rounded-xl', focusRing)}>
           <Avatar nome={nome} src={outro?.avatar} size={40} ativo={outro?.ativoAgora} />
           <span className="min-w-0">
             <span className="block truncate font-semibold">{nome}</span>
-            <span className="block truncate text-xs text-comm-muted">
+            <span className="block truncate text-xs text-beon-muted">
               {outro?.ativoAgora ? 'Ativo agora' : outro?.ultimoAcesso ? `Visto ${tempoRelativo(outro.ultimoAcesso)}` : outro?.especialidade || outro?.laboratorio}
             </span>
           </span>
@@ -172,9 +172,9 @@ function Thread({ com, onActivity }: { com: string; onActivity: () => void }) {
 
       <div className="flex-1 overflow-y-auto px-4 py-5" aria-live="polite">
         {erro && !mensagens ? <ErrorState message={erro} onRetry={carregar} /> : !mensagens ? (
-          <div className="flex justify-center py-10"><Loader2 className="h-5 w-5 animate-spin text-comm-muted" aria-label="Carregando mensagens" /></div>
+          <div className="flex justify-center py-10"><Loader2 className="h-5 w-5 animate-spin text-beon-muted" aria-label="Carregando mensagens" /></div>
         ) : mensagens.length === 0 ? (
-          <p className="mx-auto max-w-xs py-10 text-center text-sm text-comm-muted">Comece a conversa com {nome.split(' ')[0]}. As mensagens ficam visíveis só para vocês dois.</p>
+          <p className="mx-auto max-w-xs py-10 text-center text-sm text-beon-muted">Comece a conversa com {nome.split(' ')[0]}. As mensagens ficam visíveis só para vocês dois.</p>
         ) : (
           <ol className="space-y-1.5">
             {mensagens.map((m, i) => {
@@ -183,10 +183,10 @@ function Thread({ com, onActivity }: { com: string; onActivity: () => void }) {
               return (
                 <li key={m.id} className={cx('flex', minha ? 'justify-end' : 'justify-start', novoBloco && i > 0 && 'pt-2')}>
                   <div className={cx('max-w-[78%] rounded-2xl px-3.5 py-2 text-[15px] leading-snug',
-                    minha ? 'rounded-br-md bg-comm-red text-white' : 'rounded-bl-md bg-comm-soft text-comm-ink',
+                    minha ? 'rounded-br-md bg-beon-red text-white' : 'rounded-bl-md bg-beon-soft text-beon-ink',
                     m.estado === 'enviando' && 'opacity-60')}>
                     <p className="whitespace-pre-wrap break-words">{m.text}</p>
-                    <p className={cx('mt-0.5 text-right text-[11px]', minha ? 'text-white/75' : 'text-comm-muted')}>
+                    <p className={cx('mt-0.5 text-right text-[11px]', minha ? 'text-white/75' : 'text-beon-muted')}>
                       {m.estado === 'enviando' ? 'Enviando…' : horaCurta(m.createdAt)}
                     </p>
                   </div>
@@ -203,18 +203,18 @@ function Thread({ com, onActivity }: { com: string; onActivity: () => void }) {
         <div ref={fimRef} />
       </div>
 
-      <form onSubmit={submit} className="border-t border-comm-line p-3">
+      <form onSubmit={submit} className="border-t border-beon-line p-3">
         <div className="flex items-end gap-2">
           <label htmlFor="nova-mensagem" className="sr-only">Mensagem para {nome}</label>
           <textarea ref={inputRef} id="nova-mensagem" rows={1} value={texto} maxLength={MAX_MESSAGE_LENGTH} onChange={e => setTexto(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); e.currentTarget.form?.requestSubmit() } }}
             placeholder="Escreva uma mensagem" className={cx(inputClass, 'max-h-40 min-h-[44px] resize-none rounded-3xl py-2.5 [field-sizing:content]')} />
           <button type="submit" disabled={!texto.trim()} aria-label="Enviar mensagem"
-            className={cx('inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-comm-red text-white disabled:bg-comm-line disabled:text-comm-muted', focusRing)}>
+            className={cx('inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-beon-red text-white disabled:bg-beon-line disabled:text-beon-muted', focusRing)}>
             <Send className="h-4 w-4" aria-hidden />
           </button>
         </div>
-        <p className="mt-1.5 px-2 text-[11px] text-comm-muted">Enter envia · Shift+Enter quebra a linha · a conversa atualiza a cada poucos segundos</p>
+        <p className="mt-1.5 px-2 text-[11px] text-beon-muted">Enter envia · Shift+Enter quebra a linha · a conversa atualiza a cada poucos segundos</p>
       </form>
     </div>
   )
@@ -240,7 +240,7 @@ function Mensagens() {
 
   return (
     <div className="flex h-[calc(100dvh-7.5rem)] md:h-dvh">
-      <div className={cx('w-full shrink-0 border-r border-comm-line md:w-80 lg:w-96', com && 'hidden md:block')}>
+      <div className={cx('w-full shrink-0 border-r border-beon-line md:w-80 lg:w-96', com && 'hidden md:block')}>
         <ConversationList conversas={conversas} erro={erro} atual={com} onRetry={carregar} />
       </div>
       <div className={cx('min-w-0 flex-1', !com && 'hidden md:block')}>

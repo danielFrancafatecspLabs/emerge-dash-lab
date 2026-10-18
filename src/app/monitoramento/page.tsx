@@ -3,8 +3,7 @@ import { buildDashboardData, buildMonitoramentoData } from '@/lib/mappers'
 import { classifyPortfolios } from '@/lib/portfolio-classifier'
 import { classifySegmentos } from '@/lib/segmento-classifier'
 import type { PeriodoFiltro as PeriodoFiltroType } from '@/lib/types'
-import Sidebar from '@/components/layout/Sidebar'
-import LogoutButton from '@/components/layout/LogoutButton'
+import { PortalShell } from '@/components/portal/PortalShell'
 import PeriodoFiltro from '@/components/monitoramento/PeriodoFiltro'
 import KpiCards from '@/components/monitoramento/KpiCards'
 import BurnupChart from '@/components/monitoramento/BurnupChart'
@@ -12,6 +11,7 @@ import BeneficioPorAreaChart from '@/components/monitoramento/BeneficioPorAreaCh
 import { InsightsExecutivos } from '@/components/monitoramento/MaturidadeInsights'
 import IniciativasPorLab from '@/components/monitoramento/IniciativasPorLab'
 import CycleTimeEstrategia from '@/components/dashboard/CycleTimeEstrategia'
+import { PortalDataError } from '@/components/portal/PortalDataError'
 
 export const dynamic = 'force-dynamic'
 
@@ -72,41 +72,17 @@ export default async function MonitoramentoPage({
   }
 
   if (error || !data || !monitoramento) {
-    return (
-      <div className="flex min-h-dvh items-center justify-center" style={{ background: '#f8fafc' }}>
-        <div className="bg-white rounded-xl p-8 shadow-sm border border-gray-100 text-center max-w-lg">
-          <p className="text-2xl font-bold mb-2 text-gray-800">Erro ao carregar dados</p>
-          <p className="text-gray-500 text-sm">{error}</p>
-        </div>
-      </div>
-    )
+    return <PortalDataError title="Evolução da Experimentação 2026" error={error} />
   }
 
   return (
-    <div className="flex min-h-dvh" style={{ background: '#f8fafc' }}>
-      <Sidebar />
-
-      <main className="flex-1 flex flex-col min-w-0">
-        {/* Header */}
-        <header className="bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-1 h-8 rounded-full bg-red-500" />
-            <div>
-              <h1 className="text-lg font-bold text-gray-900">Evolução da Experimentação 2026</h1>
-              <p className="text-xs text-gray-500 mt-0.5 max-w-2xl">
-                Acompanhamento do desempenho do portfólio de experimentação, destacando geração de valor,
-                evolução das iniciativas e indicadores estratégicos.
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <PeriodoFiltro />
-            <LogoutButton />
-          </div>
-        </header>
-
-        {/* Content */}
-        <div className="flex-1 overflow-auto p-6 space-y-6">
+    <PortalShell
+      title="Evolução da Experimentação 2026"
+      description="Desempenho do portfólio: geração de valor, evolução das iniciativas e indicadores estratégicos"
+      refreshable
+      actions={<PeriodoFiltro />}
+    >
+        <div className="p-6 space-y-6">
           {/* Linha 1 — KPIs Estratégicos */}
           <KpiCards data={monitoramento} />
 
@@ -130,7 +106,6 @@ export default async function MonitoramentoPage({
             />
           )}
         </div>
-      </main>
-    </div>
+    </PortalShell>
   )
 }

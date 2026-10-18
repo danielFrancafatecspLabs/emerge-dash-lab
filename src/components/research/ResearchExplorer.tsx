@@ -98,7 +98,7 @@ export function ResearchExplorer() {
 
   if (loading) {
     return (
-      <div className="flex h-[calc(100dvh-52px)] items-center justify-center gap-3 bg-slate-100 text-sm font-medium text-slate-500">
+      <div className="flex min-h-0 flex-1 items-center justify-center gap-3 bg-slate-100 text-sm font-medium text-slate-500">
         <Loader2 className="h-5 w-5 animate-spin text-red-700" />
         Carregando o acervo de pesquisas…
       </div>
@@ -107,7 +107,7 @@ export function ResearchExplorer() {
 
   if (error || !vault) {
     return (
-      <div className="flex h-[calc(100dvh-52px)] items-center justify-center bg-slate-100 px-6">
+      <div className="flex min-h-0 flex-1 items-center justify-center bg-slate-100 px-6">
         <div className="max-w-md rounded-2xl border border-slate-200 bg-white p-7 text-center shadow-sm">
           <p className="text-base font-bold text-slate-900">Acervo indisponível</p>
           <p className="mt-2 text-sm leading-6 text-slate-500">{error || 'Não foi possível carregar as pesquisas.'}</p>
@@ -125,7 +125,7 @@ export function ResearchExplorer() {
   }
 
   return (
-    <div className="flex h-[calc(100dvh-52px)] min-h-[560px] flex-col overflow-hidden bg-slate-100">
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-slate-100">
       <div className="flex shrink-0 flex-wrap items-center gap-3 border-b border-slate-200 bg-white px-4 py-3">
         <div className="relative min-w-[220px] flex-1 lg:max-w-xl">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />

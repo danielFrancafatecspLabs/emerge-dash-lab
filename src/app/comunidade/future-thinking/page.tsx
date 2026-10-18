@@ -9,8 +9,8 @@ import {
 } from '@/lib/community/model'
 import { useCommunity } from '@/components/comunidade/CommunityProvider'
 import { PageHeader } from '@/components/comunidade/CommunityShell'
-import { PostItem } from '@/components/comunidade/PostItem'
-import { Button, Chip, EmptyState, ErrorState, PostSkeleton, SectionTitle, cx, focusRing } from '@/components/comunidade/ui'
+import { PostItem, PostSkeleton } from '@/components/comunidade/PostItem'
+import { Button, Chip, EmptyState, ErrorState, SectionTitle, cx, focusRing } from '@/components/ui'
 
 const DIMENSOES = Object.keys(SINAL_DIMENSAO_LABEL) as SinalDimensao[]
 const HORIZONTES = Object.keys(HORIZONTE_LABEL) as Horizonte[]
@@ -71,14 +71,14 @@ function RadarDeSinais({ sinais, onOpen }: { sinais: CommunityPost[]; onOpen: (i
           <line key={`${i}-${j}`} x1={pontos[i].x} y1={pontos[i].y} x2={pontos[j].x} y2={pontos[j].y} stroke="#0F766E" strokeOpacity={0.35} strokeDasharray="2 3" />
         ))}
         {pontos.map(({ p, x, y }) => (
-          <g key={p.id} role="link" tabIndex={0} aria-label={`Sinal: ${postTitle(p)}`} className="cursor-pointer outline-none [&:focus>circle]:stroke-comm-ink"
+          <g key={p.id} role="link" tabIndex={0} aria-label={`Sinal: ${postTitle(p)}`} className="cursor-pointer outline-none [&:focus>circle]:stroke-beon-ink"
             onClick={() => onOpen(p.id)} onKeyDown={e => { if (e.key === 'Enter') onOpen(p.id) }}>
             <title>{postTitle(p)}</title>
             <circle cx={x} cy={y} r={7} fill="#0F766E" stroke="white" strokeWidth={2} />
           </g>
         ))}
       </svg>
-      <figcaption className="mt-2 text-center text-xs text-comm-muted">
+      <figcaption className="mt-2 text-center text-xs text-beon-muted">
         Centro: até 2 anos · meio: 2 a 5 anos · borda: mais de 5 anos ou sem horizonte. Linhas ligam sinais com tópicos em comum.
       </figcaption>
     </figure>
@@ -113,7 +113,7 @@ export default function FutureThinkingPage() {
             </div>
           </div>
 
-          <div className="-mx-4 border-t border-comm-line sm:-mx-6">
+          <div className="-mx-4 border-t border-beon-line sm:-mx-6">
             {posts.error && !posts.data ? <ErrorState message={posts.error} onRetry={reloadPosts} /> : !posts.data ? (
               <>{[0, 1].map(i => <PostSkeleton key={i} />)}</>
             ) : filtrados.length === 0 ? (
@@ -131,7 +131,7 @@ export default function FutureThinkingPage() {
             <SectionTitle>Radar de sinais</SectionTitle>
             {sinais.length > 0
               ? <RadarDeSinais sinais={sinais} onOpen={id => router.push(`/comunidade/post/${id}`)} />
-              : <p className="text-sm text-comm-muted">Os sinais propostos pela comunidade aparecem no radar por dimensão e horizonte.</p>}
+              : <p className="text-sm text-beon-muted">Os sinais propostos pela comunidade aparecem no radar por dimensão e horizonte.</p>}
           </section>
           <section>
             <SectionTitle>Provocações para começar</SectionTitle>
@@ -139,14 +139,14 @@ export default function FutureThinkingPage() {
               {PROVOCACOES.map(q => (
                 <li key={q}>
                   <button type="button" onClick={() => openComposer({ kind: 'discussao', title: q, tags: [], content: '' })}
-                    className={cx('group -mx-2 flex w-full gap-3 rounded-xl px-2 py-2.5 text-left hover:bg-comm-soft', focusRing)}>
+                    className={cx('group -mx-2 flex w-full gap-3 rounded-xl px-2 py-2.5 text-left hover:bg-beon-soft', focusRing)}>
                     <MessageCircleQuestion className="mt-0.5 h-4 w-4 shrink-0 text-teal-700" aria-hidden />
-                    <span className="text-sm leading-snug text-comm-body group-hover:text-comm-ink">{q}</span>
+                    <span className="text-sm leading-snug text-beon-body group-hover:text-beon-ink">{q}</span>
                   </button>
                 </li>
               ))}
             </ul>
-            <p className="mt-2 text-xs text-comm-muted">Clique em uma provocação para abrir uma discussão com ela.</p>
+            <p className="mt-2 text-xs text-beon-muted">Clique em uma provocação para abrir uma discussão com ela.</p>
           </section>
         </aside>
       </div>

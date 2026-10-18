@@ -8,9 +8,9 @@ import { COMMUNITY_TOPICS, isKnownTopic } from '@/lib/community/topics'
 import { useCommunity } from '@/components/comunidade/CommunityProvider'
 import { PageColumns } from '@/components/comunidade/CommunityShell'
 import { DiscoveryRail } from '@/components/comunidade/DiscoveryRail'
-import { PostItem } from '@/components/comunidade/PostItem'
+import { PostItem, PostSkeleton } from '@/components/comunidade/PostItem'
 import { StoriesRail } from '@/components/comunidade/Stories'
-import { Avatar, Button, EmptyState, ErrorState, PostSkeleton, cx, focusRing, inputClass } from '@/components/comunidade/ui'
+import { Avatar, Button, EmptyState, ErrorState, cx, focusRing, inputClass } from '@/components/ui'
 import { topicIcon } from '@/components/comunidade/visuals'
 
 const FILTROS = Object.keys(FEED_FILTER_LABEL) as FeedFilter[]
@@ -70,11 +70,11 @@ function Feed() {
       <StoriesRail />
 
       {/* Criar publicação */}
-      <div className="border-b border-comm-line px-4 py-4 sm:px-6">
+      <div className="border-b border-beon-line px-4 py-4 sm:px-6">
         <div className="flex items-center gap-3">
           {me && <Avatar nome={me.nome} src={me.avatar} size={40} />}
           <button type="button" onClick={() => openComposer()}
-            className={cx('h-11 min-w-0 flex-1 truncate rounded-full border border-comm-line bg-comm-soft/60 px-4 text-left text-[15px] text-comm-muted transition-colors hover:bg-comm-soft', focusRing)}>
+            className={cx('h-11 min-w-0 flex-1 truncate rounded-full border border-beon-line bg-beon-soft/60 px-4 text-left text-[15px] text-beon-muted transition-colors hover:bg-beon-soft', focusRing)}>
             <span className="sm:hidden">Compartilhe com a comunidade…</span>
             <span className="hidden sm:inline">Compartilhe uma descoberta, pergunta ou aprendizado…</span>
           </button>
@@ -82,19 +82,19 @@ function Feed() {
         <div className="mt-3 flex flex-wrap gap-1 pl-[52px]">
           {ATALHOS.map(({ kind, label, icon: Icon }) => (
             <button key={kind} type="button" onClick={() => openComposer({ kind, tags: topicoValido ? [topicoValido] : [] })}
-              className={cx('inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-[13px] font-medium text-comm-body hover:bg-comm-soft hover:text-comm-ink', focusRing)}>
-              <Icon className="h-4 w-4 text-comm-muted" aria-hidden /> {label}
+              className={cx('inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-[13px] font-medium text-beon-body hover:bg-beon-soft hover:text-beon-ink', focusRing)}>
+              <Icon className="h-4 w-4 text-beon-muted" aria-hidden /> {label}
             </button>
           ))}
         </div>
       </div>
 
       {topicInfo && TopicIcon && (
-        <div className="flex items-center gap-3 border-b border-comm-line bg-comm-soft/50 px-4 py-4 sm:px-6">
-          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-comm-red shadow-sm"><TopicIcon className="h-5 w-5" aria-hidden /></span>
+        <div className="flex items-center gap-3 border-b border-beon-line bg-beon-soft/50 px-4 py-4 sm:px-6">
+          <span className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-beon-red shadow-sm"><TopicIcon className="h-5 w-5" aria-hidden /></span>
           <div className="min-w-0 flex-1">
-            <p className="text-[15px] font-semibold text-comm-ink">{topicInfo.label}</p>
-            <p className="truncate text-sm text-comm-muted">{topicInfo.descricao}</p>
+            <p className="text-[15px] font-semibold text-beon-ink">{topicInfo.label}</p>
+            <p className="truncate text-sm text-beon-muted">{topicInfo.descricao}</p>
           </div>
           <Button size="sm" variant={seguindoTopico ? 'secondary' : 'primary'} icon={seguindoTopico ? Check : Plus}
             onClick={() => patchProfile({ toggleTopico: topicInfo.id }, p => ({
@@ -103,22 +103,22 @@ function Feed() {
             {seguindoTopico ? 'Acompanhando' : 'Acompanhar'}
           </Button>
           <button type="button" onClick={limparTopico} aria-label="Remover filtro de tópico"
-            className={cx('rounded-full p-2 text-comm-muted hover:bg-white hover:text-comm-ink', focusRing)}>
+            className={cx('rounded-full p-2 text-beon-muted hover:bg-white hover:text-beon-ink', focusRing)}>
             <X className="h-4 w-4" aria-hidden />
           </button>
         </div>
       )}
 
       {/* Filtros */}
-      <div className="sticky top-14 z-10 border-b border-comm-line bg-white/95 backdrop-blur md:top-0">
+      <div className="sticky top-14 z-10 border-b border-beon-line bg-white/95 backdrop-blur md:top-0">
         <div className="flex items-center gap-2 px-4 sm:px-6">
           <div role="tablist" aria-label="Filtrar o feed" className="-mb-px flex flex-1 gap-5 overflow-x-auto [scrollbar-width:none]">
             {FILTROS.map(f => (
               <button key={f} type="button" role="tab" aria-selected={filtro === f} onClick={() => escolher(f)}
                 className={cx(
                   'shrink-0 border-b-2 py-3.5 text-sm transition-colors',
-                  filtro === f ? 'border-comm-red font-semibold text-comm-ink' : 'border-transparent text-comm-muted hover:text-comm-ink',
-                  'focus-visible:outline-none focus-visible:text-comm-ink focus-visible:underline',
+                  filtro === f ? 'border-beon-red font-semibold text-beon-ink' : 'border-transparent text-beon-muted hover:text-beon-ink',
+                  'focus-visible:outline-none focus-visible:text-beon-ink focus-visible:underline',
                 )}>
                 {FEED_FILTER_LABEL[f]}
               </button>
@@ -126,7 +126,7 @@ function Feed() {
           </div>
           <button type="button" onClick={() => { setBuscaAberta(o => !o); if (buscaAberta) setBusca('') }}
             aria-label={buscaAberta ? 'Fechar busca' : 'Buscar no feed'} aria-expanded={buscaAberta}
-            className={cx('rounded-full p-2 text-comm-muted hover:bg-comm-soft hover:text-comm-ink', focusRing)}>
+            className={cx('rounded-full p-2 text-beon-muted hover:bg-beon-soft hover:text-beon-ink', focusRing)}>
             {buscaAberta ? <X className="h-4 w-4" aria-hidden /> : <Search className="h-4 w-4" aria-hidden />}
           </button>
         </div>
@@ -158,7 +158,7 @@ function Feed() {
         ) : (
           <>
             {resultado.fallback && filtro === 'para-voce' && (
-              <p className="border-b border-comm-line bg-comm-soft/50 px-4 py-3 text-sm text-comm-muted sm:px-6">
+              <p className="border-b border-beon-line bg-beon-soft/50 px-4 py-3 text-sm text-beon-muted sm:px-6">
                 Ainda não há publicações dos seus interesses — mostrando as mais recentes.
               </p>
             )}

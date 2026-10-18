@@ -8,7 +8,7 @@ import {
 } from 'lucide-react'
 import { useCommunity } from '@/components/comunidade/CommunityProvider'
 import { PageHeader } from '@/components/comunidade/CommunityShell'
-import { Button, cx, focusRing } from '@/components/comunidade/ui'
+import { Button, cx, focusRing } from '@/components/ui'
 
 interface Etapa {
   n: number
@@ -131,14 +131,14 @@ export default function TrilhaPage() {
         description="Oito etapas práticas para quem está começando e um roteiro de checagem para quem já experimenta. Avance no seu ritmo." />
 
       <div className="px-4 sm:px-6">
-        <div className="flex items-center gap-4 rounded-2xl bg-comm-soft px-5 py-4">
+        <div className="flex items-center gap-4 rounded-2xl bg-beon-soft px-5 py-4">
           <div className="flex-1">
             <div className="flex items-baseline justify-between text-sm">
-              <span className="font-semibold text-comm-ink">Seu progresso</span>
-              <span className="tabular-nums text-comm-muted">{concluidas.length} de {ETAPAS.length} etapas</span>
+              <span className="font-semibold text-beon-ink">Seu progresso</span>
+              <span className="tabular-nums text-beon-muted">{concluidas.length} de {ETAPAS.length} etapas</span>
             </div>
             <div className="mt-2 h-2 overflow-hidden rounded-full bg-white" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100} aria-label="Progresso na trilha">
-              <div className="h-full rounded-full bg-comm-red transition-all" style={{ width: `${pct}%` }} />
+              <div className="h-full rounded-full bg-beon-red transition-all" style={{ width: `${pct}%` }} />
             </div>
           </div>
         </div>
@@ -153,13 +153,13 @@ export default function TrilhaPage() {
               return (
                 <li key={e.n} className="shrink-0">
                   <button type="button" onClick={() => setAtual(e.n)} aria-current={ativa ? 'step' : undefined}
-                    className={cx('flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors', ativa ? 'bg-comm-ink text-white' : 'hover:bg-comm-soft', focusRing)}>
+                    className={cx('flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors', ativa ? 'bg-beon-ink text-white' : 'hover:bg-beon-soft', focusRing)}>
                     <span className={cx('flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold',
-                      ok ? 'bg-emerald-600 text-white' : ativa ? 'bg-white text-comm-ink' : 'bg-comm-soft text-comm-muted')}>
+                      ok ? 'bg-emerald-600 text-white' : ativa ? 'bg-white text-beon-ink' : 'bg-beon-soft text-beon-muted')}>
                       {ok ? <CheckCircle2 className="h-4 w-4" aria-label="Concluída" /> : e.n}
                     </span>
-                    <span className={cx('text-sm leading-snug lg:block', ativa ? 'font-semibold' : 'text-comm-body', 'hidden')}>{e.titulo}</span>
-                    {e.n === proxima && !ok && !ativa && <span className="ml-auto hidden rounded-full bg-comm-tint px-2 py-0.5 text-[10px] font-semibold text-comm-red lg:inline">Próxima</span>}
+                    <span className={cx('text-sm leading-snug lg:block', ativa ? 'font-semibold' : 'text-beon-body', 'hidden')}>{e.titulo}</span>
+                    {e.n === proxima && !ok && !ativa && <span className="ml-auto hidden rounded-full bg-beon-tint px-2 py-0.5 text-[10px] font-semibold text-beon-red lg:inline">Próxima</span>}
                   </button>
                 </li>
               )
@@ -169,45 +169,45 @@ export default function TrilhaPage() {
 
         <article aria-labelledby="etapa-titulo" className="min-w-0">
           <div className="flex items-start gap-4">
-            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-comm-tint text-comm-red"><etapa.icon className="h-6 w-6" aria-hidden /></span>
+            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-beon-tint text-beon-red"><etapa.icon className="h-6 w-6" aria-hidden /></span>
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.1em] text-comm-muted">Etapa {etapa.n} de {ETAPAS.length}</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.1em] text-beon-muted">Etapa {etapa.n} de {ETAPAS.length}</p>
               <h2 id="etapa-titulo" className="text-2xl font-semibold tracking-tight">{etapa.titulo}</h2>
-              <p className="mt-1 text-[15px] text-comm-muted">{etapa.resumo}</p>
+              <p className="mt-1 text-[15px] text-beon-muted">{etapa.resumo}</p>
             </div>
           </div>
 
-          <p className="mt-6 text-[15px] leading-relaxed text-comm-body">{etapa.explicacao}</p>
+          <p className="mt-6 text-[15px] leading-relaxed text-beon-body">{etapa.explicacao}</p>
 
-          <div className="mt-6 rounded-2xl border-l-4 border-comm-red bg-comm-tint/50 px-5 py-4">
-            <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.1em] text-comm-red"><FlaskConical className="h-3.5 w-3.5" aria-hidden /> Na prática · Aceitação Remota</p>
-            <p className="mt-1.5 text-[15px] leading-relaxed text-comm-ink">{etapa.exemplo}</p>
+          <div className="mt-6 rounded-2xl border-l-4 border-beon-red bg-beon-tint/50 px-5 py-4">
+            <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.1em] text-beon-red"><FlaskConical className="h-3.5 w-3.5" aria-hidden /> Na prática · Aceitação Remota</p>
+            <p className="mt-1.5 text-[15px] leading-relaxed text-beon-ink">{etapa.exemplo}</p>
           </div>
 
           <div className="mt-6 grid gap-6 md:grid-cols-2">
             <section>
-              <h3 className="text-sm font-semibold text-comm-ink">Ferramenta: {etapa.ferramenta.nome}</h3>
-              <pre className="mt-2 whitespace-pre-wrap rounded-xl border border-comm-line bg-white p-4 font-sans text-sm leading-relaxed text-comm-body">{etapa.ferramenta.modelo}</pre>
+              <h3 className="text-sm font-semibold text-beon-ink">Ferramenta: {etapa.ferramenta.nome}</h3>
+              <pre className="mt-2 whitespace-pre-wrap rounded-xl border border-beon-line bg-white p-4 font-sans text-sm leading-relaxed text-beon-body">{etapa.ferramenta.modelo}</pre>
               <Button size="sm" className="mt-2" icon={ClipboardCopy} onClick={copiar}>Copiar modelo</Button>
             </section>
             <section>
-              <h3 className="text-sm font-semibold text-comm-ink">Pronto para avançar quando…</h3>
+              <h3 className="text-sm font-semibold text-beon-ink">Pronto para avançar quando…</h3>
               <ul className="mt-2 space-y-2">
                 {etapa.criterios.map(c => (
-                  <li key={c} className="flex gap-2.5 text-sm text-comm-body"><CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" aria-hidden /> {c}</li>
+                  <li key={c} className="flex gap-2.5 text-sm text-beon-body"><CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" aria-hidden /> {c}</li>
                 ))}
               </ul>
-              <h3 className="mt-5 text-sm font-semibold text-comm-ink">Materiais de apoio</h3>
+              <h3 className="mt-5 text-sm font-semibold text-beon-ink">Materiais de apoio</h3>
               <ul className="mt-2 space-y-1.5">
                 {etapa.materiais.map(m => (
-                  <li key={m.label}><Link href={m.href} className="inline-flex items-center gap-2 text-sm font-medium text-comm-red hover:underline"><BookOpen className="h-4 w-4" aria-hidden /> {m.label}</Link></li>
+                  <li key={m.label}><Link href={m.href} className="inline-flex items-center gap-2 text-sm font-medium text-beon-red hover:underline"><BookOpen className="h-4 w-4" aria-hidden /> {m.label}</Link></li>
                 ))}
-                <li><Link href="/comunidade/como-experimentar" className="inline-flex items-center gap-2 text-sm font-medium text-comm-red hover:underline"><BookOpen className="h-4 w-4" aria-hidden /> Mini-curso “Como experimentar”</Link></li>
+                <li><Link href="/comunidade/como-experimentar" className="inline-flex items-center gap-2 text-sm font-medium text-beon-red hover:underline"><BookOpen className="h-4 w-4" aria-hidden /> Mini-curso “Como experimentar”</Link></li>
               </ul>
             </section>
           </div>
 
-          <div className="mt-8 flex flex-wrap items-center gap-3 border-t border-comm-line pt-6">
+          <div className="mt-8 flex flex-wrap items-center gap-3 border-t border-beon-line pt-6">
             <Button variant={feita ? 'secondary' : 'primary'} icon={CheckCircle2} onClick={alternar}>
               {feita ? 'Etapa concluída — desmarcar' : 'Marcar etapa como concluída'}
             </Button>
