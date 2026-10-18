@@ -7,6 +7,7 @@ import { montarPaginas } from '@/lib/semanal-deck'
 import PresentationOverlay from '@/components/weekly/PresentationOverlay'
 import FitSlide from '@/components/weekly/FitSlide'
 import ResumoSlide from './ResumoSlide'
+import CancelamentoSlide from './CancelamentoSlide'
 import ListaSlide from './ListaSlide'
 import { CapaSlide, DivisorSlide, ObjetivoSlide, ObrigadoSlide, SLIDE_W } from './SlideArt'
 
@@ -30,6 +31,7 @@ function montarSlides(data: SemanalData): SlideDef[] {
       case 'capa': return { ...base, render: () => <CapaSlide periodo={pg.periodo} /> }
       case 'objetivo': return { ...base, render: () => <ObjetivoSlide /> }
       case 'resumo': return { ...base, render: nav => <ResumoSlide resumo={data.resumo} ateLabel={pg.ateLabel} onDetalhes={(id: SemanalSecaoId) => nav.irPara(id)} /> }
+      case 'cancelamento': return { ...base, render: () => <CancelamentoSlide cancelamento={pg.cancelamento} /> }
       case 'divisor': return { ...base, render: () => <DivisorSlide linhas={pg.linhas} icone={pg.icone} /> }
       case 'lista': return {
         ...base,

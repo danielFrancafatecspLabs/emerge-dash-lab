@@ -104,7 +104,8 @@ contagem): o admin escolhe o perfil e aprova, ou recusa e o pedido é removido.
 A aba **Semanal** reúne o ritual semanal (a antiga aba Weekly foi unificada aqui; `/weekly` redireciona):
 
 1. **Deck do Comitê beOn Labs (V7)** com dados do Jira: capa, objetivo, visão geral (`buildSemanalData`),
-   divisores, listas por fase (Em escala, Aguardando piloto, Em piloto, Em andamento, Backlog) e encerramento.
+   principais motivos de cancelamento (campo "Motivo de Bloqueio" dos Epics cancelados, com o histórico como
+   reserva; até 5 motivos, os demais em "Outros motivos", e os sem motivo numa linha à parte), divisores, listas por fase (Em escala, Aguardando piloto, Em piloto, Em andamento, Backlog) e encerramento.
    Os botões DETALHES levam à lista da fase, e a seta de cada lista volta à visão geral.
 2. **Acompanhamento da semana**: governança por domínio e fase, bloqueios, patrocinadores e aprendizados
    (download em PNG/JPG em cada slide).

@@ -1,4 +1,4 @@
-import type { SemanalData, SemanalRow, SemanalSecaoId } from './semanal'
+import type { SemanalCancelamento, SemanalData, SemanalRow, SemanalSecaoId } from './semanal'
 
 export { formatBeneficioMM } from './report-utils'
 
@@ -103,10 +103,28 @@ export function contagemPorLab(rows: SemanalRow[]): [string, number][] {
   return [...porLab.entries()].sort((a, b) => b[1] - a[1])
 }
 
+/** Geometria do slide de motivos de cancelamento (px no canvas de 1280×720), usada pela tela e pelo PPTX. */
+export const CANCELAMENTO_LAYOUT = {
+  linhaTopo: 284, pctDireita: 758, barraX: 796, barraMaxW: 356, barraH: 36,
+  /** Distância entre as linhas: 74 px até 5 motivos; com a linha extra de "sem motivo", 62 px. */
+  passo: (linhas: number) => (linhas > 5 ? 62 : 74),
+}
+
+/** "1,1%" — percentuais com uma casa decimal, como no deck. */
+export const pctUmaCasa = (v: number) => `${v.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`
+
+/** Frase ao lado do percentual de destaque. */
+export function fraseDestaque(c: SemanalCancelamento): string {
+  if (!c.destaque) return ''
+  const [a, b] = c.destaque.motivos.map(m => m.toLocaleLowerCase('pt-BR'))
+  return b ? `dos cancelamentos concentram-se em ${a} e ${b}` : `dos cancelamentos têm o mesmo motivo: ${a}`
+}
+
 export type PaginaDeck = { key: string; label: string; anchor?: string } & (
   | { tipo: 'capa'; periodo: string }
   | { tipo: 'objetivo' }
   | { tipo: 'resumo'; ateLabel: string }
+  | { tipo: 'cancelamento'; cancelamento: SemanalCancelamento }
   | { tipo: 'divisor'; linhas: string[]; icone: 'check' | 'flask' }
   | { tipo: 'lista'; secao: SemanalSecaoId; titulo: string; subtitulo?: string; rows: SemanalRow[]; todas: SemanalRow[] }
   | { tipo: 'obrigado' }
@@ -119,6 +137,10 @@ export function montarPaginas(data: SemanalData): PaginaDeck[] {
     { key: 'objetivo', label: 'Objetivo', tipo: 'objetivo' },
     { key: 'resumo', label: 'beOn Labs — visão geral', anchor: 'resumo', tipo: 'resumo', ateLabel: ateLabel(data.geradoEm) },
   ]
+  // Como no deck do Comitê, os motivos de cancelamento vêm logo depois da visão geral.
+  if (data.cancelamento?.total) {
+    paginas.push({ key: 'cancelamento', label: 'Principais motivos de cancelamento', anchor: 'cancelados', tipo: 'cancelamento', cancelamento: data.cancelamento })
+  }
   for (const secao of data.secoes) {
     paginas.push({
       key: `div-${secao.id}`, label: secao.divisor.join(' '), tipo: 'divisor',

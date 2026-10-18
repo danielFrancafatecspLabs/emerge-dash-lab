@@ -17,10 +17,15 @@ describe('PPTX editável da Semanal', () => {
     expect(resumo).toContain(String(data.resumo.totalExperimentos))
     expect(resumo).toContain('DETALHES')
     expect(resumo).toContain('ppaction://hlinksldjump')
-    const lista = await xml(5)
+    // Logo depois da visão geral, os motivos de cancelamento.
+    const cancelamento = await xml(4)
+    expect(cancelamento).toContain('Principais motivos de cancelamento dos Experimentos')
+    expect(cancelamento).toContain(data.cancelamento.motivos[0].motivo)
+    const primeiraLista = montarPaginas(data).findIndex(p => p.tipo === 'lista') + 1
+    const lista = await xml(primeiraLista)
     expect(lista).toContain(data.secoes[0].rows[0].nome)
     // A seta de voltar de cada lista aponta para a visão geral (slide 3).
-    const rels = await zip.file('ppt/slides/_rels/slide5.xml.rels')!.async('string')
+    const rels = await zip.file(`ppt/slides/_rels/slide${primeiraLista}.xml.rels`)!.async('string')
     expect(rels).toContain('slide3.xml')
   }, 60000)
 })

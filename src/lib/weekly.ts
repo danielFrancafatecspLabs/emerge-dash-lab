@@ -190,6 +190,7 @@ export interface WeeklyData {
   topDiretorias: WeeklyRanking[]     // top 6 diretorias/domínios por quantidade de experimentos (idem)
   experimentosConcluidos: number     // Epics no board de Experimentação com status Concluído
   experimentosCancelados: number     // Epics no board de Experimentação com status Cancelado
+  motivosCancelamento: WeeklyStageMotivo[]  // todos os motivos dos cancelados, pela categoria do Jira (slide de cancelamento)
   aprendizadosSemEscalar: number     // Concluídos - (Aguardando piloto + Piloto + Em escala): geraram aprendizado mas não seguiram adiante
   aprendizadosAcionaveis: number
   insightPrincipal: string    // maior gargalo do funil (conversão piloto -> escala)
@@ -410,6 +411,28 @@ function buildTopMotivosCancelamento(
     .map(([motivo, count]) => ({ motivo, count }))
 }
 
+export const SEM_MOTIVO_REGISTRADO = 'Motivo não registrado'
+
+/**
+ * Todos os motivos de cancelamento, pela categoria do campo "Motivo de Bloqueio" (customfield_13406) — valor
+ * atual ou, se limpo, o último do changelog. Diferente do top 3 acima, não usa os comentários livres da planilha
+ * de cancelados: o slide de cancelamento compara categorias. Cancelados sem motivo entram como
+ * "Motivo não registrado", para a soma bater com o total.
+ */
+function contarMotivosCancelamento(
+  canceladosEpics: EpicDetail[],
+  epicChangelogs: Record<string, ChangelogEntry[]>
+): WeeklyStageMotivo[] {
+  const counts = new Map<string, number>()
+  for (const e of canceladosEpics) {
+    const motivo = (e.motivoBloqueio ?? getMotivoDoChangelog(e.key, epicChangelogs) ?? '').trim() || SEM_MOTIVO_REGISTRADO
+    counts.set(motivo, (counts.get(motivo) ?? 0) + 1)
+  }
+  return [...counts.entries()]
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], 'pt-BR'))
+    .map(([motivo, count]) => ({ motivo, count }))
+}
+
 /**
  * Mapeamento acordado com o time BeOn Labs para o slide Weekly (v7). Reusa os
  * MESMOS filtros por id+nome de status já usados em src/app/report/page.tsx
@@ -503,6 +526,7 @@ export function buildWeeklyData(data: DashboardData, epicChangelogs: Record<stri
   const concluidosCount = concluidosEpics.length
 
   const topMotivosCancelamento = buildTopMotivosCancelamento(canceladosEpics, epicChangelogs)
+  const motivosCancelamento = contarMotivosCancelamento(canceladosEpics, epicChangelogs)
 
   // Mapa: key da Iniciativa → timeResponsavel (Lab Responsável)
   // Usado para propagar o lab da iniciativa-pai para os épicos filhos.
@@ -606,6 +630,7 @@ export function buildWeeklyData(data: DashboardData, epicChangelogs: Record<stri
     topDiretorias,
     experimentosConcluidos: concluidosCount,
     experimentosCancelados: canceladosCount,
+    motivosCancelamento,
     aprendizadosSemEscalar,
     aprendizadosAcionaveis,
     insightPrincipal: principal,
@@ -754,6 +779,10 @@ export const SAMPLE_WEEKLY_DATA: WeeklyData = {
   topDiretorias: SAMPLE_TOP_DIRETORIAS,
   experimentosConcluidos: 42,
   experimentosCancelados: 31,
+  motivosCancelamento: [
+    { motivo: 'Inatividade do Ponto Focal', count: 22 }, { motivo: 'Direcionado para Outra Área', count: 4 },
+    { motivo: 'Dados Insuficientes para Execução', count: 3 }, { motivo: 'Despriorizado pelo Solicitante', count: 2 },
+  ],
   aprendizadosSemEscalar: SAMPLE_APRENDIZADOS_SEM_ESCALAR,
   aprendizadosAcionaveis: SAMPLE_APRENDIZADOS,
   insightPrincipal: SAMPLE_INSIGHTS.principal,
