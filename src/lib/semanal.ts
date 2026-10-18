@@ -81,9 +81,24 @@ export interface SemanalResumo {
   metricas: SemanalMetrica[]
 }
 
+export interface SemanalMotivoCancelamento {
+  motivo: string
+  descricao: string | null
+  quantidade: number
+  pct: number                  // % do total de cancelados, com uma casa decimal
+}
+
+export interface SemanalCancelamento {
+  total: number
+  motivos: SemanalMotivoCancelamento[]   // até 5 linhas; o excedente vira "Outros motivos"
+  /** Quanto os dois principais motivos concentram (slide: "87,4% dos cancelamentos…"). */
+  destaque: { pct: number; motivos: string[] } | null
+}
+
 export interface SemanalData {
   geradoEm: string
   resumo: SemanalResumo
+  cancelamento: SemanalCancelamento
   secoes: SemanalSecao[]
   isSample: boolean
 }
@@ -106,6 +121,47 @@ export function percentuaisInteiros(valores: number[]): number[] {
     falta--
   }
   return base
+}
+
+// Descrições do deck para as categorias de "Motivo de Bloqueio" do Jira.
+const DESCRICAO_MOTIVO: Record<string, string> = {
+  'inatividade do ponto focal': 'O experimento foi encerrado devido à ausência de acompanhamento ou retorno do responsável.',
+  'direcionado para outra area': 'O experimento foi transferido para outra área mais aderente ao tema ou escopo.',
+  'dados insuficientes para execucao': 'Não havia informações/dados suficientes para validar ou conduzir o experimento.',
+  'despriorizado pelo solicitante': 'O solicitante optou por não dar continuidade à iniciativa naquele momento.',
+  'ferramentas/solucoes existentes': 'Foi identificada uma solução já disponível que atendia à necessidade levantada.',
+  'motivo nao registrado': 'Cancelado sem motivo preenchido no Jira.',
+  'outros motivos': 'Demais motivos registrados no Jira.',
+}
+const chaveMotivo = (m: string) => m.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim()
+const pct1 = (n: number, total: number) => (total > 0 ? Math.round((n / total) * 1000) / 10 : 0)
+
+/**
+ * Slide "Principais motivos de cancelamento": até 5 motivos, do maior para o menor. Cancelados sem motivo
+ * no Jira ficam numa linha a mais, a última, e fora do destaque (que soma os dois principais motivos registrados).
+ */
+export function montarCancelamento(motivos: { motivo: string; count: number }[]): SemanalCancelamento {
+  const validos = motivos.filter(m => m.count > 0)
+  const semMotivo = validos.filter(m => chaveMotivo(m.motivo) === 'motivo nao registrado')
+  const registrados = validos.filter(m => !semMotivo.includes(m)).sort((a, b) => b.count - a.count)
+  const total = validos.reduce((s, m) => s + m.count, 0)
+  const vagas = 5
+  const linhas = [
+    ...(registrados.length > vagas
+      ? [...registrados.slice(0, vagas - 1), { motivo: 'Outros motivos', count: registrados.slice(vagas - 1).reduce((s, m) => s + m.count, 0) }]
+      : registrados),
+    ...semMotivo,
+  ]
+  const principais = registrados.slice(0, 2)
+  return {
+    total,
+    motivos: linhas.map(m => ({
+      motivo: m.motivo, descricao: DESCRICAO_MOTIVO[chaveMotivo(m.motivo)] ?? null, quantidade: m.count, pct: pct1(m.count, total),
+    })),
+    destaque: principais.length
+      ? { pct: pct1(principais.reduce((s, m) => s + m.count, 0), total), motivos: principais.map(m => m.motivo) }
+      : null,
+  }
 }
 
 const soma = (rows: SemanalRow[]) => rows.reduce((acc, r) => acc + (r.beneficio ?? 0), 0)
@@ -203,6 +259,7 @@ export function buildSemanalData(data: DashboardData, weekly: WeeklyData): Seman
       semSponsor: weekly.semSponsor.count,
     }),
     secoes: montarSecoes({ escala, aguardando, piloto, andamento, backlog }),
+    cancelamento: montarCancelamento(weekly.motivosCancelamento ?? []),
   }
 }
 
@@ -380,6 +437,12 @@ export const SAMPLE_SEMANAL_DATA: SemanalData = (() => {
     geradoEm: new Date().toISOString(),
     isSample: true,
     secoes,
+    // Mesma distribuição do deck do Comitê (V6), com um cancelado sem motivo para fechar os 88 da visão geral.
+    cancelamento: montarCancelamento([
+      { motivo: 'Inatividade do Ponto Focal', count: 68 }, { motivo: 'Direcionado para Outra Área', count: 8 },
+      { motivo: 'Dados Insuficientes para Execução', count: 6 }, { motivo: 'Despriorizado pelo Solicitante', count: 4 },
+      { motivo: 'Ferramentas/Soluções Existentes', count: 1 }, { motivo: 'Motivo não registrado', count: 1 },
+    ]),
     resumo: montarResumo({
       total: 210, backlog: sec('backlog'), andamento: sec('andamento'), aguardando: sec('aguardando'),
       piloto: sec('piloto'), escala: sec('escala'), cancelados: 88, refutadas: 60, ideiasNaoAvaliadas: 45,

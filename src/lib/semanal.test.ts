@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { DashboardData, EpicDetail, Iniciativa } from './types'
 import type { WeeklyData, WeeklyExperimentoRow, WeeklyStage } from './weekly'
-import { buildSemanalData, ordenarRows, percentuaisInteiros, SAMPLE_SEMANAL_DATA, type SemanalRow } from './semanal'
+import { buildSemanalData, montarCancelamento, ordenarRows, percentuaisInteiros, SAMPLE_SEMANAL_DATA, type SemanalRow } from './semanal'
 
 function epic(key: string, over: Partial<EpicDetail> = {}): EpicDetail {
   return {
@@ -92,5 +92,36 @@ describe('buildSemanalData', () => {
     expect(Math.round(r.piloto.execucao.beneficio / 1e5) / 10).toBe(266.6)
     expect(r.piloto.execucao.destaque?.nome).toBe('Integridade do Produto')
     expect(r.metricas.map(m => m.pct)).toEqual([10, 8, 75, 21])
+  })
+})
+
+describe('montarCancelamento', () => {
+  it('ordena os motivos, calcula % com uma casa e destaca os dois principais', () => {
+    const c = montarCancelamento([
+      { motivo: 'Despriorizado pelo Solicitante', count: 1 }, { motivo: 'Inatividade do Ponto Focal', count: 5 },
+      { motivo: 'Direcionado para Outra Área', count: 3 },
+    ])
+    expect(c.total).toBe(9)
+    expect(c.motivos.map(m => [m.motivo, m.quantidade, m.pct])).toEqual([
+      ['Inatividade do Ponto Focal', 5, 55.6], ['Direcionado para Outra Área', 3, 33.3], ['Despriorizado pelo Solicitante', 1, 11.1],
+    ])
+    expect(c.motivos[0].descricao).toMatch(/ausência de acompanhamento/)
+    expect(c.destaque).toEqual({ pct: 88.9, motivos: ['Inatividade do Ponto Focal', 'Direcionado para Outra Área'] })
+  })
+
+  it('agrupa a partir do 5º motivo em "Outros motivos" e deixa os sem motivo por último, fora do destaque', () => {
+    const c = montarCancelamento([
+      { motivo: 'Motivo não registrado', count: 10 },
+      ...['A', 'B', 'C', 'D', 'E', 'F'].map((motivo, i) => ({ motivo, count: 6 - i })),
+    ])
+    expect(c.total).toBe(31)
+    expect(c.motivos.map(m => [m.motivo, m.quantidade])).toEqual([
+      ['A', 6], ['B', 5], ['C', 4], ['D', 3], ['Outros motivos', 3], ['Motivo não registrado', 10],
+    ])
+    expect(c.destaque?.motivos).toEqual(['A', 'B'])
+  })
+
+  it('não tem destaque sem cancelados', () => {
+    expect(montarCancelamento([])).toEqual({ total: 0, motivos: [], destaque: null })
   })
 })

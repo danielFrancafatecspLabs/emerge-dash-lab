@@ -1,9 +1,9 @@
 import { join } from 'path'
 import PptxGenJS from 'pptxgenjs'
-import type { SemanalData, SemanalResumo, SemanalRow, SemanalSecaoId } from './semanal'
+import type { SemanalCancelamento, SemanalData, SemanalResumo, SemanalRow, SemanalSecaoId } from './semanal'
 import {
-  chipCor, colunasDa, contagemPorLab, corDoLab, diretorEPontoFocal, formatBeneficioMM, formatData, formatMilhoes,
-  LINHAS_POR_PAGINA, montarPaginas, sequenciasDeLab, type PaginaDeck,
+  CANCELAMENTO_LAYOUT, chipCor, colunasDa, contagemPorLab, corDoLab, diretorEPontoFocal, formatBeneficioMM, formatData,
+  formatMilhoes, fraseDestaque, LINHAS_POR_PAGINA, montarPaginas, pctUmaCasa, sequenciasDeLab, type PaginaDeck,
 } from './semanal-deck'
 
 /**
@@ -283,6 +283,45 @@ function resumo(slide: Slide, r: SemanalResumo, ate: string, destino: (id: Seman
   })
 }
 
+// ── Principais motivos de cancelamento ────────────────────────────────────────────────────────────────
+
+function cancelamento(slide: Slide, c: SemanalCancelamento) {
+  const L = CANCELAMENTO_LAYOUT
+  const ARIAL = { fontFace: 'Arial' }
+  const CINZA = '6B7280'
+  texto(slide, 'Principais motivos de cancelamento dos Experimentos', 44, 26, 1000, 52, { ...ARIAL, fontSize: P(38), bold: true, color: RED })
+  imagem(slide, join(ASSETS, 'logo.png'), 1280 - 44 - 92, 36, 92, 44)
+
+  texto(slide, String(c.total), 44, 108, 140, 84, { ...ARIAL, fontSize: P(70), bold: true, color: RED })
+  texto(slide, 'experimentos\ncancelados', 180, 128, 260, 56, { ...ARIAL, fontSize: P(21), color: CINZA })
+  if (c.destaque) {
+    texto(slide, pctUmaCasa(c.destaque.pct), 460, 116, 240, 70, { ...ARIAL, fontSize: P(56), bold: true, color: RED, align: 'right' })
+    texto(slide, fraseDestaque(c), 722, 124, 520, 60, { ...ARIAL, fontSize: P(21), color: INK })
+  }
+
+  const cabecalho = { ...ARIAL, fontSize: P(15), bold: true, color: CINZA }
+  texto(slide, 'MOTIVO', 44, 232, 300, 20, cabecalho)
+  texto(slide, '% DO TOTAL', L.pctDireita - 160, 232, 160, 20, { ...cabecalho, align: 'right' })
+  texto(slide, 'QUANTIDADE DE EXPERIMENTOS', L.barraX + 10, 232, 400, 20, cabecalho)
+
+  const max = Math.max(1, ...c.motivos.map(m => m.quantidade))
+  c.motivos.forEach((m, i) => {
+    const y = L.linhaTopo + i * L.passo(c.motivos.length)
+    const principal = i < (c.destaque?.motivos.length ?? 0)
+    const w = Math.max(4, (m.quantidade / max) * L.barraMaxW)
+    texto(slide, caber(m.motivo, 640, 25, 1), 44, y - 2, 640, 32, { ...ARIAL, fontSize: P(25), bold: principal, color: INK })
+    if (m.descricao) texto(slide, m.descricao, 52, y + 33, 640, 20, { fontSize: P(14), color: INK })
+    texto(slide, pctUmaCasa(m.pct), L.pctDireita - 160, y - 2, 160, 32, { ...ARIAL, fontSize: P(25), bold: true, color: principal ? RED : CINZA, align: 'right' })
+    slide.addShape('rect', {
+      x: I(L.barraX), y: I(y - 4), w: I(w), h: I(L.barraH), line: { type: 'none' },
+      fill: { color: principal ? ['CC0000', '8B0000'][i] : 'C4C7CE' },
+    })
+    texto(slide, String(m.quantidade), L.barraX + w + 8, y - 4, 80, L.barraH, { ...ARIAL, fontSize: P(21), bold: true, color: INK, valign: 'middle' })
+  })
+
+  texto(slide, `Base: ${c.total} experimentos cancelados. Percentuais arredondados a uma casa decimal.`, 44, 668, 900, 22, { ...ARIAL, fontSize: P(15), color: CINZA })
+}
+
 // ── Listas por fase ───────────────────────────────────────────────────────────────────────────────────
 
 function celula(slide: Slide, col: string, row: SemanalRow, x: number, y: number, w: number, h: number) {
@@ -429,6 +468,7 @@ export async function gerarPptxSemanal(data: SemanalData): Promise<Buffer> {
       case 'capa': capa(slide, pg.periodo); break
       case 'objetivo': objetivo(slide); break
       case 'resumo': resumo(slide, data.resumo, pg.ateLabel, id => slideDe.get(id)); break
+      case 'cancelamento': cancelamento(slide, pg.cancelamento); break
       case 'divisor': divisor(slide, pg.linhas, pg.icone); break
       case 'lista': lista(slide, pg, slideDe.get('resumo')); break
       case 'obrigado': obrigado(slide); break
