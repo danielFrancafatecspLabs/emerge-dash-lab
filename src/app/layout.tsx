@@ -2,8 +2,8 @@ import type { Metadata } from 'next'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'Dashboard Executivo de Experimentos Telecom',
-  description: 'Portfólio de inovação beOn Labs',
+  title: 'beOn Labs',
+  description: 'Portal executivo e Comunidade de experimentação do beOn Labs',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

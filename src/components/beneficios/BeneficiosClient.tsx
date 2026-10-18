@@ -1,10 +1,10 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import Link from 'next/link'
+import { PortalShell } from '@/components/portal/PortalShell'
 import {
   Search, SlidersHorizontal, X, TrendingUp, CheckCircle2, Clock, XCircle,
-  HelpCircle, ArrowUpDown, ExternalLink, FileSpreadsheet,
+  HelpCircle, ArrowUpDown,
 } from 'lucide-react'
 import { formatBRL } from '@/lib/mappers'
 import type { ValidacaoBeneficio, StatusValidacao } from '@/lib/beneficios'
@@ -135,38 +135,15 @@ export default function BeneficiosClient({ rows, currentRole, currentUsername }:
   }
 
   return (
-    <div className="flex flex-col min-h-dvh">
-      {/* ── Header ── */}
-      <header className="px-6 py-4 flex items-center justify-between shrink-0" style={{ background: '#8B0000' }}>
-        <div className="flex items-center gap-3">
-          <div className="rounded-lg p-2" style={{ background: 'rgba(255,255,255,0.15)' }}>
-            <FileSpreadsheet size={20} color="white" />
-          </div>
-          <div>
-            <h1 className="text-white font-bold tracking-wide" style={{ fontSize: 16, letterSpacing: '0.03em' }}>
-              CONTROLE FINANCEIRO DE BENEFÍCIOS
-            </h1>
-            <p className="text-white/70" style={{ fontSize: 11 }}>
-              Benefício quantitativo potencial × validado pelo Financeiro — board de Experimentação
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center gap-3">
-          {!canEdit && (
-            <span className="text-[11px] text-white/70 bg-white/10 px-2.5 py-1 rounded-full">
-              Modo leitura
-            </span>
-          )}
-          <Link
-            href="/estrategia"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-white hover:bg-white/10 transition-colors border border-white/20"
-          >
-            Ver Estratégia <ExternalLink size={12} />
-          </Link>
-        </div>
-      </header>
-
-      <main className="flex-1 p-5 md:p-6 flex flex-col gap-5 min-w-0">
+    <PortalShell
+      title="Controle financeiro de benefícios"
+      description="Benefício quantitativo potencial × validado pelo Financeiro — board de Experimentação"
+      refreshable
+      actions={!canEdit && (
+        <span className="rounded-full bg-beon-soft px-3 py-1 text-xs font-medium text-beon-muted">Modo leitura</span>
+      )}
+    >
+      <div className="flex-1 p-5 md:p-6 flex flex-col gap-5 min-w-0">
         {/* ── KPIs ── */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="bg-white rounded-xl border border-gray-200/80 shadow-sm p-4">
@@ -378,7 +355,7 @@ export default function BeneficiosClient({ rows, currentRole, currentUsername }:
             </table>
           </div>
         </div>
-      </main>
+      </div>
 
       {selecionado && (
         <BeneficioDetailDrawer
@@ -388,6 +365,6 @@ export default function BeneficiosClient({ rows, currentRole, currentUsername }:
           onUpdated={handleUpdated}
         />
       )}
-    </div>
+    </PortalShell>
   )
 }

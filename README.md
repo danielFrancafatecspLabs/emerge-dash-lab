@@ -1,6 +1,7 @@
 # beOn Labs — Dashboard Executivo e Comunidade
 
-Aplicação Next.js do beOn Labs (Claro Brasil) com duas experiências:
+Aplicação Next.js do beOn Labs (Claro Brasil). A entrada é a tela de login "Bem-vindo ao beOn Labs", onde a pessoa
+entra ou pede uma conta. Depois disso há duas experiências:
 
 - **Painel executivo** — portfólio de inovação lido do Jira (projeto `GL`): estratégia, operacional, portfólio,
   benefícios, priorização, OKRs, monitoramento, Report/MBR, Weekly e Semanal.
@@ -48,7 +49,11 @@ src/
 │   ├── api/                Rotas de API (Jira, IA, admin, comunidade…)
 │   ├── comunidade/         Experiência da Comunidade (layout próprio)
 │   └── admin/              Usuários e stories
-├── components/             Componentes por área (dashboard, report, weekly, comunidade…)
+├── components/
+│   ├── ui/                 Design system: primitivas compartilhadas (botões, avatar, diálogo, campos, estados)
+│   ├── portal/             Moldura do portal executivo e de admin (menu lateral, barra superior, período)
+│   ├── comunidade/         Experiência da Comunidade
+│   └── …                   Componentes de cada painel (dashboard, report, weekly, beneficios…)
 ├── lib/
 │   ├── auth/               Sessão assinada, usuários, política de acesso, limite de tentativas
 │   ├── community/          Modelo e regras da Comunidade, stores e integração com o Cientista
@@ -60,7 +65,7 @@ src/
 data/                       Usuários e validações de benefício; arquivos da Comunidade (não versionados)
 docs/                       Documentação funcional e referências
 ops/                        Implantação do acervo de pesquisas (systemd)
-scripts/                    Exportação da Weekly e utilitários
+scripts/                    Exportação da Weekly, criação de admin e geração do fundo do login
 ```
 
 ## Acesso e perfis
@@ -77,6 +82,34 @@ fica em [`src/lib/auth/access-policy.ts`](src/lib/auth/access-policy.ts) e é ap
 | `community` | Somente a Comunidade (e leitura do acervo de pesquisas) |
 
 As rotas de API conferem também o cadastro: um usuário desativado perde o acesso na hora, mesmo com cookie válido.
+
+### Cadastro com aprovação
+
+Na tela de login, a aba **Criar conta** pede nome, e-mail corporativo, área e senha. O pedido entra em
+`data/users.json` como conta inativa com `status: "pendente"` e não dá acesso a nada. Quem tenta entrar antes da
+aprovação vê o aviso de cadastro em análise. Em **Admin → Usuários**, os pedidos aparecem no topo (o menu mostra a
+contagem): o admin escolhe o perfil e aprova, ou recusa e o pedido é removido.
+
+- `POST /api/auth/register` é público, limitado a 5 pedidos por IP por hora e a 300 pedidos pendentes no total.
+- Um e-mail já cadastrado recebe a mesma resposta de um pedido novo, para não revelar quem tem conta.
+- `POST /api/admin/users/:id/aprovacao` (`{ decisao: "aprovar" | "recusar", role }`) é só para admin.
+
+## Design system
+
+Comunidade, login e portal usam os mesmos tokens de cor (`beon-*` em `tailwind.config.ts`: `red`, `redhi`, `tint`,
+`ink`, `body`, `muted`, `line`, `soft`) e as primitivas de `src/components/ui`. Toda página do portal é montada com
+`PortalShell` (`src/components/portal`), que traz o menu agrupado por área, filtrado pelo perfil, a barra superior
+com título, ações da página, "Atualizar dados" e o menu da conta. Os gráficos e painéis mantêm o estilo próprio.
+
+```tsx
+<PortalShell title="Operacional" description="…" actions={<MeuFiltro />} refreshable>
+  {conteúdo da página}
+</PortalShell>
+```
+
+`fit` deixa a moldura com a altura da tela (decks e chat rolam por dentro) e `chrome={false}` esconde menu e barra
+(modo apresentação). A ilustração do login (`public/login-comunidade.svg`) é gerada por
+`scripts/gerar-fundo-login.py`; para usar uma foto, troque o arquivo em `src/app/login/page.tsx`.
 
 ## Segurança
 

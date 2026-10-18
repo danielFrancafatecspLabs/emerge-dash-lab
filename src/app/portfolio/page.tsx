@@ -2,11 +2,9 @@ import { fetchDashboardRaw } from '@/lib/jira'
 import { buildDashboardData } from '@/lib/mappers'
 import { classifyPortfolios } from '@/lib/portfolio-classifier'
 import { classifySegmentos } from '@/lib/segmento-classifier'
-import Sidebar from '@/components/layout/Sidebar'
+import { PortalShell } from '@/components/portal/PortalShell'
 import PortfolioList from '@/components/portfolio/PortfolioList'
-import Link from 'next/link'
-import { Radio } from 'lucide-react'
-import LogoutButton from '@/components/layout/LogoutButton'
+import { PortalDataError } from '@/components/portal/PortalDataError'
 
 export const dynamic = 'force-dynamic'
 
@@ -36,72 +34,14 @@ export default async function PortfolioPage() {
   }
 
   if (error || !data) {
-    return (
-      <div className="flex min-h-dvh items-center justify-center" style={{ background: '#f0f0f0' }}>
-        <div className="bg-white rounded-lg p-8 shadow text-center max-w-lg">
-          <p className="text-2xl font-bold mb-2" style={{ color: '#CC0000' }}>Erro ao carregar dados</p>
-          <p className="text-gray-600 text-sm">{error}</p>
-        </div>
-      </div>
-    )
+    return <PortalDataError title="Portfólio de experimentos" error={error} />
   }
 
   return (
-    <div className="flex min-h-dvh bg-gray-50">
-      {/* Sidebar */}
-      <div className="flex-shrink-0" style={{ width: 64 }}>
-        <div className="fixed top-0 left-0 h-full z-20" style={{ width: 64 }}>
-          <div className="h-full bg-gradient-to-b from-[#8B0000] to-[#6B0000]">
-            <Sidebar />
-          </div>
-        </div>
+    <PortalShell title="Portfólio de experimentos" description="Lista completa com filtros por mercado, sponsor, lab e status" refreshable>
+      <div className="flex-1 p-3 flex flex-col gap-3">
+        <PortfolioList data={data} />
       </div>
-
-      {/* Main */}
-      <div className="flex-1 flex flex-col min-w-0">
-        {/* Header */}
-        <div className="fixed top-0 z-10" style={{ left: 64, right: 0 }}>
-          <header
-            className="flex items-center justify-between px-5"
-            style={{ background: '#8B0000', minHeight: 52 }}
-          >
-            <div className="flex items-center gap-3">
-              <Radio size={20} color="white" />
-              <div>
-                <h1
-                  className="text-white font-bold tracking-wide leading-none"
-                  style={{ fontSize: 15, letterSpacing: '0.08em' }}
-                >
-                  PORTFÓLIO DE EXPERIMENTOS
-                </h1>
-                <p className="text-white/60 mt-0.5" style={{ fontSize: 10 }}>
-                  Lista completa com filtros por mercado, sponsor, lab e status
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <Link
-                href="/estrategia"
-                className="text-xs font-semibold px-3 py-1 rounded border border-white/40 text-white hover:bg-white/10 transition-colors"
-              >
-                ← Voltar ao dashboard
-              </Link>
-              <button
-                className="text-xs font-semibold px-3 py-1 rounded border border-white/40 text-white"
-                style={{ background: 'rgba(255,255,255,0.15)', fontSize: 10 }}
-              >
-                Semestre Atual ▾
-              </button>
-              <LogoutButton />
-            </div>
-          </header>
-        </div>
-
-        {/* Content */}
-        <main className="flex-1 p-3 flex flex-col gap-3" style={{ marginTop: 52 }}>
-          <PortfolioList data={data} />
-        </main>
-      </div>
-    </div>
+    </PortalShell>
   )
 }

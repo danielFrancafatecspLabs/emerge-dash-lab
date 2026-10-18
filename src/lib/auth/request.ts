@@ -25,3 +25,8 @@ export async function getAdmin(request: NextRequest): Promise<SessionUser | null
   const me = await getSessionUser(request)
   return me && me.user && me.role === 'admin' ? me : null
 }
+
+/** IP de origem informado pelo proxy, usado como chave dos limites de tentativa. */
+export function clientIp(request: Request): string {
+  return request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || request.headers.get('x-real-ip') || 'local'
+}

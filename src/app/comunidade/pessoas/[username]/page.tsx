@@ -9,7 +9,7 @@ import { useCommunity } from '@/components/comunidade/CommunityProvider'
 import { FollowButton } from '@/components/comunidade/DiscoveryRail'
 import { tempoRelativo } from '@/components/comunidade/format'
 import { PostItem } from '@/components/comunidade/PostItem'
-import { Avatar, Button, Chip, EmptyState, ErrorState, Skeleton, cx, focusRing, inputClass } from '@/components/comunidade/ui'
+import { Avatar, Button, Chip, EmptyState, ErrorState, Skeleton, cx, focusRing, inputClass } from '@/components/ui'
 import { topicIcon } from '@/components/comunidade/visuals'
 
 type Aba = 'todas' | PostKind
@@ -29,7 +29,7 @@ function EditarPerfil({ onDone }: { onDone: () => void }) {
   }
   const toggle = (id: string) => setForm(f => ({ ...f, interesses: f.interesses.includes(id) ? f.interesses.filter(x => x !== id) : [...f.interesses, id] }))
   return (
-    <form onSubmit={submit} className="mt-6 space-y-4 rounded-2xl border border-comm-line p-5">
+    <form onSubmit={submit} className="mt-6 space-y-4 rounded-2xl border border-beon-line p-5">
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
           <label htmlFor="pf-cargo" className="mb-1.5 block text-sm font-medium">Cargo</label>
@@ -44,7 +44,7 @@ function EditarPerfil({ onDone }: { onDone: () => void }) {
         <label htmlFor="pf-bio" className="mb-1.5 block text-sm font-medium">Apresentação</label>
         <textarea id="pf-bio" className={cx(inputClass, 'min-h-[88px]')} maxLength={400} value={form.bio} onChange={e => setForm(f => ({ ...f, bio: e.target.value }))}
           placeholder="Em que você trabalha, o que está explorando e como pode ajudar a comunidade." />
-        <p className="mt-1 text-xs text-comm-muted">{form.bio.length}/400</p>
+        <p className="mt-1 text-xs text-beon-muted">{form.bio.length}/400</p>
       </div>
       <fieldset>
         <legend className="mb-2 text-sm font-medium">Interesses</legend>
@@ -82,7 +82,7 @@ export default function PerfilPage({ params }: { params: { username: string } })
     return <div className="mx-auto max-w-[760px] space-y-4 px-6 py-10" aria-busy><Skeleton className="h-24 w-24 rounded-full" /><Skeleton className="h-6 w-60" /><Skeleton className="h-4 w-96 max-w-full" /></div>
   }
   if (!m) {
-    return <EmptyState icon={UserX} title="Perfil não encontrado" action={<Link href="/comunidade/pessoas" className="text-sm font-medium text-comm-red hover:underline">Ver todas as pessoas</Link>}>A pessoa pode ter saído da comunidade.</EmptyState>
+    return <EmptyState icon={UserX} title="Perfil não encontrado" action={<Link href="/comunidade/pessoas" className="text-sm font-medium text-beon-red hover:underline">Ver todas as pessoas</Link>}>A pessoa pode ter saído da comunidade.</EmptyState>
   }
 
   const interesses = souEu ? (me?.profile.interesses ?? []) : m.interesses
@@ -90,18 +90,18 @@ export default function PerfilPage({ params }: { params: { username: string } })
   return (
     <div className="mx-auto max-w-[760px]">
       <div className="px-2 pt-3 sm:px-4">
-        <Link href="/comunidade/pessoas" className={cx('inline-flex items-center gap-2 rounded-full px-3 py-2 text-sm font-medium text-comm-body hover:bg-comm-soft', focusRing)}>
+        <Link href="/comunidade/pessoas" className={cx('inline-flex items-center gap-2 rounded-full px-3 py-2 text-sm font-medium text-beon-body hover:bg-beon-soft', focusRing)}>
           <ArrowLeft className="h-4 w-4" aria-hidden /> Pessoas
         </Link>
       </div>
 
-      <header className="border-b border-comm-line px-4 pb-8 pt-4 sm:px-6">
+      <header className="border-b border-beon-line px-4 pb-8 pt-4 sm:px-6">
         <div className="flex flex-wrap items-start gap-5">
           <Avatar nome={m.nome} src={m.avatar} size={88} ativo={m.ativoAgora} />
           <div className="min-w-0 flex-1">
             <h1 className="text-[28px] font-semibold leading-tight tracking-tight">{m.nome}</h1>
-            <p className="mt-1 text-[15px] text-comm-body">{[m.cargo, m.especialidade].filter(Boolean).join(' · ') || (souEu ? 'Conte à comunidade o que você faz' : 'Membro da comunidade')}</p>
-            <p className="mt-0.5 text-sm text-comm-muted">
+            <p className="mt-1 text-[15px] text-beon-body">{[m.cargo, m.especialidade].filter(Boolean).join(' · ') || (souEu ? 'Conte à comunidade o que você faz' : 'Membro da comunidade')}</p>
+            <p className="mt-0.5 text-sm text-beon-muted">
               {m.laboratorio || 'Laboratório não informado'}
               {m.ativoAgora ? ' · ativo agora' : m.ultimoAcesso ? ` · visto ${tempoRelativo(m.ultimoAcesso)}` : ''}
             </p>
@@ -112,7 +112,7 @@ export default function PerfilPage({ params }: { params: { username: string } })
             ) : (
               <>
                 <Link href={`/comunidade/mensagens?com=${encodeURIComponent(m.username)}`}
-                  className={cx('inline-flex h-10 items-center gap-2 rounded-full bg-comm-red px-4 text-sm font-medium text-white hover:bg-comm-redhi', focusRing)}>
+                  className={cx('inline-flex h-10 items-center gap-2 rounded-full bg-beon-red px-4 text-sm font-medium text-white hover:bg-beon-redhi', focusRing)}>
                   <MessageCircle className="h-4 w-4" aria-hidden /> Mensagem
                 </Link>
                 <FollowButton username={m.username} nome={m.nome} />
@@ -123,14 +123,14 @@ export default function PerfilPage({ params }: { params: { username: string } })
 
         {editando ? <EditarPerfil onDone={() => setEditando(false)} /> : (
           <>
-            {m.bio && <p className="mt-5 max-w-2xl whitespace-pre-line text-[15px] leading-relaxed text-comm-body">{m.bio}</p>}
+            {m.bio && <p className="mt-5 max-w-2xl whitespace-pre-line text-[15px] leading-relaxed text-beon-body">{m.bio}</p>}
             {interesses.length > 0 && (
               <ul className="mt-5 flex flex-wrap gap-2" aria-label="Interesses">
                 {interesses.map(t => {
                   const Icon = topicIcon(t)
                   return (
                     <li key={t}>
-                      <Link href={`/comunidade?topico=${t}`} className={cx('inline-flex h-8 items-center gap-1.5 rounded-full bg-comm-soft px-3 text-[13px] font-medium text-comm-body hover:text-comm-ink', focusRing)}>
+                      <Link href={`/comunidade?topico=${t}`} className={cx('inline-flex h-8 items-center gap-1.5 rounded-full bg-beon-soft px-3 text-[13px] font-medium text-beon-body hover:text-beon-ink', focusRing)}>
                         <Icon className="h-3.5 w-3.5" aria-hidden /> {topicLabel(t)}
                       </Link>
                     </li>
@@ -139,8 +139,8 @@ export default function PerfilPage({ params }: { params: { username: string } })
               </ul>
             )}
             {souEu && !m.bio && interesses.length === 0 && (
-              <p className="mt-5 rounded-xl bg-comm-soft px-4 py-3 text-sm text-comm-body">
-                Perfis com especialidade e interesses recebem e geram melhores conexões. <button type="button" onClick={() => setEditando(true)} className="font-medium text-comm-red hover:underline">Completar agora</button>
+              <p className="mt-5 rounded-xl bg-beon-soft px-4 py-3 text-sm text-beon-body">
+                Perfis com especialidade e interesses recebem e geram melhores conexões. <button type="button" onClick={() => setEditando(true)} className="font-medium text-beon-red hover:underline">Completar agora</button>
               </p>
             )}
           </>
@@ -148,10 +148,10 @@ export default function PerfilPage({ params }: { params: { username: string } })
       </header>
 
       <section aria-label="Contribuições">
-        <div className="flex gap-5 overflow-x-auto border-b border-comm-line px-4 [scrollbar-width:none] sm:px-6" role="tablist">
+        <div className="flex gap-5 overflow-x-auto border-b border-beon-line px-4 [scrollbar-width:none] sm:px-6" role="tablist">
           {abas.map(a => (
             <button key={a} type="button" role="tab" aria-selected={aba === a} onClick={() => setAba(a)}
-              className={cx('shrink-0 border-b-2 py-3 text-sm', aba === a ? 'border-comm-red font-semibold text-comm-ink' : 'border-transparent text-comm-muted hover:text-comm-ink')}>
+              className={cx('shrink-0 border-b-2 py-3 text-sm', aba === a ? 'border-beon-red font-semibold text-beon-ink' : 'border-transparent text-beon-muted hover:text-beon-ink')}>
               {a === 'todas' ? `Contribuições (${publicacoes.length})` : `${POST_KIND_LABEL[a]} (${contagem[a]})`}
             </button>
           ))}

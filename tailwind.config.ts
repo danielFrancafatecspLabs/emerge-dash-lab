@@ -16,8 +16,8 @@ const config: Config = {
           light:    '#FFE5E5',
           lighter:  '#FFF5F5',
         },
-        // Identidade da experiência Comunidade (role community)
-        comm: {
+        // Design system beOn Labs: Comunidade, login e moldura do portal
+        beon: {
           red:   '#D31809',
           redhi: '#B31407',
           tint:  '#FDF1F0',

@@ -1,8 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import Sidebar from '@/components/layout/Sidebar'
-import LogoutButton from '@/components/layout/LogoutButton'
+import { PortalShell } from '@/components/portal/PortalShell'
 import { Story, STORY_CATEGORIA_LABEL, type StoryCategoria } from '@/lib/community/stories'
 import { Image, Plus, Pencil, Trash2, X, Check, Eye, EyeOff, GripVertical } from 'lucide-react'
 
@@ -85,30 +84,8 @@ export default function AdminStoriesPage() {
   }
 
   return (
-    <div className="flex min-h-dvh" style={{ background: '#f0f0f0' }}>
-      <div className="flex-shrink-0" style={{ width: 72 }}>
-        <div className="fixed top-0 left-0 h-full" style={{ width: 72 }}>
-          <div style={{ background: '#8B0000', paddingTop: 52, height: '100%' }}>
-            <Sidebar />
-          </div>
-        </div>
-      </div>
-
-      <div className="flex-1 flex flex-col min-w-0">
-        <div
-          className="fixed top-0 z-10 flex items-center justify-between px-5 py-3"
-          style={{ left: 72, right: 0, background: '#8B0000', minHeight: 52 }}
-        >
-          <div className="flex items-center gap-2">
-            <Image size={18} color="white" />
-            <h1 className="text-white font-bold tracking-wide" style={{ fontSize: 14 }}>
-              GESTÃO DE STORIES
-            </h1>
-          </div>
-          <LogoutButton />
-        </div>
-
-        <main className="mt-14 p-6 max-w-4xl mx-auto w-full">
+    <PortalShell title="Stories da Comunidade" description="Destaques exibidos no topo do feed da Comunidade">
+        <div className="p-6 max-w-4xl mx-auto w-full">
           {error && (
             <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
               {error}
@@ -116,11 +93,11 @@ export default function AdminStoriesPage() {
           )}
 
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-800">Stories da Comunidade</h2>
+            <h2 className="text-lg font-semibold text-beon-ink">Stories</h2>
             <button
               onClick={openNew}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-white"
-              style={{ background: '#8B0000' }}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-white bg-beon-red hover:bg-beon-redhi"
+              
             >
               <Plus size={15} /> Novo Story
             </button>
@@ -208,8 +185,7 @@ export default function AdminStoriesPage() {
                 <button
                   onClick={save}
                   disabled={saving}
-                  className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-sm font-medium text-white disabled:opacity-60"
-                  style={{ background: '#8B0000' }}
+                  className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-sm font-medium text-white bg-beon-red hover:bg-beon-redhi disabled:opacity-60"
                 >
                   <Check size={14} /> {saving ? 'Salvando...' : 'Salvar'}
                 </button>
@@ -262,8 +238,7 @@ export default function AdminStoriesPage() {
               </div>
             )}
           </div>
-        </main>
-      </div>
-    </div>
+        </div>
+    </PortalShell>
   )
 }

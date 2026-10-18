@@ -9,7 +9,7 @@ import { useCommunity } from '@/components/comunidade/CommunityProvider'
 import { PageHeader } from '@/components/comunidade/CommunityShell'
 import { FollowButton, sugerirPessoas } from '@/components/comunidade/DiscoveryRail'
 import { tempoRelativo } from '@/components/comunidade/format'
-import { Avatar, Chip, EmptyState, ErrorState, SectionTitle, Skeleton, cx, focusRing, inputClass } from '@/components/comunidade/ui'
+import { Avatar, Chip, EmptyState, ErrorState, SectionTitle, Skeleton, cx, focusRing, inputClass } from '@/components/ui'
 
 function normalizar(s: string) {
   return s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
@@ -19,36 +19,36 @@ function PersonCard({ m, motivo }: { m: MemberPublic; motivo?: string }) {
   const { me } = useCommunity()
   const perfil = `/comunidade/pessoas/${encodeURIComponent(m.username)}`
   return (
-    <li className="flex flex-col rounded-2xl border border-comm-line p-5 transition-colors hover:border-comm-muted/40">
+    <li className="flex flex-col rounded-2xl border border-beon-line p-5 transition-colors hover:border-beon-muted/40">
       <div className="flex items-start gap-3.5">
         <Link href={perfil} className={cx('rounded-full', focusRing)} aria-label={`Perfil de ${m.nome}`}>
           <Avatar nome={m.nome} src={m.avatar} size={52} ativo={m.ativoAgora} />
         </Link>
         <div className="min-w-0 flex-1">
-          <Link href={perfil} className="block truncate text-[15px] font-semibold text-comm-ink hover:underline">{m.nome}</Link>
-          <p className="truncate text-sm text-comm-body">{[m.cargo, m.especialidade].filter(Boolean).join(' · ') || 'Membro da comunidade'}</p>
-          <p className="truncate text-xs text-comm-muted">
+          <Link href={perfil} className="block truncate text-[15px] font-semibold text-beon-ink hover:underline">{m.nome}</Link>
+          <p className="truncate text-sm text-beon-body">{[m.cargo, m.especialidade].filter(Boolean).join(' · ') || 'Membro da comunidade'}</p>
+          <p className="truncate text-xs text-beon-muted">
             {m.laboratorio || 'Laboratório não informado'}
             {m.ativoAgora ? ' · ativo agora' : m.ultimoAcesso ? ` · visto ${tempoRelativo(m.ultimoAcesso)}` : ''}
           </p>
         </div>
       </div>
-      {m.bio && <p className="mt-3 line-clamp-2 text-sm leading-relaxed text-comm-body">{m.bio}</p>}
+      {m.bio && <p className="mt-3 line-clamp-2 text-sm leading-relaxed text-beon-body">{m.bio}</p>}
       {m.interesses.length > 0 && (
-        <p className="mt-3 text-[13px] text-comm-muted">{m.interesses.slice(0, 3).map(topicLabel).join(' · ')}{m.interesses.length > 3 ? ` +${m.interesses.length - 3}` : ''}</p>
+        <p className="mt-3 text-[13px] text-beon-muted">{m.interesses.slice(0, 3).map(topicLabel).join(' · ')}{m.interesses.length > 3 ? ` +${m.interesses.length - 3}` : ''}</p>
       )}
-      {motivo && <p className="mt-2 text-xs font-medium text-comm-red">{motivo}</p>}
+      {motivo && <p className="mt-2 text-xs font-medium text-beon-red">{motivo}</p>}
       <div className="mt-auto flex items-center gap-2 pt-4">
         {me?.username !== m.username ? (
           <>
             <Link href={`/comunidade/mensagens?com=${encodeURIComponent(m.username)}`}
-              className={cx('inline-flex h-8 items-center gap-1.5 rounded-full bg-comm-soft px-3 text-[13px] font-medium text-comm-ink hover:bg-stone-200', focusRing)}>
+              className={cx('inline-flex h-8 items-center gap-1.5 rounded-full bg-beon-soft px-3 text-[13px] font-medium text-beon-ink hover:bg-stone-200', focusRing)}>
               <MessageCircle className="h-3.5 w-3.5" aria-hidden /> Mensagem
             </Link>
             <FollowButton username={m.username} nome={m.nome} />
           </>
-        ) : <span className="text-xs text-comm-muted">Você</span>}
-        <span className="ml-auto whitespace-nowrap text-xs text-comm-muted">{m.publicacoes} {m.publicacoes === 1 ? 'publicação' : 'publicações'}</span>
+        ) : <span className="text-xs text-beon-muted">Você</span>}
+        <span className="ml-auto whitespace-nowrap text-xs text-beon-muted">{m.publicacoes} {m.publicacoes === 1 ? 'publicação' : 'publicações'}</span>
       </div>
     </li>
   )
@@ -84,7 +84,7 @@ export default function CientistasPage() {
       <div className="space-y-3 px-4 sm:px-6">
         <div className="flex flex-col gap-3 sm:flex-row">
           <div className="relative flex-1">
-            <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-comm-muted" aria-hidden />
+            <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-beon-muted" aria-hidden />
             <label htmlFor="busca-pessoas" className="sr-only">Buscar pessoas</label>
             <input id="busca-pessoas" type="search" value={busca} onChange={e => setBusca(e.target.value)}
               placeholder="Busque por nome, especialidade, tecnologia ou laboratório" className={cx(inputClass, 'rounded-full pl-10')} />

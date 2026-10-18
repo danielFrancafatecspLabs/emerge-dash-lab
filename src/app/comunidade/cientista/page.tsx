@@ -9,7 +9,7 @@ import { ApiError, errorMessage } from '@/components/comunidade/api'
 import { useCommunity } from '@/components/comunidade/CommunityProvider'
 import { PageHeader } from '@/components/comunidade/CommunityShell'
 import { tempoRelativo } from '@/components/comunidade/format'
-import { Button, EmptyState, ErrorState, SectionTitle, Skeleton, cx, focusRing } from '@/components/comunidade/ui'
+import { Button, EmptyState, ErrorState, SectionTitle, Skeleton, cx, focusRing } from '@/components/ui'
 import { StatusBadge } from '@/components/comunidade/cientista/Cards'
 import { cientista } from '@/components/comunidade/cientista/client'
 
@@ -38,21 +38,21 @@ function Inicio({ jornada, onVoltar }: { jornada: Jornada; onVoltar: () => void 
   }
 
   return (
-    <section aria-label={`Começar como ${jornada.nome}`} className="rounded-2xl border border-comm-line p-6">
+    <section aria-label={`Começar como ${jornada.nome}`} className="rounded-2xl border border-beon-line p-6">
       <div className="flex items-center justify-between gap-3">
-        <span className="text-[12px] font-semibold uppercase tracking-[0.12em] text-comm-red">{jornada.nome}</span>
+        <span className="text-[12px] font-semibold uppercase tracking-[0.12em] text-beon-red">{jornada.nome}</span>
         <Button size="sm" variant="ghost" onClick={onVoltar}>Trocar jornada</Button>
       </div>
       <h2 className="mt-1 text-xl font-semibold tracking-tight">Antes de começar</h2>
-      <p className="mt-1 text-sm text-comm-muted">Escolhas rápidas para o Cientista conversar do seu jeito.</p>
+      <p className="mt-1 text-sm text-beon-muted">Escolhas rápidas para o Cientista conversar do seu jeito.</p>
       <div className="mt-5 space-y-5">
         {jornada.preferencias.map(p => (
           <fieldset key={p.id}>
-            <legend className="mb-2 text-sm font-medium text-comm-ink">{p.pergunta.replace(/:$/, '')}</legend>
-            <div className="inline-flex flex-wrap gap-1 rounded-full bg-comm-soft p-1">
+            <legend className="mb-2 text-sm font-medium text-beon-ink">{p.pergunta.replace(/:$/, '')}</legend>
+            <div className="inline-flex flex-wrap gap-1 rounded-full bg-beon-soft p-1">
               {p.opcoes.map(([id, rotulo]) => (
                 <button key={id} type="button" aria-pressed={prefs[p.id] === id} onClick={() => setPrefs(x => ({ ...x, [p.id]: id }))}
-                  className={cx('rounded-full px-3.5 py-1.5 text-sm transition-colors', prefs[p.id] === id ? 'bg-white font-semibold text-comm-ink shadow-sm' : 'text-comm-muted hover:text-comm-ink', focusRing)}>
+                  className={cx('rounded-full px-3.5 py-1.5 text-sm transition-colors', prefs[p.id] === id ? 'bg-white font-semibold text-beon-ink shadow-sm' : 'text-beon-muted hover:text-beon-ink', focusRing)}>
                   {rotulo}
                 </button>
               ))}
@@ -81,27 +81,27 @@ function MinhasConversas() {
   return (
     <section className="px-4 pb-10 sm:px-6">
       <SectionTitle>Minhas conversas</SectionTitle>
-      <ul className="divide-y divide-comm-line rounded-2xl border border-comm-line">
+      <ul className="divide-y divide-beon-line rounded-2xl border border-beon-line">
         {sessoes.slice(0, 8).map(s => {
           const e = estados[s.id]
           return (
             <li key={s.id}>
-              <Link href={`/comunidade/cientista/${s.id}`} className={cx('flex items-center gap-4 px-4 py-3.5 hover:bg-comm-soft/60', focusRing)}>
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-comm-tint text-comm-red"><FlaskConical className="h-4 w-4" aria-hidden /></span>
+              <Link href={`/comunidade/cientista/${s.id}`} className={cx('flex items-center gap-4 px-4 py-3.5 hover:bg-beon-soft/60', focusRing)}>
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-beon-tint text-beon-red"><FlaskConical className="h-4 w-4" aria-hidden /></span>
                 <span className="min-w-0 flex-1">
                   {e === undefined ? <Skeleton className="h-4 w-48" /> : (
-                    <span className="block truncate text-sm font-semibold text-comm-ink">{e?.ficha.titulo || 'Experimento em conversa'}</span>
+                    <span className="block truncate text-sm font-semibold text-beon-ink">{e?.ficha.titulo || 'Experimento em conversa'}</span>
                   )}
-                  <span className="block text-xs text-comm-muted">{s.papel === 'desenvolvedor' ? 'Desenvolvedor' : 'Solicitante'} · iniciada {tempoRelativo(s.criadaEm)}</span>
+                  <span className="block text-xs text-beon-muted">{s.papel === 'desenvolvedor' ? 'Desenvolvedor' : 'Solicitante'} · iniciada {tempoRelativo(s.criadaEm)}</span>
                 </span>
-                {e ? <StatusBadge status={e.status} /> : e === null ? <span className="text-xs text-comm-muted">indisponível</span> : null}
-                <ArrowRight className="h-4 w-4 text-comm-muted" aria-hidden />
+                {e ? <StatusBadge status={e.status} /> : e === null ? <span className="text-xs text-beon-muted">indisponível</span> : null}
+                <ArrowRight className="h-4 w-4 text-beon-muted" aria-hidden />
               </Link>
             </li>
           )
         })}
       </ul>
-      <p className="mt-2 text-xs text-comm-muted">A revisão das fichas e as decisões seguem com o Lab e o Sponsor no Cientista.</p>
+      <p className="mt-2 text-xs text-beon-muted">A revisão das fichas e as decisões seguem com o Lab e o Sponsor no Cientista.</p>
     </section>
   )
 }
@@ -143,24 +143,24 @@ export default function CientistaPage() {
               const Icon = ICONE[j.papel]
               return (
                 <button key={j.papel} type="button" onClick={() => setSel(j.papel)}
-                  className={cx('group flex flex-col rounded-2xl border border-comm-line p-6 text-left transition-colors hover:border-comm-red/40 hover:bg-comm-tint/20', focusRing)}>
+                  className={cx('group flex flex-col rounded-2xl border border-beon-line p-6 text-left transition-colors hover:border-beon-red/40 hover:bg-beon-tint/20', focusRing)}>
                   <span className="flex items-center gap-3">
-                    <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-comm-tint text-comm-red"><Icon className="h-5 w-5" aria-hidden /></span>
-                    <span className="text-[12px] font-semibold uppercase tracking-[0.12em] text-comm-muted">{j.nome}</span>
+                    <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-beon-tint text-beon-red"><Icon className="h-5 w-5" aria-hidden /></span>
+                    <span className="text-[12px] font-semibold uppercase tracking-[0.12em] text-beon-muted">{j.nome}</span>
                   </span>
-                  <span className="mt-4 text-xl font-semibold leading-snug tracking-tight text-comm-ink">{j.chamada}</span>
-                  <span className="mt-1.5 text-sm text-comm-muted">{j.promessa}</span>
+                  <span className="mt-4 text-xl font-semibold leading-snug tracking-tight text-beon-ink">{j.chamada}</span>
+                  <span className="mt-1.5 text-sm text-beon-muted">{j.promessa}</span>
                   <ul className="mt-4 space-y-1.5">
-                    {RECEBE[j.papel].map(r => <li key={r} className="flex gap-2 text-sm text-comm-body"><Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" aria-hidden />{r}</li>)}
+                    {RECEBE[j.papel].map(r => <li key={r} className="flex gap-2 text-sm text-beon-body"><Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" aria-hidden />{r}</li>)}
                   </ul>
-                  <span className="mt-6 inline-flex items-center gap-1.5 text-sm font-semibold text-comm-red">Conversar com o Cientista <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" aria-hidden /></span>
+                  <span className="mt-6 inline-flex items-center gap-1.5 text-sm font-semibold text-beon-red">Conversar com o Cientista <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" aria-hidden /></span>
                 </button>
               )
             })}
           </div>
         )}
 
-        <div className="mt-10 grid gap-6 border-t border-comm-line pt-8 md:grid-cols-3">
+        <div className="mt-10 grid gap-6 border-t border-beon-line pt-8 md:grid-cols-3">
           {[
             [Search, 'Pergunta antes de propor', 'Mapeia o problema em dez dimensões e mostra por que cada pergunta importa.'],
             [Quote, 'Mostra de onde vem cada sugestão', 'Critérios e amostras citam casos do histórico do Lab, cálculos ou dizem que são estimativas.'],
@@ -169,8 +169,8 @@ export default function CientistaPage() {
             const I = Icon as typeof Search
             return (
               <div key={t as string} className="flex gap-3">
-                <I className="mt-0.5 h-5 w-5 shrink-0 text-comm-red" aria-hidden />
-                <span><b className="block text-sm font-semibold text-comm-ink">{t as string}</b><span className="text-sm text-comm-muted">{d as string}</span></span>
+                <I className="mt-0.5 h-5 w-5 shrink-0 text-beon-red" aria-hidden />
+                <span><b className="block text-sm font-semibold text-beon-ink">{t as string}</b><span className="text-sm text-beon-muted">{d as string}</span></span>
               </div>
             )
           })}

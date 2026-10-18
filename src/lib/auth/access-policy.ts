@@ -10,7 +10,7 @@ export type AccessDecision =
   | { type: 'forbidden'; redirectTo: string; message: string }
 
 /** Rotas abertas sem sessão. */
-const PUBLIC_PATHS = ['/login', '/bem-vindo', '/api/auth/login', '/api/auth/logout']
+const PUBLIC_PATHS = ['/login', '/bem-vindo', '/api/auth/login', '/api/auth/logout', '/api/auth/register']
 
 /** Imagens da pasta public/ (logo etc.), usadas também na tela de login. */
 const PUBLIC_IMAGE = /^\/[\w.-]+\.(png|jpe?g|svg|webp|gif|ico)$/i

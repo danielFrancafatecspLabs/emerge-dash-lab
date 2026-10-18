@@ -2,9 +2,8 @@ import { fetchDashboardRaw } from '@/lib/jira'
 import { buildDashboardData } from '@/lib/mappers'
 import { classifyPortfolios } from '@/lib/portfolio-classifier'
 import { classifySegmentos } from '@/lib/segmento-classifier'
-import Sidebar from '@/components/layout/Sidebar'
+import { PortalShell } from '@/components/portal/PortalShell'
 import Link from 'next/link'
-import LogoutButton from '@/components/layout/LogoutButton'
 import GenerateImageButton from '@/components/report/GenerateImageButton'
 import ReportContent from '@/components/report/ReportContent'
 import { iniciativasDelivery } from '@/lib/report-data'
@@ -24,6 +23,7 @@ import type {
   BloqueadoSlideRow,
 } from '@/lib/types'
 import type { ChangelogEntry } from '@/lib/jira'
+import { PortalDataError } from '@/components/portal/PortalDataError'
 
 export const dynamic = 'force-dynamic'
 
@@ -55,14 +55,7 @@ export default async function ReportPage() {
   }
 
   if (error || !data) {
-    return (
-      <div className="flex min-h-dvh items-center justify-center" style={{ background: '#f0f0f0' }}>
-        <div className="bg-white rounded-lg p-8 shadow text-center max-w-lg">
-          <p className="text-2xl font-bold mb-2" style={{ color: '#CC0000' }}>Erro ao carregar dados</p>
-          <p className="text-gray-600 text-sm">{error}</p>
-        </div>
-      </div>
-    )
+    return <PortalDataError title="Report — Todos os experimentos ativos" error={error} />
   }
 
   // ── Experimentos em Andamento ou Validação, ordenados por prioridade ──
@@ -363,28 +356,20 @@ export default async function ReportPage() {
   const beneficioPotencialEstimado = data.allEpics.reduce((sum, e) => sum + (e.beneficioQuantitativo ?? 0), 0)
 
   return (
-    <div className="flex h-screen overflow-hidden" style={{ background: '#f0f0f0' }}>
-      <Sidebar />
-
-      <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        {/* Header fixo */}
-        <header className="bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between shrink-0">
-          <div className="flex items-center gap-3">
-            <img src="/jira/logobeonlabs.png" alt="BeOn Labs" className="h-8 w-auto" />
-            <div>
-              <h1 className="text-lg font-bold text-gray-900">Report — Todos os Experimentos Ativos</h1>
-              <p className="text-xs text-gray-500">{emAndamento.length} experimentos ordenados por prioridade (maior → menor)</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <Link href="/portfolio" className="text-xs text-gray-500 hover:text-gray-700 transition-colors">
-              Ver lista completa
-            </Link>
-            <GenerateImageButton />
-            <LogoutButton />
-          </div>
-        </header>
-
+    <PortalShell
+      title="Report — Todos os experimentos ativos"
+      description={`${emAndamento.length} experimentos ordenados por prioridade (maior → menor)`}
+      fit
+      refreshable
+      actions={
+        <>
+          <Link href="/portfolio" className="hidden text-sm font-medium text-beon-muted hover:text-beon-ink lg:inline">
+            Ver lista completa
+          </Link>
+          <GenerateImageButton />
+        </>
+      }
+    >
         <ReportContent
           iniciativasSlides={iniciativasSlides}
           iniciativasCandidatas={iniciativasCandidatas}
@@ -403,7 +388,6 @@ export default async function ReportPage() {
           experimentosConcluidos={experimentosConcluidos}
           experimentosCancelados={experimentosCancelados}
         />
-      </main>
-    </div>
+    </PortalShell>
   )
 }

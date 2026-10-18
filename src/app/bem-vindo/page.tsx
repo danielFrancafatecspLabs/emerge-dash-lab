@@ -1,128 +1,63 @@
 'use client'
 
-import { Suspense, useEffect, useState } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
-import { Shield, Briefcase, HeartHandshake } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { ROLE_LABEL, homeFor } from '@/lib/auth/client'
+import type { AuthSessionRole } from '@/lib/auth/session'
 
-function BemVindoContent() {
-  const router = useRouter()
-  const searchParams = useSearchParams()
-  const [fadeOut, setFadeOut] = useState(false)
-
-  const role = searchParams.get('role') || 'admin'
-  const username = searchParams.get('username') || 'Usuário'
-  const isCommunity = role === 'community'
-  const roleLabel = role === 'admin' ? 'Administrador' : isCommunity ? 'Comunidade' : 'Executivo'
-  const RoleIcon = role === 'admin' ? Shield : isCommunity ? HeartHandshake : Briefcase
-  const destino = isCommunity ? '/comunidade' : '/estrategia'
-
-  useEffect(() => {
-    const timer = setTimeout(() => setFadeOut(true), 2000)
-    const redirect = setTimeout(() => router.replace(destino), 2800)
-    return () => {
-      clearTimeout(timer)
-      clearTimeout(redirect)
-    }
-  }, [router, destino])
-
-  return (
-    <>
-      <div
-        className={`bg-white rounded-2xl shadow-xl p-10 flex flex-col items-center gap-6 text-center transition-all duration-700 ease-in-out ${fadeOut ? 'opacity-0 scale-95' : 'opacity-100 scale-100'}`}
-        style={{ maxWidth: 420 }}
-      >
-        {/* Logo beOn Labs */}
-        <img
-          src="/jira/logobeonlabs.png"
-          alt="beOn Labs"
-          style={{ width: 100, height: 100, objectFit: 'contain', display: 'block' }}
-        />
-
-        {/* Saudação */}
-        <div className="flex flex-col gap-1">
-          <h1
-            className="font-extrabold tracking-tight"
-            style={{ fontSize: 26, color: '#8B0000' }}
-          >
-            Bem-vindo ao beOn Labs!
-          </h1>
-          <p className="text-gray-400" style={{ fontSize: 13 }}>
-            {isCommunity ? 'Comunidade de Experimentação' : 'Dashboard Executivo de Experimentos'} · Claro Brasil
-          </p>
-        </div>
-
-        {/* Card de acesso */}
-        <div
-          className="rounded-xl px-6 py-4 flex items-center gap-4 w-full"
-          style={{ background: role === 'admin' ? '#FFF5F5' : '#F5F7FF' }}
-        >
-          <div
-            className="rounded-full p-2.5"
-            style={{ background: role === 'admin' ? '#8B0000' : '#1a56db' }}
-          >
-            <RoleIcon size={22} color="white" />
-          </div>
-          <div className="text-left">
-            <p className="text-gray-400" style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-              Tipo de Acesso
-            </p>
-            <p
-              className="font-bold"
-              style={{ fontSize: 18, color: role === 'admin' ? '#8B0000' : '#1a56db' }}
-            >
-              {roleLabel}
-            </p>
-          </div>
-        </div>
-
-        {/* Username */}
-        <p className="text-gray-400" style={{ fontSize: 12 }}>
-          Logado como <span className="font-semibold text-gray-600">{username}</span>
-        </p>
-
-        {/* Progress bar */}
-        <div className="w-full bg-gray-100 rounded-full h-1 overflow-hidden">
-          <div
-            className="h-full rounded-full animate-loading-bar"
-            style={{ background: role === 'admin' ? '#8B0000' : '#1a56db', width: '0%' }}
-          />
-        </div>
-
-        <p className="text-gray-300" style={{ fontSize: 11 }}>
-          {isCommunity ? 'Entrando na Comunidade...' : 'Redirecionando para o dashboard...'}
-        </p>
-      </div>
-
-      <style>{`
-        @keyframes loadingBar {
-          0% { width: 0%; }
-          100% { width: 100%; }
-        }
-        .animate-loading-bar {
-          animation: loadingBar 2.5s ease-in-out forwards;
-        }
-      `}</style>
-    </>
-  )
+interface Sessao {
+  nome: string
+  role: AuthSessionRole
 }
 
+/** Transição curta depois do login: cumprimenta a pessoa e leva para a área do perfil dela. */
 export default function BemVindoPage() {
+  const router = useRouter()
+  const [sessao, setSessao] = useState<Sessao | null>(null)
+  const [saindo, setSaindo] = useState(false)
+
+  useEffect(() => {
+    let vivo = true
+    const timers: ReturnType<typeof setTimeout>[] = []
+    fetch('/jira/api/auth/me')
+      .then(r => (r.ok ? r.json() : null))
+      .then(d => {
+        if (!vivo) return
+        if (!d?.role) { router.replace('/login'); return }
+        setSessao({ nome: d.nome || d.username, role: d.role })
+        timers.push(setTimeout(() => setSaindo(true), 1600))
+        timers.push(setTimeout(() => router.replace(homeFor(d.role)), 2200))
+      })
+      .catch(() => router.replace('/login'))
+    return () => { vivo = false; timers.forEach(clearTimeout) }
+  }, [router])
+
+  const primeiroNome = sessao?.nome.split(/[\s@._]/)[0] ?? ''
+  const comunidade = sessao?.role === 'community'
+
   return (
-    <div
-      className="min-h-dvh flex items-center justify-center"
-      style={{ background: '#f0f0f0' }}
-    >
-      <Suspense fallback={
-        <div className="bg-white rounded-2xl shadow-xl p-10 flex flex-col items-center gap-6" style={{ maxWidth: 420 }}>
-          <img src="/jira/logobeonlabs.png" alt="beOn Labs" style={{ width: 100, height: 100, objectFit: 'contain' }} />
-          <h1 className="font-extrabold tracking-tight" style={{ fontSize: 26, color: '#8B0000' }}>
-            Bem-vindo ao beOn Labs!
-          </h1>
-          <p className="text-gray-400" style={{ fontSize: 13 }}>Carregando...</p>
+    <div className="relative flex min-h-dvh items-center justify-center overflow-hidden bg-[#3A0A05] p-5 font-sans antialiased">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src="/jira/login-comunidade.svg" alt="" aria-hidden className="absolute inset-0 h-full w-full object-cover" />
+      <div className="absolute inset-0 bg-[#2A0704]/60" aria-hidden />
+
+      <div
+        className={`relative w-full max-w-sm rounded-3xl bg-white p-8 text-center shadow-2xl shadow-black/30 transition-all duration-500 ${saindo ? 'scale-95 opacity-0' : 'scale-100 opacity-100'}`}
+        role="status"
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/jira/logobeonlabs.png" alt="beOn Labs" className="mx-auto h-12 w-auto" />
+        <h1 className="mt-6 text-2xl font-bold tracking-tight text-beon-ink">
+          {sessao ? `Bem-vindo(a), ${primeiroNome}!` : 'Bem-vindo ao beOn Labs'}
+        </h1>
+        <p className="mt-1.5 text-sm text-beon-muted">
+          {!sessao ? 'Preparando seu acesso…' : comunidade ? 'Entrando na Comunidade beOn Labs' : `Abrindo o portal · perfil ${ROLE_LABEL[sessao.role]}`}
+        </p>
+        <div className="mt-6 h-1 overflow-hidden rounded-full bg-beon-soft">
+          <div className="h-full w-full origin-left animate-[carregar_2s_ease-in-out_forwards] rounded-full bg-beon-red motion-reduce:animate-none" />
         </div>
-      }>
-        <BemVindoContent />
-      </Suspense>
+      </div>
+      <style>{'@keyframes carregar{from{transform:scaleX(0)}to{transform:scaleX(1)}}'}</style>
     </div>
   )
 }

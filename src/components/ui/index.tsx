@@ -1,6 +1,7 @@
 'use client'
 
-// Primitivas visuais da experiência Comunidade: avatar, botões, chips, diálogo, estados de carregamento/erro/vazio.
+// Design system beOn Labs: primitivas compartilhadas pela Comunidade, login e portal executivo
+// (avatar, botões, chips, diálogo, campos e estados de carregamento/erro/vazio). Cores: tokens `beon-*`.
 
 import { forwardRef, useEffect, useRef, type ButtonHTMLAttributes, type ReactNode } from 'react'
 import { AlertCircle, Loader2, X, type LucideIcon } from 'lucide-react'
@@ -9,7 +10,7 @@ export function cx(...classes: (string | false | null | undefined)[]) {
   return classes.filter(Boolean).join(' ')
 }
 
-export const focusRing = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-comm-red/60 focus-visible:ring-offset-2'
+export const focusRing = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-beon-red/60 focus-visible:ring-offset-2'
 
 // ── Avatar ──────────────────────────────────────────────────────────────────────────────────
 
@@ -62,9 +63,9 @@ export function Avatar({ nome, src, size = 40, ativo }: { nome: string; src?: st
 type Variant = 'primary' | 'secondary' | 'ghost' | 'danger'
 
 const VARIANT: Record<Variant, string> = {
-  primary: 'bg-comm-red text-white hover:bg-comm-redhi disabled:bg-comm-red/50',
-  secondary: 'border border-comm-line bg-white text-comm-ink hover:bg-comm-soft disabled:text-comm-muted',
-  ghost: 'text-comm-body hover:bg-comm-soft hover:text-comm-ink disabled:text-comm-muted/60',
+  primary: 'bg-beon-red text-white hover:bg-beon-redhi disabled:bg-beon-red/50',
+  secondary: 'border border-beon-line bg-white text-beon-ink hover:bg-beon-soft disabled:text-beon-muted',
+  ghost: 'text-beon-body hover:bg-beon-soft hover:text-beon-ink disabled:text-beon-muted/60',
   danger: 'bg-red-700 text-white hover:bg-red-800 disabled:bg-red-700/50',
 }
 
@@ -106,7 +107,7 @@ export function IconButton({ icon: Icon, label, active, badge, className, ...res
       title={label}
       className={cx(
         'relative inline-flex h-9 w-9 items-center justify-center rounded-full transition-colors',
-        active ? 'bg-comm-tint text-comm-red' : 'text-comm-body hover:bg-comm-soft hover:text-comm-ink',
+        active ? 'bg-beon-tint text-beon-red' : 'text-beon-body hover:bg-beon-soft hover:text-beon-ink',
         focusRing, className,
       )}
       {...rest}
@@ -119,7 +120,7 @@ export function IconButton({ icon: Icon, label, active, badge, className, ...res
 
 export function CountBadge({ n, className }: { n: number; className?: string }) {
   return (
-    <span className={cx('inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-comm-red px-1 text-[10px] font-bold leading-none text-white', className)}>
+    <span className={cx('inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-beon-red px-1 text-[10px] font-bold leading-none text-white', className)}>
       {n > 99 ? '99+' : n}
     </span>
   )
@@ -134,7 +135,7 @@ export function Chip({ selected, children, className, ...rest }: ButtonHTMLAttri
       aria-pressed={selected}
       className={cx(
         'inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full border px-3 text-[13px] font-medium transition-colors',
-        selected ? 'border-comm-ink bg-comm-ink text-white' : 'border-comm-line bg-white text-comm-body hover:border-comm-muted/50 hover:text-comm-ink',
+        selected ? 'border-beon-ink bg-beon-ink text-white' : 'border-beon-line bg-white text-beon-body hover:border-beon-muted/50 hover:text-beon-ink',
         focusRing, className,
       )}
       {...rest}
@@ -161,18 +162,18 @@ export function Dialog({ open, onClose, title, description, children, size = 'md
       ref={ref}
       onClose={onClose}
       onClick={e => { if (e.target === ref.current) onClose() }}
-      aria-labelledby="comm-dialog-title"
+      aria-labelledby="ui-dialog-title"
       className={cx(
-        'm-auto w-[calc(100%-2rem)] rounded-2xl bg-white p-0 text-comm-ink shadow-2xl backdrop:bg-stone-900/40 backdrop:backdrop-blur-[2px]',
+        'm-auto w-[calc(100%-2rem)] rounded-2xl bg-white p-0 text-beon-ink shadow-2xl backdrop:bg-stone-900/40 backdrop:backdrop-blur-[2px]',
         size === 'lg' ? 'max-w-2xl' : 'max-w-lg',
       )}
     >
       {open && (
         <div className="flex max-h-[85dvh] flex-col">
-          <div className="flex items-start justify-between gap-4 border-b border-comm-line px-6 py-4">
+          <div className="flex items-start justify-between gap-4 border-b border-beon-line px-6 py-4">
             <div>
-              <h2 id="comm-dialog-title" className="text-lg font-semibold tracking-tight">{title}</h2>
-              {description && <p className="mt-0.5 text-sm text-comm-muted">{description}</p>}
+              <h2 id="ui-dialog-title" className="text-lg font-semibold tracking-tight">{title}</h2>
+              {description && <p className="mt-0.5 text-sm text-beon-muted">{description}</p>}
             </div>
             <IconButton icon={X} label="Fechar" onClick={onClose} className="-mr-2" />
           </div>
@@ -189,28 +190,14 @@ export function Skeleton({ className }: { className?: string }) {
   return <div className={cx('animate-pulse rounded-md bg-stone-200/70', className)} aria-hidden />
 }
 
-export function PostSkeleton() {
-  return (
-    <div className="flex gap-3 border-b border-comm-line px-4 py-5 sm:px-6" aria-hidden>
-      <Skeleton className="h-10 w-10 rounded-full" />
-      <div className="flex-1 space-y-2.5">
-        <Skeleton className="h-3.5 w-40" />
-        <Skeleton className="h-4 w-3/4" />
-        <Skeleton className="h-3.5 w-full" />
-        <Skeleton className="h-3.5 w-5/6" />
-      </div>
-    </div>
-  )
-}
-
 export function EmptyState({ icon: Icon, title, children, action }: { icon: LucideIcon; title: string; children?: ReactNode; action?: ReactNode }) {
   return (
     <div className="flex flex-col items-center px-6 py-14 text-center">
-      <span className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-comm-tint text-comm-red">
+      <span className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-beon-tint text-beon-red">
         <Icon className="h-5 w-5" aria-hidden />
       </span>
-      <h3 className="text-base font-semibold text-comm-ink">{title}</h3>
-      {children && <div className="mt-1.5 max-w-sm text-sm leading-relaxed text-comm-muted">{children}</div>}
+      <h3 className="text-base font-semibold text-beon-ink">{title}</h3>
+      {children && <div className="mt-1.5 max-w-sm text-sm leading-relaxed text-beon-muted">{children}</div>}
       {action && <div className="mt-5">{action}</div>}
     </div>
   )
@@ -219,8 +206,8 @@ export function EmptyState({ icon: Icon, title, children, action }: { icon: Luci
 export function ErrorState({ message, onRetry }: { message: string; onRetry?: () => void }) {
   return (
     <div role="alert" className="flex flex-col items-center px-6 py-12 text-center">
-      <AlertCircle className="mb-3 h-6 w-6 text-comm-red" aria-hidden />
-      <p className="max-w-sm text-sm text-comm-body">{message}</p>
+      <AlertCircle className="mb-3 h-6 w-6 text-beon-red" aria-hidden />
+      <p className="max-w-sm text-sm text-beon-body">{message}</p>
       {onRetry && <Button size="sm" className="mt-4" onClick={onRetry}>Tentar novamente</Button>}
     </div>
   )
@@ -229,13 +216,13 @@ export function ErrorState({ message, onRetry }: { message: string; onRetry?: ()
 export function SectionTitle({ children, action }: { children: ReactNode; action?: ReactNode }) {
   return (
     <div className="mb-3 flex items-center justify-between gap-2">
-      <h2 className="text-[13px] font-semibold uppercase tracking-[0.08em] text-comm-muted">{children}</h2>
+      <h2 className="text-[13px] font-semibold uppercase tracking-[0.08em] text-beon-muted">{children}</h2>
       {action}
     </div>
   )
 }
 
 export const inputClass = cx(
-  'w-full rounded-xl border border-comm-line bg-white px-3.5 py-2.5 text-[15px] text-comm-ink placeholder:text-comm-muted/80',
-  'transition-colors focus:border-comm-ink/40 focus:outline-none focus:ring-2 focus:ring-comm-red/20',
+  'w-full rounded-xl border border-beon-line bg-white px-3.5 py-2.5 text-[15px] text-beon-ink placeholder:text-beon-muted/80',
+  'transition-colors focus:border-beon-ink/40 focus:outline-none focus:ring-2 focus:ring-beon-red/20',
 )

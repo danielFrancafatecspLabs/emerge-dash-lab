@@ -84,7 +84,7 @@ export default function OkrContent() {
   // Loading
   if (loading) {
     return (
-      <div className="flex-1 flex items-center justify-center" style={{ marginTop: 52 }}>
+      <div className="flex-1 flex items-center justify-center">
         <div className="flex flex-col items-center gap-3 text-gray-400">
           <Loader2 size={32} className="animate-spin" />
           <p className="text-sm">Carregando OKRs...</p>
@@ -96,7 +96,7 @@ export default function OkrContent() {
   // Erro
   if (error || !data) {
     return (
-      <div className="flex-1 flex items-center justify-center" style={{ marginTop: 52 }}>
+      <div className="flex-1 flex items-center justify-center">
         <div className="flex flex-col items-center gap-3 text-gray-400">
           <AlertTriangle size={32} className="text-yellow-500" />
           <p className="text-sm">Erro ao carregar OKRs</p>
@@ -109,7 +109,7 @@ export default function OkrContent() {
   const { objetivos, atualizadoEm } = data
 
   return (
-    <div className="flex-1 p-3 gap-4 flex flex-col" style={{ marginTop: 52 }}>
+    <div className="flex-1 p-3 gap-4 flex flex-col">
       {/* Cabeçalho */}
       <div className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
         <div className="flex items-center gap-3 mb-1">

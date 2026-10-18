@@ -4,6 +4,7 @@ import { classifyPortfolios } from '@/lib/portfolio-classifier'
 import { classifySegmentos } from '@/lib/segmento-classifier'
 import OperacionalClient from '@/components/dashboard/OperacionalClient'
 import type { MonitoramentoData } from '@/lib/types'
+import { PortalDataError } from '@/components/portal/PortalDataError'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 300
@@ -37,17 +38,7 @@ export default async function OperacionalPage() {
   }
 
   if (error || !data || !monitoramento) {
-    return (
-      <div className="flex min-h-dvh items-center justify-center" style={{ background: '#f0f0f0' }}>
-        <div className="bg-white rounded-lg p-8 shadow text-center max-w-lg">
-          <p className="text-2xl font-bold mb-2" style={{ color: '#CC0000' }}>Erro ao carregar dados</p>
-          <p className="text-gray-600 text-sm">{error}</p>
-          <p className="text-gray-400 text-xs mt-4">
-            Verifique as variáveis JIRA_EMAIL, JIRA_API_TOKEN e JIRA_BASE_URL no .env.local
-          </p>
-        </div>
-      </div>
-    )
+    return <PortalDataError title="Operacional" error={error} />
   }
 
   return <OperacionalClient data={data} monitoramento={monitoramento} />

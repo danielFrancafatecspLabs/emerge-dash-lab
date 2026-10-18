@@ -1,8 +1,7 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import Header from '@/components/layout/Header'
-import Sidebar from '@/components/layout/Sidebar'
+import { PortalShell } from '@/components/portal/PortalShell'
 import CycleTimeEstrategia from '@/components/dashboard/CycleTimeEstrategia'
 import GovernancaAlinhamento from '@/components/dashboard/GovernancaAlinhamento'
 import LeadTimeJornada from '@/components/dashboard/LeadTimeJornada'
@@ -27,25 +26,8 @@ export default function OperacionalClient({ data, monitoramento }: Props) {
   const iniciativasLab = monitoramento?.iniciativasPorLab ?? []
 
   return (
-    <div className="flex min-h-dvh" style={{ background: '#f0f0f0' }}>
-      {/* Sidebar */}
-      <div className="flex-shrink-0" style={{ width: 72 }}>
-        <div className="fixed top-0 left-0 h-full" style={{ width: 72 }}>
-          <div style={{ background: '#8B0000', paddingTop: 52, height: '100%' }}>
-            <Sidebar />
-          </div>
-        </div>
-      </div>
-
-      {/* Main */}
-      <div className="flex-1 flex flex-col min-w-0">
-        {/* Header */}
-        <div className="fixed top-0 z-10" style={{ left: 72, right: 0 }}>
-          <Header />
-        </div>
-
-        {/* Content */}
-        <main className="flex-1 p-3 md:p-4 lg:p-5 gap-3 md:gap-4 flex flex-col min-w-0" style={{ marginTop: 52 }}>
+    <PortalShell title="Operacional" description="Andamento dos experimentos e iniciativas por etapa e por lab" refreshable>
+        <div className="flex-1 p-3 md:p-4 lg:p-5 gap-3 md:gap-4 flex flex-col min-w-0">
           {/* Título */}
           <div className="mb-1 flex-shrink-0">
             <h1 className="text-lg font-bold text-gray-900">
@@ -84,8 +66,7 @@ export default function OperacionalClient({ data, monitoramento }: Props) {
             <Top5Experimentos data={dados} />
             <Top5Dominios data={dados} />
           </div>
-        </main>
-      </div>
-    </div>
+        </div>
+    </PortalShell>
   )
 }
