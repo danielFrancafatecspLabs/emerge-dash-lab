@@ -43,7 +43,7 @@ const BUBBLE_GRID_GAP_Y = 3
 
 // Trunca em JS (não CSS text-overflow:ellipsis) — essa combinação já
 // vazou texto por cima de vizinhos numa exportação anterior deste projeto
-// quando o ancestral tem clip-path. Ver notas de exportação em PipelineSlide.
+// quando o ancestral tem clip-path.
 function truncate(str: string, max: number): string {
   if (str.length <= max) return str
   return str.slice(0, max - 1).trimEnd() + '…'

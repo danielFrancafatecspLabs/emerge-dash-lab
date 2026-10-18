@@ -27,7 +27,6 @@ data/community-messages.json
 data/stories.json
 
 # Saídas de scripts
-/weekly-export/
 public/comunidade/
 .tmp/
 .worktrees/

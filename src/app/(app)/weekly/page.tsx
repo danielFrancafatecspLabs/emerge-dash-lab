@@ -1,12 +1,6 @@
-import { PortalPage } from '@/components/shell/PortalPage'
-import WeeklySlide from '@/components/weekly/WeeklySlide'
+import { redirect } from 'next/navigation'
 
+// A Weekly foi unificada na aba Semanal (deck do Comitê + acompanhamento da semana).
 export default function WeeklyPage() {
-  return (
-    <PortalPage title="Weekly" description="Slide executivo da jornada de experimentação — visível apenas para admins" fit>
-      <div className="flex-1 overflow-auto p-6">
-        <WeeklySlide />
-      </div>
-    </PortalPage>
-  )
+  redirect('/semanal')
 }
