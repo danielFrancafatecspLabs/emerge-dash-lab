@@ -11,7 +11,7 @@ import { topicLabel } from '@/lib/community/topics'
 import type { MemberPublic } from '@/lib/community/server'
 import { useCommunity } from './CommunityProvider'
 import { tempoRelativo } from './format'
-import { Avatar, SectionTitle, Skeleton, cx, focusRing } from './ui'
+import { Avatar, SectionTitle, Skeleton, cx, focusRing } from '@/components/ui'
 import { KIND_STYLE, topicIcon } from './visuals'
 
 export const ENCONTROS = [
@@ -44,7 +44,7 @@ export function FollowButton({ username, nome }: { username: string; nome: strin
       }))}
       className={cx(
         'inline-flex h-8 items-center gap-1 rounded-full px-3 text-[13px] font-medium transition-colors',
-        seguindo ? 'bg-comm-soft text-comm-body hover:bg-stone-200' : 'border border-comm-ink/80 text-comm-ink hover:bg-comm-ink hover:text-white',
+        seguindo ? 'bg-beon-soft text-beon-body hover:bg-stone-200' : 'border border-beon-ink/80 text-beon-ink hover:bg-beon-ink hover:text-white',
         focusRing,
       )}
     >
@@ -57,7 +57,7 @@ export function FollowButton({ username, nome }: { username: string; nome: strin
 function MessageLink({ username, nome }: { username: string; nome: string }) {
   return (
     <Link href={`/comunidade/mensagens?com=${encodeURIComponent(username)}`} aria-label={`Enviar mensagem para ${nome}`}
-      className={cx('inline-flex h-8 w-8 items-center justify-center rounded-full text-comm-muted hover:bg-comm-soft hover:text-comm-ink', focusRing)}>
+      className={cx('inline-flex h-8 w-8 items-center justify-center rounded-full text-beon-muted hover:bg-beon-soft hover:text-beon-ink', focusRing)}>
       <MessageCircle className="h-4 w-4" aria-hidden />
     </Link>
   )
@@ -69,8 +69,8 @@ function PersonRow({ m, detalhe, action }: { m: MemberPublic; detalhe: string; a
       <Link href={`/comunidade/pessoas/${encodeURIComponent(m.username)}`} className={cx('flex min-w-0 flex-1 items-center gap-3 rounded-xl', focusRing)}>
         <Avatar nome={m.nome} src={m.avatar} size={38} ativo={m.ativoAgora} />
         <span className="min-w-0">
-          <span className="block truncate text-sm font-semibold text-comm-ink">{m.nome}</span>
-          <span className="block truncate text-xs text-comm-muted">{detalhe}</span>
+          <span className="block truncate text-sm font-semibold text-beon-ink">{m.nome}</span>
+          <span className="block truncate text-xs text-beon-muted">{detalhe}</span>
         </span>
       </Link>
       {action}
@@ -111,7 +111,7 @@ export function DiscoveryRail() {
         {members.loading && !members.data ? (
           <div className="space-y-3">{[0, 1, 2].map(i => <Skeleton key={i} className="h-9 w-full" />)}</div>
         ) : ativos.length === 0 ? (
-          <p className="text-sm text-comm-muted">Ninguém mais passou por aqui nas últimas 24 horas.</p>
+          <p className="text-sm text-beon-muted">Ninguém mais passou por aqui nas últimas 24 horas.</p>
         ) : (
           <ul className="space-y-3">
             {ativos.map(m => (
@@ -124,13 +124,13 @@ export function DiscoveryRail() {
       </section>
 
       <section>
-        <SectionTitle action={<Link href="/comunidade/pessoas" className="text-xs font-medium text-comm-muted hover:text-comm-ink">Ver todas</Link>}>
+        <SectionTitle action={<Link href="/comunidade/pessoas" className="text-xs font-medium text-beon-muted hover:text-beon-ink">Ver todas</Link>}>
           Pessoas para conhecer
         </SectionTitle>
         {sugestoes.length === 0 ? (
-          <p className="text-sm text-comm-muted">
+          <p className="text-sm text-beon-muted">
             {me && me.profile.interesses.length === 0
-              ? <>Escolha seus interesses no <Link className="font-medium text-comm-ink underline-offset-2 hover:underline" href={`/comunidade/pessoas/${encodeURIComponent(me.username)}`}>seu perfil</Link> para receber sugestões.</>
+              ? <>Escolha seus interesses no <Link className="font-medium text-beon-ink underline-offset-2 hover:underline" href={`/comunidade/pessoas/${encodeURIComponent(me.username)}`}>seu perfil</Link> para receber sugestões.</>
               : 'Ainda não há outras pessoas com os mesmos interesses. Veja todas em Pessoas.'}
           </p>
         ) : (
@@ -152,10 +152,10 @@ export function DiscoveryRail() {
               const Icon = topicIcon(topic)
               return (
                 <li key={topic}>
-                  <Link href={`/comunidade?topico=${topic}`} className={cx('-mx-2 flex items-center gap-3 rounded-lg px-2 py-1.5 hover:bg-comm-soft', focusRing)}>
-                    <Icon className="h-4 w-4 text-comm-muted" aria-hidden />
-                    <span className="flex-1 text-sm font-medium text-comm-ink">{topicLabel(topic)}</span>
-                    <span className="text-xs tabular-nums text-comm-muted">{count} {count === 1 ? 'atividade' : 'atividades'}</span>
+                  <Link href={`/comunidade?topico=${topic}`} className={cx('-mx-2 flex items-center gap-3 rounded-lg px-2 py-1.5 hover:bg-beon-soft', focusRing)}>
+                    <Icon className="h-4 w-4 text-beon-muted" aria-hidden />
+                    <span className="flex-1 text-sm font-medium text-beon-ink">{topicLabel(topic)}</span>
+                    <span className="text-xs tabular-nums text-beon-muted">{count} {count === 1 ? 'atividade' : 'atividades'}</span>
                   </Link>
                 </li>
               )
@@ -172,11 +172,11 @@ export function DiscoveryRail() {
               const { icon: Icon, accent } = KIND_STYLE[p.kind]
               return (
                 <li key={p.id}>
-                  <Link href={`/comunidade/post/${p.id}`} className={cx('group -mx-2 flex gap-3 rounded-lg px-2 py-1.5 hover:bg-comm-soft', focusRing)}>
+                  <Link href={`/comunidade/post/${p.id}`} className={cx('group -mx-2 flex gap-3 rounded-lg px-2 py-1.5 hover:bg-beon-soft', focusRing)}>
                     <Icon className="mt-0.5 h-4 w-4 shrink-0" style={{ color: accent }} aria-hidden />
                     <span className="min-w-0">
-                      <span className="line-clamp-2 text-sm font-medium leading-snug text-comm-ink group-hover:underline">{postTitle(p)}</span>
-                      <span className="text-xs text-comm-muted">{p.authorName} · {tempoRelativo(p.createdAt)}</span>
+                      <span className="line-clamp-2 text-sm font-medium leading-snug text-beon-ink group-hover:underline">{postTitle(p)}</span>
+                      <span className="text-xs text-beon-muted">{p.authorName} · {tempoRelativo(p.createdAt)}</span>
                     </span>
                   </Link>
                 </li>
@@ -191,15 +191,15 @@ export function DiscoveryRail() {
         <ul className="space-y-3">
           {ENCONTROS.map(e => (
             <li key={e.nome} className="flex gap-3">
-              <CalendarDays className="mt-0.5 h-4 w-4 shrink-0 text-comm-red" aria-hidden />
+              <CalendarDays className="mt-0.5 h-4 w-4 shrink-0 text-beon-red" aria-hidden />
               <span>
-                <span className="block text-sm font-medium text-comm-ink">{e.nome}</span>
-                <span className="block text-xs text-comm-muted">{e.quando} · {e.nota}</span>
+                <span className="block text-sm font-medium text-beon-ink">{e.nome}</span>
+                <span className="block text-xs text-beon-muted">{e.quando} · {e.nota}</span>
               </span>
             </li>
           ))}
         </ul>
-        <p className="mt-3 text-xs text-comm-muted">Os convites chegam pelo calendário corporativo.</p>
+        <p className="mt-3 text-xs text-beon-muted">Os convites chegam pelo calendário corporativo.</p>
       </section>
     </div>
   )

@@ -25,6 +25,8 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
   }
 
   Object.assign(user, changes)
+  // Ativar pelo Admin também conclui um pedido de cadastro pendente.
+  if (changes.active) delete user.status
   if (password) user.passwordHash = hashPassword(password)
   saveUsers(users)
   return NextResponse.json(toPublic(user))

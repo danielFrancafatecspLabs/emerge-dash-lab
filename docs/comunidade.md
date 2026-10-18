@@ -1,7 +1,7 @@
 # Comunidade beOn Labs
 
-Experiência de rede social de inovação em `/comunidade`. É a única área disponível para a role `community`
-e continua acessível para admins (com atalho de volta ao painel executivo).
+Experiência de rede social de inovação em `/comunidade` e a home de todos os perfis: depois do login, todo mundo
+cai no feed. Para a role `community` é a única área; executivos, financeiro e admins veem os painéis no mesmo menu.
 
 ## Acesso
 

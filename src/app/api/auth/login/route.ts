@@ -1,14 +1,11 @@
 import { NextResponse } from 'next/server'
-import { verifyCredentials } from '@/lib/auth/users'
+import { checkLogin } from '@/lib/auth/users'
 import { createAuthSession } from '@/lib/auth/session'
 import { FailureLimiter } from '@/lib/auth/rate-limit'
+import { clientIp } from '@/lib/auth/request'
 
 // 8 tentativas erradas por IP + usuário a cada 15 minutos.
 const limiter = new FailureLimiter(8, 15 * 60 * 1000)
-
-function clientIp(request: Request): string {
-  return request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || request.headers.get('x-real-ip') || 'local'
-}
 
 export async function POST(request: Request) {
   let username = ''
@@ -33,12 +30,19 @@ export async function POST(request: Request) {
     )
   }
 
-  const user = verifyCredentials(username, password)
-  if (!user) {
+  const resultado = checkLogin(username, password)
+  if (!resultado) {
     limiter.registrarFalha(chave)
     return NextResponse.json({ error: 'Usuário ou senha incorretos' }, { status: 401 })
   }
   limiter.limparChave(chave)
+  if ('pendente' in resultado) {
+    return NextResponse.json(
+      { error: 'Seu cadastro ainda está em análise. Você poderá entrar assim que um administrador aprovar.', pendente: true },
+      { status: 403 },
+    )
+  }
+  const { user } = resultado
 
   const secret = process.env.AUTH_SECRET
   if (!secret) {

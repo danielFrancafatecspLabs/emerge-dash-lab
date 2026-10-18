@@ -9,7 +9,7 @@ import { ArrowRight, FlaskConical, MessagesSquare, Route, Sparkles } from 'lucid
 import { COMMUNITY_TOPICS } from '@/lib/community/topics'
 import { useCommunity } from './CommunityProvider'
 import { primeiroNome } from './format'
-import { Avatar, Button, Chip, Dialog, cx, focusRing } from './ui'
+import { Avatar, Button, Chip, Dialog, cx, focusRing } from '@/components/ui'
 import { topicIcon } from './visuals'
 
 export function Onboarding() {
@@ -45,7 +45,7 @@ export function Onboarding() {
       description={`Passo ${step + 1} de 3`}>
       {step === 0 && (
         <div className="space-y-5">
-          <p className="text-[15px] leading-relaxed text-comm-body">
+          <p className="text-[15px] leading-relaxed text-beon-body">
             A Comunidade beOn Labs é onde laboratórios, especialistas e áreas de negócio da Claro trocam descobertas,
             discutem tecnologias emergentes e aprendem a experimentar com método.
           </p>
@@ -58,8 +58,8 @@ export function Onboarding() {
               const I = Icon as typeof MessagesSquare
               return (
                 <li key={t as string} className="flex gap-3">
-                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-comm-tint text-comm-red"><I className="h-4 w-4" aria-hidden /></span>
-                  <span><strong className="block text-sm font-semibold text-comm-ink">{t as string}</strong><span className="text-sm text-comm-muted">{d as string}</span></span>
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-beon-tint text-beon-red"><I className="h-4 w-4" aria-hidden /></span>
+                  <span><strong className="block text-sm font-semibold text-beon-ink">{t as string}</strong><span className="text-sm text-beon-muted">{d as string}</span></span>
                 </li>
               )
             })}
@@ -73,7 +73,7 @@ export function Onboarding() {
 
       {step === 1 && (
         <div className="space-y-5">
-          <p className="text-sm text-comm-muted">Escolha alguns temas para o feed “Para você”. Você pode mudar quando quiser.</p>
+          <p className="text-sm text-beon-muted">Escolha alguns temas para o feed “Para você”. Você pode mudar quando quiser.</p>
           <div className="flex flex-wrap gap-2">
             {COMMUNITY_TOPICS.map(t => {
               const Icon = topicIcon(t.id)
@@ -82,12 +82,12 @@ export function Onboarding() {
           </div>
           {sugestoes.length > 0 && (
             <div>
-              <p className="mb-2 text-sm font-medium text-comm-ink">Pessoas com interesses parecidos</p>
+              <p className="mb-2 text-sm font-medium text-beon-ink">Pessoas com interesses parecidos</p>
               <ul className="grid gap-2 sm:grid-cols-2">
                 {sugestoes.map(m => (
-                  <li key={m.username} className="flex items-center gap-2.5 rounded-xl border border-comm-line px-3 py-2">
+                  <li key={m.username} className="flex items-center gap-2.5 rounded-xl border border-beon-line px-3 py-2">
                     <Avatar nome={m.nome} src={m.avatar} size={32} />
-                    <span className="min-w-0"><span className="block truncate text-sm font-medium">{m.nome}</span><span className="block truncate text-xs text-comm-muted">{m.especialidade || m.laboratorio}</span></span>
+                    <span className="min-w-0"><span className="block truncate text-sm font-medium">{m.nome}</span><span className="block truncate text-xs text-beon-muted">{m.especialidade || m.laboratorio}</span></span>
                   </li>
                 ))}
               </ul>
@@ -106,16 +106,16 @@ export function Onboarding() {
             kind: 'discussao', title: 'Olá, comunidade!', tags: interesses.slice(0, 3),
             content: `Oi, pessoal! Sou ${me.nome}${me.laboratorio ? `, do ${me.laboratorio}` : ''}. Tenho interesse em … e gostaria de trocar ideias sobre …`,
           }))}
-            className={cx('flex w-full items-center gap-4 rounded-2xl border border-comm-line p-4 text-left hover:border-comm-red/40 hover:bg-comm-tint/40', focusRing)}>
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-comm-red text-white"><MessagesSquare className="h-5 w-5" aria-hidden /></span>
-            <span className="flex-1"><strong className="block text-[15px] font-semibold">Apresente-se em uma frase</strong><span className="text-sm text-comm-muted">A forma mais simples de fazer a primeira contribuição.</span></span>
-            <ArrowRight className="h-4 w-4 text-comm-muted" aria-hidden />
+            className={cx('flex w-full items-center gap-4 rounded-2xl border border-beon-line p-4 text-left hover:border-beon-red/40 hover:bg-beon-tint/40', focusRing)}>
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-beon-red text-white"><MessagesSquare className="h-5 w-5" aria-hidden /></span>
+            <span className="flex-1"><strong className="block text-[15px] font-semibold">Apresente-se em uma frase</strong><span className="text-sm text-beon-muted">A forma mais simples de fazer a primeira contribuição.</span></span>
+            <ArrowRight className="h-4 w-4 text-beon-muted" aria-hidden />
           </button>
           <Link href="/comunidade/trilha" onClick={() => concluir()}
-            className={cx('flex w-full items-center gap-4 rounded-2xl border border-comm-line p-4 hover:border-comm-red/40 hover:bg-comm-tint/40', focusRing)}>
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-comm-tint text-comm-red"><Route className="h-5 w-5" aria-hidden /></span>
-            <span className="flex-1"><strong className="block text-[15px] font-semibold">Conheça a Trilha de Experimentação</strong><span className="text-sm text-comm-muted">Oito etapas, do problema ao aprendizado compartilhado.</span></span>
-            <ArrowRight className="h-4 w-4 text-comm-muted" aria-hidden />
+            className={cx('flex w-full items-center gap-4 rounded-2xl border border-beon-line p-4 hover:border-beon-red/40 hover:bg-beon-tint/40', focusRing)}>
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-beon-tint text-beon-red"><Route className="h-5 w-5" aria-hidden /></span>
+            <span className="flex-1"><strong className="block text-[15px] font-semibold">Conheça a Trilha de Experimentação</strong><span className="text-sm text-beon-muted">Oito etapas, do problema ao aprendizado compartilhado.</span></span>
+            <ArrowRight className="h-4 w-4 text-beon-muted" aria-hidden />
           </Link>
           <div className="flex justify-between gap-2 pt-3">
             <Button variant="ghost" onClick={() => setStep(1)}>Voltar</Button>

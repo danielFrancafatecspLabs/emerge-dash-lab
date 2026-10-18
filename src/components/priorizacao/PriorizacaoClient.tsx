@@ -2,8 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { AlertTriangle, ChevronDown, ChevronUp, List, Presentation, Target } from 'lucide-react'
-import Header from '@/components/layout/Header'
-import Sidebar from '@/components/layout/Sidebar'
+import { PortalPage } from '@/components/shell/PortalPage'
 import QuadranteCard from './QuadranteCard'
 import NaoClassificadosList from './NaoClassificadosList'
 import ModoReuniao from './ModoReuniao'
@@ -265,25 +264,8 @@ export default function PriorizacaoClient() {
   }
 
   return (
-    <div className="flex min-h-dvh" style={{ background: '#f0f0f0' }}>
-      {/* Sidebar fixa */}
-      <div className="flex-shrink-0" style={{ width: 72 }}>
-        <div className="fixed top-0 left-0 h-full" style={{ width: 72 }}>
-          <div style={{ background: '#8B0000', paddingTop: 52, height: '100%' }}>
-            <Sidebar />
-          </div>
-        </div>
-      </div>
-
-      {/* Main */}
-      <div className="flex-1 flex flex-col min-w-0">
-        {/* Header fixo */}
-        <div className="fixed top-0 z-10" style={{ left: 72, right: 0 }}>
-          <Header />
-        </div>
-
-        {/* Content */}
-        <main className="flex-1 p-3 md:p-4 lg:p-5 gap-3 md:gap-4 flex flex-col min-w-0" style={{ marginTop: 52 }}>
+    <PortalPage title="Priorização" description="Priorização dos experimentos do board de Experimentação" refreshable>
+        <div className="flex-1 p-3 md:p-4 lg:p-5 gap-3 md:gap-4 flex flex-col min-w-0">
           {/* Header interno da priorização */}
           <div className="bg-white border rounded-lg shadow-sm px-6 py-4">
             <div className="flex items-center justify-between flex-wrap gap-4">
@@ -462,8 +444,7 @@ export default function PriorizacaoClient() {
           </>
         )}
       </div>
-        </main>
-      </div>
-    </div>
+        </div>
+    </PortalPage>
   )
 }

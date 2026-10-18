@@ -12,7 +12,7 @@ import { STORY_CATEGORIA_LABEL, type Story, type StoryCategoria } from '@/lib/co
 import { api } from './api'
 import { useCommunity } from './CommunityProvider'
 import { tempoRelativo } from './format'
-import { Avatar, Skeleton, cx, focusRing } from './ui'
+import { Avatar, Skeleton, cx, focusRing } from '@/components/ui'
 import { CoverArt, type CoverPattern } from './visuals'
 
 interface StoryItem {
@@ -122,7 +122,7 @@ export function StoriesRail() {
   if (items.length === 0) return null
 
   return (
-    <section aria-label="Stories" className="border-b border-comm-line">
+    <section aria-label="Stories" className="border-b border-beon-line">
       <ul className="flex gap-3 overflow-x-auto px-4 py-4 [scrollbar-width:none] sm:px-6">
         {items.map((item, i) => {
           const visto = seen.has(item.id)
@@ -134,14 +134,14 @@ export function StoriesRail() {
                 aria-label={`${item.origem === 'editorial' ? 'beOn Labs' : item.autor?.nome}: ${item.titulo}${visto ? ' (visto)' : ''}`}
                 className={cx(
                   'group relative block h-[168px] w-[108px] overflow-hidden rounded-2xl text-left ring-2 ring-offset-2 transition-transform hover:-translate-y-0.5',
-                  visto ? 'ring-comm-line' : item.origem === 'editorial' ? 'ring-comm-red' : 'ring-comm-ink/70',
+                  visto ? 'ring-beon-line' : item.origem === 'editorial' ? 'ring-beon-red' : 'ring-beon-ink/70',
                   focusRing,
                 )}
               >
                 <Cover item={item} className="transition-transform duration-500 group-hover:scale-105" />
                 <span className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/10 to-black/20" />
                 {item.origem === 'editorial' ? (
-                  <span className="absolute left-2 top-2 rounded-full bg-white/95 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-comm-red">beOn Labs</span>
+                  <span className="absolute left-2 top-2 rounded-full bg-white/95 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-beon-red">beOn Labs</span>
                 ) : item.autor && (
                   <span className="absolute left-2 top-2 rounded-full ring-2 ring-white"><Avatar nome={item.autor.nome} src={item.autor.avatar} size={26} /></span>
                 )}
@@ -217,7 +217,7 @@ function StoryViewer({ items, start, onSeen, onClose }: { items: StoryItem[]; st
         <div className="absolute inset-x-4 top-7 flex items-center justify-between gap-3 text-white">
           <div className="flex min-w-0 items-center gap-2.5">
             {item.origem === 'editorial'
-              ? <span className="rounded-full bg-white px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-comm-red">beOn Labs</span>
+              ? <span className="rounded-full bg-white px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-beon-red">beOn Labs</span>
               : item.autor && <Avatar nome={item.autor.nome} src={item.autor.avatar} size={32} />}
             <span className="min-w-0 text-sm">
               <span className="block truncate font-semibold">{item.origem === 'editorial' ? item.categoria : item.autor?.nome}</span>
@@ -256,4 +256,4 @@ function StoryViewer({ items, start, onSeen, onClose }: { items: StoryItem[]; st
   )
 }
 
-const ctaCls = 'inline-flex h-10 items-center gap-1.5 rounded-full bg-white px-4 text-sm font-semibold text-comm-ink hover:bg-white/90'
+const ctaCls = 'inline-flex h-10 items-center gap-1.5 rounded-full bg-white px-4 text-sm font-semibold text-beon-ink hover:bg-white/90'
