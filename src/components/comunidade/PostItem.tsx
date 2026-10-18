@@ -17,26 +17,26 @@ import {
 import { api, BASE_PATH, errorMessage } from './api'
 import { useCommunity } from './CommunityProvider'
 import { dataHora, tempoRelativo } from './format'
-import { Avatar, Button, Dialog, cx, focusRing, inputClass } from './ui'
+import { Avatar, Button, Dialog, Skeleton, cx, focusRing, inputClass } from '@/components/ui'
 import { KindBadge, TopicTag } from './visuals'
 
 const md: Components = {
   p: ({ children }) => <p className="mb-3 last:mb-0">{children}</p>,
   ul: ({ children }) => <ul className="mb-3 ml-5 list-disc space-y-1">{children}</ul>,
   ol: ({ children }) => <ol className="mb-3 ml-5 list-decimal space-y-1">{children}</ol>,
-  a: ({ children, href }) => <a href={href} target="_blank" rel="noopener noreferrer" className="font-medium text-comm-red underline-offset-2 hover:underline">{children}</a>,
-  strong: ({ children }) => <strong className="font-semibold text-comm-ink">{children}</strong>,
-  code: ({ children }) => <code className="rounded bg-comm-soft px-1 py-0.5 text-[0.9em]">{children}</code>,
-  blockquote: ({ children }) => <blockquote className="mb-3 border-l-2 border-comm-line pl-3 text-comm-muted">{children}</blockquote>,
-  h1: ({ children }) => <p className="mb-2 font-semibold text-comm-ink">{children}</p>,
-  h2: ({ children }) => <p className="mb-2 font-semibold text-comm-ink">{children}</p>,
-  h3: ({ children }) => <p className="mb-2 font-semibold text-comm-ink">{children}</p>,
+  a: ({ children, href }) => <a href={href} target="_blank" rel="noopener noreferrer" className="font-medium text-beon-red underline-offset-2 hover:underline">{children}</a>,
+  strong: ({ children }) => <strong className="font-semibold text-beon-ink">{children}</strong>,
+  code: ({ children }) => <code className="rounded bg-beon-soft px-1 py-0.5 text-[0.9em]">{children}</code>,
+  blockquote: ({ children }) => <blockquote className="mb-3 border-l-2 border-beon-line pl-3 text-beon-muted">{children}</blockquote>,
+  h1: ({ children }) => <p className="mb-2 font-semibold text-beon-ink">{children}</p>,
+  h2: ({ children }) => <p className="mb-2 font-semibold text-beon-ink">{children}</p>,
+  h3: ({ children }) => <p className="mb-2 font-semibold text-beon-ink">{children}</p>,
   img: () => null,
 }
 
 export function RichText({ children, className }: { children: string; className?: string }) {
   return (
-    <div className={cx('break-words text-[15px] leading-relaxed text-comm-body', className)}>
+    <div className={cx('break-words text-[15px] leading-relaxed text-beon-body', className)}>
       <ReactMarkdown remarkPlugins={[remarkGfm]} components={md}>{children}</ReactMarkdown>
     </div>
   )
@@ -62,7 +62,7 @@ function ActionButton({ icon: Icon, label, count, active, onClick, pressed }: {
       aria-pressed={pressed}
       className={cx(
         'inline-flex h-9 items-center gap-1.5 rounded-full px-3 text-[13px] font-medium transition-colors',
-        active ? 'text-comm-red hover:bg-comm-tint' : 'text-comm-muted hover:bg-comm-soft hover:text-comm-ink',
+        active ? 'text-beon-red hover:bg-beon-tint' : 'text-beon-muted hover:bg-beon-soft hover:text-beon-ink',
         focusRing,
       )}
     >
@@ -89,15 +89,15 @@ function PostMenu({ post, onDelete }: { post: CommunityPost; onDelete: () => voi
   }, [open])
   const canDelete = !!me && (me.username === post.authorUsername || me.role === 'admin')
   const isMine = me?.username === post.authorUsername
-  const item = cx('flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm text-comm-body hover:bg-comm-soft hover:text-comm-ink', focusRing)
+  const item = cx('flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm text-beon-body hover:bg-beon-soft hover:text-beon-ink', focusRing)
   return (
     <div ref={ref} className="relative">
       <button type="button" onClick={() => setOpen(o => !o)} aria-expanded={open} aria-haspopup="menu" aria-label="Mais ações"
-        className={cx('inline-flex h-8 w-8 items-center justify-center rounded-full text-comm-muted hover:bg-comm-soft hover:text-comm-ink', focusRing)}>
+        className={cx('inline-flex h-8 w-8 items-center justify-center rounded-full text-beon-muted hover:bg-beon-soft hover:text-beon-ink', focusRing)}>
         <MoreHorizontal className="h-4 w-4" aria-hidden />
       </button>
       {open && (
-        <div role="menu" className="absolute right-0 top-full z-20 mt-1 w-56 rounded-xl border border-comm-line bg-white p-1.5 shadow-xl">
+        <div role="menu" className="absolute right-0 top-full z-20 mt-1 w-56 rounded-xl border border-beon-line bg-white p-1.5 shadow-xl">
           <Link role="menuitem" href={`/comunidade/pessoas/${encodeURIComponent(post.authorUsername)}`} className={item}>
             <UserRound className="h-4 w-4" aria-hidden /> {isMine ? 'Ver meu perfil' : 'Ver perfil'}
           </Link>
@@ -166,7 +166,7 @@ function CommentForm({ post, parent, onDone, autoFocus }: { post: CommunityPost;
           className={cx(inputClass, 'min-h-[40px] resize-none rounded-2xl py-2 pr-11 text-sm [field-sizing:content]')}
         />
         <button type="submit" disabled={!text.trim() || sending} aria-label="Enviar comentário"
-          className={cx('absolute bottom-1.5 right-1.5 inline-flex h-7 w-7 items-center justify-center rounded-full bg-comm-red text-white disabled:bg-comm-line disabled:text-comm-muted', focusRing)}>
+          className={cx('absolute bottom-1.5 right-1.5 inline-flex h-7 w-7 items-center justify-center rounded-full bg-beon-red text-white disabled:bg-beon-line disabled:text-beon-muted', focusRing)}>
           <Send className="h-3.5 w-3.5" aria-hidden />
         </button>
       </div>
@@ -199,16 +199,16 @@ function CommentView({ post, comment, onReply }: { post: CommunityPost; comment:
         <Avatar nome={comment.authorName} src={autor?.avatar} size={30} />
       </Link>
       <div className="min-w-0 flex-1">
-        <div className="rounded-2xl bg-comm-soft px-3.5 py-2.5">
+        <div className="rounded-2xl bg-beon-soft px-3.5 py-2.5">
           <p className="text-[13px]">
-            <Link href={`/comunidade/pessoas/${encodeURIComponent(comment.authorUsername)}`} className="font-semibold text-comm-ink hover:underline">{comment.authorName}</Link>
-            {autor?.especialidade && <span className="text-comm-muted"> · {autor.especialidade}</span>}
+            <Link href={`/comunidade/pessoas/${encodeURIComponent(comment.authorUsername)}`} className="font-semibold text-beon-ink hover:underline">{comment.authorName}</Link>
+            {autor?.especialidade && <span className="text-beon-muted"> · {autor.especialidade}</span>}
           </p>
           <RichText className="mt-0.5 text-sm">{comment.content}</RichText>
         </div>
-        <div className="mt-1 flex items-center gap-3 px-2 text-xs text-comm-muted">
+        <div className="mt-1 flex items-center gap-3 px-2 text-xs text-beon-muted">
           <time dateTime={comment.createdAt} title={dataHora(comment.createdAt)}>{tempoRelativo(comment.createdAt)}</time>
-          <button type="button" onClick={() => onReply(comment)} className="font-medium hover:text-comm-ink">Responder</button>
+          <button type="button" onClick={() => onReply(comment)} className="font-medium hover:text-beon-ink">Responder</button>
           {canDelete && <button type="button" onClick={() => setConfirm(true)} className="font-medium hover:text-red-700">Excluir</button>}
         </div>
       </div>
@@ -236,7 +236,7 @@ function CommentThread({ post, limit }: { post: CommunityPost; limit?: number })
   return (
     <div className="mt-3 space-y-3">
       {ocultas > 0 && (
-        <button type="button" onClick={() => setShowAll(true)} className="text-[13px] font-medium text-comm-muted hover:text-comm-ink">
+        <button type="button" onClick={() => setShowAll(true)} className="text-[13px] font-medium text-beon-muted hover:text-beon-ink">
           Ver {ocultas} {ocultas === 1 ? 'comentário anterior' : 'comentários anteriores'}
         </button>
       )}
@@ -244,11 +244,11 @@ function CommentThread({ post, limit }: { post: CommunityPost; limit?: number })
         <div key={root.id} className="space-y-2.5">
           <CommentView post={post} comment={root} onReply={setReplyTo} />
           {(replies.length > 0 || (replyTo && (replyTo.id === root.id || replies.includes(replyTo)))) && (
-            <div className="ml-10 space-y-2.5 border-l border-comm-line pl-3">
+            <div className="ml-10 space-y-2.5 border-l border-beon-line pl-3">
               {replies.map(r => <CommentView key={r.id} post={post} comment={r} onReply={setReplyTo} />)}
               {replyTo && (replyTo.id === root.id || replies.includes(replyTo)) && (
                 <div className="flex items-start gap-1">
-                  <CornerDownRight className="mt-2.5 h-3.5 w-3.5 shrink-0 text-comm-muted" aria-hidden />
+                  <CornerDownRight className="mt-2.5 h-3.5 w-3.5 shrink-0 text-beon-muted" aria-hidden />
                   <div className="flex-1"><CommentForm post={post} parent={replyTo} autoFocus onDone={() => setReplyTo(null)} /></div>
                 </div>
               )}
@@ -327,7 +327,7 @@ export function PostItem({ post, detail, onTopic }: { post: CommunityPost; detai
   const subtitulo = autor?.especialidade || autor?.cargo || post.authorLab || autor?.laboratorio
 
   return (
-    <article className={cx('border-b border-comm-line px-4 py-5 sm:px-6', !detail && 'transition-colors hover:bg-comm-soft/30')} aria-labelledby={`post-${post.id}`}>
+    <article className={cx('border-b border-beon-line px-4 py-5 sm:px-6', !detail && 'transition-colors hover:bg-beon-soft/30')} aria-labelledby={`post-${post.id}`}>
       <div className="flex gap-3">
         <Link href={perfil} className={cx('shrink-0 self-start rounded-full', focusRing)} aria-label={`Perfil de ${post.authorName}`}>
           <Avatar nome={post.authorName} src={autor?.avatar || post.authorAvatar} size={44} ativo={autor?.ativoAgora} />
@@ -335,8 +335,8 @@ export function PostItem({ post, detail, onTopic }: { post: CommunityPost; detai
         <div className="min-w-0 flex-1">
           <header className="flex items-start justify-between gap-2">
             <div className="min-w-0 text-sm leading-tight">
-              <Link href={perfil} className="font-semibold text-comm-ink hover:underline">{post.authorName}</Link>
-              <p className="mt-0.5 truncate text-[13px] text-comm-muted">
+              <Link href={perfil} className="font-semibold text-beon-ink hover:underline">{post.authorName}</Link>
+              <p className="mt-0.5 truncate text-[13px] text-beon-muted">
                 {subtitulo && <>{subtitulo} · </>}
                 <Link href={`/comunidade/post/${post.id}`} className="hover:underline">
                   <time dateTime={post.createdAt} title={dataHora(post.createdAt)}>{tempoRelativo(post.createdAt)}</time>
@@ -349,7 +349,7 @@ export function PostItem({ post, detail, onTopic }: { post: CommunityPost; detai
           {post.kind !== 'discussao' && <KindBadge kind={post.kind} className="mt-2.5" />}
 
           {post.title && (
-            <h3 id={`post-${post.id}`} className={cx('mt-2 font-semibold leading-snug tracking-tight text-comm-ink', detail ? 'text-[22px]' : 'text-[17px]')}>
+            <h3 id={`post-${post.id}`} className={cx('mt-2 font-semibold leading-snug tracking-tight text-beon-ink', detail ? 'text-[22px]' : 'text-[17px]')}>
               {detail ? post.title : <Link href={`/comunidade/post/${post.id}`} className="hover:underline">{post.title}</Link>}
             </h3>
           )}
@@ -360,22 +360,22 @@ export function PostItem({ post, detail, onTopic }: { post: CommunityPost; detai
             {longo && !expanded && <div className="pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-white" />}
           </div>
           {longo && (
-            <button type="button" onClick={() => setExpanded(e => !e)} className="mt-1 text-sm font-medium text-comm-ink hover:underline">
+            <button type="button" onClick={() => setExpanded(e => !e)} className="mt-1 text-sm font-medium text-beon-ink hover:underline">
               {expanded ? 'Mostrar menos' : 'Ler mais'}
             </button>
           )}
 
           {post.kind === 'sinal' && (post.meta.dimensao || post.meta.horizonte || post.meta.evidencias || post.meta.implicacoes) && (
             <dl className="mt-3 grid gap-x-6 gap-y-2.5 rounded-2xl border border-teal-100 bg-teal-50/40 p-4 text-sm sm:grid-cols-2">
-              {post.meta.dimensao && <div><dt className="text-xs font-medium text-teal-800">Dimensão</dt><dd className="text-comm-ink">{SINAL_DIMENSAO_LABEL[post.meta.dimensao]}</dd></div>}
-              {post.meta.horizonte && <div><dt className="text-xs font-medium text-teal-800">Horizonte</dt><dd className="text-comm-ink">{HORIZONTE_LABEL[post.meta.horizonte]}</dd></div>}
-              {post.meta.evidencias && <div className="sm:col-span-2"><dt className="text-xs font-medium text-teal-800">Evidências</dt><dd className="whitespace-pre-line text-comm-body">{post.meta.evidencias}</dd></div>}
-              {post.meta.implicacoes && <div className="sm:col-span-2"><dt className="text-xs font-medium text-teal-800">Possíveis implicações</dt><dd className="whitespace-pre-line text-comm-body">{post.meta.implicacoes}</dd></div>}
+              {post.meta.dimensao && <div><dt className="text-xs font-medium text-teal-800">Dimensão</dt><dd className="text-beon-ink">{SINAL_DIMENSAO_LABEL[post.meta.dimensao]}</dd></div>}
+              {post.meta.horizonte && <div><dt className="text-xs font-medium text-teal-800">Horizonte</dt><dd className="text-beon-ink">{HORIZONTE_LABEL[post.meta.horizonte]}</dd></div>}
+              {post.meta.evidencias && <div className="sm:col-span-2"><dt className="text-xs font-medium text-teal-800">Evidências</dt><dd className="whitespace-pre-line text-beon-body">{post.meta.evidencias}</dd></div>}
+              {post.meta.implicacoes && <div className="sm:col-span-2"><dt className="text-xs font-medium text-teal-800">Possíveis implicações</dt><dd className="whitespace-pre-line text-beon-body">{post.meta.implicacoes}</dd></div>}
             </dl>
           )}
 
           {post.kind === 'pesquisa' && post.meta.materialTipo && (
-            <p className="mt-3 text-[13px] text-comm-muted">
+            <p className="mt-3 text-[13px] text-beon-muted">
               {MATERIAL_TIPO_LABEL[post.meta.materialTipo]}
               {post.meta.materialStatus && <> · <span className={post.meta.materialStatus === 'em-elaboracao' ? 'font-medium text-amber-700' : ''}>{MATERIAL_STATUS_LABEL[post.meta.materialStatus]}</span></>}
             </p>
@@ -383,10 +383,10 @@ export function PostItem({ post, detail, onTopic }: { post: CommunityPost; detai
 
           {post.linkUrl && (
             <a href={post.linkUrl} target="_blank" rel="noopener noreferrer"
-              className={cx('mt-3 flex items-center gap-3 rounded-xl border border-comm-line px-3.5 py-2.5 text-sm hover:border-comm-muted/40 hover:bg-comm-soft/50', focusRing)}>
-              <Link2 className="h-4 w-4 shrink-0 text-comm-muted" aria-hidden />
-              <span className="min-w-0 flex-1 truncate font-medium text-comm-ink">{dominio(post.linkUrl)}</span>
-              <ExternalLink className="h-3.5 w-3.5 shrink-0 text-comm-muted" aria-hidden />
+              className={cx('mt-3 flex items-center gap-3 rounded-xl border border-beon-line px-3.5 py-2.5 text-sm hover:border-beon-muted/40 hover:bg-beon-soft/50', focusRing)}>
+              <Link2 className="h-4 w-4 shrink-0 text-beon-muted" aria-hidden />
+              <span className="min-w-0 flex-1 truncate font-medium text-beon-ink">{dominio(post.linkUrl)}</span>
+              <ExternalLink className="h-3.5 w-3.5 shrink-0 text-beon-muted" aria-hidden />
             </a>
           )}
 
@@ -423,5 +423,20 @@ export function PostItem({ post, detail, onTopic }: { post: CommunityPost; detai
         </div>
       </Dialog>
     </article>
+  )
+}
+
+/** Placeholder de um post enquanto o feed carrega. */
+export function PostSkeleton() {
+  return (
+    <div className="flex gap-3 border-b border-beon-line px-4 py-5 sm:px-6" aria-hidden>
+      <Skeleton className="h-10 w-10 rounded-full" />
+      <div className="flex-1 space-y-2.5">
+        <Skeleton className="h-3.5 w-40" />
+        <Skeleton className="h-4 w-3/4" />
+        <Skeleton className="h-3.5 w-full" />
+        <Skeleton className="h-3.5 w-5/6" />
+      </div>
+    </div>
   )
 }

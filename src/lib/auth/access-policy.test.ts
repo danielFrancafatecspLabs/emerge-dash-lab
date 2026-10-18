@@ -7,6 +7,8 @@ describe('decideAccess', () => {
   it('libera login e imagens públicas, e exige sessão para o resto', () => {
     expect(decideAccess('/login', 'GET', null)).toEqual({ type: 'allow' })
     expect(decideAccess('/logobeonlabs.png', 'GET', null)).toEqual({ type: 'allow' })
+    expect(decideAccess('/api/auth/register', 'POST', null)).toEqual({ type: 'allow' })
+    expect(decideAccess('/api/admin/users/x/aprovacao', 'POST', null)).toEqual({ type: 'unauthenticated' })
     expect(decideAccess('/api/auth/me', 'GET', null)).toEqual({ type: 'unauthenticated' })
     expect(decideAccess('/api/clear-cache', 'POST', null)).toEqual({ type: 'unauthenticated' })
     expect(decideAccess('/login-falso', 'GET', null)).toEqual({ type: 'unauthenticated' })

@@ -3,6 +3,9 @@ import { pbkdf2Sync, randomBytes, timingSafeEqual } from 'crypto'
 import { AUTH_ROLES, type AuthSessionRole } from '@/lib/auth/session'
 import { isSafeLink } from '@/lib/validation/url'
 import { jsonStorePath, readJsonStore, writeJsonStore } from '@/lib/storage/json-store'
+import { passwordProblem } from './password-rules'
+
+export { MIN_PASSWORD_LENGTH, passwordProblem } from './password-rules'
 
 export interface User {
   id: string
@@ -14,6 +17,10 @@ export interface User {
   avatar: string
   createdAt: string
   active: boolean
+  /** Cadastro feito pela tela de login que ainda espera a aprovação de um admin. */
+  status?: 'pendente'
+  /** Por que a pessoa quer participar (informado no cadastro). */
+  motivo?: string
 }
 
 export interface UserPublic {
@@ -25,22 +32,12 @@ export interface UserPublic {
   avatar: string
   createdAt: string
   active: boolean
+  status?: 'pendente'
+  motivo?: string
 }
 
 function getUsersFilePath(): string {
   return jsonStorePath('USERS_FILE_PATH', 'users.json')
-}
-
-export const MIN_PASSWORD_LENGTH = 10
-
-/** Regra mínima para senhas definidas no Admin: tamanho e nada trivial. */
-export function passwordProblem(password: unknown, username = ''): string | null {
-  if (typeof password !== 'string' || password.length < MIN_PASSWORD_LENGTH) return `A senha precisa ter pelo menos ${MIN_PASSWORD_LENGTH} caracteres`
-  const lower = password.toLowerCase()
-  if (new Set(password).size < 4) return 'A senha é repetitiva demais'
-  if (username && lower.includes(username.toLowerCase().split('@')[0])) return 'A senha não pode conter o nome de usuário'
-  if (['password', 'senha', '123456', 'qwerty', 'admin', 'beonlabs', 'claro'].some(w => lower.includes(w))) return 'A senha é fácil de adivinhar'
-  return null
 }
 
 export function hashPassword(password: string): string {
@@ -148,13 +145,23 @@ export function toPublic(user: User): UserPublic {
   return pub
 }
 
-export function verifyCredentials(username: string, password: string): User | null {
-  const users = loadUsers()
+export type LoginCheck = { user: User } | { pendente: true } | null
 
-  const user = users.find(u => u.username === username && u.active)
+/**
+ * Confere usuário e senha. Um cadastro ainda não aprovado só é revelado a quem acerta a senha;
+ * para os demais, a resposta é igual à de credenciais erradas.
+ */
+export function checkLogin(username: string, password: string): LoginCheck {
+  const user = loadUsers().find(u => u.username.toLowerCase() === username.toLowerCase())
   const ok = verifyPassword(password, user?.passwordHash ?? DUMMY_HASH)
   if (!user || !ok) return null
-  return user
+  if (user.active) return { user }
+  return user.status === 'pendente' ? { pendente: true } : null
+}
+
+export function verifyCredentials(username: string, password: string): User | null {
+  const result = checkLogin(username, password)
+  return result && 'user' in result ? result.user : null
 }
 
 /** Confirma no cadastro (não só no cookie) que a pessoa continua ativa e é admin. */
@@ -205,4 +212,67 @@ export function parseUserChanges(body: unknown, criando: boolean): { value: User
   }
   if (b.active !== undefined) out.active = Boolean(b.active)
   return { value: out }
+}
+
+// ── Cadastro pela tela de login ─────────────────────────────────────────────────────────────
+
+export interface SignupInput {
+  nome: string
+  email: string
+  area: string
+  motivo: string
+  password: string
+}
+
+const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
+
+/** Valida o pedido de cadastro. O e-mail vira o usuário de acesso. */
+export function parseSignup(body: unknown): { value: SignupInput } | { error: string } {
+  if (!body || typeof body !== 'object') return { error: 'Requisição inválida' }
+  const b = body as Record<string, unknown>
+  const nome = texto(b.nome, 120) ?? ''
+  const email = (texto(b.email, 120) ?? '').toLowerCase()
+  const area = texto(b.area, 120) ?? ''
+  const motivo = texto(b.motivo, 500) ?? ''
+  if (nome.length < 3) return { error: 'Informe seu nome completo' }
+  if (!EMAIL.test(email)) return { error: 'Informe um e-mail válido' }
+  if (!area) return { error: 'Informe sua área ou diretoria' }
+  const problema = passwordProblem(b.password, email)
+  if (problema) return { error: problema }
+  return { value: { nome, email, area, motivo, password: b.password as string } }
+}
+
+/** Limite de pedidos aguardando aprovação, para que o formulário público não encha o cadastro. */
+export const MAX_PENDING_SIGNUPS = 300
+
+/**
+ * Registra o pedido como usuário inativo e pendente, com perfil `community`; um admin decide
+ * se aprova (e com qual perfil) ou recusa. Pedido repetido para um e-mail já cadastrado não muda nada.
+ */
+export function requestSignup(input: SignupInput, id: string): 'criado' | 'existente' | 'lotado' {
+  const users = loadUsers()
+  if (users.some(u => u.username.toLowerCase() === input.email)) return 'existente'
+  if (users.filter(u => u.status === 'pendente').length >= MAX_PENDING_SIGNUPS) return 'lotado'
+  saveUsers([...users, {
+    id, username: input.email, passwordHash: hashPassword(input.password), role: 'community',
+    nome: input.nome, laboratorio: input.area, avatar: '', createdAt: new Date().toISOString(),
+    active: false, status: 'pendente', ...(input.motivo ? { motivo: input.motivo } : {}),
+  }])
+  return 'criado'
+}
+
+/** Aprova (ativando com o perfil escolhido) ou recusa (removendo) um pedido de cadastro. */
+export function decideSignup(id: string, decisao: 'aprovar' | 'recusar', role: AuthSessionRole = 'community'): User | 'nao-encontrado' | 'removido' {
+  const users = loadUsers()
+  const user = users.find(u => u.id === id && u.status === 'pendente')
+  if (!user) return 'nao-encontrado'
+  if (decisao === 'recusar') {
+    saveUsers(users.filter(u => u.id !== id))
+    return 'removido'
+  }
+  delete user.status
+  user.active = true
+  user.role = role
+  saveUsers(users)
+  return user
 }

@@ -7,7 +7,7 @@ import type { CommunityNotification, NotificationPrefs } from '@/lib/community/m
 import { api, errorMessage } from './api'
 import { useCommunity } from './CommunityProvider'
 import { tempoRelativo } from './format'
-import { Avatar, Button, Dialog, EmptyState, ErrorState, Skeleton, cx, focusRing } from './ui'
+import { Avatar, Button, Dialog, EmptyState, ErrorState, Skeleton, cx, focusRing } from '@/components/ui'
 
 interface NotificationsResponse {
   itens: CommunityNotification[]
@@ -47,8 +47,8 @@ export function NotificationsDialog({ open, onClose }: { open: boolean; onClose:
       ) : (
         <div className="space-y-1">
           {data.mensagensNaoLidas > 0 && (
-            <Link href="/comunidade/mensagens" onClick={onClose} className={cx('mb-2 flex items-center gap-3 rounded-xl bg-comm-tint px-4 py-3 text-sm text-comm-ink', focusRing)}>
-              <MessageCircle className="h-4 w-4 text-comm-red" aria-hidden />
+            <Link href="/comunidade/mensagens" onClick={onClose} className={cx('mb-2 flex items-center gap-3 rounded-xl bg-beon-tint px-4 py-3 text-sm text-beon-ink', focusRing)}>
+              <MessageCircle className="h-4 w-4 text-beon-red" aria-hidden />
               Você tem {data.mensagensNaoLidas} {data.mensagensNaoLidas === 1 ? 'mensagem não lida' : 'mensagens não lidas'}
             </Link>
           )}
@@ -61,16 +61,16 @@ export function NotificationsDialog({ open, onClose }: { open: boolean; onClose:
               key={n.id}
               href={`/comunidade/post/${n.postId}`}
               onClick={onClose}
-              className={cx('flex gap-3 rounded-xl px-3 py-3 hover:bg-comm-soft', !n.lida && 'bg-comm-soft/60', focusRing)}
+              className={cx('flex gap-3 rounded-xl px-3 py-3 hover:bg-beon-soft', !n.lida && 'bg-beon-soft/60', focusRing)}
             >
               <Avatar nome={n.atorNome} src={member(n.ator)?.avatar} size={36} />
-              <span className="min-w-0 flex-1 text-sm leading-snug text-comm-body">
-                <strong className="font-semibold text-comm-ink">{n.atorNome}</strong>{' '}
+              <span className="min-w-0 flex-1 text-sm leading-snug text-beon-body">
+                <strong className="font-semibold text-beon-ink">{n.atorNome}</strong>{' '}
                 {n.tipo === 'resposta' ? 'respondeu seu comentário em' : 'comentou em'}{' '}
-                <span className="font-medium text-comm-ink">“{n.postTitulo}”</span>
-                <span className="mt-0.5 block text-xs text-comm-muted">{tempoRelativo(n.createdAt)}</span>
+                <span className="font-medium text-beon-ink">“{n.postTitulo}”</span>
+                <span className="mt-0.5 block text-xs text-beon-muted">{tempoRelativo(n.createdAt)}</span>
               </span>
-              {!n.lida && <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-comm-red" aria-label="Nova" />}
+              {!n.lida && <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-beon-red" aria-label="Nova" />}
             </Link>
           ))}
         </div>
@@ -104,12 +104,12 @@ export function NotificationPrefsDialog({ open, onClose }: { open: boolean; onCl
       {prefs && (
         <div className="space-y-1">
           {(Object.keys(PREF_LABEL) as (keyof NotificationPrefs)[]).map(key => (
-            <label key={key} className="flex cursor-pointer items-start gap-3 rounded-xl px-2 py-3 hover:bg-comm-soft">
+            <label key={key} className="flex cursor-pointer items-start gap-3 rounded-xl px-2 py-3 hover:bg-beon-soft">
               <input type="checkbox" className="mt-0.5 h-4 w-4 accent-[#D31809]" checked={prefs[key]}
                 onChange={e => setPrefs({ ...prefs, [key]: e.target.checked })} />
               <span>
-                <span className="block text-sm font-medium text-comm-ink">{PREF_LABEL[key][0]}</span>
-                <span className="block text-xs text-comm-muted">{PREF_LABEL[key][1]}</span>
+                <span className="block text-sm font-medium text-beon-ink">{PREF_LABEL[key][0]}</span>
+                <span className="block text-xs text-beon-muted">{PREF_LABEL[key][1]}</span>
               </span>
             </label>
           ))}

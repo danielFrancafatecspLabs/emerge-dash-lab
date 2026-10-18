@@ -8,13 +8,13 @@ import {
 } from 'lucide-react'
 import { POST_KIND_LABEL, type PostKind } from '@/lib/community/model'
 import { topicLabel } from '@/lib/community/topics'
-import { cx } from './ui'
+import { cx } from '@/components/ui'
 
 export const KIND_STYLE: Record<PostKind, { icon: LucideIcon; chip: string; accent: string }> = {
   discussao: { icon: MessagesSquare, chip: 'bg-stone-100 text-stone-700', accent: '#57534E' },
   pergunta: { icon: HelpCircle, chip: 'bg-amber-50 text-amber-800', accent: '#B45309' },
   pesquisa: { icon: BookOpen, chip: 'bg-sky-50 text-sky-800', accent: '#0369A1' },
-  experimento: { icon: FlaskConical, chip: 'bg-comm-tint text-comm-redhi', accent: '#D31809' },
+  experimento: { icon: FlaskConical, chip: 'bg-beon-tint text-beon-redhi', accent: '#D31809' },
   sinal: { icon: Radar, chip: 'bg-teal-50 text-teal-800', accent: '#0F766E' },
 }
 
@@ -48,7 +48,7 @@ export function topicIcon(id: string): LucideIcon {
 }
 
 export function TopicTag({ id, onClick }: { id: string; onClick?: () => void }) {
-  const cls = 'text-[13px] font-medium text-comm-muted transition-colors hover:text-comm-red'
+  const cls = 'text-[13px] font-medium text-beon-muted transition-colors hover:text-beon-red'
   const label = `#${topicLabel(id).replace(/\s+/g, '')}`
   return onClick
     ? <button type="button" onClick={onClick} className={cls}>{label}</button>

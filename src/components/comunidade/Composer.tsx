@@ -12,7 +12,7 @@ import {
 import { COMMUNITY_TOPICS } from '@/lib/community/topics'
 import { api, errorMessage } from './api'
 import { useCommunity } from './CommunityProvider'
-import { Button, Chip, Dialog, cx, inputClass } from './ui'
+import { Button, Chip, Dialog, cx, inputClass } from '@/components/ui'
 import { KIND_STYLE, topicIcon } from './visuals'
 
 const DICA: Record<PostKind, { titulo: string; texto: string }> = {
@@ -45,9 +45,9 @@ const EMPTY: FormState = {
 function Field({ label, htmlFor, hint, children }: { label: string; htmlFor: string; hint?: string; children: React.ReactNode }) {
   return (
     <div>
-      <label htmlFor={htmlFor} className="mb-1.5 block text-sm font-medium text-comm-ink">{label}</label>
+      <label htmlFor={htmlFor} className="mb-1.5 block text-sm font-medium text-beon-ink">{label}</label>
       {children}
-      {hint && <p className="mt-1 text-xs text-comm-muted">{hint}</p>}
+      {hint && <p className="mt-1 text-xs text-beon-muted">{hint}</p>}
     </div>
   )
 }
@@ -107,7 +107,7 @@ export function Composer() {
     <Dialog open={!!composer} onClose={closeComposer} title="Nova publicação" description="Escolha o tipo para receber os campos certos." size="lg">
       <form onSubmit={submit} className="space-y-5" noValidate>
         <fieldset>
-          <legend className="mb-2 text-sm font-medium text-comm-ink">Tipo</legend>
+          <legend className="mb-2 text-sm font-medium text-beon-ink">Tipo</legend>
           <div className="flex flex-wrap gap-2">
             {POST_KINDS.map(k => {
               const Icon = KIND_STYLE[k].icon
@@ -166,14 +166,14 @@ export function Composer() {
         <Field label={form.kind === 'pesquisa' ? 'Link do material' : 'Link (opcional)'} htmlFor="comp-link"
           hint="Para anexar documentos, imagens ou vídeos, cole o link do arquivo (SharePoint, OneDrive, YouTube…).">
           <div className="relative">
-            <Link2 className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-comm-muted" aria-hidden />
+            <Link2 className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-beon-muted" aria-hidden />
             <input id="comp-link" type="url" inputMode="url" className={cx(inputClass, 'pl-9')} placeholder="https://" value={form.linkUrl}
               onChange={e => set('linkUrl', e.target.value)} />
           </div>
         </Field>
 
         <fieldset>
-          <legend className="mb-2 text-sm font-medium text-comm-ink">Tópicos <span className="font-normal text-comm-muted">(até {POST_LIMITS.tags})</span></legend>
+          <legend className="mb-2 text-sm font-medium text-beon-ink">Tópicos <span className="font-normal text-beon-muted">(até {POST_LIMITS.tags})</span></legend>
           <div className="flex flex-wrap gap-2">
             {COMMUNITY_TOPICS.map(t => {
               const Icon = topicIcon(t.id)
@@ -187,9 +187,9 @@ export function Composer() {
           </div>
         </fieldset>
 
-        {error && <p role="alert" className="rounded-xl bg-comm-tint px-4 py-2.5 text-sm text-comm-redhi">{error}</p>}
+        {error && <p role="alert" className="rounded-xl bg-beon-tint px-4 py-2.5 text-sm text-beon-redhi">{error}</p>}
 
-        <div className="flex justify-end gap-2 border-t border-comm-line pt-4">
+        <div className="flex justify-end gap-2 border-t border-beon-line pt-4">
           <Button variant="ghost" onClick={closeComposer}>Cancelar</Button>
           <Button type="submit" variant="primary" loading={saving}
             disabled={!form.content.trim() || (precisaTitulo && !form.title.trim())}>

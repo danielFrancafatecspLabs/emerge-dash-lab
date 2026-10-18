@@ -1,9 +1,9 @@
 'use client'
 
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react'
-import { PanelLeftOpen, Download, Loader2 } from 'lucide-react'
-import Header from '@/components/layout/Header'
-import Sidebar from '@/components/layout/Sidebar'
+import { PanelLeftOpen, Download, Loader2, Presentation } from 'lucide-react'
+import { PortalPage } from '@/components/shell/PortalPage'
+import { PeriodoSelect } from '@/components/shell/PeriodoSelect'
 import ResumoExecutivo from '@/components/dashboard/ResumoExecutivo'
 import MapaDiretorias from '@/components/dashboard/MapaDiretorias'
 import Top5Experimentos from '@/components/dashboard/Top5Experimentos'
@@ -420,13 +420,6 @@ export default function EstrategiaClient({ data, monitoramento, beneficioValidad
     fetchInsights()
   }, [fetchInsights])
 
-  // Escuta evento da Sidebar para alternar modo slide (toggle sidebar)
-  useEffect(() => {
-    const handler = () => setModoSlide(prev => !prev)
-    window.addEventListener('open-slide-mode', handler)
-    return () => window.removeEventListener('open-slide-mode', handler)
-  }, [])
-
   // ── Exportar dashboard como imagem ──
   async function exportarComoImagem() {
     if (!mainContentRef.current || exportingImage) return
@@ -453,35 +446,30 @@ export default function EstrategiaClient({ data, monitoramento, beneficioValidad
   }
 
   return (
-    <div className="flex min-h-dvh bg-gray-50">
-      {/* Sidebar — oculta no modo slide */}
-      {!modoSlide && (
-        <div className="flex-shrink-0" style={{ width: 64 }}>
-          <div className="fixed top-0 left-0 h-full z-20" style={{ width: 64 }}>
-            <div className="h-full bg-gradient-to-b from-[#8B0000] to-[#6B0000]">
-              <Sidebar />
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Main */}
-      <div className="flex-1 flex flex-col min-w-0">
-        {/* Header — oculto no modo slide */}
-        {!modoSlide && (
-          <div className="fixed top-0 z-10" style={{ left: 64, right: 0 }}>
-            <Header
-              periodoSelecionado={periodoFiltro}
-              onPeriodoChange={setPeriodoFiltro}
-            />
-          </div>
-        )}
-
+    <PortalPage
+      title="Estratégia"
+      description="Panorama do portfólio de inovação beOn Labs"
+      chrome={!modoSlide}
+      refreshable
+      actions={
+        <>
+          <PeriodoSelect value={periodoFiltro} onChange={setPeriodoFiltro} />
+          <button
+            type="button"
+            onClick={() => setModoSlide(true)}
+            title="Esconder menu e barra para apresentar"
+            className="hidden h-9 items-center gap-2 rounded-full border border-beon-line bg-white px-3.5 text-sm font-medium text-beon-ink hover:bg-beon-soft lg:flex"
+          >
+            <Presentation size={16} className="text-beon-muted" aria-hidden />
+            Apresentar
+          </button>
+        </>
+      }
+    >
         {/* Content */}
-        <main
+        <div
           ref={mainContentRef}
           className="flex-1 p-3 md:p-4 gap-3 flex flex-col min-w-0"
-          style={{ marginTop: modoSlide ? 0 : 52 }}
         >
           {/* ── Cabeçalho executivo ── */}
           <div className="flex items-end justify-between flex-wrap gap-2">
@@ -597,10 +585,9 @@ export default function EstrategiaClient({ data, monitoramento, beneficioValidad
               </GraficoComInsight>
             </div>
           </section>
-        </main>
-      </div>
+        </div>
 
-      {/* Botão flutuante para reexibir sidebar no modo slide */}
+      {/* Botão flutuante para reexibir o menu no modo apresentação */}
       {modoSlide && (
         <button
           onClick={() => setModoSlide(false)}
@@ -611,6 +598,6 @@ export default function EstrategiaClient({ data, monitoramento, beneficioValidad
           Menu
         </button>
       )}
-    </div>
+    </PortalPage>
   )
 }
