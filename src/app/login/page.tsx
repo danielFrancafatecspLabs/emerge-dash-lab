@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { ArrowRight, BookOpen, CheckCircle2, Clock3, Eye, EyeOff, FlaskConical, MessagesSquare } from 'lucide-react'
 import { Button, cx, focusRing, inputClass } from '@/components/ui'
 import { MIN_PASSWORD_LENGTH, passwordProblem } from '@/lib/auth/password-rules'
@@ -70,7 +70,7 @@ function Entrar({ onCadastro }: { onCadastro: () => void }) {
       })
       const data = await res.json().catch(() => ({}))
       if (res.ok) {
-        window.location.replace('/jira/bem-vindo')
+        window.location.replace('/jira/comunidade')
         return
       }
       if (data.pendente) setPendente(true)
@@ -204,6 +204,53 @@ function Cadastro({ onEntrar }: { onEntrar: () => void }) {
   )
 }
 
+/**
+ * Foto de fundo: uma imagem pública de pessoas colaborando (Unsplash License, uso livre). Pode ser trocada
+ * por NEXT_PUBLIC_LOGIN_PHOTO_URL — por exemplo, uma foto do próprio time salva em public/.
+ * Se a foto não carregar (rede corporativa, link fora do ar), fica só o fundo da marca.
+ */
+const FOTO_PADRAO = 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=2400&q=80'
+const FOTO = process.env.NEXT_PUBLIC_LOGIN_PHOTO_URL || FOTO_PADRAO
+
+/** Fundo da marca: tons de vermelho e vinho, luz suave e trama de pontos. A foto entra por cima em duotone. */
+function Fundo() {
+  const [foto, setFoto] = useState<'carregando' | 'ok' | 'erro'>('carregando')
+  const img = useRef<HTMLImageElement>(null)
+  // A foto pode terminar de carregar antes da hidratação, quando onLoad ainda não está ligado.
+  useEffect(() => {
+    const el = img.current
+    if (el?.complete) setFoto(el.naturalWidth > 0 ? 'ok' : 'erro')
+  }, [])
+  return (
+    <div className="absolute inset-0 overflow-hidden bg-[#1F0503]" aria-hidden>
+      <div className="absolute -left-40 -top-40 h-[42rem] w-[42rem] rounded-full bg-[#D31809] opacity-50 blur-[120px]" />
+      <div className="absolute -bottom-56 right-[-10rem] h-[46rem] w-[46rem] rounded-full bg-[#F05A1A] opacity-35 blur-[140px]" />
+      <div className="absolute left-1/3 top-1/2 h-[30rem] w-[30rem] rounded-full bg-[#7A0E06] opacity-60 blur-[110px]" />
+      {foto !== 'erro' && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          ref={img}
+          src={FOTO}
+          alt=""
+          referrerPolicy="no-referrer"
+          onLoad={() => setFoto('ok')}
+          onError={() => setFoto('erro')}
+          className={cx(
+            'absolute inset-0 h-full w-full object-cover grayscale transition-opacity duration-1000 mix-blend-luminosity',
+            foto === 'ok' ? 'opacity-70' : 'opacity-0',
+          )}
+        />
+      )}
+      <div className="absolute inset-0 bg-gradient-to-br from-[#D31809]/45 via-[#8E1207]/35 to-[#2A0704]/60 mix-blend-multiply" />
+      <div className="absolute inset-0 opacity-[0.18] [background-image:radial-gradient(rgba(255,255,255,.55)_1px,transparent_1px)] [background-size:22px_22px] [mask-image:linear-gradient(to_bottom,black,transparent_70%)]" />
+      <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(31,5,3,.88)_0%,rgba(31,5,3,.7)_55%,rgba(31,5,3,.92)_100%)] lg:bg-[linear-gradient(90deg,rgba(31,5,3,.96)_0%,rgba(31,5,3,.9)_32%,rgba(31,5,3,.5)_58%,rgba(31,5,3,.12)_100%)]" />
+      {foto === 'ok' && FOTO === FOTO_PADRAO && (
+        <p className="absolute bottom-3 right-4 text-[10px] text-white/50">Foto: Unsplash</p>
+      )}
+    </div>
+  )
+}
+
 export default function LoginPage() {
   const [modo, setModo] = useState<Modo>('entrar')
 
@@ -212,10 +259,8 @@ export default function LoginPage() {
   }, [])
 
   return (
-    <div className="relative min-h-dvh overflow-hidden bg-[#3A0A05] font-sans text-white antialiased">
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src="/jira/login-comunidade.svg" alt="" aria-hidden className="absolute inset-0 h-full w-full object-cover" />
-      <div className="absolute inset-0 bg-gradient-to-b from-[#2A0704]/85 via-[#2A0704]/55 to-[#2A0704]/80 lg:bg-gradient-to-r lg:from-[#2A0704]/90 lg:via-[#2A0704]/45 lg:to-transparent" aria-hidden />
+    <div className="relative min-h-dvh overflow-hidden bg-[#1F0503] font-sans text-white antialiased">
+      <Fundo />
 
       <div className="relative mx-auto flex min-h-dvh max-w-[1440px] flex-col px-5 py-5 sm:px-8 lg:flex-row lg:items-stretch lg:gap-10 lg:py-6">
         {/* Boas-vindas */}

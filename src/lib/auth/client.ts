@@ -10,10 +10,8 @@ export const ROLE_LABEL: Record<AuthSessionRole, string> = {
   community: 'Comunidade',
 }
 
-/** Página inicial de cada perfil depois do login. */
-export function homeFor(role: AuthSessionRole): string {
-  return role === 'community' ? '/comunidade' : '/estrategia'
-}
+/** A casa de todos os perfis é o feed da Comunidade; as demais visões ficam no menu. */
+export const HOME_PATH = '/comunidade'
 
 /** Encerra a sessão e volta para o login (com recarga completa, para limpar o estado da página). */
 export async function logout(): Promise<void> {

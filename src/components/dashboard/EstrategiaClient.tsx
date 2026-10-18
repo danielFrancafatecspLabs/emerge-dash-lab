@@ -2,8 +2,8 @@
 
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react'
 import { PanelLeftOpen, Download, Loader2, Presentation } from 'lucide-react'
-import { PortalShell } from '@/components/portal/PortalShell'
-import { PeriodoSelect } from '@/components/portal/PeriodoSelect'
+import { PortalPage } from '@/components/shell/PortalPage'
+import { PeriodoSelect } from '@/components/shell/PeriodoSelect'
 import ResumoExecutivo from '@/components/dashboard/ResumoExecutivo'
 import MapaDiretorias from '@/components/dashboard/MapaDiretorias'
 import Top5Experimentos from '@/components/dashboard/Top5Experimentos'
@@ -446,7 +446,7 @@ export default function EstrategiaClient({ data, monitoramento, beneficioValidad
   }
 
   return (
-    <PortalShell
+    <PortalPage
       title="Estratégia"
       description="Panorama do portfólio de inovação beOn Labs"
       chrome={!modoSlide}
@@ -598,6 +598,6 @@ export default function EstrategiaClient({ data, monitoramento, beneficioValidad
           Menu
         </button>
       )}
-    </PortalShell>
+    </PortalPage>
   )
 }

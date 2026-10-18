@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { PortalShell } from '@/components/portal/PortalShell'
+import { PortalPage } from '@/components/shell/PortalPage'
 import CycleTimeEstrategia from '@/components/dashboard/CycleTimeEstrategia'
 import GovernancaAlinhamento from '@/components/dashboard/GovernancaAlinhamento'
 import LeadTimeJornada from '@/components/dashboard/LeadTimeJornada'
@@ -26,7 +26,7 @@ export default function OperacionalClient({ data, monitoramento }: Props) {
   const iniciativasLab = monitoramento?.iniciativasPorLab ?? []
 
   return (
-    <PortalShell title="Operacional" description="Andamento dos experimentos e iniciativas por etapa e por lab" refreshable>
+    <PortalPage title="Operacional" description="Andamento dos experimentos e iniciativas por etapa e por lab" refreshable>
         <div className="flex-1 p-3 md:p-4 lg:p-5 gap-3 md:gap-4 flex flex-col min-w-0">
           {/* Título */}
           <div className="mb-1 flex-shrink-0">
@@ -67,6 +67,6 @@ export default function OperacionalClient({ data, monitoramento }: Props) {
             <Top5Dominios data={dados} />
           </div>
         </div>
-    </PortalShell>
+    </PortalPage>
   )
 }

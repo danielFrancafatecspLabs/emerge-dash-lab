@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { PortalShell } from '@/components/portal/PortalShell'
+import { PortalPage } from '@/components/shell/PortalPage'
 import {
   Search, SlidersHorizontal, X, TrendingUp, CheckCircle2, Clock, XCircle,
   HelpCircle, ArrowUpDown,
@@ -135,7 +135,7 @@ export default function BeneficiosClient({ rows, currentRole, currentUsername }:
   }
 
   return (
-    <PortalShell
+    <PortalPage
       title="Controle financeiro de benefícios"
       description="Benefício quantitativo potencial × validado pelo Financeiro — board de Experimentação"
       refreshable
@@ -365,6 +365,6 @@ export default function BeneficiosClient({ rows, currentRole, currentUsername }:
           onUpdated={handleUpdated}
         />
       )}
-    </PortalShell>
+    </PortalPage>
   )
 }

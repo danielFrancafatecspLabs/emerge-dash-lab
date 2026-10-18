@@ -1,12 +1,15 @@
 # beOn Labs — Dashboard Executivo e Comunidade
 
 Aplicação Next.js do beOn Labs (Claro Brasil). A entrada é a tela de login "Bem-vindo ao beOn Labs", onde a pessoa
-entra ou pede uma conta. Depois disso há duas experiências:
+entra ou pede uma conta. Depois do login, todo mundo cai no mesmo lugar: o feed da Comunidade. É um app só, com um
+único menu:
 
-- **Painel executivo** — portfólio de inovação lido do Jira (projeto `GL`): estratégia, operacional, portfólio,
-  benefícios, priorização, OKRs, monitoramento, Report/MBR, Weekly e Semanal.
-- **Comunidade** — rede de tecnologias emergentes e experimentação: feed, Cientista (chat inteligente),
-  Pesquisas, Future Thinking, Trilha de Experimentação, pessoas e mensagens. Detalhes em [docs/comunidade.md](docs/comunidade.md).
+- **Comunidade** (todos os perfis) — rede de tecnologias emergentes e experimentação: feed, Cientista (chat
+  inteligente), Pesquisas, Future Thinking, Trilha de Experimentação, pessoas e mensagens. Detalhes em
+  [docs/comunidade.md](docs/comunidade.md).
+- **Painéis e rituais** (conforme o perfil) — portfólio de inovação lido do Jira (projeto `GL`): estratégia,
+  operacional, portfólio, benefícios, priorização, OKRs, monitoramento, Report/MBR, Weekly e Semanal.
+- **Administração** (admin) — usuários, pedidos de cadastro e stories.
 
 O modelo de domínio (Iniciativa × Experimento, boards, campos customizados) está em [CLAUDE.md](CLAUDE.md).
 
@@ -47,11 +50,14 @@ Todas as variáveis de ambiente estão descritas em [.env.example](.env.example)
 src/
 ├── app/                    Rotas (páginas e API). Cada área do painel tem sua pasta.
 │   ├── api/                Rotas de API (Jira, IA, admin, comunidade…)
-│   ├── comunidade/         Experiência da Comunidade (layout próprio)
-│   └── admin/              Usuários e stories
+│   ├── login/              Login e pedido de cadastro
+│   └── (app)/              Páginas autenticadas, todas na mesma moldura (layout.tsx)
+│       ├── comunidade/     Comunidade (a home)
+│       ├── admin/          Usuários e stories
+│       └── …               Painéis e rituais (estrategia, operacional, weekly…)
 ├── components/
 │   ├── ui/                 Design system: primitivas compartilhadas (botões, avatar, diálogo, campos, estados)
-│   ├── portal/             Moldura do portal executivo e de admin (menu lateral, barra superior, período)
+│   ├── shell/              Moldura do app (menu único) e cabeçalho das páginas de painel
 │   ├── comunidade/         Experiência da Comunidade
 │   └── …                   Componentes de cada painel (dashboard, report, weekly, beneficios…)
 ├── lib/
@@ -65,7 +71,7 @@ src/
 data/                       Usuários e validações de benefício; arquivos da Comunidade (não versionados)
 docs/                       Documentação funcional e referências
 ops/                        Implantação do acervo de pesquisas (systemd)
-scripts/                    Exportação da Weekly, criação de admin e geração do fundo do login
+scripts/                    Exportação da Weekly e criação de admin
 ```
 
 ## Acesso e perfis
@@ -96,20 +102,30 @@ contagem): o admin escolhe o perfil e aprova, ou recusa e o pedido é removido.
 
 ## Design system
 
-Comunidade, login e portal usam os mesmos tokens de cor (`beon-*` em `tailwind.config.ts`: `red`, `redhi`, `tint`,
-`ink`, `body`, `muted`, `line`, `soft`) e as primitivas de `src/components/ui`. Toda página do portal é montada com
-`PortalShell` (`src/components/portal`), que traz o menu agrupado por área, filtrado pelo perfil, a barra superior
-com título, ações da página, "Atualizar dados" e o menu da conta. Os gráficos e painéis mantêm o estilo próprio.
+Comunidade, login e painéis usam os mesmos tokens de cor (`beon-*` em `tailwind.config.ts`: `red`, `redhi`, `tint`,
+`ink`, `body`, `muted`, `line`, `soft`) e as primitivas de `src/components/ui`.
+
+Todas as páginas autenticadas ficam em `src/app/(app)` e compartilham o `AppShell` (`src/components/shell`): um único
+menu com as áreas da Comunidade, os atalhos pessoais e, conforme o perfil, os painéis, rituais e a administração
+(com a contagem de cadastros pendentes). Trocar de área não remonta o menu, e publicar, notificações e mensagens
+funcionam em qualquer página. No celular, a navegação inferior traz as áreas da Comunidade e o botão de menu abre o
+restante. O mapa do menu está em `src/components/shell/nav.ts`.
+
+Páginas de painel usam `PortalPage`, que desenha a barra com título, ações e "Atualizar dados" — os gráficos mantêm
+o estilo próprio:
 
 ```tsx
-<PortalShell title="Operacional" description="…" actions={<MeuFiltro />} refreshable>
+<PortalPage title="Operacional" description="…" actions={<MeuFiltro />} refreshable>
   {conteúdo da página}
-</PortalShell>
+</PortalPage>
 ```
 
-`fit` deixa a moldura com a altura da tela (decks e chat rolam por dentro) e `chrome={false}` esconde menu e barra
-(modo apresentação). A ilustração do login (`public/login-comunidade.svg`) é gerada por
-`scripts/gerar-fundo-login.py`; para usar uma foto, troque o arquivo em `src/app/login/page.tsx`.
+`fit` deixa a página com a altura da tela (decks e chat rolam por dentro) e `chrome={false}` esconde o menu
+(modo apresentação).
+
+O fundo do login usa uma foto pública de pessoas colaborando (Unsplash), carregada no navegador e tratada em
+duotone com as cores da marca. Para usar outra foto — por exemplo, do próprio time, salva em `public/` — defina
+`NEXT_PUBLIC_LOGIN_PHOTO_URL`. Se a foto não carregar, fica o fundo da marca.
 
 ## Segurança
 
