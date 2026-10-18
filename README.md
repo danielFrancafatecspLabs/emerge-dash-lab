@@ -123,9 +123,10 @@ o estilo próprio:
 `fit` deixa a página com a altura da tela (decks e chat rolam por dentro) e `chrome={false}` esconde o menu
 (modo apresentação).
 
-O fundo do login usa uma foto pública de pessoas colaborando (Unsplash), carregada no navegador e tratada em
-duotone com as cores da marca. Para usar outra foto — por exemplo, do próprio time, salva em `public/` — defina
-`NEXT_PUBLIC_LOGIN_PHOTO_URL`. Se a foto não carregar, fica o fundo da marca.
+O login segue o layout dividido: foto e mensagem à esquerda ("beOn Labs — Comunidade de Experimentação da
+Claro") e o formulário num painel branco à direita, com "Entrar" como padrão e "Criar conta" ao lado. No celular, a
+foto vira um cabeçalho curto e o formulário vem logo abaixo. A foto fica em `public/login-fundo.jpg`; para trocar,
+substitua o arquivo ou defina `NEXT_PUBLIC_LOGIN_PHOTO_URL`.
 
 ## Segurança
 
