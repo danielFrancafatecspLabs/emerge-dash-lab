@@ -10,7 +10,7 @@ export type AccessDecision =
   | { type: 'forbidden'; redirectTo: string; message: string }
 
 /** Rotas abertas sem sessão. */
-const PUBLIC_PATHS = ['/login', '/bem-vindo', '/api/auth/login', '/api/auth/logout', '/api/auth/register']
+const PUBLIC_PATHS = ['/login', '/api/auth/login', '/api/auth/logout', '/api/auth/register']
 
 /** Imagens da pasta public/ (logo etc.), usadas também na tela de login. */
 const PUBLIC_IMAGE = /^\/[\w.-]+\.(png|jpe?g|svg|webp|gif|ico)$/i
@@ -67,7 +67,7 @@ export function decideAccess(pathname: string, method: string, session: { role: 
 
   const rule = ROLE_RULES.find(r => matchesPath(pathname, r.prefix) && (!r.methods || r.methods.includes(method)))
   if (rule && !rule.roles.includes(session.role)) {
-    return { type: 'forbidden', redirectTo: '/estrategia', message: rule.roles.length === 1 ? 'Acesso restrito a admin' : 'Acesso não permitido para o seu perfil' }
+    return { type: 'forbidden', redirectTo: '/comunidade', message: rule.roles.length === 1 ? 'Acesso restrito a admin' : 'Acesso não permitido para o seu perfil' }
   }
   return { type: 'allow' }
 }

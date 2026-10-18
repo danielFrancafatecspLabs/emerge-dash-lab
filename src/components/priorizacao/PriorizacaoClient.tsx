@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { AlertTriangle, ChevronDown, ChevronUp, List, Presentation, Target } from 'lucide-react'
-import { PortalShell } from '@/components/portal/PortalShell'
+import { PortalPage } from '@/components/shell/PortalPage'
 import QuadranteCard from './QuadranteCard'
 import NaoClassificadosList from './NaoClassificadosList'
 import ModoReuniao from './ModoReuniao'
@@ -264,7 +264,7 @@ export default function PriorizacaoClient() {
   }
 
   return (
-    <PortalShell title="Priorização" description="Priorização dos experimentos do board de Experimentação" refreshable>
+    <PortalPage title="Priorização" description="Priorização dos experimentos do board de Experimentação" refreshable>
         <div className="flex-1 p-3 md:p-4 lg:p-5 gap-3 md:gap-4 flex flex-col min-w-0">
           {/* Header interno da priorização */}
           <div className="bg-white border rounded-lg shadow-sm px-6 py-4">
@@ -445,6 +445,6 @@ export default function PriorizacaoClient() {
         )}
       </div>
         </div>
-    </PortalShell>
+    </PortalPage>
   )
 }
