@@ -1,16 +1,16 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
-import { Maximize2, Presentation } from 'lucide-react'
+import { Download, Maximize2, Presentation } from 'lucide-react'
 import type { SemanalData, SemanalSecaoId } from '@/lib/semanal'
+import { montarPaginas } from '@/lib/semanal-deck'
 import PresentationOverlay from '@/components/weekly/PresentationOverlay'
 import FitSlide from '@/components/weekly/FitSlide'
 import ResumoSlide from './ResumoSlide'
-import ListaSlide, { LINHAS_POR_PAGINA } from './ListaSlide'
-import { CapaSlide, DivisorSlide, ObjetivoSlide, ObrigadoSlide, SLIDE_H, SLIDE_W } from './SlideArt'
+import ListaSlide from './ListaSlide'
+import { CapaSlide, DivisorSlide, ObjetivoSlide, ObrigadoSlide, SLIDE_W } from './SlideArt'
 
 const RED = '#8B0000'
-const MESES = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro']
 
 interface SlideDef {
   key: string
@@ -24,48 +24,20 @@ interface Navegacao {
 }
 
 function montarSlides(data: SemanalData): SlideDef[] {
-  const d = new Date(data.geradoEm)
-  const mes = MESES[d.getMonth()]
-  const periodo = `${mes.charAt(0).toUpperCase()}${mes.slice(1)} de ${d.getFullYear()}`
-  const ateLabel = `até ${mes.slice(0, 3)}/${String(d.getFullYear()).slice(2)}`
-
-  const slides: SlideDef[] = [
-    { key: 'capa', label: 'Capa', render: () => <CapaSlide periodo={periodo} /> },
-    { key: 'objetivo', label: 'Objetivo', render: () => <ObjetivoSlide /> },
-    {
-      key: 'resumo', label: 'beOn Labs — visão geral', anchor: 'resumo',
-      render: nav => <ResumoSlide resumo={data.resumo} ateLabel={ateLabel} onDetalhes={(id: SemanalSecaoId) => nav.irPara(id)} />,
-    },
-  ]
-
-  for (const secao of data.secoes) {
-    slides.push({
-      key: `div-${secao.id}`, label: secao.divisor.join(' '),
-      render: () => <DivisorSlide linhas={secao.divisor} icone={secao.id === 'andamento' ? 'flask' : 'check'} />,
-    })
-    const porPagina = LINHAS_POR_PAGINA[secao.id]
-    const paginas = Math.max(1, Math.ceil(secao.rows.length / porPagina))
-    for (let p = 0; p < paginas; p++) {
-      slides.push({
-        key: `${secao.id}-${p}`,
-        label: `${secao.titulo}${paginas > 1 ? ` (${p + 1}/${paginas})` : ''}`,
-        anchor: p === 0 ? secao.id : undefined,
-        render: nav => (
-          <ListaSlide
-            secao={secao.id}
-            titulo={secao.titulo}
-            subtitulo={secao.subtitulo}
-            rows={secao.rows.slice(p * porPagina, (p + 1) * porPagina)}
-            todas={secao.rows}
-            onVoltar={() => nav.irPara('resumo')}
-          />
-        ),
-      })
+  return montarPaginas(data).map((pg): SlideDef => {
+    const base = { key: pg.key, label: pg.label, anchor: pg.anchor }
+    switch (pg.tipo) {
+      case 'capa': return { ...base, render: () => <CapaSlide periodo={pg.periodo} /> }
+      case 'objetivo': return { ...base, render: () => <ObjetivoSlide /> }
+      case 'resumo': return { ...base, render: nav => <ResumoSlide resumo={data.resumo} ateLabel={pg.ateLabel} onDetalhes={(id: SemanalSecaoId) => nav.irPara(id)} /> }
+      case 'divisor': return { ...base, render: () => <DivisorSlide linhas={pg.linhas} icone={pg.icone} /> }
+      case 'lista': return {
+        ...base,
+        render: nav => <ListaSlide secao={pg.secao} titulo={pg.titulo} subtitulo={pg.subtitulo} rows={pg.rows} todas={pg.todas} onVoltar={() => nav.irPara('resumo')} />,
+      }
+      case 'obrigado': return { ...base, render: () => <ObrigadoSlide /> }
     }
-  }
-
-  slides.push({ key: 'obrigado', label: 'Obrigado', render: () => <ObrigadoSlide /> })
-  return slides
+  })
 }
 
 export default function SemanalDeck() {
@@ -85,7 +57,7 @@ export default function SemanalDeck() {
 
   const slides = useMemo(() => (data ? montarSlides(data) : []), [data])
 
-  // Links como /semanal#semanal-escala (botões DETALHES da Weekly): rola até o slide quando os dados chegam.
+  // Links como /semanal#semanal-escala (DETALHES do PPTX, endereços antigos da Weekly): rola até o slide.
   useEffect(() => {
     if (!slides.length || !window.location.hash.startsWith('#semanal-')) return
     requestAnimationFrame(() => document.getElementById(window.location.hash.slice(1))?.scrollIntoView({ block: 'start' }))
@@ -123,14 +95,25 @@ export default function SemanalDeck() {
           )}
           <span className="text-xs text-gray-400">Gerado em {geradoEmLabel} · {slides.length} páginas</span>
         </div>
-        <button
-          onClick={() => setPresentIndex(0)}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white transition-colors"
-          style={{ background: RED }}
-        >
-          <Presentation size={13} />
-          Apresentar
-        </button>
+        <div className="flex items-center gap-2">
+          <a
+            href="/jira/api/semanal/pptx"
+            download
+            className="flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50"
+            title="Deck completo em PowerPoint editável, com o mesmo design e os dados atuais do Jira"
+          >
+            <Download size={13} />
+            Baixar PPTX editável
+          </a>
+          <button
+            onClick={() => setPresentIndex(0)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white transition-colors"
+            style={{ background: RED }}
+          >
+            <Presentation size={13} />
+            Apresentar
+          </button>
+        </div>
       </div>
 
       {slides.map((s, i) => (

@@ -1,11 +1,10 @@
 'use client'
 
-import type { ReactNode } from 'react'
-import type { LucideIcon } from 'lucide-react'
-import { CheckCircle2, Cpu, FlaskConical, Network, Satellite, Search, Settings } from 'lucide-react'
+import type { CSSProperties, ReactNode } from 'react'
 
-// Slides "de capa" do deck do Comitê (capa, objetivo, divisores e encerramento):
-// fundo vermelho com ondas de luz e um elemento de vidro à direita.
+// Slides "de capa" do deck do Comitê (capa, objetivo, divisores e encerramento): a arte original do deck
+// (public/semanal/*.jpg, com o logo e o elemento de vidro) e os textos nas mesmas posições do PowerPoint.
+// O PPTX editável (lib/semanal-pptx) usa a mesma arte e as mesmas posições.
 
 export const SLIDE_W = 1280
 export const SLIDE_H = 720
@@ -19,98 +18,32 @@ export function BeonWordmark({ size = 64, color = '#fff' }: { size?: number; col
   )
 }
 
-function Waves() {
-  // Feixes de luz curvos atravessando o slide (substituem a arte fotográfica do deck original).
-  const paths = [
-    'M-40 300 C 260 200, 520 520, 900 380 S 1300 240, 1340 330',
-    'M-40 330 C 280 240, 540 560, 920 410 S 1300 280, 1340 360',
-    'M-40 360 C 300 300, 560 600, 940 440 S 1300 330, 1340 400',
-    'M-40 250 C 200 120, 560 460, 980 330 S 1300 200, 1340 260',
-    'M-40 420 C 320 380, 600 640, 960 500 S 1300 420, 1340 470',
-  ]
-  return (
-    <svg width={SLIDE_W} height={SLIDE_H} viewBox={`0 0 ${SLIDE_W} ${SLIDE_H}`} style={{ position: 'absolute', inset: 0 }}>
-      <defs>
-        <filter id="semanal-glow" x="-20%" y="-20%" width="140%" height="140%">
-          <feGaussianBlur stdDeviation="4" result="b" />
-          <feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
-        </filter>
-        <linearGradient id="semanal-beam" x1="0" x2="1">
-          <stop offset="0" stopColor="#FF6B6B" stopOpacity="0.15" />
-          <stop offset="0.35" stopColor="#FFB3B3" stopOpacity="0.85" />
-          <stop offset="1" stopColor="#FF6B6B" stopOpacity="0.1" />
-        </linearGradient>
-      </defs>
-      {paths.map((d, i) => (
-        <path key={i} d={d} fill="none" stroke="url(#semanal-beam)" strokeWidth={i === 1 ? 3 : 1.2} opacity={i === 1 ? 0.9 : 0.55} filter="url(#semanal-glow)" />
-      ))}
-    </svg>
-  )
-}
+export type FundoSlide = 'capa' | 'objetivo' | 'divisor-check' | 'divisor-frasco' | 'obrigado'
 
-function GlassCircle({ size, children }: { size: number; children?: ReactNode }) {
+const K = SLIDE_W / 9_144_000                       // px por EMU
+const emu = (v: number) => v * K
+const pt = (centesimos: number) => (centesimos / 100) * 12_700 * K
+const CALIBRI = 'Calibri, Carlito, "Segoe UI", Arial, sans-serif'
+
+/** Texto branco do deck, posicionado em EMU (canto superior esquerdo da caixa). */
+function TextoBranco({ x, y, sz, negrito, children, style }: { x: number; y: number; sz: number; negrito?: boolean; children: ReactNode; style?: CSSProperties }) {
   return (
-    <div style={{
-      width: size, height: size, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
-      background: 'radial-gradient(circle at 35% 30%, rgba(255,255,255,0.35), rgba(255,255,255,0.06) 45%, rgba(120,0,0,0.25) 100%)',
-      border: '2px solid rgba(255,255,255,0.45)',
-      boxShadow: 'inset 0 0 40px rgba(255,255,255,0.18), 0 0 50px rgba(255,80,80,0.35)',
-    }}>
+    <div style={{ position: 'absolute', left: emu(x), top: emu(y), fontFamily: CALIBRI, fontSize: pt(sz), fontWeight: negrito ? 700 : 400,
+      color: '#fff', lineHeight: 1.2, whiteSpace: 'nowrap', ...style }}>
       {children}
     </div>
   )
 }
 
-export function GlassIcon({ icon: Icon, size = 300 }: { icon: LucideIcon; size?: number }) {
-  return (
-    <GlassCircle size={size}>
-      <Icon size={size * 0.48} color="rgba(255,255,255,0.85)" strokeWidth={1.2} style={{ filter: 'drop-shadow(0 0 12px rgba(255,180,180,0.8))' }} />
-    </GlassCircle>
-  )
-}
-
-/** Cinco esferas de vidro conectadas (capa). */
-export function GlassMolecule() {
-  const R = 150, size = 150
-  const icons: LucideIcon[] = [FlaskConical, Cpu, Network, Satellite, Search]
-  const pts = icons.map((_, i) => {
-    const a = (-90 + i * 72) * Math.PI / 180
-    return [R + R * Math.cos(a), R + R * Math.sin(a)]
-  })
-  const box = 2 * R + size
-  return (
-    <div style={{ position: 'relative', width: box, height: box }}>
-      <svg width={box} height={box} style={{ position: 'absolute', inset: 0 }}>
-        {pts.map(([x, y], i) => {
-          const [x2, y2] = pts[(i + 1) % pts.length]
-          return <line key={i} x1={x + size / 2} y1={y + size / 2} x2={x2 + size / 2} y2={y2 + size / 2} stroke="rgba(255,255,255,0.35)" strokeWidth={14} strokeLinecap="round" />
-        })}
-      </svg>
-      {pts.map(([x, y], i) => {
-        const Icon = icons[i]
-        return (
-          <div key={i} style={{ position: 'absolute', left: x, top: y }}>
-            <GlassCircle size={size}>
-              <Icon size={58} color="rgba(255,255,255,0.85)" strokeWidth={1.3} />
-            </GlassCircle>
-          </div>
-        )
-      })}
-    </div>
-  )
-}
-
-export function RedSlide({ children, art, pagina }: { children: ReactNode; art?: ReactNode; pagina?: number }) {
+export function RedSlide({ fundo, children, pagina }: { fundo: FundoSlide; children: ReactNode; pagina?: number }) {
   return (
     <div style={{
-      width: SLIDE_W, height: SLIDE_H, position: 'relative', overflow: 'hidden', fontFamily: 'Calibri, "Segoe UI", Arial, sans-serif',
-      background: 'radial-gradient(ellipse at 25% 45%, #B3121A 0%, #8A0B10 40%, #5A0609 75%, #3D0405 100%)',
+      width: SLIDE_W, height: SLIDE_H, position: 'relative', overflow: 'hidden', background: '#5A0609',
+      backgroundImage: `url(/jira/semanal/${fundo}.jpg)`, backgroundSize: 'cover', backgroundPosition: 'center',
     }}>
-      <Waves />
-      {art && <div style={{ position: 'absolute', right: 70, top: '50%', transform: 'translateY(-50%)' }}>{art}</div>}
-      <div style={{ position: 'absolute', inset: 0 }}>{children}</div>
+      {children}
       {pagina !== undefined && (
-        <span style={{ position: 'absolute', right: 18, bottom: 10, fontSize: 11, color: 'rgba(255,255,255,0.7)' }}>{pagina}</span>
+        <span style={{ position: 'absolute', left: emu(8_712_200), top: emu(4_965_700), fontSize: pt(700), fontWeight: 700, color: '#9AA0A6', fontFamily: 'Arial' }}>{pagina}</span>
       )}
     </div>
   )
@@ -118,58 +51,56 @@ export function RedSlide({ children, art, pagina }: { children: ReactNode; art?:
 
 export function CapaSlide({ periodo, pagina }: { periodo: string; pagina?: number }) {
   return (
-    <RedSlide art={<GlassMolecule />} pagina={pagina}>
-      <div style={{ position: 'absolute', left: 140, top: 300, display: 'flex', alignItems: 'center', gap: 56 }}>
-        <span style={{ fontSize: 72, fontWeight: 700, color: '#fff' }}>Report</span>
-        <BeonWordmark size={84} />
-      </div>
-      <div style={{ position: 'absolute', left: 148, top: 412, fontSize: 22, color: '#fff' }}>{periodo}</div>
+    <RedSlide fundo="capa" pagina={pagina}>
+      <TextoBranco x={977_849} y={2_142_693} sz={4840} negrito>Report</TextoBranco>
+      <TextoBranco x={1_058_900} y={2_955_772} sz={1370}>{periodo}</TextoBranco>
     </RedSlide>
   )
 }
+
+export const OBJETIVO_LINHAS = [
+  'Sinalizar principais problemas, acompanhar',
+  'experimentos estratégicos e discussões de como',
+  'evoluir o processo de experimentação',
+]
 
 export function ObjetivoSlide({ pagina }: { pagina?: number }) {
   return (
-    <RedSlide pagina={pagina}>
-      <div style={{ position: 'absolute', left: 150, top: 280 }}>
-        <BeonWordmark size={52} />
-        <div style={{ fontSize: 96, fontWeight: 700, color: '#fff', lineHeight: 1, marginTop: 4 }}>Objetivo</div>
-      </div>
-      <div style={{
-        position: 'absolute', left: 622, top: 232, width: 574, height: 258, border: '2px solid rgba(255,255,255,0.85)', borderRadius: 18,
-        display: 'flex', alignItems: 'center', padding: '0 56px', background: 'rgba(60,0,0,0.12)',
-      }}>
-        <p style={{ fontSize: 19, lineHeight: 1.75, color: '#fff', margin: 0 }}>
-          Sinalizar principais problemas, acompanhar experimentos estratégicos e discussões de como evoluir o processo de experimentação
-        </p>
-      </div>
+    <RedSlide fundo="objetivo" pagina={pagina}>
+      <TextoBranco x={1_085_265} y={2_291_511} sz={5410} negrito>Objetivo</TextoBranco>
+      {OBJETIVO_LINHAS.map((linha, i) => (
+        <TextoBranco key={linha} x={5_094_630} y={[2_247_798, 2_485_288, 2_724_048][i]} sz={1080}>{linha}</TextoBranco>
+      ))}
     </RedSlide>
   )
 }
 
+/** Posição (topo de cada linha, em EMU) dos títulos dos divisores, como no deck. */
+export function linhasDoDivisor(linhas: string[], icone: 'check' | 'flask'): { texto: string; y: number; negrito: boolean }[] {
+  const passo = 550_000
+  const ultima = icone === 'flask' ? 2_664_409 : 3_018_739
+  return linhas.map((texto, i) => ({
+    texto,
+    y: ultima - (linhas.length - 1 - i) * passo,
+    // No deck, "Experimentos" abre os divisores de check em peso normal; o restante é negrito.
+    negrito: !(i === 0 && linhas.length > 1 && icone === 'check' && texto === 'Experimentos'),
+  }))
+}
+
 export function DivisorSlide({ linhas, icone = 'check', pagina }: { linhas: string[]; icone?: 'check' | 'flask'; pagina?: number }) {
-  const Icon = icone === 'flask' ? FlaskConical : CheckCircle2
   return (
-    <RedSlide art={<GlassIcon icon={Icon} size={360} />} pagina={pagina}>
-      <div style={{ position: 'absolute', left: 208, top: '50%', transform: 'translateY(-50%)' }}>
-        <BeonWordmark size={60} />
-        <div style={{ marginTop: 26 }}>
-          {linhas.map((l, i) => (
-            <div key={i} style={{ fontSize: 60, lineHeight: 1.18, color: '#fff', fontWeight: i === 0 && linhas.length > 1 && icone !== 'flask' && l === 'Experimentos' ? 300 : 700 }}>{l}</div>
-          ))}
-        </div>
-      </div>
+    <RedSlide fundo={icone === 'flask' ? 'divisor-frasco' : 'divisor-check'} pagina={pagina}>
+      {linhasDoDivisor(linhas, icone).map(l => (
+        <TextoBranco key={l.texto} x={1_466_545} y={l.y} sz={4040} negrito={l.negrito}>{l.texto}</TextoBranco>
+      ))}
     </RedSlide>
   )
 }
 
 export function ObrigadoSlide({ pagina }: { pagina?: number }) {
   return (
-    <RedSlide art={<GlassIcon icon={Settings} size={380} />} pagina={pagina}>
-      <div style={{ position: 'absolute', left: 208, top: 230 }}>
-        <BeonWordmark size={60} />
-        <div style={{ fontSize: 64, fontWeight: 700, color: '#fff', marginTop: 34 }}>Obrigado</div>
-      </div>
+    <RedSlide fundo="obrigado" pagina={pagina}>
+      <TextoBranco x={1_466_545} y={2_293_569} sz={4040} negrito>Obrigado</TextoBranco>
     </RedSlide>
   )
 }
