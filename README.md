@@ -8,7 +8,7 @@ entra ou pede uma conta. Depois do login, todo mundo cai no mesmo lugar: o feed 
   inteligente), Pesquisas, Future Thinking, Trilha de Experimentação, pessoas e mensagens. Detalhes em
   [docs/comunidade.md](docs/comunidade.md).
 - **Painéis e rituais** (conforme o perfil) — portfólio de inovação lido do Jira (projeto `GL`): estratégia,
-  operacional, portfólio, benefícios, priorização, OKRs, monitoramento, Report/MBR, Weekly e Semanal.
+  operacional, portfólio, benefícios, priorização, OKRs, monitoramento, Report/MBR e Semanal.
 - **Administração** (admin) — usuários, pedidos de cadastro e stories.
 
 O modelo de domínio (Iniciativa × Experimento, boards, campos customizados) está em [CLAUDE.md](CLAUDE.md).
@@ -40,7 +40,6 @@ ADMIN_PASSWORD='uma-senha-forte-de-12+' node scripts/create_admin.js nome.sobren
 | `npm run lint` | ESLint (`next/core-web-vitals`) |
 | `npx tsc --noEmit` | Checagem de tipos (o build também falha com erro de tipo) |
 | `npm run build && npm start` | Build e servidor de produção |
-| `npm run weekly:export` | Gera o PPTX da Weekly a partir das telas (ver `scripts/weekly-export`) |
 
 Todas as variáveis de ambiente estão descritas em [.env.example](.env.example).
 
@@ -54,7 +53,7 @@ src/
 │   └── (app)/              Páginas autenticadas, todas na mesma moldura (layout.tsx)
 │       ├── comunidade/     Comunidade (a home)
 │       ├── admin/          Usuários e stories
-│       └── …               Painéis e rituais (estrategia, operacional, weekly…)
+│       └── …               Painéis e rituais (estrategia, operacional, semanal…)
 ├── components/
 │   ├── ui/                 Design system: primitivas compartilhadas (botões, avatar, diálogo, campos, estados)
 │   ├── shell/              Moldura do app (menu único) e cabeçalho das páginas de painel
@@ -71,7 +70,7 @@ src/
 data/                       Usuários, validações de benefício e posts; perfis, mensagens e stories da Comunidade não são versionados
 docs/                       Documentação funcional e referências
 ops/                        Implantação do acervo de pesquisas (systemd)
-scripts/                    Exportação da Weekly e criação de admin
+scripts/                    Criação de admin e utilitários
 ```
 
 ## Acesso e perfis
@@ -81,7 +80,7 @@ fica em [`src/lib/auth/access-policy.ts`](src/lib/auth/access-policy.ts) e é ap
 
 | Perfil | O que acessa |
 |---|---|
-| `admin` | Tudo, incluindo Admin, Benefícios, Pesquisas, Weekly, Semanal e o Cientista do painel |
+| `admin` | Tudo, incluindo Admin, Benefícios, Pesquisas, Semanal e o Cientista do painel |
 | `executivo` | Painéis executivos, insights de IA e atualização do cache |
 | `financeiro` | Painéis executivos; edita validações de benefício |
 | `viewer` | Painéis executivos sem áreas restritas |
@@ -100,21 +99,22 @@ contagem): o admin escolhe o perfil e aprova, ou recusa e o pedido é removido.
 - Um e-mail já cadastrado recebe a mesma resposta de um pedido novo, para não revelar quem tem conta.
 - `POST /api/admin/users/:id/aprovacao` (`{ decisao: "aprovar" | "recusar", role }`) é só para admin.
 
-## Weekly: slide do Comitê e PPTX editável
+## Semanal: deck do Comitê e PPTX editável
 
-A aba **Weekly** abre com o slide "beOn Labs — visão geral" do deck do Comitê (V6), montado com os dados do Jira:
-total e composição dos experimentos, funil Exploração → Experimentação → Piloto → Em escala, benefício potencial
-e principais métricas. Os números são os mesmos da aba Semanal (`buildSemanalData`), formatados uma única vez em
-`src/lib/comite-resumo.ts` — a tela e o arquivo nunca divergem.
+A aba **Semanal** reúne o ritual semanal (a antiga aba Weekly foi unificada aqui; `/weekly` redireciona):
 
-- **Na tela** (`src/components/weekly/ComiteResumoSlide.tsx`): reproduz o slide nas coordenadas, cores, fontes e
-  ícones do original. Os botões DETALHES abrem a lista correspondente na aba Semanal.
-- **Baixar PPTX editável** (`GET /api/weekly/comite/pptx`, só admin): parte do próprio slide original
-  (`templates/comite-resumo.pptx`) e troca apenas textos, ângulos dos anéis e links — o arquivo mantém o design do
-  deck e continua editável no PowerPoint. Sem o Jira, gera com os dados de exemplo (o nome do arquivo termina em
-  `-exemplo`).
+1. **Deck do Comitê beOn Labs (V7)** com dados do Jira: capa, objetivo, visão geral (`buildSemanalData`),
+   principais motivos de cancelamento (campo "Motivo de Bloqueio" dos Epics cancelados, com o histórico como
+   reserva; até 5 motivos, os demais em "Outros motivos", e os sem motivo numa linha à parte), divisores, listas por fase (Em escala, Aguardando piloto, Em piloto, Em andamento, Backlog) e encerramento.
+   Os botões DETALHES levam à lista da fase, e a seta de cada lista volta à visão geral.
+2. **Acompanhamento da semana**: governança por domínio e fase, bloqueios, patrocinadores e aprendizados
+   (download em PNG/JPG em cada slide).
 
-Para mudar o design do slide, edite o modelo no PowerPoint mantendo as formas (o gerador as encontra pelo id).
+**Baixar PPTX editável** (`GET /api/semanal/pptx`, só admin) gera o deck inteiro em PowerPoint, com formas nativas
+nas mesmas posições da tela, a arte original do deck nas capas e divisores (`public/semanal`) e links entre slides
+nos botões DETALHES e "voltar". A sequência de páginas, a paginação e a formatação ficam em
+`src/lib/semanal-deck.ts`, usado pela tela e pelo gerador (`src/lib/semanal-pptx.ts`): os dois nunca divergem. Sem o
+Jira, o arquivo sai com os dados de exemplo (o nome termina em `-exemplo`).
 
 ## Design system
 

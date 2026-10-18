@@ -3,7 +3,8 @@
 import type { ReactNode } from 'react'
 import { Coins, FlaskConical, Lightbulb, Microscope, Rocket, Settings } from 'lucide-react'
 import type { SemanalResumo, SemanalSecaoId } from '@/lib/semanal'
-import { BeonWordmark, SLIDE_H, SLIDE_W } from './SlideArt'
+import { formatMilhoes } from '@/lib/semanal-deck'
+import { SLIDE_H, SLIDE_W } from './SlideArt'
 
 // Slide "beOn Labs — até mês/aa": composição do total de experimentos,
 // funil Exploração → Experimentação → Piloto → Em escala e principais métricas.
@@ -16,13 +17,6 @@ const BORDER = '#E5E7EB'
 
 const FATIA_COR: Record<string, string> = {
   exploracao: '#E07B00', andamento: '#F2B8B8', validadas: '#CC0000', refutadas: '#C5C9D0', cancelados: '#6B0000',
-}
-
-/** R$ em milhões, no formato do deck: "R$ 27,3 milhões" / "R$ 416 milhões". */
-export function formatMilhoes(valor: number, sufixo = 'milhões', semDecimais = false): string {
-  const mm = valor / 1_000_000
-  const casas = semDecimais || Number.isInteger(Math.round(mm * 10) / 10) ? 0 : 1
-  return `${mm.toLocaleString('pt-BR', { minimumFractionDigits: casas, maximumFractionDigits: casas })} ${sufixo}`
 }
 
 function Card({ children, x, y, w, h, style }: { children: ReactNode; x: number; y: number; w: number; h: number; style?: React.CSSProperties }) {
@@ -80,7 +74,8 @@ export default function ResumoSlide({ resumo, ateLabel, onDetalhes, pagina }: {
         <span style={{ fontSize: 40, fontWeight: 700, color: TITLE_RED }}>beOn Labs</span>
         <span style={{ fontSize: 14, fontWeight: 700 }}>{ateLabel}</span>
       </div>
-      <div style={{ position: 'absolute', right: 40, top: 32 }}><BeonWordmark size={36} color={RED} /></div>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src="/jira/semanal/logo.png" alt="beOn Labs" style={{ position: 'absolute', right: 40, top: 28, height: 44 }} />
 
       {/* Total + composição */}
       <Card x={44} y={90} w={930} h={104}>

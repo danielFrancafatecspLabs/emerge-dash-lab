@@ -3,7 +3,10 @@
 import type { ReactNode } from 'react'
 import { CornerUpLeft, Star } from 'lucide-react'
 import type { SemanalRow, SemanalSecaoId } from '@/lib/semanal'
-import { formatBeneficioMM } from '@/lib/report-utils'
+import {
+  chipCor, colunasDa, contagemPorLab, corDoLab, diretorEPontoFocal, formatBeneficioMM, formatData, LINHAS_POR_PAGINA,
+  sequenciasDeLab, type ColunaLista,
+} from '@/lib/semanal-deck'
 import { SLIDE_H, SLIDE_W } from './SlideArt'
 
 // Slide de lista ("Em escala", "Aguardando Piloto", ...): uma linha por
@@ -15,60 +18,11 @@ const INK = '#1F2328'
 const MUTED = '#6B7280'
 const BORDER = '#E3E5E8'
 
-export const LINHAS_POR_PAGINA: Record<SemanalSecaoId, number> = {
-  escala: 8, aguardando: 8, piloto: 8, andamento: 10, backlog: 8,
-}
-
-/** Cor do laboratório responsável (mesma legenda do deck). */
-export function corDoLab(lab: string | null): string {
-  const l = (lab ?? '').toLowerCase()
-  if (l.includes('hitss')) return '#0E9AA7'
-  if (l.includes('engenharia')) return '#E8838A'
-  if (l.includes('dados')) return '#E67E22'
-  if (l.includes('coe')) return '#D4A017'
-  if (l.includes('neg')) return '#8B0000'
-  if (l.includes('beon')) return '#CC0000'
-  return '#94A3B8'
-}
-
-type Coluna = { id: string; label: string; w: number }
-
-function colunasDa(secao: SemanalSecaoId): Coluna[] {
-  const fim: Coluna[] = [
-    { id: 'lab', label: 'Laboratório', w: 120 }, { id: 'diretor', label: 'Diretor/ Ponto focal', w: 122 },
-    { id: 'area', label: 'Área', w: 86 }, { id: 'beneficio', label: 'Benefício potencial', w: 80 },
-  ]
-  if (secao === 'escala') {
-    return [{ id: 'nome', label: 'Nome da iniciativa', w: 224 }, { id: 'descricao', label: 'Descrição', w: 440 },
-      { id: 'observacao', label: 'Observação', w: 140 }, ...fim]
-  }
-  if (secao === 'andamento') {
-    return [{ id: 'nome', label: 'Nome da iniciativa', w: 224 }, { id: 'descricao', label: 'Descrição', w: 284 },
-      { id: 'fase', label: 'Fase / Pendências', w: 186 }, { id: 'previsao', label: 'Previsão de conclusão', w: 110 }, ...fim]
-  }
-  return [{ id: 'nome', label: 'Nome da iniciativa', w: 224 },
-    { id: 'descricao', label: secao === 'backlog' ? 'Objetivo' : 'Descrição', w: 330 },
-    { id: 'situacao', label: 'Sit. atual / Pendências', w: 250 }, ...fim]
-}
-
-function formatData(iso: string | null): string {
-  if (!iso) return 'TBD'
-  const [a, m, d] = iso.slice(0, 10).split('-')
-  return d && m && a ? `${d}/${m}/${a}` : 'TBD'
-}
-
-function chipCor(texto: string): { bg: string; fg: string } {
-  const t = texto.toLowerCase()
-  if (t.includes('suspens')) return { bg: '#EEF0F3', fg: '#4B5563' }
-  if (t.includes('pendente') || t.includes('falta') || t.includes('bloque') || t.includes('aguard')) return { bg: '#FDF3D7', fg: '#7A5A00' }
-  return { bg: '#DCEEF7', fg: '#1F4E66' }
-}
-
 const clamp = (linhas: number): React.CSSProperties => ({
   display: '-webkit-box', WebkitLineClamp: linhas, WebkitBoxOrient: 'vertical', overflow: 'hidden',
 })
 
-function Celula({ coluna, row, rowH }: { coluna: Coluna; row: SemanalRow; rowH: number }): ReactNode {
+function Celula({ coluna, row, rowH }: { coluna: ColunaLista; row: SemanalRow; rowH: number }): ReactNode {
   const linhas = Math.max(2, Math.floor((rowH - 10) / 15))
   switch (coluna.id) {
     case 'nome':
@@ -104,7 +58,7 @@ function Celula({ coluna, row, rowH }: { coluna: Coluna; row: SemanalRow; rowH: 
     case 'diretor':
       return (
         <div style={{ fontSize: 10.5, color: '#374151', lineHeight: 1.3, ...clamp(3) }}>
-          {[row.diretor, row.pontoFocal].filter(Boolean).filter((v, i, a) => a.indexOf(v) === i).join(' / ') || '—'}
+          {diretorEPontoFocal(row)}
         </div>
       )
     case 'area':
@@ -135,13 +89,7 @@ export default function ListaSlide({ secao, titulo, subtitulo, rows, todas, pagi
   const TOP = 116, ALTURA_TABELA = 522
   const rowH = Math.floor(ALTURA_TABELA / porPagina)
 
-  // Sequências de linhas do mesmo laboratório (uma caixa por sequência)
-  const runs: { lab: string | null; ini: number; fim: number }[] = []
-  rows.forEach((r, i) => {
-    const ult = runs[runs.length - 1]
-    if (ult && (ult.lab ?? '') === (r.lab ?? '')) ult.fim = i
-    else runs.push({ lab: r.lab, ini: i, fim: i })
-  })
+  const runs = sequenciasDeLab(rows)
 
   return (
     <div style={{ width: SLIDE_W, height: SLIDE_H, position: 'relative', overflow: 'hidden', background: '#fff', color: INK,
@@ -202,8 +150,6 @@ export default function ListaSlide({ secao, titulo, subtitulo, rows, todas, pagi
 }
 
 function Legenda({ rows }: { rows: SemanalRow[] }) {
-  const porLab = new Map<string, number>()
-  for (const r of rows) porLab.set(r.lab ?? 'Não definido', (porLab.get(r.lab ?? 'Não definido') ?? 0) + 1)
   return (
     <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 64, borderTop: '1.5px solid #D9DCE1', display: 'flex', alignItems: 'stretch', fontSize: 10.5, color: '#6B7280' }}>
       <div style={{ width: 92, display: 'flex', alignItems: 'center', paddingLeft: 12 }}>LEGENDAS:</div>
@@ -214,7 +160,7 @@ function Legenda({ rows }: { rows: SemanalRow[] }) {
       <div style={{ borderLeft: '1px solid #E5E7EB', padding: '8px 18px', flex: 1 }}>
         Qt. de Iniciativas + Laboratórios resp.:
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 16px', marginTop: 6 }}>
-          {[...porLab.entries()].sort((a, b) => b[1] - a[1]).map(([lab, n]) => (
+          {contagemPorLab(rows).map(([lab, n]) => (
             <span key={lab} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, color: corDoLab(lab) }}>
               <span style={{ width: 11, height: 11, border: `1.5px solid ${corDoLab(lab)}`, borderRadius: 3 }} />
               <b>{String(n).padStart(2, '0')}</b> {lab}
