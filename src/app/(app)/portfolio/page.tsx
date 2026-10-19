@@ -46,7 +46,6 @@ export default async function PortfolioPage({ searchParams }: { searchParams: Re
       description="Iniciativas e experimentos dos boards de Ideação e de Experimentação/Piloto do Jira"
       refreshable
       fit
-      maximizable
     >
       <PortfolioExplorer dados={dados} estadoInicial={estadoDaQuery(searchParams)} detalheInicial={typeof d === 'string' ? d : null} />
     </PortalPage>
