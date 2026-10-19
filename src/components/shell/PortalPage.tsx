@@ -67,7 +67,7 @@ function MaximizeButton({ maximizado, onClick }: { maximizado: boolean; onClick:
       className={cx('flex h-9 items-center gap-2 rounded-full border border-beon-line bg-white px-3 text-sm font-medium text-beon-ink hover:bg-beon-soft', focusRing)}
     >
       <Icon className="h-4 w-4 text-beon-muted" aria-hidden />
-      <span className="hidden md:inline">{maximizado ? 'Restaurar' : 'Maximizar'}</span>
+      <span className="hidden lg:inline">{maximizado ? 'Restaurar' : 'Maximizar'}</span>
     </button>
   )
 }
@@ -88,14 +88,14 @@ export interface PortalPageProps {
   fit?: boolean
   /** `false` esconde menu e barras do app (modo apresentação). */
   chrome?: boolean
-  /** Mostra "Maximizar": esconde o menu lateral e as barras do app, mantendo a barra da página. */
+  /** Mostra "Maximizar" (padrão): esconde o menu lateral e as barras do app, mantendo a barra da página. */
   maximizable?: boolean
   children: ReactNode
 }
 
-export function PortalPage({ title, description, actions, refreshable, fit, chrome = true, maximizable, children }: PortalPageProps) {
+export function PortalPage({ title, description, actions, refreshable, fit, chrome = true, maximizable = true, children }: PortalPageProps) {
   const { me } = useCommunity()
-  const [maximizado, alternarMaximizado] = useMaximizado(title, !!maximizable && chrome)
+  const [maximizado, alternarMaximizado] = useMaximizado(title, maximizable && chrome)
   useHideChrome(!chrome || maximizado)
 
   if (!chrome) return <div className="min-h-dvh bg-beon-soft">{children}</div>
