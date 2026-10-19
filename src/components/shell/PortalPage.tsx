@@ -64,7 +64,11 @@ export function PortalPage({ title, description, actions, refreshable, fit, chro
 
   return (
     <div className={cx('flex min-w-0 flex-col bg-beon-soft', fit ? 'h-[calc(100dvh-7.5rem)] overflow-hidden md:h-dvh' : 'min-h-[calc(100dvh-3.5rem)] md:min-h-dvh')}>
-      <div className="sticky top-14 z-20 flex min-h-16 shrink-0 items-center gap-3 border-b border-beon-line bg-white/95 px-4 py-2.5 backdrop-blur sm:px-6 md:top-0">
+      {/* Em página `fit` o contêiner não rola (overflow-hidden): a barra fica no fluxo, sem sticky. */}
+      <div className={cx(
+        'z-20 flex min-h-16 shrink-0 items-center gap-3 border-b border-beon-line bg-white/95 px-4 py-2.5 backdrop-blur sm:px-6',
+        !fit && 'sticky top-14 md:top-0',
+      )}>
         <div className="min-w-0 flex-1">
           <h1 className="truncate text-[17px] font-semibold leading-tight tracking-tight text-beon-ink">{title}</h1>
           {description && <p className="hidden truncate text-xs text-beon-muted sm:block">{description}</p>}

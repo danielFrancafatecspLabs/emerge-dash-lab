@@ -99,6 +99,24 @@ contagem): o admin escolhe o perfil e aprova, ou recusa e o pedido é removido.
 - Um e-mail já cadastrado recebe a mesma resposta de um pedido novo, para não revelar quem tem conta.
 - `POST /api/admin/users/:id/aprovacao` (`{ decisao: "aprovar" | "recusar", role }`) é só para admin.
 
+## Portfólio: quadros e filtros
+
+A aba **Portfólio** mostra os dois boards do Jira com as colunas que eles têm lá:
+
+- **Iniciativas** — Kanban do board de Ideação; cada cartão mostra os experimentos da iniciativa (ciclos).
+- **Experimentos** — Kanban do board de Experimentação/Piloto (Epics), com a iniciativa-mãe, prazo e bloqueio.
+- **Lista** — tabela de iniciativas ou de experimentos, com colunas escolhidas, ordenação e exportação em CSV.
+
+Os filtros cobrem os campos dos dois boards (situação, colunas e status, lab, sponsor, BO, diretoria, domínio,
+segmento, mercado, portfólio, impacto, faixas de benefício e custo, complexidade, tecnologia, prioridade, bloqueio,
+prazo, pendências de cadastro…), mostram quantos itens cada valor tem e valem nas três visões: na de iniciativas, um
+campo do experimento olha os experimentos de cada iniciativa; na de experimentos, os campos da iniciativa olham a mãe.
+Dá para usar raias (Kanban) ou grupos (Lista) por campo. O estado da visão fica na URL (o link abre a mesma visão e o
+mesmo item) e pode ser salvo em **Visões** (neste navegador); há visões prontas, como "Bloqueios" e "Prazos vencidos".
+
+O motor (campos, filtros, facetas, URL) está em `src/lib/portfolio/filtros.ts`; a montagem a partir do Jira, em
+`src/lib/portfolio/dados.ts`.
+
 ## Semanal: deck do Comitê e PPTX editável
 
 A aba **Semanal** reúne o ritual semanal (a antiga aba Weekly foi unificada aqui; `/weekly` redireciona):
