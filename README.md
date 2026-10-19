@@ -113,6 +113,8 @@ prazo, pendências de cadastro…), mostram quantos itens cada valor tem e valem
 campo do experimento olha os experimentos de cada iniciativa; na de experimentos, os campos da iniciativa olham a mãe.
 Dá para usar raias (Kanban) ou grupos (Lista) por campo. O estado da visão fica na URL (o link abre a mesma visão e o
 mesmo item) e pode ser salvo em **Visões** (neste navegador); há visões prontas, como "Bloqueios" e "Prazos vencidos".
+O botão **Maximizar** (presente em todas as abas do portal, pelo `PortalPage`) esconde o menu lateral e as barras do
+app; a escolha fica lembrada por aba neste navegador.
 
 O motor (campos, filtros, facetas, URL) está em `src/lib/portfolio/filtros.ts`; a montagem a partir do Jira, em
 `src/lib/portfolio/dados.ts`.
