@@ -190,8 +190,8 @@ export function AppShell({ children }: { children: ReactNode }) {
     </>
   )
 
-  if (hidden) return <div className="min-h-dvh bg-white font-sans text-beon-ink antialiased">{children}{dialogs}</div>
-
+  // Sem menu e barras (apresentação ou página maximizada) a árvore continua a mesma: só as barras deixam de
+  // ser renderizadas, para a página não ser remontada (e não perder o estado) ao alternar.
   return (
     <div className="beon-root min-h-dvh bg-white font-sans text-beon-ink antialiased">
       <a href="#conteudo" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-white focus:px-4 focus:py-2 focus:shadow">
@@ -199,7 +199,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       </a>
 
       {/* Barra superior — celular */}
-      <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-beon-line bg-white/95 px-2 backdrop-blur md:hidden">
+      {!hidden && <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-beon-line bg-white/95 px-2 backdrop-blur md:hidden">
         <div className="flex items-center gap-1">
           <IconButton icon={Menu} label="Abrir menu" onClick={() => setDrawer(true)} />
           <Logo />
@@ -216,10 +216,10 @@ export function AppShell({ children }: { children: ReactNode }) {
             </Link>
           )}
         </div>
-      </header>
+      </header>}
 
       {/* Gaveta com o menu completo — celular */}
-      {drawer && (
+      {drawer && !hidden && (
         <div className="fixed inset-0 z-50 md:hidden" role="dialog" aria-modal="true" aria-label="Menu">
           <button type="button" aria-label="Fechar menu" className="absolute inset-0 bg-stone-900/40" onClick={() => setDrawer(false)} />
           <div className="absolute inset-y-0 left-0 flex w-72 max-w-[85vw] flex-col bg-white px-3 py-4 shadow-2xl">
@@ -237,7 +237,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
       <div className="flex">
         {/* Menu lateral — tablet (ícones) e desktop (completo) */}
-        <aside className="sticky top-0 hidden h-dvh w-[76px] shrink-0 flex-col border-r border-beon-line bg-white px-3 py-5 md:flex xl:w-64">
+        {!hidden && <aside className="sticky top-0 hidden h-dvh w-[76px] shrink-0 flex-col border-r border-beon-line bg-white px-3 py-5 md:flex xl:w-64">
           <div className="mb-5 flex justify-center xl:justify-start xl:px-2"><Logo /></div>
 
           <div className="-mx-1 flex-1 overflow-y-auto px-1 [scrollbar-width:thin]">
@@ -274,15 +274,15 @@ export function AppShell({ children }: { children: ReactNode }) {
             </button>
             <ProfileMenu onPrefs={() => setPrefsOpen(true)} />
           </div>
-        </aside>
+        </aside>}
 
-        <main id="conteudo" className={cx('min-w-0 flex-1', naComunidade ? 'pb-24 md:pb-10' : 'pb-16 md:pb-0')}>
+        <main id="conteudo" className={cx('min-w-0 flex-1', hidden ? '' : naComunidade ? 'pb-24 md:pb-10' : 'pb-16 md:pb-0')}>
           {naComunidade ? <div className="mx-auto max-w-[1180px]">{children}</div> : children}
         </main>
       </div>
 
       {/* Navegação inferior — celular */}
-      <nav aria-label="Comunidade" className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t border-beon-line bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
+      {!hidden && <nav aria-label="Comunidade" className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t border-beon-line bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
         {COMMUNITY_AREAS.map(item => {
           const active = isNavActive(path, item)
           const Icon = item.icon
@@ -293,8 +293,8 @@ export function AppShell({ children }: { children: ReactNode }) {
             </Link>
           )
         })}
-      </nav>
-      {naComunidade && !path.startsWith('/comunidade/mensagens') && !path.startsWith('/comunidade/cientista/') && (
+      </nav>}
+      {!hidden && naComunidade && !path.startsWith('/comunidade/mensagens') && !path.startsWith('/comunidade/cientista/') && (
         <button
           type="button"
           onClick={() => openComposer()}
