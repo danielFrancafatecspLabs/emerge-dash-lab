@@ -4,7 +4,7 @@
 
 import {
   Activity, BarChart2, BookOpen, Bookmark, CalendarCheck, FileText, FlaskConical, Home, Images, Library,
-  MessageCircle, Route, Target, Telescope, UserCog, Users, Wallet, type LucideIcon,
+  MessageCircle, Radar, Route, Target, Telescope, UserCog, Users, Wallet, type LucideIcon,
 } from 'lucide-react'
 import type { AuthSessionRole } from '@/lib/auth/session'
 
@@ -67,6 +67,8 @@ export const PORTAL_GROUPS: NavGroup[] = [
     label: 'Análises',
     items: [
       { label: 'Acervo de pesquisas', href: '/pesquisas', icon: Library, roles: ADMIN },
+      { label: 'OSINT', href: '/osint', icon: Radar, roles: ADMIN },
+      { label: 'Future Thinking', href: '/ft', icon: Telescope, roles: ADMIN },
     ],
   },
   {
