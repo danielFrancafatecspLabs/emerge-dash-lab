@@ -1,5 +1,16 @@
 [
   {
+    "id": "local-dev-admin",
+    "username": "dev@teste.com",
+    "passwordHash": "b85f0dda73eccb19b2885f0341ffe228:c5aa05d351fdbc68a36da6a00e69ab2b01c88e31d3581f8121ca65c38e1c2db8ad61dfa424596b296a881c8f55d173c81350c661521cb9416d877a51e3ddda7e",
+    "role": "admin",
+    "nome": "Dev Teste",
+    "laboratorio": "BeOn Lab",
+    "avatar": "",
+    "createdAt": "2026-10-17T00:00:00.000Z",
+    "active": true
+  },
+  {
     "id": "local-1",
     "username": "local_admin",
     "passwordHash": "1e64c514abc5ba5994985828725191cf:136ed19b773926dfc98e9d222008fcbce73ba8a6e74ef551a948da3cd85a0f14ebe634ee33693356c6d7abe9e78782c7a5bffa0f28ba3f8760a087e6544dc676",
@@ -63,6 +74,17 @@
     "laboratorio": "BeOn Lab",
     "avatar": "",
     "createdAt": "2026-10-16T21:46:24.448Z",
+    "active": true
+  },
+  {
+    "id": "local-community",
+    "username": "comunidade@teste.com",
+    "passwordHash": "0b99b06a3c15036045bd9488d1c1e49f:9e4bf4d0354f8933f755d881cccef5ab6e1698792faecaa99061f0b4a477d4ce997e40d4e367bc11c2bd4c3b998bc54f612c1e0c14aa526489aa32869fad296c",
+    "role": "community",
+    "nome": "Usuário Comunidade",
+    "laboratorio": "BeOn Lab",
+    "avatar": "",
+    "createdAt": "2026-10-17T00:00:00.000Z",
     "active": true
   }
 ]

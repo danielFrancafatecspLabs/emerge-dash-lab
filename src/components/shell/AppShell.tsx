@@ -161,7 +161,7 @@ function Logo({ withName }: { withName?: boolean }) {
 
 export function AppShell({ children }: { children: ReactNode }) {
   const path = usePathname()
-  const hidden = useChromeHidden()
+  const hidden = useChromeHidden() || (typeof document !== 'undefined' && document.body.classList.contains('modo-apresentacao'))
   const { me, counts, openComposer } = useCommunity()
   const [notifOpen, setNotifOpen] = useState(false)
   const [prefsOpen, setPrefsOpen] = useState(false)

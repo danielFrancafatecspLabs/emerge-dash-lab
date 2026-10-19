@@ -67,6 +67,14 @@ html, body {
   }
 }
 
+/* ── Modo Apresentação (Estratégia) ── */
+/* Quando body tem classe modo-apresentacao, esconde sidebar e header */
+body.modo-apresentacao aside[role="complementary"],
+body.modo-apresentacao > header,
+body.modo-apresentacao .app-header {
+  display: none !important;
+}
+
 /* ── Hero particle animation ── */
 @keyframes floatUp {
   0%, 100% { transform: translateY(0); opacity: 0.3; }
