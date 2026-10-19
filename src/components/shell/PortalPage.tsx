@@ -56,9 +56,12 @@ export interface PortalPageProps {
 
 export function PortalPage({ title, description, actions, refreshable, fit, chrome = true, children }: PortalPageProps) {
   const { me } = useCommunity()
-  useHideChrome(!chrome)
+  // Se chrome=false (modo apresentação via React) OU body tem a classe (fallback),
+  // esconde o chrome. O CSS global também esconde via body.modo-apresentacao.
+  const chromeEfetivo = chrome && !(typeof document !== 'undefined' && document.body.classList.contains('modo-apresentacao'))
+  useHideChrome(!chromeEfetivo)
 
-  if (!chrome) return <div className="min-h-dvh bg-beon-soft">{children}</div>
+  if (!chromeEfetivo) return <div className="min-h-dvh bg-beon-soft">{children}</div>
 
   const podeAtualizar = refreshable && (me?.role === 'admin' || me?.role === 'executivo')
 
