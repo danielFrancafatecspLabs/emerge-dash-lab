@@ -2,6 +2,7 @@ import {
   SITUACAO_LABEL, SITUACOES,
   type ColunaBoard, type Entidade, type ExperimentoItem, type IniciativaItem, type ItemPortfolio, type PortfolioDados, type Situacao,
 } from './tipos'
+import { categoriaDoSinal } from '../bloqueio'
 
 /**
  * Motor da aba Portfólio (puro, roda na tela): os campos filtráveis dos dois boards, a busca, as facetas
@@ -120,6 +121,25 @@ export function pendenciasDe(item: ItemPortfolio): string[] {
   return p.length ? p : [CADASTRO_COMPLETO]
 }
 
+/**
+ * Resultado da hipótese, só para experimentos CONCLUÍDOS. Validada: a iniciativa-mãe está em Aguardando piloto,
+ * Em piloto ou Em escala no board de Ideação. Refutada: as demais (inclusive sem iniciativa-mãe).
+ */
+export const HIPOTESES = ['Validada', 'Refutada'] as const
+export const NAO_CONCLUIDO = 'Experimento não concluído'
+export const SEM_CONCLUIDO = 'Sem experimento concluído'
+
+export function iniciativaValidada(i: IniciativaItem, ctx: Contexto): boolean {
+  const n = norm(nomeDaColuna(i.coluna, ctx))
+  return n.includes('piloto') || n.includes('escala')
+}
+
+export function hipoteseDe(e: ExperimentoItem, ctx: Contexto): (typeof HIPOTESES)[number] | typeof NAO_CONCLUIDO {
+  if (e.situacao !== 'concluido') return NAO_CONCLUIDO
+  const mae = maeDe(e, ctx)
+  return mae && iniciativaValidada(mae, ctx) ? HIPOTESES[0] : HIPOTESES[1]
+}
+
 // ── Campos ────────────────────────────────────────────────────────────────────────────────────
 
 export type GrupoCampo = 'Board' | 'Responsáveis' | 'Negócio' | 'Execução' | 'Cadastro'
@@ -163,6 +183,9 @@ function daMae(f: (i: IniciativaItem, ctx: Contexto) => string[]) {
 }
 
 const situacao = (x: ItemPortfolio) => [SITUACAO_LABEL[x.situacao]]
+const origemBloqueio = (e: ExperimentoItem) => (e.bloqueado
+  ? [...new Set(e.sinaisBloqueio.length ? e.sinaisBloqueio.map(categoriaDoSinal) : ['Motivo de bloqueio'])]
+  : ['Sem bloqueio'])
 const impacto = (x: ItemPortfolio) => [x.impacto ? IMPACTO_LABEL[x.impacto] ?? x.impacto : NAO_INFORMADO]
 const bloqueio = (x: ItemPortfolio) => [x.bloqueado ? 'Bloqueado' : 'Sem bloqueio']
 const ano = (x: ItemPortfolio) => [x.criadoEm?.slice(0, 4) || NAO_INFORMADO]
@@ -180,6 +203,13 @@ export const CAMPOS: CampoFiltro[] = [
   { id: 'statusIni', label: 'Status da iniciativa', grupo: 'Board', viaIniciativa: true, iniciativa: statusIni, experimento: daMae(statusIni) },
   { id: 'colunaExp', label: 'Coluna do experimento', grupo: 'Board', viaExperimentos: true, experimento: colunaExp, iniciativa: dosFilhos(colunaExp) },
   { id: 'statusExp', label: 'Status do experimento', grupo: 'Board', viaExperimentos: true, experimento: statusExp, iniciativa: dosFilhos(statusExp) },
+  {
+    id: 'hipotese', label: 'Hipótese', grupo: 'Board', ordem: [...HIPOTESES, NAO_CONCLUIDO, SEM_CONCLUIDO],
+    experimento: (e, ctx) => [hipoteseDe(e, ctx)],
+    iniciativa: (i, ctx) => (filhosDe(i, ctx).some(e => e.situacao === 'concluido')
+      ? [iniciativaValidada(i, ctx) ? HIPOTESES[0] : HIPOTESES[1]]
+      : [SEM_CONCLUIDO]),
+  },
   { id: 'bloqueio', label: 'Bloqueio', grupo: 'Board', ordem: ['Bloqueado', 'Sem bloqueio'], iniciativa: bloqueio, experimento: bloqueio },
   {
     id: 'prazo', label: 'Data limite', grupo: 'Board', ordem: FAIXAS_PRAZO,
@@ -208,6 +238,10 @@ export const CAMPOS: CampoFiltro[] = [
   { id: 'complexidade', label: 'Complexidade', grupo: 'Execução', viaExperimentos: true, experimento: e => um(e.complexidade), iniciativa: dosFilhos(e => um(e.complexidade)) },
   { id: 'tecnologia', label: 'Tecnologia', grupo: 'Execução', viaExperimentos: true, experimento: e => um(e.tecnologia), iniciativa: dosFilhos(e => um(e.tecnologia)) },
   { id: 'prioridade', label: 'Prioridade', grupo: 'Execução', viaExperimentos: true, experimento: e => um(e.prioridade), iniciativa: dosFilhos(e => um(e.prioridade)) },
+  {
+    id: 'origemBloqueio', label: 'Origem do bloqueio', grupo: 'Execução', viaExperimentos: true,
+    experimento: origemBloqueio, iniciativa: dosFilhos(origemBloqueio),
+  },
   { id: 'motivoBloqueio', label: 'Motivo de bloqueio', grupo: 'Execução', viaExperimentos: true, experimento: e => um(e.motivoBloqueio), iniciativa: dosFilhos(e => um(e.motivoBloqueio)) },
   { id: 'tipoImpedimento', label: 'Tipo de impedimento', grupo: 'Execução', viaExperimentos: true, experimento: e => um(e.tipoImpedimento), iniciativa: dosFilhos(e => um(e.tipoImpedimento)) },
   { id: 'ciclos', label: 'Experimentos da iniciativa', grupo: 'Execução', ordem: FAIXAS_CICLOS, viaIniciativa: true, iniciativa: ciclosIni, experimento: daMae(ciclosIni) },
@@ -421,27 +455,44 @@ export function agrupar<T extends ItemPortfolio>(itens: T[], campoId: string, ct
 
 export interface Resumo {
   total: number
+  /** Itens fora da coluna Cancelado: a base do percentual em execução. */
+  ativos: number
   emExecucao: number
   bloqueados: number
   beneficio: number
-  incompletos: number
   /** Experimentos das Iniciativas mostradas, ou Iniciativas-mãe dos Experimentos mostrados. */
   relacionados: number
+  /** Experimentos concluídos considerados nas hipóteses: os mostrados, ou os das Iniciativas mostradas. */
+  concluidos: number
+  validadas: number
+  refutadas: number
 }
 
-export function resumir(itens: ItemPortfolio[]): Resumo {
+export function resumir(itens: ItemPortfolio[], ctx: Contexto): Resumo {
   const relacionados = new Set<string>()
+  const experimentos = new Map<string, ExperimentoItem>()
   for (const i of itens) {
-    if (i.tipo === 'iniciativa') i.experimentos.forEach(k => relacionados.add(k))
-    else if (i.iniciativaKey) relacionados.add(i.iniciativaKey)
+    if (i.tipo === 'iniciativa') {
+      i.experimentos.forEach(k => relacionados.add(k))
+      filhosDe(i, ctx).forEach(e => experimentos.set(e.key, e))
+    } else {
+      if (i.iniciativaKey) relacionados.add(i.iniciativaKey)
+      experimentos.set(i.key, i)
+    }
   }
+  const hipoteses = [...experimentos.values()].map(e => hipoteseDe(e, ctx))
+  const validadas = hipoteses.filter(h => h === HIPOTESES[0]).length
+  const refutadas = hipoteses.filter(h => h === HIPOTESES[1]).length
   return {
     total: itens.length,
+    ativos: itens.filter(i => i.situacao !== 'cancelado').length,
     emExecucao: itens.filter(i => i.situacao === 'em-execucao').length,
     bloqueados: itens.filter(i => i.bloqueado).length,
     beneficio: itens.reduce((s, i) => s + (i.beneficio ?? 0), 0),
-    incompletos: itens.filter(i => pendenciasDe(i)[0] !== CADASTRO_COMPLETO).length,
     relacionados: relacionados.size,
+    concluidos: validadas + refutadas,
+    validadas,
+    refutadas,
   }
 }
 
@@ -470,8 +521,8 @@ export const VISOES_PRONTAS: VisaoPronta[] = [
     estado: { visao: 'lista', lista: 'iniciativa', filtros: { ciclos: [SEM_EXPERIMENTO] } },
   },
   {
-    id: 'cadastro', nome: 'Cadastro incompleto', descricao: 'Experimentos sem sponsor, lab, domínio ou benefício no Jira.',
-    estado: { visao: 'lista', lista: 'experimento', filtros: { pendencias: [...PENDENCIAS] } },
+    id: 'validadas', nome: 'Hipóteses validadas', descricao: 'Experimentos concluídos cuja iniciativa chegou a aguardando piloto, piloto ou escala.',
+    estado: { visao: 'experimentos', filtros: { hipotese: ['Validada'] } },
   },
 ]
 

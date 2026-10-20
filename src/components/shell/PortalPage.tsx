@@ -39,7 +39,7 @@ function RefreshButton() {
  * Estado "maximizado" da página (sem o menu lateral e as barras do app), lembrado neste navegador.
  * Começa sempre restaurado no servidor e lê a preferência depois de montar, para não divergir na hidratação.
  */
-function useMaximizado(chave: string, ativo: boolean): [boolean, () => void] {
+export function useMaximizado(chave: string, ativo: boolean): [boolean, () => void] {
   const [maximizado, setMaximizado] = useState(false)
   const storageKey = `beon:maximizado:${chave}`
   useEffect(() => {
@@ -54,7 +54,7 @@ function useMaximizado(chave: string, ativo: boolean): [boolean, () => void] {
   return [ativo && maximizado, alternar]
 }
 
-function MaximizeButton({ maximizado, onClick }: { maximizado: boolean; onClick: () => void }) {
+export function MaximizeButton({ maximizado, onClick }: { maximizado: boolean; onClick: () => void }) {
   const Icon = maximizado ? Minimize2 : Maximize2
   const label = maximizado ? 'Restaurar o menu' : 'Maximizar (esconder o menu)'
   return (

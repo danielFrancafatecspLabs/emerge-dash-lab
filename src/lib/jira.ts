@@ -1,5 +1,6 @@
 import https from 'https'
 import { JiraIssue, JiraBoardConfiguration } from './types'
+import { CAMPOS_BLOQUEIO_PADRAO, ehCampoDeBloqueio, textoDoValor } from './bloqueio'
 
 // Board IDs (use env vars if present, otherwise fall back to the correct defaults)
 export const IDEACAO_BOARD_ID = Number(process.env.JIRA_BOARD_IDEACAO_ID ?? 2734)
@@ -127,36 +128,59 @@ async function getBoardConfiguration(boardId: number): Promise<JiraBoardConfigur
   return data
 }
 
-// Resolve em runtime o customfield da "Tecnologia" pelo NOME do campo — não
-// sabemos o customfield_ID exato (varia por instância), então descobrimos
-// via /rest/api/3/field (lista todos os campos do Jira, com nome e id) em vez
-// de arriscar um ID errado. Cacheado no módulo: só resolve uma vez por processo.
-let cachedTecnologiaFieldId: string | null | undefined = undefined
+// Resolve em runtime, pelo NOME, os campos cujo customfield_ID varia por instância ou mudou na migração:
+// a "Tecnologia" e os campos de bloqueio/impedimento ("Flagged", "Motivo de Bloqueio", "Tipo de
+// Impedimento"…). Usa /rest/api/3/field (todos os campos, com nome e id). Cacheado no módulo.
+interface CamposDinamicos {
+  tecnologia: string | null
+  bloqueio: { id: string; nome: string }[]
+  /** De onde vieram os campos de bloqueio (para o diagnóstico). */
+  origem: 'jira' | 'padrao'
+}
+let cachedCampos: CamposDinamicos | undefined
 
-async function resolveTecnologiaFieldId(): Promise<string | null> {
-  if (cachedTecnologiaFieldId !== undefined) return cachedTecnologiaFieldId
+export async function resolverCamposDinamicos(): Promise<CamposDinamicos> {
+  if (cachedCampos) return cachedCampos
+  const padrao: CamposDinamicos = { tecnologia: null, bloqueio: CAMPOS_BLOQUEIO_PADRAO, origem: 'padrao' }
   const base = process.env.JIRA_BASE_URL
-  if (!base) { cachedTecnologiaFieldId = null; return null }
+  if (!base) return padrao
   try {
-    const res = await fetch(`${base}/rest/api/3/field`, {
-      headers: getHeaders(),
-      next: { revalidate: 3600 },
-    })
-    if (!res.ok) { cachedTecnologiaFieldId = null; return null }
-    const fields: Array<{ id: string; name: string }> = await res.json()
-    const match = fields.find(f => f.name?.trim().toLowerCase() === 'tecnologia')
-    cachedTecnologiaFieldId = match?.id ?? null
-    if (!cachedTecnologiaFieldId) {
-      console.warn('[jira] Campo "Tecnologia" não encontrado via /rest/api/3/field — cor por tecnologia ficará vazia.')
+    const res = await jiraFetch(`${base}/rest/api/3/field`, getHeaders())
+    if (!res.ok) {
+      console.warn(`[jira] /rest/api/3/field respondeu ${res.status}: usando os ids conhecidos dos campos de bloqueio.`)
+      return padrao
     }
+    const fields: Array<{ id: string; name: string }> = await res.json()
+    const tecnologia = fields.find(f => f.name?.trim().toLowerCase() === 'tecnologia')?.id ?? null
+    if (!tecnologia) console.warn('[jira] Campo "Tecnologia" não encontrado via /rest/api/3/field — cor por tecnologia ficará vazia.')
+    const porNome = fields.filter(f => f.id && f.name && ehCampoDeBloqueio(f.name)).map(f => ({ id: f.id, nome: f.name.trim() }))
+    const ids = new Set(porNome.map(f => f.id))
+    const bloqueio = [...porNome, ...CAMPOS_BLOQUEIO_PADRAO.filter(c => !ids.has(c.id))]
+    cachedCampos = { tecnologia, bloqueio, origem: 'jira' }
   } catch (err) {
-    console.warn('[jira] Falha ao resolver o campo "Tecnologia":', err)
-    cachedTecnologiaFieldId = null
+    console.warn('[jira] Falha ao listar os campos do Jira:', err)
+    return padrao
   }
-  return cachedTecnologiaFieldId
+  return cachedCampos
 }
 
-async function getAllBoardIssues(boardId: number, fields: string): Promise<JiraIssue[]> {
+/** Campos pedidos à API para detectar bloqueio: os de bloqueio resolvidos, etiquetas e vínculos. */
+export function camposParaBloqueio(c: CamposDinamicos): string[] {
+  return [...c.bloqueio.map(b => b.id), 'labels', 'issuelinks']
+}
+
+/** Copia para `fields.bloqueioCampos` os campos de bloqueio preenchidos (com o nome), para o mapper. */
+export function anexarCamposDeBloqueio(issues: JiraIssue[], c: CamposDinamicos): JiraIssue[] {
+  return issues.map(issue => {
+    const f = issue.fields as unknown as Record<string, unknown>
+    const bloqueioCampos = c.bloqueio
+      .map(b => ({ ...b, valor: textoDoValor(f[b.id]) }))
+      .filter(b => b.valor)
+    return { ...issue, fields: { ...issue.fields, bloqueioCampos } }
+  })
+}
+
+export async function getAllBoardIssues(boardId: number, fields: string): Promise<JiraIssue[]> {
   const base = process.env.JIRA_BASE_URL
   if (!base) throw new Error('JIRA_BASE_URL é obrigatório')
 
@@ -205,8 +229,11 @@ export async function fetchDashboardRaw(): Promise<{
   epicChangelogs: Record<string, ChangelogEntry[]>
   iniciativaChangelogs: Record<string, ChangelogEntry[]>
 }> {
-  const tecnologiaFieldId = await resolveTecnologiaFieldId()
-  const fieldsEpicComTecnologia = tecnologiaFieldId ? `${FIELDS_EPIC},${tecnologiaFieldId}` : FIELDS_EPIC
+  const campos = await resolverCamposDinamicos()
+  const tecnologiaFieldId = campos.tecnologia
+  const fieldsEpicComTecnologia = [...new Set([
+    ...FIELDS_EPIC.split(','), ...(tecnologiaFieldId ? [tecnologiaFieldId] : []), ...camposParaBloqueio(campos),
+  ])].join(',')
 
   const [iniciativas, epicsRaw, board2734Config, board2735Config] = await Promise.all([
     getAllBoardIssues(IDEACAO_BOARD_ID, FIELDS_INICIATIVA),
@@ -218,9 +245,9 @@ export async function fetchDashboardRaw(): Promise<{
   // Normaliza o valor do campo "Tecnologia" (customfield_ID resolvido acima)
   // para uma chave fixa `tecnologia` — assim o resto do código não precisa
   // conhecer o ID dinâmico do campo.
-  const epics: JiraIssue[] = tecnologiaFieldId
+  const epics: JiraIssue[] = anexarCamposDeBloqueio(tecnologiaFieldId
     ? epicsRaw.map(e => ({ ...e, fields: { ...e.fields, tecnologia: (e.fields as any)[tecnologiaFieldId] ?? null } }))
-    : epicsRaw
+    : epicsRaw, campos)
 
   // Buscar último comentário (texto plano) apenas para Epics em refinamento/andamento/validação
   async function getIssueLastComment(issueKey: string): Promise<string | null> {

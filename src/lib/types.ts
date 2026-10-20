@@ -19,9 +19,17 @@ export interface JiraIssueFields {
   description?: string                                // Descrição (texto livre)
   // Epics — board 2735
   customfield_30014?: string                          // Domínio (Empresarial / PME / outros) (was customfield_11661)
-  customfield_13406?: { value: string }               // Motivo de Bloqueio
-  customfield_10021?: { value: string } | string | null  // Flagged (Impediment)
-  customfield_30437?: { value: string }               // Tipo de Impedimento
+  customfield_13406?: unknown                         // Motivo de Bloqueio (opção, texto ou lista)
+  customfield_10021?: unknown                         // Flagged: a API devolve uma LISTA de opções ([{ value: 'Impediment' }])
+  customfield_30437?: unknown                         // Tipo de Impedimento
+  // Preenchido pelo backend: campos de bloqueio/impedimento resolvidos pelo NOME (ver jira.ts), só os preenchidos
+  bloqueioCampos?: { id: string; nome: string; valor: string }[]
+  labels?: string[]
+  issuelinks?: {
+    type?: { name?: string; inward?: string; outward?: string }
+    inwardIssue?: { key: string; fields?: { summary?: string; status?: { name?: string; statusCategory?: { key?: string } } } }
+    outwardIssue?: { key: string }
+  }[]
   customfield_30394?: string                          // Sponsor (was customfield_11662)
   customfield_30340?: string                          // BO (Business Owner) (was customfield_11663)
   customfield_30358?: string | { value: string }        // Complexidade (was customfield_11664)
@@ -38,7 +46,7 @@ export interface JiraIssueFields {
   customfield_30110?: { value: string }               // Portfólio (was customfield_15919)
   customfield_21499?: string                          // Diretoria (was customfield_10904)
   // Preenchido pelo backend com o valor do campo "Tecnologia" — customfield_ID
-  // resolvido em runtime pelo NOME do campo (ver resolveTecnologiaFieldId em jira.ts)
+  // resolvido em runtime pelo NOME do campo (ver resolverCamposDinamicos em jira.ts)
   tecnologia?: { value: string } | string | null
   // Preenchido pelo backend com o último comentário (texto plano)
   lastComment?: string | null
@@ -101,6 +109,8 @@ export interface EpicDetail {
   motivoBloqueio: string | null
   flagged?: boolean | null
   tipoImpedimento?: string | null
+  /** Por que o Epic está bloqueado: flag, campos de bloqueio, status, etiquetas, vínculos (ver lib/bloqueio.ts). */
+  sinaisBloqueio?: string[] | null
   statusDetalhado?: string | null
   prioridade?: string | null
   duedate?: string | null

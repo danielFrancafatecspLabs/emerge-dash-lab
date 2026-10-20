@@ -76,6 +76,8 @@ describe('montarPortfolio', () => {
     expect(situacaoDo({ id: '3', name: 'Em andamento' })).toBe('em-execucao')
     expect(situacaoDo({ id: '10015', name: 'CANCELADO' })).toBe('cancelado')
     expect(situacaoDo({ id: '10004', name: 'BACKLOG' })).toBe('nao-iniciado')
+    expect(situacaoDo({ id: '14468', name: 'AGUARDANDO PILOTO' })).toBe('em-execucao')
+    expect(situacaoDo({ id: '13562', name: 'Finalizado' })).toBe('concluido') // coluna EM ESCALA
   })
 
   it('sem a configuração do board, as colunas são os status', () => {
@@ -126,7 +128,81 @@ describe('filtros do Portfólio', () => {
     expect(ordenar(DADOS.experimentos, 'beneficio').map(e => e.key)).toEqual(['GL-13', 'GL-10', 'GL-11', 'GL-12'])
     expect(ordenar(DADOS.experimentos, 'prazo')[0].key).toBe('GL-10')
     expect(agrupar(DADOS.experimentos, 'lab', ctx).map(g => [g.valor, g.itens.length])).toEqual([['HITSS', 2], ['Lab Dados', 2]])
-    expect(resumir(DADOS.experimentos)).toEqual({ total: 4, emExecucao: 2, bloqueados: 1, beneficio: 75_000_000, incompletos: 2, relacionados: 2 })
+    expect(resumir(DADOS.experimentos, ctx)).toEqual({
+      total: 4, ativos: 3, emExecucao: 2, bloqueados: 1, beneficio: 75_000_000, relacionados: 2, concluidos: 0, validadas: 0, refutadas: 0,
+    })
+  })
+})
+
+describe('hipóteses validadas e refutadas', () => {
+  const CONCLUIDO = { status: { id: '10019', name: 'Concluído' } }
+  const EPICS = [
+    epic('GL-10', 'GL-1', CONCLUIDO), // mãe aguardando piloto → validada
+    epic('GL-11', 'GL-1'), // em andamento → fora da conta
+    epic('GL-12', 'GL-2', CONCLUIDO), // mãe em piloto → validada
+    epic('GL-13', 'GL-3', CONCLUIDO), // mãe em escala → validada
+    epic('GL-14', 'GL-4', CONCLUIDO), // mãe em experimentação → refutada
+    epic('GL-15', 'GL-5', { status: { id: '10015', name: 'CANCELADO' } }), // cancelado → fora da conta
+    epic('GL-16', null, CONCLUIDO), // sem iniciativa-mãe → refutada
+  ]
+  const filhos = (k: string) => EPICS.filter(e => e.parentKey === k)
+  const dados = montarPortfolio(
+    {
+      iniciativas: [
+        ini('GL-1', filhos('GL-1'), { status: { id: '14468', name: 'AGUARDANDO PILOTO' } }),
+        ini('GL-2', filhos('GL-2'), { status: { id: '14459', name: 'EM PILOTO' } }),
+        ini('GL-3', filhos('GL-3'), { status: { id: '13562', name: 'Finalizado' } }),
+        ini('GL-4', filhos('GL-4'), { status: { id: '14460', name: 'EM EXPERIMENTAÇÃO' } }),
+        ini('GL-5', filhos('GL-5'), { status: { id: '10015', name: 'CANCELADO' } }),
+        ini('GL-6', []),
+      ],
+      allEpics: EPICS,
+    } as unknown as DashboardData,
+    {
+      iniciativa: config('P&D - Ideação', [
+        ['BACKLOG', ['10004']], ['EM EXPERIMENTAÇÃO', ['14460']], ['AGUARDANDO PILOTO', ['14468']], ['EM PILOTO', ['14459']],
+        ['EM ESCALA', ['13562']], ['CANCELADO', ['10015']],
+      ]),
+      experimento: config('P&D - Experimentação', [['Em andamento', ['3']]]),
+    },
+    null,
+  )
+  const c = criarContexto(dados)
+
+  it('só conta experimentos concluídos: validada com a mãe em aguardando piloto, piloto ou escala; refutada nos demais', () => {
+    const r = resumir(dados.experimentos, c)
+    expect([r.concluidos, r.validadas, r.refutadas]).toEqual([5, 3, 2])
+    expect(filtrar(dados.experimentos, 'experimento', estado({ filtros: { hipotese: ['Validada'] } }), c).map(e => e.key))
+      .toEqual(['GL-10', 'GL-12', 'GL-13'])
+    expect(facetas(dados.experimentos, 'experimento', estado({}), c, 'hipotese')).toEqual([
+      { valor: 'Validada', n: 3 }, { valor: 'Refutada', n: 2 }, { valor: 'Experimento não concluído', n: 2 },
+    ])
+  })
+
+  it('na visão de iniciativas, conta os experimentos concluídos das iniciativas mostradas', () => {
+    const r = resumir(dados.iniciativas, c)
+    expect([r.concluidos, r.validadas, r.refutadas]).toEqual([4, 3, 1])
+    expect(facetas(dados.iniciativas, 'iniciativa', estado({}), c, 'hipotese')).toEqual([
+      { valor: 'Validada', n: 3 }, { valor: 'Refutada', n: 1 }, { valor: 'Sem experimento concluído', n: 2 },
+    ])
+  })
+
+  it('em execução não inclui escala, e o percentual ignora os cancelados', () => {
+    const r = resumir(dados.iniciativas, c)
+    expect([r.total, r.ativos, r.emExecucao]).toEqual([6, 5, 3])
+  })
+})
+
+describe('bloqueio no portfólio', () => {
+  it('a flag de impedimento bloqueia o experimento aberto e aparece na origem do bloqueio', () => {
+    const flag = epic('GL-30', null, { flagged: true, sinaisBloqueio: ['Sinalizado com a flag de impedimento'] })
+    const fechado = epic('GL-31', null, { status: { id: '10019', name: 'Concluído' }, flagged: true, sinaisBloqueio: ['Sinalizado com a flag de impedimento'] })
+    const d = montarPortfolio({ iniciativas: [], allEpics: [flag, fechado] } as unknown as DashboardData, {}, null)
+    const c = criarContexto(d)
+    expect(d.experimentos.map(e => [e.key, e.bloqueado])).toEqual([['GL-30', true], ['GL-31', false]])
+    expect(facetas(d.experimentos, 'experimento', estado({}), c, 'origemBloqueio')).toEqual([
+      { valor: 'Flag de impedimento', n: 1 }, { valor: 'Sem bloqueio', n: 1 },
+    ])
   })
 })
 

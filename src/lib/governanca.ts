@@ -1,4 +1,5 @@
 import { DashboardData, EpicDetail, Iniciativa, JiraStatus } from './types'
+import { epicBloqueado } from './bloqueio'
 
 type JiraBoardConfiguration = any
 
@@ -56,7 +57,7 @@ function isPrioridadeAlta(epic: EpicDetail): boolean {
 }
 
 function isBloqueado(epic: EpicDetail): boolean {
-  return !!epic.flagged || !!(epic.motivoBloqueio && epic.motivoBloqueio.trim())
+  return epicBloqueado(epic)
 }
 
 function buildDot(epic: EpicDetail): GovernancaDot {
