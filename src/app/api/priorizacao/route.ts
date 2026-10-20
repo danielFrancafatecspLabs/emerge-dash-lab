@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { JiraIssue } from '@/lib/types'
-import { EXPERIMENTACAO_BOARD_ID } from '@/lib/jira'
+import { anexarCamposDeBloqueio, camposParaBloqueio, EXPERIMENTACAO_BOARD_ID, resolverCamposDinamicos } from '@/lib/jira'
+import { sinaisDeBloqueio } from '@/lib/bloqueio'
 
 const BASE_URL = process.env.JIRA_BASE_URL
 const EMAIL = process.env.JIRA_EMAIL
@@ -88,7 +89,7 @@ function mapToPriorizacao(issue: JiraIssue): ExperimentoPriorizacao {
     dominio: f.customfield_30021?.value ?? f.customfield_11987?.value ?? null,
     segmento: f.customfield_30445?.value ?? null,
     portfolio: f.customfield_30110?.value ?? null,
-    motivoBloqueio: f.customfield_13406?.value ?? null,
+    motivoBloqueio: (() => { const b = sinaisDeBloqueio(f); return b.motivo ?? b.sinais[0] ?? null })(),
     prioridade: f.priority?.name ?? null,
     criadoEm: f.created ?? null,
   }
@@ -101,14 +102,17 @@ export async function GET() {
   try {
     if (!BASE_URL) throw new Error('JIRA_BASE_URL é obrigatório')
 
+    const campos = await resolverCamposDinamicos()
+    const fields = [...new Set([...FIELDS.split(','), ...camposParaBloqueio(campos)])].join(',')
+
     // Buscar todos os Epics do board 2735
-    const allIssues: JiraIssue[] = []
+    let allIssues: JiraIssue[] = []
     const maxResults = 50
     let startAt = 0
     let total = Infinity
 
     while (startAt < total) {
-      const url = `${BASE_URL}/rest/agile/1.0/board/${EXPERIMENTACAO_BOARD_ID}/issue?maxResults=${maxResults}&startAt=${startAt}&fields=${FIELDS}`
+      const url = `${BASE_URL}/rest/agile/1.0/board/${EXPERIMENTACAO_BOARD_ID}/issue?maxResults=${maxResults}&startAt=${startAt}&fields=${fields}`
       const res = await fetch(url, { headers: getHeaders(), next: { revalidate: 300 } })
       if (!res.ok) throw new Error(`Jira API erro ${res.status}`)
       const data = await res.json()
@@ -118,6 +122,8 @@ export async function GET() {
       startAt += issues.length
       if (issues.length === 0) break
     }
+
+    allIssues = anexarCamposDeBloqueio(allIssues, campos)
 
     // Filtrar apenas Epics nos status relevantes
     const experimentos = allIssues

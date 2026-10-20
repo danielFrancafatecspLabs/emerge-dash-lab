@@ -77,7 +77,7 @@ function Celula({ id, item, ctx, valor }: { id: string; item: ItemPortfolio; ctx
     case 'beneficio':
       return <span className={cx('whitespace-nowrap font-semibold tabular-nums', item.beneficio ? 'text-beon-ink' : 'font-normal text-beon-muted/70')}>{valor}</span>
     case 'bloqueio':
-      return item.bloqueado ? <SeloBloqueado motivo={item.tipo === 'experimento' ? item.motivoBloqueio : null} /> : <span className="text-beon-muted/60">—</span>
+      return item.bloqueado ? <SeloBloqueado motivo={item.tipo === 'experimento' ? item.motivoBloqueio ?? item.sinaisBloqueio[0] ?? null : null} /> : <span className="text-beon-muted/60">—</span>
     case 'iniciativa':
       return <span className="line-clamp-2 min-w-[160px] max-w-[260px]">{valor}</span>
     default:

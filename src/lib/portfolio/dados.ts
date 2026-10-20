@@ -9,9 +9,10 @@ import type { BoardInfo, ColunaBoard, Entidade, ExperimentoItem, IniciativaItem,
 
 export function situacaoDo(status: JiraStatus): Situacao {
   switch (getPipelineStage(status)) {
-    case 'FINALIZADO': return 'concluido'
+    // Em escala a iniciativa já saiu do ciclo do lab (no Jira, o status é "Finalizado"); igual ao funil da Estratégia.
+    case 'FINALIZADO': case 'EM ESCALA': return 'concluido'
     case 'CANCELADO': return 'cancelado'
-    case 'EM EXPERIMENTAÇÃO': case 'AGUARDANDO PILOTO': case 'EM PILOTO': case 'EM ESCALA': return 'em-execucao'
+    case 'EM EXPERIMENTAÇÃO': case 'AGUARDANDO PILOTO': case 'EM PILOTO': return 'em-execucao'
     default: return 'nao-iniciado'
   }
 }
@@ -113,8 +114,10 @@ function experimentoItem(e: EpicDetail, colunaDe: (s: JiraStatus) => string): Ex
     criadoEm: e.criadoEm ?? null,
     prazo: e.duedate ?? null,
     descricao: textoLimpo(e.descricao),
-    // O "Motivo de Bloqueio" também guarda o motivo do cancelamento: só bloqueia o que ainda está aberto.
-    bloqueado: !!e.flagged || (!!e.motivoBloqueio && !encerrado(situacao)),
+    // Qualquer sinal (flag, campos de bloqueio, status, etiqueta, vínculo; ver lib/bloqueio.ts), só no que está aberto:
+    // o "Motivo de Bloqueio" também guarda o motivo do cancelamento.
+    bloqueado: !encerrado(situacao) && ((e.sinaisBloqueio?.length ?? 0) > 0 || !!e.flagged || !!e.motivoBloqueio?.trim()),
+    sinaisBloqueio: encerrado(situacao) ? [] : e.sinaisBloqueio ?? [],
     iniciativaKey: e.parentKey,
     bo: e.bo,
     complexidade: e.complexidade,

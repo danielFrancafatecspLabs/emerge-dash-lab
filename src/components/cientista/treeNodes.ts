@@ -1,5 +1,6 @@
 import { ChatNode } from './decisionTree'
 import { formatBRL } from '@/lib/mappers'
+import { epicBloqueado } from '@/lib/bloqueio'
 
 export const visaoGeralNodes: Record<string, ChatNode> = {
   visao_geral: {
@@ -220,10 +221,10 @@ export const alertasRiscosNodes: Record<string, ChatNode> = {
     id: 'bloqueados', isLeaf: true, message: '',
     options: [{ label: '🔙 Alertas & Riscos', nextId: 'alertas_riscos' }, { label: '🏠 Menu Principal', nextId: 'root' }],
     computeAnswer: (d) => {
-      const bloqueados = d.allEpics.filter(e => !!e.motivoBloqueio)
+      const bloqueados = d.allEpics.filter(epicBloqueado)
       let r = `**🚨 Experimentos Bloqueados**: **${bloqueados.length}**\n\n`
       bloqueados.slice(0, 10).forEach(e => {
-        r += `• **${e.nome}** — ${e.motivoBloqueio ?? 'Sem motivo'}\n`
+        r += `• **${e.nome}** — ${e.motivoBloqueio ?? e.sinaisBloqueio?.[0] ?? 'Sem motivo'}\n`
       })
       if (bloqueados.length > 10) r += `\n...e mais ${bloqueados.length - 10} bloqueado(s).`
       if (bloqueados.length === 0) r += '✅ Nenhum experimento bloqueado no momento.'
