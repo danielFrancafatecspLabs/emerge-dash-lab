@@ -9,9 +9,10 @@ import type { BoardInfo, ColunaBoard, Entidade, ExperimentoItem, IniciativaItem,
 
 export function situacaoDo(status: JiraStatus): Situacao {
   switch (getPipelineStage(status)) {
-    case 'FINALIZADO': return 'concluido'
+    // Em escala a iniciativa já saiu do ciclo do lab (no Jira, o status é "Finalizado"); igual ao funil da Estratégia.
+    case 'FINALIZADO': case 'EM ESCALA': return 'concluido'
     case 'CANCELADO': return 'cancelado'
-    case 'EM EXPERIMENTAÇÃO': case 'AGUARDANDO PILOTO': case 'EM PILOTO': case 'EM ESCALA': return 'em-execucao'
+    case 'EM EXPERIMENTAÇÃO': case 'AGUARDANDO PILOTO': case 'EM PILOTO': return 'em-execucao'
     default: return 'nao-iniciado'
   }
 }

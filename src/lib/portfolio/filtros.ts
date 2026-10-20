@@ -120,6 +120,22 @@ export function pendenciasDe(item: ItemPortfolio): string[] {
   return p.length ? p : [CADASTRO_COMPLETO]
 }
 
+/**
+ * Hipótese validada: o experimento tem iniciativa-mãe em Aguardando piloto, Em piloto ou Em escala no board
+ * de Ideação. Refutada: todos os outros (inclusive os sem iniciativa-mãe).
+ */
+export const HIPOTESES = ['Validada', 'Refutada'] as const
+
+export function iniciativaValidada(i: IniciativaItem, ctx: Contexto): boolean {
+  const n = norm(nomeDaColuna(i.coluna, ctx))
+  return n.includes('piloto') || n.includes('escala')
+}
+
+export function hipoteseDe(e: ExperimentoItem, ctx: Contexto): (typeof HIPOTESES)[number] {
+  const mae = maeDe(e, ctx)
+  return mae && iniciativaValidada(mae, ctx) ? HIPOTESES[0] : HIPOTESES[1]
+}
+
 // ── Campos ────────────────────────────────────────────────────────────────────────────────────
 
 export type GrupoCampo = 'Board' | 'Responsáveis' | 'Negócio' | 'Execução' | 'Cadastro'
@@ -180,6 +196,11 @@ export const CAMPOS: CampoFiltro[] = [
   { id: 'statusIni', label: 'Status da iniciativa', grupo: 'Board', viaIniciativa: true, iniciativa: statusIni, experimento: daMae(statusIni) },
   { id: 'colunaExp', label: 'Coluna do experimento', grupo: 'Board', viaExperimentos: true, experimento: colunaExp, iniciativa: dosFilhos(colunaExp) },
   { id: 'statusExp', label: 'Status do experimento', grupo: 'Board', viaExperimentos: true, experimento: statusExp, iniciativa: dosFilhos(statusExp) },
+  {
+    id: 'hipotese', label: 'Hipótese', grupo: 'Board', ordem: [...HIPOTESES, SEM_EXPERIMENTO],
+    experimento: (e, ctx) => [hipoteseDe(e, ctx)],
+    iniciativa: (i, ctx) => (i.experimentos.length ? [iniciativaValidada(i, ctx) ? HIPOTESES[0] : HIPOTESES[1]] : [SEM_EXPERIMENTO]),
+  },
   { id: 'bloqueio', label: 'Bloqueio', grupo: 'Board', ordem: ['Bloqueado', 'Sem bloqueio'], iniciativa: bloqueio, experimento: bloqueio },
   {
     id: 'prazo', label: 'Data limite', grupo: 'Board', ordem: FAIXAS_PRAZO,
@@ -421,27 +442,42 @@ export function agrupar<T extends ItemPortfolio>(itens: T[], campoId: string, ct
 
 export interface Resumo {
   total: number
+  /** Itens fora da coluna Cancelado: a base do percentual em execução. */
+  ativos: number
   emExecucao: number
   bloqueados: number
   beneficio: number
-  incompletos: number
   /** Experimentos das Iniciativas mostradas, ou Iniciativas-mãe dos Experimentos mostrados. */
   relacionados: number
+  /** Experimentos considerados nas hipóteses: os mostrados, ou os das Iniciativas mostradas. */
+  experimentos: number
+  validadas: number
+  refutadas: number
 }
 
-export function resumir(itens: ItemPortfolio[]): Resumo {
+export function resumir(itens: ItemPortfolio[], ctx: Contexto): Resumo {
   const relacionados = new Set<string>()
+  const experimentos = new Map<string, ExperimentoItem>()
   for (const i of itens) {
-    if (i.tipo === 'iniciativa') i.experimentos.forEach(k => relacionados.add(k))
-    else if (i.iniciativaKey) relacionados.add(i.iniciativaKey)
+    if (i.tipo === 'iniciativa') {
+      i.experimentos.forEach(k => relacionados.add(k))
+      filhosDe(i, ctx).forEach(e => experimentos.set(e.key, e))
+    } else {
+      if (i.iniciativaKey) relacionados.add(i.iniciativaKey)
+      experimentos.set(i.key, i)
+    }
   }
+  const validadas = [...experimentos.values()].filter(e => hipoteseDe(e, ctx) === 'Validada').length
   return {
     total: itens.length,
+    ativos: itens.filter(i => i.situacao !== 'cancelado').length,
     emExecucao: itens.filter(i => i.situacao === 'em-execucao').length,
     bloqueados: itens.filter(i => i.bloqueado).length,
     beneficio: itens.reduce((s, i) => s + (i.beneficio ?? 0), 0),
-    incompletos: itens.filter(i => pendenciasDe(i)[0] !== CADASTRO_COMPLETO).length,
     relacionados: relacionados.size,
+    experimentos: experimentos.size,
+    validadas,
+    refutadas: experimentos.size - validadas,
   }
 }
 
@@ -470,8 +506,8 @@ export const VISOES_PRONTAS: VisaoPronta[] = [
     estado: { visao: 'lista', lista: 'iniciativa', filtros: { ciclos: [SEM_EXPERIMENTO] } },
   },
   {
-    id: 'cadastro', nome: 'Cadastro incompleto', descricao: 'Experimentos sem sponsor, lab, domínio ou benefício no Jira.',
-    estado: { visao: 'lista', lista: 'experimento', filtros: { pendencias: [...PENDENCIAS] } },
+    id: 'validadas', nome: 'Hipóteses validadas', descricao: 'Experimentos cuja iniciativa chegou a aguardando piloto, piloto ou escala.',
+    estado: { visao: 'experimentos', filtros: { hipotese: ['Validada'] } },
   },
 ]
 
