@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { DashboardData } from '@/lib/types'
 import { Settings, X } from 'lucide-react'
+import { epicBloqueado } from '@/lib/bloqueio'
 
 interface Props { data: DashboardData }
 
@@ -47,7 +48,7 @@ const FIELDS: {
     color: '#EF4444',
     bg: '#FEF2F2',
     border: '#FECACA',
-    compute: epics => epics.filter(e => !!e.motivoBloqueio).length,
+    compute: epics => epics.filter(epicBloqueado).length,
   },
   {
     key: 'aguardandoDelivery',

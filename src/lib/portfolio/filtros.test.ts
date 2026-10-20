@@ -180,6 +180,19 @@ describe('hipóteses validadas e refutadas', () => {
   })
 })
 
+describe('bloqueio no portfólio', () => {
+  it('a flag de impedimento bloqueia o experimento aberto e aparece na origem do bloqueio', () => {
+    const flag = epic('GL-30', null, { flagged: true, sinaisBloqueio: ['Sinalizado com a flag de impedimento'] })
+    const fechado = epic('GL-31', null, { status: { id: '10019', name: 'Concluído' }, flagged: true, sinaisBloqueio: ['Sinalizado com a flag de impedimento'] })
+    const d = montarPortfolio({ iniciativas: [], allEpics: [flag, fechado] } as unknown as DashboardData, {}, null)
+    const c = criarContexto(d)
+    expect(d.experimentos.map(e => [e.key, e.bloqueado])).toEqual([['GL-30', true], ['GL-31', false]])
+    expect(facetas(d.experimentos, 'experimento', estado({}), c, 'origemBloqueio')).toEqual([
+      { valor: 'Flag de impedimento', n: 1 }, { valor: 'Sem bloqueio', n: 1 },
+    ])
+  })
+})
+
 describe('estado da visão', () => {
   it('vai e volta pela URL, ignorando o que não é válido', () => {
     let e = aplicarVisao(VISOES_PRONTAS.find(v => v.id === 'execucao')!.estado)

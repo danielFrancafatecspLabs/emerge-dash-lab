@@ -68,6 +68,8 @@ export interface ExperimentoItem extends ItemComum {
   prioridade: string | null
   motivoBloqueio: string | null
   tipoImpedimento: string | null
+  /** Por que está bloqueado (flag, campos de bloqueio, status, etiqueta ou vínculo "bloqueado por"). */
+  sinaisBloqueio: string[]
   custoEstimado: number | null
   custoRealizado: string | null
   concluidoEm: string | null
