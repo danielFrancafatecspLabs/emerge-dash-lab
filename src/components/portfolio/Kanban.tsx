@@ -9,7 +9,7 @@ import {
   agrupar, CAMPO, faixaPrazo, filhosDe, formatarData, formatarValor, IMPACTO_LABEL, maeDe, type Contexto,
 } from '@/lib/portfolio/filtros'
 import type { ColunaBoard, ExperimentoItem, IniciativaItem, ItemPortfolio } from '@/lib/portfolio/tipos'
-import { COR_SITUACAO, Lab, PontoSituacao, SeloBloqueado } from './Comum'
+import { COR_SITUACAO, Lab, SeloBloqueado } from './Comum'
 
 const LARGURA = 288
 const RECOLHIDA = 44
@@ -26,10 +26,7 @@ function CartaoIniciativa({ item, ctx }: { item: IniciativaItem; ctx: Contexto }
         </span>
       </div>
       <p className="mt-1 line-clamp-2 text-[13.5px] font-medium leading-snug text-beon-ink">{item.nome}</p>
-      <div className="mt-2 flex min-w-0 items-center gap-2 text-xs text-beon-body">
-        <Lab nome={item.lab} className="max-w-[55%]" />
-        {item.sponsor && <span className="truncate text-beon-muted">· {item.sponsor}</span>}
-      </div>
+      <Responsaveis item={item} />
       {filhos.length > 0 && (
         <div className="mt-2.5 flex gap-1" aria-label="Situação dos experimentos">
           {filhos.map(f => (
@@ -57,10 +54,7 @@ function CartaoExperimento({ item, ctx }: { item: ExperimentoItem; ctx: Contexto
         )}
       </div>
       <p className="mt-1 line-clamp-2 text-[13.5px] font-medium leading-snug text-beon-ink">{item.nome}</p>
-      <div className="mt-2 flex min-w-0 items-center gap-2 text-xs text-beon-body">
-        <Lab nome={item.lab} className="max-w-[55%]" />
-        {item.sponsor && <span className="truncate text-beon-muted">· {item.sponsor}</span>}
-      </div>
+      <Responsaveis item={item} />
       {item.prazo && prazo !== 'Encerrado' && (
         <p className={cx('mt-1.5 inline-flex items-center gap-1 text-[11px]', prazo === 'Vencido' ? 'font-medium text-beon-red' : 'text-beon-muted')}>
           <CalendarClock className="h-3 w-3" aria-hidden />
@@ -72,18 +66,27 @@ function CartaoExperimento({ item, ctx }: { item: ExperimentoItem; ctx: Contexto
   )
 }
 
+/** Lab e sponsor. O que não está preenchido no Jira não aparece no cartão (as lacunas ficam no filtro "Pendências de cadastro"). */
+function Responsaveis({ item }: { item: ItemPortfolio }) {
+  if (!item.lab && !item.sponsor) return null
+  return (
+    <div className="mt-2 flex min-w-0 items-center gap-2 text-xs text-beon-body">
+      {item.lab && <Lab nome={item.lab} className="max-w-[55%]" />}
+      {item.sponsor && <span className="truncate text-beon-muted">{item.lab ? '· ' : ''}{item.sponsor}</span>}
+    </div>
+  )
+}
+
 function Rodape({ item }: { item: ItemPortfolio }) {
   const motivo = item.tipo === 'experimento' ? item.motivoBloqueio : null
+  const impacto = item.impacto ? IMPACTO_LABEL[item.impacto] ?? item.impacto : null
+  if (!item.bloqueado && !impacto && !item.beneficio) return null
   return (
     <div className="mt-2.5 flex items-center justify-between gap-2 border-t border-beon-line/70 pt-2">
       <div className="min-w-0">
-        {item.bloqueado
-          ? <SeloBloqueado motivo={motivo} />
-          : <span className="block truncate text-[11px] text-beon-muted">{item.impacto ? IMPACTO_LABEL[item.impacto] ?? item.impacto : 'Impacto não classificado'}</span>}
+        {item.bloqueado ? <SeloBloqueado motivo={motivo} /> : impacto && <span className="block truncate text-[11px] text-beon-muted">{impacto}</span>}
       </div>
-      <span className={cx('shrink-0 text-[13px] font-semibold tabular-nums', item.beneficio ? 'text-beon-ink' : 'text-beon-muted/70')}>
-        {item.beneficio ? formatarValor(item.beneficio) : 'Sem benefício'}
-      </span>
+      {!!item.beneficio && <span className="shrink-0 text-[13px] font-semibold tabular-nums text-beon-ink">{formatarValor(item.beneficio)}</span>}
     </div>
   )
 }
@@ -103,36 +106,60 @@ export function Cartao({ item, ctx, onAbrir }: { item: ItemPortfolio; ctx: Conte
   )
 }
 
-function Cabecalho({ col, itens, fechada, onAlternar }: { col: ColunaBoard; itens: ItemPortfolio[]; fechada: boolean; onAlternar: () => void }) {
+/** Nome da coluna em caixa de frase: o Jira mistura "BACKLOG", "Em refinamento", "PRONTO PARA EXECUÇÃO". */
+function nomeDaColuna(nome: string) {
+  const n = nome.trim().toLocaleLowerCase('pt-BR')
+  return n.charAt(0).toLocaleUpperCase('pt-BR') + n.slice(1)
+}
+
+/** Altura fixa do cabeçalho, para as colunas (e as raias) ficarem alinhadas. */
+const ALTURA_CABECALHO = 112
+
+function Cabecalho({ col, itens, totalBeneficio, fechada, onAlternar }: {
+  col: ColunaBoard; itens: ItemPortfolio[]; totalBeneficio: number; fechada: boolean; onAlternar: () => void
+}) {
   const soma = itens.reduce((s, i) => s + (i.beneficio ?? 0), 0)
+  const nome = nomeDaColuna(col.nome)
+  const cor = COR_SITUACAO[col.situacao]
   if (fechada) {
     return (
       <button
         type="button"
         onClick={onAlternar}
-        title={`Mostrar a coluna ${col.nome}`}
-        className={cx('flex h-full w-full flex-col items-center gap-2 overflow-hidden rounded-2xl bg-stone-100 py-3 text-beon-body hover:bg-stone-200/70', focusRing)}
+        title={`Mostrar a coluna ${nome}`}
+        className={cx('flex h-full w-full flex-col items-center gap-2 overflow-hidden rounded-2xl border border-beon-line bg-white py-3 text-beon-body hover:bg-beon-soft', focusRing)}
+        style={{ borderTop: `3px solid ${cor}` }}
       >
-        <span className="rounded-full bg-white px-1.5 text-[11px] font-semibold tabular-nums text-beon-ink">{itens.length}</span>
-        <span className="text-[12px] font-semibold uppercase tracking-wide [writing-mode:vertical-rl]">{col.nome}</span>
+        <span className="rounded-full bg-beon-soft px-1.5 text-[11px] font-semibold tabular-nums text-beon-ink">{itens.length}</span>
+        <span className="text-[12.5px] font-semibold [writing-mode:vertical-rl]">{nome}</span>
       </button>
     )
   }
+  const parte = totalBeneficio > 0 ? soma / totalBeneficio : 0
   return (
-    <div className="px-1 pb-2">
+    <div
+      className="flex flex-col rounded-2xl border border-beon-line bg-white px-3.5 pb-3 pt-2.5 shadow-[0_1px_2px_rgba(28,25,23,0.04)]"
+      style={{ borderTop: `3px solid ${cor}`, height: ALTURA_CABECALHO }}
+      title={col.descricao}
+    >
       <div className="flex items-center gap-2">
-        <PontoSituacao situacao={col.situacao} />
-        <h3 className="min-w-0 flex-1 truncate text-[12.5px] font-semibold uppercase tracking-wide text-beon-ink" title={col.nome}>{col.nome}</h3>
-        <span className="rounded-full bg-white px-2 py-0.5 text-[11px] font-semibold tabular-nums text-beon-ink ring-1 ring-inset ring-beon-line">{itens.length}</span>
-        <button type="button" onClick={onAlternar} title="Recolher a coluna" aria-label={`Recolher a coluna ${col.nome}`}
-          className={cx('rounded-md p-1 text-beon-muted hover:bg-stone-200/70 hover:text-beon-ink', focusRing)}>
+        <h3 className="min-w-0 flex-1 truncate text-[14px] font-semibold text-beon-ink">{nome}</h3>
+        <span className="rounded-full bg-beon-soft px-2 py-0.5 text-[11.5px] font-semibold tabular-nums text-beon-ink" title={`${itens.length} nesta coluna`}>{itens.length}</span>
+        <button type="button" onClick={onAlternar} title="Recolher a coluna" aria-label={`Recolher a coluna ${nome}`}
+          className={cx('-mr-1 rounded-md p-1 text-beon-muted hover:bg-beon-soft hover:text-beon-ink', focusRing)}>
           <ChevronsLeftRight className="h-3.5 w-3.5" aria-hidden />
         </button>
       </div>
-      <p className="mt-1 line-clamp-2 h-[29px] text-[11px] leading-snug text-beon-muted" title={col.descricao}>{col.descricao}</p>
-      <p className="mt-1 text-[11px] text-beon-body">
-        {soma ? <><span className="font-semibold tabular-nums text-beon-ink">{formatarValor(soma)}</span> em benefício potencial</> : 'Sem benefício mapeado'}
-      </p>
+      <p className="mt-1.5 text-[11px] font-medium uppercase tracking-[0.08em] text-beon-muted">Benefício potencial</p>
+      <div className="flex items-baseline justify-between gap-2">
+        <p className={cx('text-[20px] font-semibold leading-tight tracking-tight tabular-nums', soma ? 'text-beon-ink' : 'text-beon-muted/60')}>
+          {soma ? formatarValor(soma) : '—'}
+        </p>
+        {soma > 0 && <p className="shrink-0 text-[11.5px] tabular-nums text-beon-muted">{Math.round(parte * 100)}% do quadro</p>}
+      </div>
+      <div className="mt-auto h-1 overflow-hidden rounded-full bg-beon-soft" aria-hidden>
+        <div className="h-full rounded-full" style={{ width: `${Math.max(parte * 100, soma ? 2 : 0)}%`, background: cor }} />
+      </div>
     </div>
   )
 }
@@ -155,6 +182,7 @@ export function Kanban({ itens, colunas, ctx, raias, alternadas, filtrando, onAl
     return m
   }
   const totais = porColuna(itens)
+  const totalBeneficio = itens.reduce((s, i) => s + (i.beneficio ?? 0), 0)
   // Recolhidas por padrão: Cancelado e, com filtros, as colunas vazias. Clicar inverte o padrão da coluna.
   const recolhida = (c: ColunaBoard) =>
     (c.situacao === 'cancelado' || (filtrando && (totais.get(c.id)?.length ?? 0) === 0)) !== alternadas.includes(c.id)
@@ -169,7 +197,9 @@ export function Kanban({ itens, colunas, ctx, raias, alternadas, filtrando, onAl
           const fechada = recolhida(c)
           return (
             <section key={c.id} aria-label={`Coluna ${c.nome}`} className="flex h-full min-h-0 shrink-0 flex-col" style={{ width: largura(c) }}>
-              <Cabecalho col={c} itens={lista} fechada={fechada} onAlternar={() => onAlternarColuna(c.id)} />
+              <div className={cx('shrink-0', fechada ? 'h-full' : 'mb-2')}>
+                <Cabecalho col={c} itens={lista} totalBeneficio={totalBeneficio} fechada={fechada} onAlternar={() => onAlternarColuna(c.id)} />
+              </div>
               {!fechada && (
                 <div className="min-h-0 flex-1 space-y-2 overflow-y-auto rounded-2xl bg-stone-100/80 p-2">
                   {lista.map(i => <Cartao key={i.key} item={i} ctx={ctx} onAbrir={onAbrir} />)}
@@ -189,8 +219,8 @@ export function Kanban({ itens, colunas, ctx, raias, alternadas, filtrando, onAl
       <div className="min-w-max px-4 pb-6 sm:px-6">
         <div className="sticky top-0 z-10 flex gap-3 bg-beon-soft pb-1 pt-3">
           {colunas.map(c => (
-            <div key={c.id} className="shrink-0" style={{ width: largura(c), height: recolhida(c) ? 92 : undefined }}>
-              <Cabecalho col={c} itens={totais.get(c.id) ?? []} fechada={recolhida(c)} onAlternar={() => onAlternarColuna(c.id)} />
+            <div key={c.id} className="shrink-0" style={{ width: largura(c), height: ALTURA_CABECALHO }}>
+              <Cabecalho col={c} itens={totais.get(c.id) ?? []} totalBeneficio={totalBeneficio} fechada={recolhida(c)} onAlternar={() => onAlternarColuna(c.id)} />
             </div>
           ))}
         </div>
