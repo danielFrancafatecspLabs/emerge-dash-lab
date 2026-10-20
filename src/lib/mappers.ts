@@ -22,6 +22,7 @@ import {
   IniciativaLab,
 } from './types'
 import type { ChangelogEntry } from './jira'
+import { epicBloqueado, sinaisDeBloqueio } from './bloqueio'
 import type { MetaCategoria } from './portfolio-classifier'
 // Simplified type for board configuration (shape varies by API); keep as any to avoid strict coupling here
 type JiraBoardConfiguration = any
@@ -139,6 +140,7 @@ function normalizeLab(raw: string | null | undefined): string | null {
 
 function mapEpicToDetail(epic: JiraIssue, changelog?: ChangelogEntry[]): EpicDetail {
   const f = epic.fields
+  const bloqueio = sinaisDeBloqueio(f)
 
   // Extrai data de conclusão do changelog: primeira vez que status mudou para um status de conclusão
   // O changelog da API retorna toString como o NOME do status (ex: "Done", "Concluído", "FINALIZADO")
@@ -186,12 +188,10 @@ function mapEpicToDetail(epic: JiraIssue, changelog?: ChangelogEntry[]): EpicDet
     tipo: f.issuetype?.name ?? null,
     mercado: getSegmentoFallback(f.customfield_11987?.value ?? f.customfield_30014),
     descricao: f.description ?? null,
-    motivoBloqueio: f.customfield_13406?.value ?? null,
-    flagged: f.customfield_10021 != null && (
-      f.customfield_10021 === 'Impediment' ||
-      (typeof f.customfield_10021 === 'object' && f.customfield_10021?.value === 'Impediment')
-    ) ? true : null,
-    tipoImpedimento: f.customfield_30437?.value ?? null,
+    motivoBloqueio: bloqueio.motivo,
+    flagged: bloqueio.flag || null,
+    tipoImpedimento: bloqueio.tipo,
+    sinaisBloqueio: bloqueio.sinais,
     statusDetalhado: f.lastComment ?? null,
     prioridade: f.priority?.name ?? null,
     duedate: f.duedate ?? null,
@@ -459,7 +459,7 @@ export function buildDashboardData(
       dominios,
       epics,
       alertas: {
-        bloqueadosIA:       epics.filter(e => !!e.motivoBloqueio).length,
+        bloqueadosIA:       epics.filter(epicBloqueado).length,
         aguardandoDelivery: epics.filter(e => e.status.id === '10067').length,
         semSponsor:         epics.filter(e => !e.sponsor).length,
       },
@@ -495,7 +495,7 @@ export function buildDashboardData(
       dominios,
       epics,
       alertas: {
-        bloqueadosIA:       epics.filter(e => !!e.motivoBloqueio).length,
+        bloqueadosIA:       epics.filter(epicBloqueado).length,
         aguardandoDelivery: epics.filter(e => e.status.id === '10067').length,
         semSponsor:         epics.filter(e => !e.sponsor).length,
       },

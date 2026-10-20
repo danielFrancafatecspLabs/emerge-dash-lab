@@ -179,7 +179,7 @@ export function Detalhe({ item, ctx, jiraUrl, onFechar, onAbrir, onFiltrar }: {
                 {SITUACAO_LABEL[item.situacao]}
               </span>
             )}
-            {item.bloqueado && <SeloBloqueado motivo={exp?.motivoBloqueio} />}
+            {item.bloqueado && <SeloBloqueado motivo={exp ? exp.motivoBloqueio ?? exp.sinaisBloqueio[0] : null} />}
             {prazo === 'Vencido' && <span className="rounded-full bg-beon-tint px-2.5 py-1 text-xs font-medium text-beon-red">Prazo vencido</span>}
             <span className="text-xs tabular-nums text-beon-muted">{item.key}</span>
           </div>
@@ -225,15 +225,25 @@ export function Detalhe({ item, ctx, jiraUrl, onFechar, onAbrir, onFiltrar }: {
             </Secao>
           )}
 
-          {exp && (exp.motivoBloqueio || exp.tipoImpedimento) && (
+          {exp && (exp.motivoBloqueio || exp.tipoImpedimento || exp.sinaisBloqueio.length > 0) && (
             <Secao titulo={cancelado ? 'Motivo do cancelamento' : 'Bloqueio'}>
-              <Campos
-                onFiltrar={onFiltrar}
-                campos={[
-                  { label: 'Motivo', valor: exp.motivoBloqueio, filtro: exp.motivoBloqueio ? ['motivoBloqueio', exp.motivoBloqueio] : undefined },
-                  { label: 'Tipo de impedimento', valor: exp.tipoImpedimento, filtro: exp.tipoImpedimento ? ['tipoImpedimento', exp.tipoImpedimento] : undefined },
-                ]}
-              />
+              {(exp.motivoBloqueio || exp.tipoImpedimento) && (
+                <Campos
+                  onFiltrar={onFiltrar}
+                  campos={[
+                    { label: 'Motivo', valor: exp.motivoBloqueio, filtro: exp.motivoBloqueio ? ['motivoBloqueio', exp.motivoBloqueio] : undefined },
+                    { label: 'Tipo de impedimento', valor: exp.tipoImpedimento, filtro: exp.tipoImpedimento ? ['tipoImpedimento', exp.tipoImpedimento] : undefined },
+                  ]}
+                />
+              )}
+              {item.bloqueado && exp.sinaisBloqueio.length > 0 && (
+                <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+                  <p className="text-xs font-semibold text-amber-900">Por que aparece como bloqueado</p>
+                  <ul className="mt-1.5 space-y-1">
+                    {exp.sinaisBloqueio.map(s => <li key={s} className="text-sm leading-snug text-amber-900/90">{s}</li>)}
+                  </ul>
+                </div>
+              )}
             </Secao>
           )}
 

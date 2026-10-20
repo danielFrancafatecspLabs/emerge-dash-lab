@@ -2,6 +2,7 @@ import {
   SITUACAO_LABEL, SITUACOES,
   type ColunaBoard, type Entidade, type ExperimentoItem, type IniciativaItem, type ItemPortfolio, type PortfolioDados, type Situacao,
 } from './tipos'
+import { categoriaDoSinal } from '../bloqueio'
 
 /**
  * Motor da aba Portfólio (puro, roda na tela): os campos filtráveis dos dois boards, a busca, as facetas
@@ -179,6 +180,9 @@ function daMae(f: (i: IniciativaItem, ctx: Contexto) => string[]) {
 }
 
 const situacao = (x: ItemPortfolio) => [SITUACAO_LABEL[x.situacao]]
+const origemBloqueio = (e: ExperimentoItem) => (e.bloqueado
+  ? [...new Set(e.sinaisBloqueio.length ? e.sinaisBloqueio.map(categoriaDoSinal) : ['Motivo de bloqueio'])]
+  : ['Sem bloqueio'])
 const impacto = (x: ItemPortfolio) => [x.impacto ? IMPACTO_LABEL[x.impacto] ?? x.impacto : NAO_INFORMADO]
 const bloqueio = (x: ItemPortfolio) => [x.bloqueado ? 'Bloqueado' : 'Sem bloqueio']
 const ano = (x: ItemPortfolio) => [x.criadoEm?.slice(0, 4) || NAO_INFORMADO]
@@ -229,6 +233,10 @@ export const CAMPOS: CampoFiltro[] = [
   { id: 'complexidade', label: 'Complexidade', grupo: 'Execução', viaExperimentos: true, experimento: e => um(e.complexidade), iniciativa: dosFilhos(e => um(e.complexidade)) },
   { id: 'tecnologia', label: 'Tecnologia', grupo: 'Execução', viaExperimentos: true, experimento: e => um(e.tecnologia), iniciativa: dosFilhos(e => um(e.tecnologia)) },
   { id: 'prioridade', label: 'Prioridade', grupo: 'Execução', viaExperimentos: true, experimento: e => um(e.prioridade), iniciativa: dosFilhos(e => um(e.prioridade)) },
+  {
+    id: 'origemBloqueio', label: 'Origem do bloqueio', grupo: 'Execução', viaExperimentos: true,
+    experimento: origemBloqueio, iniciativa: dosFilhos(origemBloqueio),
+  },
   { id: 'motivoBloqueio', label: 'Motivo de bloqueio', grupo: 'Execução', viaExperimentos: true, experimento: e => um(e.motivoBloqueio), iniciativa: dosFilhos(e => um(e.motivoBloqueio)) },
   { id: 'tipoImpedimento', label: 'Tipo de impedimento', grupo: 'Execução', viaExperimentos: true, experimento: e => um(e.tipoImpedimento), iniciativa: dosFilhos(e => um(e.tipoImpedimento)) },
   { id: 'ciclos', label: 'Experimentos da iniciativa', grupo: 'Execução', ordem: FAIXAS_CICLOS, viaIniciativa: true, iniciativa: ciclosIni, experimento: daMae(ciclosIni) },

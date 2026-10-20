@@ -114,8 +114,10 @@ function experimentoItem(e: EpicDetail, colunaDe: (s: JiraStatus) => string): Ex
     criadoEm: e.criadoEm ?? null,
     prazo: e.duedate ?? null,
     descricao: textoLimpo(e.descricao),
-    // O "Motivo de Bloqueio" também guarda o motivo do cancelamento: só bloqueia o que ainda está aberto.
-    bloqueado: !!e.flagged || (!!e.motivoBloqueio && !encerrado(situacao)),
+    // Qualquer sinal (flag, campos de bloqueio, status, etiqueta, vínculo; ver lib/bloqueio.ts), só no que está aberto:
+    // o "Motivo de Bloqueio" também guarda o motivo do cancelamento.
+    bloqueado: !encerrado(situacao) && ((e.sinaisBloqueio?.length ?? 0) > 0 || !!e.flagged || !!e.motivoBloqueio?.trim()),
+    sinaisBloqueio: encerrado(situacao) ? [] : e.sinaisBloqueio ?? [],
     iniciativaKey: e.parentKey,
     bo: e.bo,
     complexidade: e.complexidade,

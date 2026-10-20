@@ -15,6 +15,7 @@ import GraficoComInsight from '@/components/dashboard/GraficoComInsight'
 import { PeriodoFiltro, isDataNoPeriodo } from '@/lib/periodo-filter'
 import { DashboardData, Iniciativa, EpicDetail, PipelineCount, MercadoAgregado, MetaCategoria, MonitoramentoData, InsightExecutivo, LeadTimeJornadaFase } from '@/lib/types'
 import { getPipelineStage, buildMonitoramentoData } from '@/lib/mappers'
+import { epicBloqueado } from '@/lib/bloqueio'
 
 /**
  * Recalcula o DashboardData completo filtrando apenas iniciativas e epics
@@ -130,7 +131,7 @@ function filtrarDashboardData(data: DashboardData, periodo: PeriodoFiltro): Dash
       dominios,
       epics,
       alertas: {
-        bloqueadosIA: epics.filter(e => !!e.motivoBloqueio).length,
+        bloqueadosIA: epics.filter(epicBloqueado).length,
         aguardandoDelivery: epics.filter(e => e.status.id === '10067').length,
         semSponsor: epics.filter(e => !e.sponsor).length,
       },
@@ -156,7 +157,7 @@ function filtrarDashboardData(data: DashboardData, periodo: PeriodoFiltro): Dash
       valorPotencial: epicsFiltrados.reduce((s, e) => s + (e.beneficioQuantitativo ?? 0), 0),
       dominios,
       alertas: {
-        bloqueadosIA: epicsFiltrados.filter(e => !!e.motivoBloqueio).length,
+        bloqueadosIA: epicsFiltrados.filter(epicBloqueado).length,
         aguardandoDelivery: epicsFiltrados.filter(e => e.status.id === '10067').length,
         semSponsor: epicsFiltrados.filter(e => !e.sponsor).length,
       },

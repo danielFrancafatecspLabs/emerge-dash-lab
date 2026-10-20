@@ -109,7 +109,7 @@ function ComoLer() {
               <li key={s} className="flex items-center gap-2"><span className="h-2 w-2 rounded-full" style={{ background: COR_SITUACAO[s] }} />{SITUACAO_LABEL[s]}</li>
             ))}
           </ul>
-          <p>O <b className="text-beon-ink">benefício</b> da iniciativa é a soma dos experimentos dela. Um experimento está <b className="text-beon-ink">bloqueado</b> quando tem impedimento ou motivo de bloqueio e ainda está aberto.</p>
+          <p>O <b className="text-beon-ink">benefício</b> da iniciativa é a soma dos experimentos dela. Um experimento está <b className="text-beon-ink">bloqueado</b> quando ainda está aberto e tem flag de impedimento, motivo ou tipo de impedimento preenchido, status ou etiqueta de bloqueio, ou um vínculo &quot;bloqueado por&quot; com item aberto. O detalhe mostra o porquê.</p>
           <p><b className="text-beon-ink">Hipótese validada</b>: o experimento tem a iniciativa-mãe em Aguardando piloto, Em piloto ou Em escala. <b className="text-beon-ink">Refutada</b>: a iniciativa-mãe não está em nenhuma dessas colunas.</p>
           <p><b className="text-beon-ink">Em execução</b> soma as colunas de experimentação e piloto; o percentual é sobre o portfólio sem os cancelados.</p>
           <p>Os filtros valem nas três visões: na de iniciativas, um campo do experimento olha os experimentos de cada iniciativa.</p>

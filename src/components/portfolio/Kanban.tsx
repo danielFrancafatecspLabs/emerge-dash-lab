@@ -78,7 +78,7 @@ function Responsaveis({ item }: { item: ItemPortfolio }) {
 }
 
 function Rodape({ item }: { item: ItemPortfolio }) {
-  const motivo = item.tipo === 'experimento' ? item.motivoBloqueio : null
+  const motivo = item.tipo === 'experimento' ? item.motivoBloqueio ?? item.sinaisBloqueio[0] ?? null : null
   const impacto = item.impacto ? IMPACTO_LABEL[item.impacto] ?? item.impacto : null
   if (!item.bloqueado && !impacto && !item.beneficio) return null
   return (

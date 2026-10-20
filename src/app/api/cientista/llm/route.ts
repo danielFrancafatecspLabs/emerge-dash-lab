@@ -5,6 +5,7 @@ import { fetchDashboardRaw } from '@/lib/jira'
 import { buildDashboardData } from '@/lib/mappers'
 import { classifyPortfolios } from '@/lib/portfolio-classifier'
 import { classifySegmentos } from '@/lib/segmento-classifier'
+import { epicBloqueado } from '@/lib/bloqueio'
 
 export const dynamic = 'force-dynamic'
 
@@ -65,9 +66,9 @@ function buildContext(data: Awaited<ReturnType<typeof buildDashboardData>>): str
     .slice(0, 10)
 
   // Experimentos bloqueados
-  const bloqueados = data.allEpics.filter(e => e.motivoBloqueio).map(e => ({
+  const bloqueados = data.allEpics.filter(epicBloqueado).map(e => ({
     nome: e.nome,
-    motivo: e.motivoBloqueio,
+    motivo: e.motivoBloqueio ?? e.sinaisBloqueio?.join('; ') ?? null,
     status: e.status.name,
     dominio: e.dominio,
   }))
