@@ -110,7 +110,7 @@ function ComoLer() {
             ))}
           </ul>
           <p>O <b className="text-beon-ink">benefício</b> da iniciativa é a soma dos experimentos dela. Um experimento está <b className="text-beon-ink">bloqueado</b> quando ainda está aberto e tem flag de impedimento, motivo ou tipo de impedimento preenchido, status ou etiqueta de bloqueio, ou um vínculo &quot;bloqueado por&quot; com item aberto. O detalhe mostra o porquê.</p>
-          <p><b className="text-beon-ink">Hipótese validada</b>: o experimento tem a iniciativa-mãe em Aguardando piloto, Em piloto ou Em escala. <b className="text-beon-ink">Refutada</b>: a iniciativa-mãe não está em nenhuma dessas colunas.</p>
+          <p>As hipóteses contam só os experimentos <b className="text-beon-ink">concluídos</b>. <b className="text-beon-ink">Validada</b>: a iniciativa-mãe está em Aguardando piloto, Em piloto ou Em escala. <b className="text-beon-ink">Refutada</b>: a iniciativa-mãe não está em nenhuma dessas colunas (ou o experimento não tem iniciativa).</p>
           <p><b className="text-beon-ink">Em execução</b> soma as colunas de experimentação e piloto; o percentual é sobre o portfólio sem os cancelados.</p>
           <p>Os filtros valem nas três visões: na de iniciativas, um campo do experimento olha os experimentos de cada iniciativa.</p>
         </div>
@@ -282,15 +282,15 @@ export default function PortfolioExplorer({ dados, estadoInicial, detalheInicial
         />
         <Indicador
           rotulo="Hipóteses validadas" cor="#059669"
-          valor={String(resumo.validadas)} detalhe={`${pct(resumo.validadas, resumo.experimentos)} de ${resumo.experimentos} experimentos`}
-          ajuda="Experimentos com a iniciativa-mãe em Aguardando piloto, Em piloto ou Em escala."
+          valor={String(resumo.validadas)} detalhe={`${pct(resumo.validadas, resumo.concluidos)} de ${resumo.concluidos} concluídos`}
+          ajuda="Experimentos concluídos com a iniciativa-mãe em Aguardando piloto, Em piloto ou Em escala."
           ativo={atalhoAtivo('hipotese', ['Validada'])}
           onClick={() => alternarAtalho('hipotese', ['Validada'])}
         />
         <Indicador
           rotulo="Hipóteses refutadas" cor="#A8A29E"
-          valor={String(resumo.refutadas)} detalhe={`${pct(resumo.refutadas, resumo.experimentos)} de ${resumo.experimentos} experimentos`}
-          ajuda="Experimentos cuja iniciativa-mãe não está em Aguardando piloto, Em piloto nem Em escala."
+          valor={String(resumo.refutadas)} detalhe={`${pct(resumo.refutadas, resumo.concluidos)} de ${resumo.concluidos} concluídos`}
+          ajuda="Experimentos concluídos cuja iniciativa-mãe não está em Aguardando piloto, Em piloto nem Em escala."
           ativo={atalhoAtivo('hipotese', ['Refutada'])}
           onClick={() => alternarAtalho('hipotese', ['Refutada'])}
         />
