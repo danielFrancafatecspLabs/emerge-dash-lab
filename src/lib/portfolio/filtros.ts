@@ -122,17 +122,20 @@ export function pendenciasDe(item: ItemPortfolio): string[] {
 }
 
 /**
- * Hipótese validada: o experimento tem iniciativa-mãe em Aguardando piloto, Em piloto ou Em escala no board
- * de Ideação. Refutada: todos os outros (inclusive os sem iniciativa-mãe).
+ * Resultado da hipótese, só para experimentos CONCLUÍDOS. Validada: a iniciativa-mãe está em Aguardando piloto,
+ * Em piloto ou Em escala no board de Ideação. Refutada: as demais (inclusive sem iniciativa-mãe).
  */
 export const HIPOTESES = ['Validada', 'Refutada'] as const
+export const NAO_CONCLUIDO = 'Experimento não concluído'
+export const SEM_CONCLUIDO = 'Sem experimento concluído'
 
 export function iniciativaValidada(i: IniciativaItem, ctx: Contexto): boolean {
   const n = norm(nomeDaColuna(i.coluna, ctx))
   return n.includes('piloto') || n.includes('escala')
 }
 
-export function hipoteseDe(e: ExperimentoItem, ctx: Contexto): (typeof HIPOTESES)[number] {
+export function hipoteseDe(e: ExperimentoItem, ctx: Contexto): (typeof HIPOTESES)[number] | typeof NAO_CONCLUIDO {
+  if (e.situacao !== 'concluido') return NAO_CONCLUIDO
   const mae = maeDe(e, ctx)
   return mae && iniciativaValidada(mae, ctx) ? HIPOTESES[0] : HIPOTESES[1]
 }
@@ -201,9 +204,11 @@ export const CAMPOS: CampoFiltro[] = [
   { id: 'colunaExp', label: 'Coluna do experimento', grupo: 'Board', viaExperimentos: true, experimento: colunaExp, iniciativa: dosFilhos(colunaExp) },
   { id: 'statusExp', label: 'Status do experimento', grupo: 'Board', viaExperimentos: true, experimento: statusExp, iniciativa: dosFilhos(statusExp) },
   {
-    id: 'hipotese', label: 'Hipótese', grupo: 'Board', ordem: [...HIPOTESES, SEM_EXPERIMENTO],
+    id: 'hipotese', label: 'Hipótese', grupo: 'Board', ordem: [...HIPOTESES, NAO_CONCLUIDO, SEM_CONCLUIDO],
     experimento: (e, ctx) => [hipoteseDe(e, ctx)],
-    iniciativa: (i, ctx) => (i.experimentos.length ? [iniciativaValidada(i, ctx) ? HIPOTESES[0] : HIPOTESES[1]] : [SEM_EXPERIMENTO]),
+    iniciativa: (i, ctx) => (filhosDe(i, ctx).some(e => e.situacao === 'concluido')
+      ? [iniciativaValidada(i, ctx) ? HIPOTESES[0] : HIPOTESES[1]]
+      : [SEM_CONCLUIDO]),
   },
   { id: 'bloqueio', label: 'Bloqueio', grupo: 'Board', ordem: ['Bloqueado', 'Sem bloqueio'], iniciativa: bloqueio, experimento: bloqueio },
   {
@@ -457,8 +462,8 @@ export interface Resumo {
   beneficio: number
   /** Experimentos das Iniciativas mostradas, ou Iniciativas-mãe dos Experimentos mostrados. */
   relacionados: number
-  /** Experimentos considerados nas hipóteses: os mostrados, ou os das Iniciativas mostradas. */
-  experimentos: number
+  /** Experimentos concluídos considerados nas hipóteses: os mostrados, ou os das Iniciativas mostradas. */
+  concluidos: number
   validadas: number
   refutadas: number
 }
@@ -475,7 +480,9 @@ export function resumir(itens: ItemPortfolio[], ctx: Contexto): Resumo {
       experimentos.set(i.key, i)
     }
   }
-  const validadas = [...experimentos.values()].filter(e => hipoteseDe(e, ctx) === 'Validada').length
+  const hipoteses = [...experimentos.values()].map(e => hipoteseDe(e, ctx))
+  const validadas = hipoteses.filter(h => h === HIPOTESES[0]).length
+  const refutadas = hipoteses.filter(h => h === HIPOTESES[1]).length
   return {
     total: itens.length,
     ativos: itens.filter(i => i.situacao !== 'cancelado').length,
@@ -483,9 +490,9 @@ export function resumir(itens: ItemPortfolio[], ctx: Contexto): Resumo {
     bloqueados: itens.filter(i => i.bloqueado).length,
     beneficio: itens.reduce((s, i) => s + (i.beneficio ?? 0), 0),
     relacionados: relacionados.size,
-    experimentos: experimentos.size,
+    concluidos: validadas + refutadas,
     validadas,
-    refutadas: experimentos.size - validadas,
+    refutadas,
   }
 }
 
@@ -514,7 +521,7 @@ export const VISOES_PRONTAS: VisaoPronta[] = [
     estado: { visao: 'lista', lista: 'iniciativa', filtros: { ciclos: [SEM_EXPERIMENTO] } },
   },
   {
-    id: 'validadas', nome: 'Hipóteses validadas', descricao: 'Experimentos cuja iniciativa chegou a aguardando piloto, piloto ou escala.',
+    id: 'validadas', nome: 'Hipóteses validadas', descricao: 'Experimentos concluídos cuja iniciativa chegou a aguardando piloto, piloto ou escala.',
     estado: { visao: 'experimentos', filtros: { hipotese: ['Validada'] } },
   },
 ]

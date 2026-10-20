@@ -129,24 +129,34 @@ describe('filtros do Portfólio', () => {
     expect(ordenar(DADOS.experimentos, 'prazo')[0].key).toBe('GL-10')
     expect(agrupar(DADOS.experimentos, 'lab', ctx).map(g => [g.valor, g.itens.length])).toEqual([['HITSS', 2], ['Lab Dados', 2]])
     expect(resumir(DADOS.experimentos, ctx)).toEqual({
-      total: 4, ativos: 3, emExecucao: 2, bloqueados: 1, beneficio: 75_000_000, relacionados: 2, experimentos: 4, validadas: 0, refutadas: 4,
+      total: 4, ativos: 3, emExecucao: 2, bloqueados: 1, beneficio: 75_000_000, relacionados: 2, concluidos: 0, validadas: 0, refutadas: 0,
     })
   })
 })
 
 describe('hipóteses validadas e refutadas', () => {
-  const H = (key: string, parent: string | null) => epic(key, parent)
+  const CONCLUIDO = { status: { id: '10019', name: 'Concluído' } }
+  const EPICS = [
+    epic('GL-10', 'GL-1', CONCLUIDO), // mãe aguardando piloto → validada
+    epic('GL-11', 'GL-1'), // em andamento → fora da conta
+    epic('GL-12', 'GL-2', CONCLUIDO), // mãe em piloto → validada
+    epic('GL-13', 'GL-3', CONCLUIDO), // mãe em escala → validada
+    epic('GL-14', 'GL-4', CONCLUIDO), // mãe em experimentação → refutada
+    epic('GL-15', 'GL-5', { status: { id: '10015', name: 'CANCELADO' } }), // cancelado → fora da conta
+    epic('GL-16', null, CONCLUIDO), // sem iniciativa-mãe → refutada
+  ]
+  const filhos = (k: string) => EPICS.filter(e => e.parentKey === k)
   const dados = montarPortfolio(
     {
       iniciativas: [
-        ini('GL-1', [H('GL-10', 'GL-1'), H('GL-11', 'GL-1')], { status: { id: '14468', name: 'AGUARDANDO PILOTO' } }),
-        ini('GL-2', [H('GL-12', 'GL-2')], { status: { id: '14459', name: 'EM PILOTO' } }),
-        ini('GL-3', [H('GL-13', 'GL-3')], { status: { id: '13562', name: 'Finalizado' } }),
-        ini('GL-4', [H('GL-14', 'GL-4')], { status: { id: '14460', name: 'EM EXPERIMENTAÇÃO' } }),
-        ini('GL-5', [H('GL-15', 'GL-5')], { status: { id: '10015', name: 'CANCELADO' } }),
+        ini('GL-1', filhos('GL-1'), { status: { id: '14468', name: 'AGUARDANDO PILOTO' } }),
+        ini('GL-2', filhos('GL-2'), { status: { id: '14459', name: 'EM PILOTO' } }),
+        ini('GL-3', filhos('GL-3'), { status: { id: '13562', name: 'Finalizado' } }),
+        ini('GL-4', filhos('GL-4'), { status: { id: '14460', name: 'EM EXPERIMENTAÇÃO' } }),
+        ini('GL-5', filhos('GL-5'), { status: { id: '10015', name: 'CANCELADO' } }),
         ini('GL-6', []),
       ],
-      allEpics: ['GL-10', 'GL-11', 'GL-12', 'GL-13', 'GL-14', 'GL-15'].map((k, i) => H(k, ['GL-1', 'GL-1', 'GL-2', 'GL-3', 'GL-4', 'GL-5'][i])).concat(H('GL-16', null)),
+      allEpics: EPICS,
     } as unknown as DashboardData,
     {
       iniciativa: config('P&D - Ideação', [
@@ -159,18 +169,21 @@ describe('hipóteses validadas e refutadas', () => {
   )
   const c = criarContexto(dados)
 
-  it('validada quando a iniciativa-mãe está em aguardando piloto, piloto ou escala; refutada nos demais casos', () => {
+  it('só conta experimentos concluídos: validada com a mãe em aguardando piloto, piloto ou escala; refutada nos demais', () => {
     const r = resumir(dados.experimentos, c)
-    expect([r.experimentos, r.validadas, r.refutadas]).toEqual([7, 4, 3])
+    expect([r.concluidos, r.validadas, r.refutadas]).toEqual([5, 3, 2])
     expect(filtrar(dados.experimentos, 'experimento', estado({ filtros: { hipotese: ['Validada'] } }), c).map(e => e.key))
-      .toEqual(['GL-10', 'GL-11', 'GL-12', 'GL-13'])
+      .toEqual(['GL-10', 'GL-12', 'GL-13'])
+    expect(facetas(dados.experimentos, 'experimento', estado({}), c, 'hipotese')).toEqual([
+      { valor: 'Validada', n: 3 }, { valor: 'Refutada', n: 2 }, { valor: 'Experimento não concluído', n: 2 },
+    ])
   })
 
-  it('na visão de iniciativas, conta os experimentos das iniciativas mostradas', () => {
+  it('na visão de iniciativas, conta os experimentos concluídos das iniciativas mostradas', () => {
     const r = resumir(dados.iniciativas, c)
-    expect([r.experimentos, r.validadas, r.refutadas]).toEqual([6, 4, 2])
+    expect([r.concluidos, r.validadas, r.refutadas]).toEqual([4, 3, 1])
     expect(facetas(dados.iniciativas, 'iniciativa', estado({}), c, 'hipotese')).toEqual([
-      { valor: 'Validada', n: 3 }, { valor: 'Refutada', n: 2 }, { valor: SEM_EXPERIMENTO, n: 1 },
+      { valor: 'Validada', n: 3 }, { valor: 'Refutada', n: 1 }, { valor: 'Sem experimento concluído', n: 2 },
     ])
   })
 
