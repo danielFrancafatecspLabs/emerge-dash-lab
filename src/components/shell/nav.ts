@@ -35,7 +35,7 @@ export const COMMUNITY_AREAS: NavItem[] = [
   { label: 'Cientista', short: 'Cientista', href: '/comunidade/cientista', icon: FlaskConical },
   { label: 'Pesquisas', short: 'Pesquisas', href: '/comunidade/pesquisas', icon: BookOpen, also: ['/comunidade/experimentos'] },
   { label: 'Future Thinking', short: 'Futuro', href: '/comunidade/future-thinking', icon: Telescope },
-  { label: 'Trilha de Experimentação', short: 'Trilha', href: '/comunidade/trilha', icon: Route, also: ['/comunidade/como-experimentar', '/comunidade/framework-hipoteses'] },
+  { label: 'Trilha de Experimentação', short: 'Trilha', href: '/comunidade/trilha', icon: Route },
 ]
 
 /** Atalhos pessoais da Comunidade (Notificações é um botão à parte, que abre o painel). */
