@@ -3,7 +3,7 @@
 import type { ReactNode } from 'react'
 import { Coins, FlaskConical, Lightbulb, Microscope, Rocket, Settings } from 'lucide-react'
 import type { SemanalResumo, SemanalSecaoId } from '@/lib/semanal'
-import { formatMilhoes } from '@/lib/semanal-deck'
+import { formatMilhoes, RESUMO_FUNIL, setaDoFunil } from '@/lib/semanal-deck'
 import { SLIDE_H, SLIDE_W } from './SlideArt'
 
 // Slide "beOn Labs — até mês/aa": composição do total de experimentos,
@@ -56,15 +56,17 @@ const ETAPAS = [
   { n: 4, t: 'Em escala', d: 'Operar, evoluir e ampliar a adoção da solução, maximizando a geração de valor para o negócio.', bg: '#6B0000', fg: '#fff', nbg: '#fff', nfg: '#6B0000' },
 ]
 
-export default function ResumoSlide({ resumo, ateLabel, onDetalhes, pagina }: {
+export default function ResumoSlide({ resumo, ateLabel, onDetalhes, onDetalhesBeneficio, pagina }: {
   resumo: SemanalResumo
   ateLabel: string
   onDetalhes?: (secao: SemanalSecaoId) => void
+  /** Abre a lista dos experimentos que compõem o benefício potencial total. */
+  onDetalhesBeneficio?: () => void
   pagina?: number
 }) {
   const r = resumo
   const det = (id: SemanalSecaoId) => onDetalhes ? () => onDetalhes(id) : undefined
-  const chevW = 312, chevX = (i: number) => 44 + i * (chevW - 14)
+  const col = RESUMO_FUNIL.colunas, PONTA = RESUMO_FUNIL.ponta
 
   return (
     <div style={{ width: SLIDE_W, height: SLIDE_H, position: 'relative', overflow: 'hidden', background: '#fff', color: INK,
@@ -105,9 +107,10 @@ export default function ResumoSlide({ resumo, ateLabel, onDetalhes, pagina }: {
       <div style={{ position: 'absolute', left: 988, top: 90, width: 248, height: 104, background: '#1F2328', borderRadius: 10, padding: '12px 16px', color: '#fff' }}>
         <div style={{ fontSize: 24, fontWeight: 700 }}>R$ {formatMilhoes(r.beneficioTotal, 'milhões', true)}</div>
         <div style={{ fontSize: 14, marginTop: 2 }}>Benefício potencial total</div>
-        <div style={{ fontSize: 10.5, color: '#B8BEC6', marginTop: 4, lineHeight: 1.2 }}>
-          Concedido pelas áreas de negócio para os {r.totalExperimentos} experimentos
+        <div style={{ fontSize: 10.5, color: '#B8BEC6', marginTop: 4, lineHeight: 1.2, width: 132 }}>
+          Exploração, andamento e hipóteses validadas
         </div>
+        <Detalhes onClick={onDetalhesBeneficio} style={{ position: 'absolute', right: 16, bottom: 12, width: 82 }} />
         <div style={{ position: 'absolute', right: 16, top: 12, width: 40, height: 40, borderRadius: '50%', background: RED,
           display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <Coins size={22} color="#fff" />
@@ -115,23 +118,27 @@ export default function ResumoSlide({ resumo, ateLabel, onDetalhes, pagina }: {
       </div>
 
       {/* Etapas */}
-      {ETAPAS.map((e, i) => (
+      {ETAPAS.map((e, i) => {
+        const s = setaDoFunil(i)
+        const corpo = `calc(100% - ${PONTA}px)`
+        return (
         <div key={e.n} style={{
-          position: 'absolute', left: chevX(i), top: 214, width: chevW, height: 86, background: e.bg, color: e.fg,
-          clipPath: i === 0 ? 'polygon(0 0, 91% 0, 100% 50%, 91% 100%, 0 100%)' : 'polygon(0 0, 91% 0, 100% 50%, 91% 100%, 0 100%, 9% 50%)',
-          display: 'flex', alignItems: 'center', gap: 12, padding: i === 0 ? '0 34px 0 18px' : '0 34px 0 42px',
+          position: 'absolute', left: s.x, top: RESUMO_FUNIL.topoSeta, width: s.w, height: RESUMO_FUNIL.alturaSeta, background: e.bg, color: e.fg,
+          clipPath: `polygon(0 0, ${corpo} 0, 100% 50%, ${corpo} 100%, 0 100%${i === 0 ? '' : `, ${PONTA}px 50%`})`,
+          display: 'flex', alignItems: 'center', gap: 10, padding: i === 0 ? `0 ${PONTA + 4}px 0 16px` : `0 ${PONTA + 4}px 0 ${PONTA + 12}px`,
         }}>
           <span style={{ width: 30, height: 30, borderRadius: '50%', background: e.nbg, color: e.nfg, fontWeight: 700, fontSize: 15,
             display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{e.n}</span>
           <div>
             <div style={{ fontSize: 15, fontWeight: 700 }}>{e.t}</div>
-            <div style={{ fontSize: 12.5, lineHeight: 1.2 }}>{e.d}</div>
+            <div style={{ fontSize: 11.5, lineHeight: 1.18 }}>{e.d}</div>
           </div>
         </div>
-      ))}
+        )
+      })}
 
       {/* Exploração */}
-      <Card x={44} y={314} w={262} h={250}>
+      <Card x={col[0].x} y={314} w={col[0].w} h={250}>
         <div style={{ position: 'absolute', left: 18, top: 10, fontSize: 12.5, color: MUTED }}>{r.exploracao.ideiasNaoAvaliadas} ideias não avaliadas</div>
         <BigNumber x={18} y={26} n={r.exploracao.oportunidades} label="oportunidades" />
         <Beneficio y={96} valor={r.exploracao.beneficio} />
@@ -140,7 +147,7 @@ export default function ResumoSlide({ resumo, ateLabel, onDetalhes, pagina }: {
       </Card>
 
       {/* Experimentação */}
-      <Card x={318} y={314} w={240} h={250}>
+      <Card x={col[1].x} y={314} w={col[1].w} h={250}>
         <BigNumber x={18} y={14} n={r.experimentacao.experimentos} label="experimentos" />
         <Beneficio y={96} valor={r.experimentacao.beneficio} />
         <Rodape icon={<Settings size={16} color={RED} />} texto="Construção e validação da solução" y={178} />
@@ -148,7 +155,7 @@ export default function ResumoSlide({ resumo, ateLabel, onDetalhes, pagina }: {
       </Card>
 
       {/* Piloto */}
-      <Card x={592} y={314} w={376} h={250}>
+      <Card x={col[2].x} y={314} w={col[2].w} h={250}>
         <BigNumber x={16} y={6} n={r.piloto.total} label="experimentos" />
         <Detalhes onClick={det('aguardando')} style={{ position: 'absolute', right: 16, top: 16, width: 180 }} />
         <div style={{ position: 'absolute', left: 14, right: 14, top: 58, height: 38, border: `1.5px solid ${RED}`, borderRadius: 6,
@@ -172,7 +179,7 @@ export default function ResumoSlide({ resumo, ateLabel, onDetalhes, pagina }: {
       </Card>
 
       {/* Em escala */}
-      <Card x={980} y={314} w={256} h={250}>
+      <Card x={col[3].x} y={314} w={col[3].w} h={250}>
         <BigNumber x={18} y={14} n={r.escala.experimentos} label="experimentos" />
         <Beneficio y={96} valor={r.escala.beneficio} />
         <Rodape icon={<Rocket size={16} color={RED} />} texto="Escala e geração de valor" y={178} />
@@ -182,7 +189,7 @@ export default function ResumoSlide({ resumo, ateLabel, onDetalhes, pagina }: {
       {/* Principais métricas */}
       <div style={{ position: 'absolute', left: 44, top: 580, fontSize: 12.5, fontWeight: 700, color: RED, letterSpacing: 3 }}>PRINCIPAIS MÉTRICAS</div>
       {r.metricas.map((m, i) => (
-        <Card key={m.titulo} x={44 + i * 302} y={602} w={290} h={78} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '0 14px' }}>
+        <Card key={m.titulo} x={44 + i * 301} y={602} w={289} h={78} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '0 14px' }}>
           <Donut pct={m.pct} />
           <div>
             <div style={{ fontSize: 15, fontWeight: 700 }}>{m.titulo}</div>

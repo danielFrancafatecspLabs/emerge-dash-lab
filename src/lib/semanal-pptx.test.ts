@@ -17,8 +17,12 @@ describe('PPTX editável da Semanal', () => {
     expect(resumo).toContain(String(data.resumo.totalExperimentos))
     expect(resumo).toContain('DETALHES')
     expect(resumo).toContain('ppaction://hlinksldjump')
-    // Logo depois da visão geral, os motivos de cancelamento.
-    const cancelamento = await xml(4)
+    // Logo depois da visão geral, o quadro de Governança e os motivos de cancelamento.
+    const governanca = await xml(4)
+    expect(governanca).toContain('GOVERNANÇA')
+    expect(governanca).toContain(`${data.governanca.totalExperimentos} EXPERIMENTOS`)
+    expect(governanca).toContain('typeface="AMX"')
+    const cancelamento = await xml(5)
     expect(cancelamento).toContain('Principais motivos de cancelamento dos Experimentos')
     expect(cancelamento).toContain(data.cancelamento.motivos[0].motivo)
     const primeiraLista = montarPaginas(data).findIndex(p => p.tipo === 'lista') + 1
