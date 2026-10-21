@@ -66,7 +66,7 @@ describe('buildSemanalData', () => {
     const weekly = {
       geradoEm: '2026-10-09T12:00:00Z', isSample: false, experimentosAprovados: epics.length,
       pendenteAnalise: stage('pendente-analise', [], 45),
-      semBeneficio: { count: 3, pct: 60 }, semSponsor: { count: 1, pct: 20 },
+      semBeneficio: { count: 1, pct: 50, base: 2 }, semSponsor: { count: 1, pct: 50, base: 2 },
       stages: [
         stage('backlog', ['GL-1']), stage('andamento', ['GL-2']), stage('cancelados', ['GL-3']), stage('concluidos', ['GL-4', 'GL-5']),
         stage('aguardando', ['GL-10']), stage('piloto', ['GL-11']), stage('escala', []),
@@ -81,17 +81,20 @@ describe('buildSemanalData', () => {
     expect(out.resumo.piloto.aguardando.beneficio).toBe(2_000_000)
     expect(out.resumo.piloto.execucao.beneficio).toBe(254_000_000)
 
+    // Cadastro: sobre os 2 experimentos ativos, não sobre o total aprovado.
+    const sem = out.resumo.metricas.find(m => m.titulo === 'Sem benefício potencial')!
+    expect(sem).toMatchObject({ pct: 50, descricao: '1 de 2 experimentos ativos sem registro de benefício potencial' })
     const andamento = out.secoes.find(s => s.id === 'andamento')!.rows[0]
     expect(andamento).toMatchObject({ estrategico: true, pendencia: 'Pendente Status', previsao: '2026-10-30', descricao: 'testar' })
   })
 
-  it('os dados de exemplo reproduzem os números do Comitê V7', () => {
+  it('os dados de exemplo reproduzem os números do Comitê V7 (cadastro sobre os experimentos ativos)', () => {
     const r = SAMPLE_SEMANAL_DATA.resumo
     expect(r.totalExperimentos).toBe(210)
     expect(r.fatias.map(f => f.pct)).toEqual([2, 9, 19, 28, 42])
     expect(Math.round(r.piloto.execucao.beneficio / 1e5) / 10).toBe(266.6)
     expect(r.piloto.execucao.destaque?.nome).toBe('Integridade do Produto')
-    expect(r.metricas.map(m => m.pct)).toEqual([10, 8, 75, 21])
+    expect(r.metricas.map(m => m.pct)).toEqual([10, 8, 70, 0])
   })
 })
 
