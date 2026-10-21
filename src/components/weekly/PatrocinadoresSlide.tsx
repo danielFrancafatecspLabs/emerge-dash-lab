@@ -114,7 +114,7 @@ export default function PatrocinadoresSlide({ data, onMaximize }: { data: Weekly
           }}>
             <AlertTriangle size={16} color={WARNING_INK} style={{ flexShrink: 0 }} />
             <span style={{ fontSize: 12.5, color: '#374151', lineHeight: 1.4 }}>
-              <b style={{ color: '#111827' }}>{data.semSponsor.count} experimentos</b> ({data.semSponsor.pct}%) ainda não têm um sponsor
+              <b style={{ color: '#111827' }}>{data.semSponsor.count} de {data.semSponsor.base} experimentos ativos</b> ({data.semSponsor.pct}%) ainda não têm um sponsor
               identificado — fortalecer esse engajamento é o que sustenta a próxima onda de experimentos.
             </span>
           </div>
