@@ -257,6 +257,7 @@ export function buildSemanalData(data: DashboardData, weekly: WeeklyData): Seman
       beneficioTotal: data.beneficioTotal,
       semBeneficio: weekly.semBeneficio.count,
       semSponsor: weekly.semSponsor.count,
+      epicsAtivos: weekly.semBeneficio.base,
     }),
     secoes: montarSecoes({ escala, aguardando, piloto, andamento, backlog }),
     cancelamento: montarCancelamento(weekly.motivosCancelamento ?? []),
@@ -276,6 +277,8 @@ interface ResumoInput {
   beneficioTotal: number
   semBeneficio: number
   semSponsor: number
+  /** Base dos indicadores de cadastro: Epics ativos (nem concluídos nem cancelados). */
+  epicsAtivos: number
 }
 
 function montarResumo(i: ResumoInput): SemanalResumo {
@@ -315,10 +318,11 @@ function montarResumo(i: ResumoInput): SemanalResumo {
         descricao: `${i.piloto.length + i.escala.length} de ${totalFatias} experimentos aprovados já realizaram piloto` },
       { titulo: 'Conversão para escala', pct: pct(i.escala.length, totalFatias),
         descricao: `${i.escala.length} de ${totalFatias} experimentos aprovados já em escala` },
-      { titulo: 'Sem benefício potencial', pct: pct(i.semBeneficio, totalFatias),
-        descricao: `${i.semBeneficio} experimentos sem registro de benefício potencial` },
-      { titulo: 'Sem patrocínio formal', pct: pct(i.semSponsor, totalFatias),
-        descricao: `${i.semSponsor} experimentos sem patrocínio formal da diretoria` },
+      // Cadastro: só os experimentos ativos, porque são os que ainda dá para corrigir.
+      { titulo: 'Sem benefício potencial', pct: pct(i.semBeneficio, i.epicsAtivos),
+        descricao: `${i.semBeneficio} de ${i.epicsAtivos} experimentos ativos sem registro de benefício potencial` },
+      { titulo: 'Sem patrocínio formal', pct: pct(i.semSponsor, i.epicsAtivos),
+        descricao: `${i.semSponsor} de ${i.epicsAtivos} experimentos ativos sem patrocínio formal da diretoria` },
     ],
   }
 }
@@ -433,6 +437,7 @@ export const SAMPLE_SEMANAL_DATA: SemanalData = (() => {
     andamento: ordenarRows(SAMPLE_ANDAMENTO), backlog: SAMPLE_BACKLOG,
   })
   const sec = (id: SemanalSecaoId) => secoes.find(s => s.id === id)!.rows
+  const ativos = [...sec('backlog'), ...sec('andamento')]
   return {
     geradoEm: new Date().toISOString(),
     isSample: true,
@@ -446,7 +451,8 @@ export const SAMPLE_SEMANAL_DATA: SemanalData = (() => {
     resumo: montarResumo({
       total: 210, backlog: sec('backlog'), andamento: sec('andamento'), aguardando: sec('aguardando'),
       piloto: sec('piloto'), escala: sec('escala'), cancelados: 88, refutadas: 60, ideiasNaoAvaliadas: 45,
-      beneficioTotal: 416_000_000, semBeneficio: 157, semSponsor: 45,
+      beneficioTotal: 416_000_000,
+      semBeneficio: ativos.filter(r => !r.beneficio).length, semSponsor: ativos.filter(r => !r.diretor).length, epicsAtivos: ativos.length,
     }),
   }
 })()

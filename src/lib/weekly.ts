@@ -2,6 +2,7 @@ import { DashboardData, EpicDetail, Iniciativa, JiraBoardConfiguration } from '.
 import type { ChangelogEntry } from './jira'
 import { formatBeneficioMM, limparDescricao } from './report-utils'
 import { buildGovernancaData, SAMPLE_GOVERNANCA_DATA, type GovernancaData } from './governanca'
+import { statusEncerrado } from './bloqueio'
 
 const EPICOS_CANCELADOS_CSV = `Chave;Título;Descrição;Business Owner (BO);Sponsor;Iniciativa Pai;Data Cancelamento;Último Comentário;Link Jira
 GL-817;Agente para Treinamento Comercial;Capacitar a força de vendas através de simulações conversacionais de atendimento e contorno de objeções guiadas por IA.;Ronaldo Domingues;Leandro Bueno;GL-809;26/09/2026 00:30;Direcionado para Dados & IA avaliar solução. Área de negócio optou por não seguir realizar experimentação no dia 25/09.;https://clarobr.atlassian.net/browse/GL-817
@@ -184,8 +185,9 @@ export interface WeeklyData {
   conversaoPilotoNumerador: number   // iniciativas já em Piloto ou Em escala (numerador da conversaoPiloto)
   conversaoEscalaNumerador: number   // iniciativas já em Em escala (numerador da conversaoEscala)
   conversaoDenominador: number       // total de experimentos aprovados (mesmo total do slide 1 — total de Epics)
-  semBeneficio: { count: number; pct: number }
-  semSponsor: { count: number; pct: number }
+  /** Indicadores de cadastro: só os Epics ativos (nem concluídos nem cancelados); `base` é quantos são. */
+  semBeneficio: { count: number; pct: number; base: number }
+  semSponsor: { count: number; pct: number; base: number }
   topSponsors: WeeklyRanking[]       // top 6 sponsors por quantidade de experimentos (todas as fases do funil)
   topDiretorias: WeeklyRanking[]     // top 6 diretorias/domínios por quantidade de experimentos (idem)
   experimentosConcluidos: number     // Epics no board de Experimentação com status Concluído
@@ -587,8 +589,10 @@ export function buildWeeklyData(data: DashboardData, epicChangelogs: Record<stri
   const conversaoEscala = pct(countEmEscala, experimentosAprovados)
 
   const totalEpics = experimentosAprovados
-  const semBeneficioCount = data.allEpics.filter(semBeneficioPotencial).length
-  const semSponsorCount = data.allEpics.filter(e => !e.sponsor).length
+  // Sem benefício e sem sponsor olham só os Epics ativos: o que já foi concluído ou cancelado não tem mais ação.
+  const epicsAtivos = data.allEpics.filter(e => !statusEncerrado(e.status))
+  const semBeneficioCount = epicsAtivos.filter(semBeneficioPotencial).length
+  const semSponsorCount = epicsAtivos.filter(e => !e.sponsor?.trim()).length
 
   // Aprendizados acionáveis: epics concluídos que documentaram um benefício
   // qualitativo (proxy para "gerou aprendizado", já que não há campo dedicado no Jira).
@@ -624,8 +628,8 @@ export function buildWeeklyData(data: DashboardData, epicChangelogs: Record<stri
     conversaoPilotoNumerador: countEmPiloto + countEmEscala,
     conversaoEscalaNumerador: countEmEscala,
     conversaoDenominador: experimentosAprovados,
-    semBeneficio: { count: semBeneficioCount, pct: pct(semBeneficioCount, totalEpics) },
-    semSponsor: { count: semSponsorCount, pct: pct(semSponsorCount, totalEpics) },
+    semBeneficio: { count: semBeneficioCount, pct: pct(semBeneficioCount, epicsAtivos.length), base: epicsAtivos.length },
+    semSponsor: { count: semSponsorCount, pct: pct(semSponsorCount, epicsAtivos.length), base: epicsAtivos.length },
     topSponsors,
     topDiretorias,
     experimentosConcluidos: concluidosCount,
@@ -719,6 +723,8 @@ const SAMPLE_STAGES: WeeklyStage[] = [
   },
 ]
 const SAMPLE_TOTAL_EPICS = 199
+/** Epics ativos (nem concluídos nem cancelados) nos dados de exemplo. */
+const SAMPLE_EPICS_ATIVOS = 62
 const SAMPLE_EXPERIMENTOS_APROVADOS = SAMPLE_TOTAL_EPICS   // mesma definição: total de Epics
 const SAMPLE_EM_ANDAMENTO_MAIS_CONCLUIDOS = 56 + 33   // Em andamento + Concluídos
 const SAMPLE_TOTAL_INICIADOS = 89
@@ -773,8 +779,8 @@ export const SAMPLE_WEEKLY_DATA: WeeklyData = {
   conversaoPilotoNumerador: SAMPLE_CONVERSAO_PILOTO_NUMERADOR,
   conversaoEscalaNumerador: SAMPLE_CONVERSAO_ESCALA_NUMERADOR,
   conversaoDenominador: SAMPLE_CONVERSAO_DENOMINADOR,
-  semBeneficio: { count: 36, pct: pct(36, SAMPLE_TOTAL_EPICS) },
-  semSponsor: { count: 29, pct: pct(29, SAMPLE_TOTAL_EPICS) },
+  semBeneficio: { count: 36, pct: pct(36, SAMPLE_EPICS_ATIVOS), base: SAMPLE_EPICS_ATIVOS },
+  semSponsor: { count: 29, pct: pct(29, SAMPLE_EPICS_ATIVOS), base: SAMPLE_EPICS_ATIVOS },
   topSponsors: SAMPLE_TOP_SPONSORS,
   topDiretorias: SAMPLE_TOP_DIRETORIAS,
   experimentosConcluidos: 42,
