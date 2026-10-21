@@ -27,7 +27,7 @@ export function PontoSituacao({ situacao, className }: { situacao: Situacao; cla
 }
 
 export function Lab({ nome, className }: { nome: string | null; className?: string }) {
-  if (!nome) return <span className={cx('text-beon-muted/70', className)}>Sem lab</span>
+  if (!nome) return <span className={cx('text-beon-muted/70', className)}>—</span>
   return (
     <span className={cx('inline-flex min-w-0 items-center gap-1.5', className)}>
       <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: corDoLab(nome) }} aria-hidden />

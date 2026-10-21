@@ -2,6 +2,7 @@ import { DEFAULT_NOTIFICATION_PREFS, type NotificationPrefs } from '@/lib/commun
 import { isKnownTopic } from '@/lib/community/topics'
 import type { PapelConversa } from '@/lib/community/cientista'
 import { jsonStorePath, readJsonStore, writeJsonStore } from '@/lib/storage/json-store'
+import { isEtapaTrilha, normalizarTrilha, type EtapaTrilha } from '@/lib/community/trilha'
 
 // Perfil social de cada pessoa na Comunidade, separado do cadastro de acesso (data/users.json).
 
@@ -21,7 +22,7 @@ export interface CommunityProfile {
   topicosSeguidos: string[]
   pessoasSeguidas: string[]
   salvos: string[]
-  trilhaConcluida: number[]
+  trilhaConcluida: EtapaTrilha[]
   notificacoes: NotificationPrefs
   notificacoesVistasEm: string | null
   onboardedAt: string | null
@@ -53,7 +54,11 @@ function profilesPath(): string {
 export function loadProfiles(): CommunityProfile[] {
   return readJsonStore<Partial<CommunityProfile>[]>(profilesPath(), [])
     .filter(p => typeof p.username === 'string')
-    .map(p => ({ ...emptyProfile(p.username as string), ...p, notificacoes: { ...DEFAULT_NOTIFICATION_PREFS, ...p.notificacoes } }))
+    .map(p => ({
+      ...emptyProfile(p.username as string), ...p,
+      trilhaConcluida: normalizarTrilha(p.trilhaConcluida),
+      notificacoes: { ...DEFAULT_NOTIFICATION_PREFS, ...p.notificacoes },
+    }))
 }
 
 export function getProfile(username: string): CommunityProfile {
@@ -67,7 +72,6 @@ export function saveProfile(profile: CommunityProfile): void {
 }
 
 const TEXT_LIMITS = { cargo: 80, especialidade: 80, bio: 400 } as const
-const TRILHA_ETAPAS = 8
 
 /** Mudanças que a própria pessoa pode fazer no seu perfil. Valida e ignora o que não for permitido. */
 export interface ProfilePatch {
@@ -106,8 +110,8 @@ export function applyProfilePatch(profile: CommunityProfile, patch: ProfilePatch
   if (typeof patch.toggleSalvo === 'string' && patch.toggleSalvo) {
     next.salvos = toggle(next.salvos, patch.toggleSalvo)
   }
-  if (typeof patch.toggleEtapa === 'number' && Number.isInteger(patch.toggleEtapa) && patch.toggleEtapa >= 1 && patch.toggleEtapa <= TRILHA_ETAPAS) {
-    next.trilhaConcluida = toggle(next.trilhaConcluida, patch.toggleEtapa).sort((a, b) => a - b)
+  if (isEtapaTrilha(patch.toggleEtapa)) {
+    next.trilhaConcluida = normalizarTrilha(toggle(next.trilhaConcluida, patch.toggleEtapa))
   }
   if (patch.notificacoes && typeof patch.notificacoes === 'object') {
     const prefs = patch.notificacoes as Record<string, unknown>

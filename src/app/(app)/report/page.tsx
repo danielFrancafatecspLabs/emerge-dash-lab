@@ -24,6 +24,7 @@ import type {
 } from '@/lib/types'
 import type { ChangelogEntry } from '@/lib/jira'
 import { PortalDataError } from '@/components/shell/PortalDataError'
+import { epicBloqueado } from '@/lib/bloqueio'
 
 export const dynamic = 'force-dynamic'
 
@@ -115,13 +116,13 @@ export default async function ReportPage() {
   }
 
   const bloqueados: BloqueadoSlideRow[] = emAndamento
-    .filter(e => Boolean(findMotivoQuadrante(e.key, e.nome) ?? e.motivoBloqueio) || estaBloqueadoAgora(e.key, epicChangelogs))
+    .filter(e => Boolean(findMotivoQuadrante(e.key, e.nome) ?? e.motivoBloqueio) || epicBloqueado(e) || estaBloqueadoAgora(e.key, epicChangelogs))
     .map(e => ({
       key: e.key,
       nome: e.nome,
       fase: e.status?.name ?? '—',
       // Primeiro, buscar o motivo nos quadrantes (por key, por nome ou por substring); se não houver, fallback para campo Jira
-      motivoBloqueio: findMotivoQuadrante(e.key, e.nome) ?? e.motivoBloqueio ?? '—',
+      motivoBloqueio: findMotivoQuadrante(e.key, e.nome) ?? e.motivoBloqueio ?? e.sinaisBloqueio?.[0] ?? '—',
       dataLimite: e.duedate ?? null,
       descricao: limparDescricao(e.descricao),
       sponsor: e.sponsor ?? '—',
