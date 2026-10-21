@@ -7,7 +7,9 @@ import { montarPaginas } from '@/lib/semanal-deck'
 import PresentationOverlay from '@/components/weekly/PresentationOverlay'
 import FitSlide from '@/components/weekly/FitSlide'
 import ResumoSlide from './ResumoSlide'
+import DetalheBeneficio from './DetalheBeneficio'
 import CancelamentoSlide from './CancelamentoSlide'
+import GovernancaSemanalSlide from './GovernancaSemanalSlide'
 import ListaSlide from './ListaSlide'
 import { CapaSlide, DivisorSlide, ObjetivoSlide, ObrigadoSlide, SLIDE_W } from './SlideArt'
 
@@ -22,6 +24,8 @@ interface SlideDef {
 
 interface Navegacao {
   irPara: (anchor: string) => void
+  /** Abre a lista do benefício potencial total. */
+  beneficio: () => void
 }
 
 function montarSlides(data: SemanalData): SlideDef[] {
@@ -30,7 +34,8 @@ function montarSlides(data: SemanalData): SlideDef[] {
     switch (pg.tipo) {
       case 'capa': return { ...base, render: () => <CapaSlide periodo={pg.periodo} /> }
       case 'objetivo': return { ...base, render: () => <ObjetivoSlide /> }
-      case 'resumo': return { ...base, render: nav => <ResumoSlide resumo={data.resumo} ateLabel={pg.ateLabel} onDetalhes={(id: SemanalSecaoId) => nav.irPara(id)} /> }
+      case 'resumo': return { ...base, render: nav => <ResumoSlide resumo={data.resumo} ateLabel={pg.ateLabel} onDetalhes={(id: SemanalSecaoId) => nav.irPara(id)} onDetalhesBeneficio={nav.beneficio} /> }
+      case 'governanca': return { ...base, render: () => <GovernancaSemanalSlide governanca={data.governanca} geradoEm={data.geradoEm} /> }
       case 'cancelamento': return { ...base, render: () => <CancelamentoSlide cancelamento={pg.cancelamento} /> }
       case 'divisor': return { ...base, render: () => <DivisorSlide linhas={pg.linhas} icone={pg.icone} /> }
       case 'lista': return {
@@ -46,6 +51,7 @@ export default function SemanalDeck() {
   const [data, setData] = useState<SemanalData | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [presentIndex, setPresentIndex] = useState<number | null>(null)
+  const [verBeneficio, setVerBeneficio] = useState(false)
 
   useEffect(() => {
     fetch('/jira/api/semanal', { credentials: 'include' })
@@ -68,6 +74,7 @@ export default function SemanalDeck() {
   // Na página: rola até o slide. Na apresentação: troca o slide exibido.
   const navPagina: Navegacao = useMemo(() => ({
     irPara: (anchor: string) => document.getElementById(`semanal-${anchor}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' }),
+    beneficio: () => setVerBeneficio(true),
   }), [])
   const navApresentacao = useCallback((anchor: string) => {
     const idx = slides.findIndex(s => s.anchor === anchor)
@@ -75,7 +82,7 @@ export default function SemanalDeck() {
   }, [slides])
 
   const slidesApresentacao = useMemo(() => slides.map(s => ({
-    key: s.key, label: s.label, node: s.render({ irPara: navApresentacao }),
+    key: s.key, label: s.label, node: s.render({ irPara: navApresentacao, beneficio: () => setVerBeneficio(true) }),
   })), [slides, navApresentacao])
 
   if (error) return <p className="text-sm" style={{ color: RED }}>Erro ao carregar dados: {error}</p>
@@ -129,6 +136,8 @@ export default function SemanalDeck() {
           <FitSlide>{s.render(navPagina)}</FitSlide>
         </section>
       ))}
+
+      <DetalheBeneficio aberto={verBeneficio} onFechar={() => setVerBeneficio(false)} total={data.resumo.beneficioTotal} detalhe={data.resumo.beneficioDetalhe} />
 
       {presentIndex !== null && (
         <PresentationOverlay

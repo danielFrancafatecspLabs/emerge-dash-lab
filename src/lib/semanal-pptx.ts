@@ -2,8 +2,11 @@ import { join } from 'path'
 import PptxGenJS from 'pptxgenjs'
 import type { SemanalCancelamento, SemanalData, SemanalResumo, SemanalRow, SemanalSecaoId } from './semanal'
 import {
+  dataAtualizacao, GOV_BOLINHA_EXPLORACAO, GOV_GRAFITE, GOV_LAYOUT, layoutGovernanca, TECNOLOGIAS_GOV, type SemanalGovernanca,
+} from './semanal-governanca'
+import {
   CANCELAMENTO_LAYOUT, chipCor, colunasDa, contagemPorLab, corDoLab, diretorEPontoFocal, formatBeneficioMM, formatData,
-  formatMilhoes, fraseDestaque, LINHAS_POR_PAGINA, montarPaginas, pctUmaCasa, sequenciasDeLab, type PaginaDeck,
+  formatMilhoes, fraseDestaque, LINHAS_POR_PAGINA, montarPaginas, pctUmaCasa, RESUMO_FUNIL, sequenciasDeLab, setaDoFunil, type PaginaDeck,
 } from './semanal-deck'
 
 /**
@@ -131,7 +134,7 @@ const ETAPAS = [
 ]
 
 function seta(slide: Slide, x: number, y: number, w: number, h: number, cor: string, entalhe: boolean) {
-  const d = w * 0.09
+  const d = RESUMO_FUNIL.ponta
   const pts = entalhe
     ? [[0, 0], [w - d, 0], [w, h / 2], [w - d, h], [0, h], [d, h / 2]]
     : [[0, 0], [w - d, 0], [w, h / 2], [w - d, h], [0, h]]
@@ -195,54 +198,57 @@ function resumo(slide: Slide, r: SemanalResumo, ate: string, destino: (id: Seman
   slide.addShape('roundRect', { x: I(988), y: I(90), w: I(248), h: I(104), rectRadius: I(10), fill: { color: INK }, line: { type: 'none' } })
   texto(slide, `R$ ${formatMilhoes(r.beneficioTotal, 'milhões', true)}`, 1004, 100, 170, 32, { fontSize: P(24), bold: true, color: 'FFFFFF', valign: 'middle' })
   texto(slide, 'Benefício potencial total', 1004, 133, 216, 18, { fontSize: P(14), color: 'FFFFFF' })
-  texto(slide, `Concedido pelas áreas de negócio para os ${r.totalExperimentos} experimentos`, 1004, 154, 216, 30, { fontSize: P(10.5), color: 'B8BEC6' })
+  texto(slide, 'Exploração, andamento e hipóteses validadas (sem cancelados e refutados)', 1004, 154, 216, 30, { fontSize: P(10.5), color: 'B8BEC6' })
   circulo(slide, 1180, 102, 40, RED)
   imagem(slide, icone('moedas'), 1189, 111, 22, 22)
 
   // Etapas do funil
+  const { topoSeta, alturaSeta, ponta } = RESUMO_FUNIL
   ETAPAS.forEach((e, i) => {
-    const x = 44 + i * 298
-    seta(slide, x, 214, 312, 86, e.bg, i > 0)
-    const nx = x + (i === 0 ? 18 : 42)
-    circulo(slide, nx, 242, 30, e.nbg)
-    texto(slide, String(e.n), nx, 242, 30, 30, { fontSize: P(15), bold: true, color: e.nfg, align: 'center', valign: 'middle' })
+    const { x, w } = setaDoFunil(i)
+    seta(slide, x, topoSeta, w, alturaSeta, e.bg, i > 0)
+    const nx = x + (i === 0 ? 16 : ponta + 12)
+    const ny = topoSeta + (alturaSeta - 30) / 2
+    circulo(slide, nx, ny, 30, e.nbg)
+    texto(slide, String(e.n), nx, ny, 30, 30, { fontSize: P(15), bold: true, color: e.nfg, align: 'center', valign: 'middle' })
     texto(slide, [
       { text: e.t, options: { fontSize: P(15), bold: true, color: e.fg, breakLine: true } },
-      { text: e.d, options: { fontSize: P(12.5), color: e.fg } },
-    ], nx + 42, 218, 312 - (nx - x) - 42 - 34, 78, { valign: 'middle', lineSpacingMultiple: 0.95 })
+      { text: e.d, options: { fontSize: P(11.5), color: e.fg } },
+    ], nx + 40, topoSeta + 2, x + w - ponta - 4 - (nx + 40), alturaSeta - 4, { valign: 'middle', lineSpacingMultiple: 0.95 })
   })
+  const [c1, c2, c3, c4] = RESUMO_FUNIL.colunas
 
   // Exploração
-  cartao(slide, 44, 314, 262, 250)
-  texto(slide, `${r.exploracao.ideiasNaoAvaliadas} ideias não avaliadas`, 62, 322, 230, 18, { fontSize: P(12.5), color: MUTED })
-  numeroGrande(slide, 62, 340, r.exploracao.oportunidades, 'oportunidades')
-  beneficio(slide, 44, 314, 262, r.exploracao.beneficio)
-  rodape(slide, 44, 314, 262, 178, 'lampada', 'Triagem e priorização de ideias')
-  detalhes(slide, 62, 530, 226, 22, destino('backlog'))
+  cartao(slide, c1.x, 314, c1.w, 250)
+  texto(slide, `${r.exploracao.ideiasNaoAvaliadas} ideias não avaliadas`, c1.x + 18, 322, c1.w - 32, 18, { fontSize: P(12.5), color: MUTED })
+  numeroGrande(slide, c1.x + 18, 340, r.exploracao.oportunidades, 'oportunidades')
+  beneficio(slide, c1.x, 314, c1.w, r.exploracao.beneficio)
+  rodape(slide, c1.x, 314, c1.w, 178, 'lampada', 'Triagem e priorização de ideias')
+  detalhes(slide, c1.x + 18, 530, c1.w - 36, 22, destino('backlog'))
 
   // Experimentação
-  cartao(slide, 318, 314, 240, 250)
-  numeroGrande(slide, 336, 328, r.experimentacao.experimentos, 'experimentos')
-  beneficio(slide, 318, 314, 240, r.experimentacao.beneficio)
-  rodape(slide, 318, 314, 240, 178, 'engrenagem', 'Construção e validação da solução')
-  detalhes(slide, 336, 530, 204, 22, destino('andamento'))
+  cartao(slide, c2.x, 314, c2.w, 250)
+  numeroGrande(slide, c2.x + 18, 328, r.experimentacao.experimentos, 'experimentos')
+  beneficio(slide, c2.x, 314, c2.w, r.experimentacao.beneficio)
+  rodape(slide, c2.x, 314, c2.w, 178, 'engrenagem', 'Construção e validação da solução')
+  detalhes(slide, c2.x + 18, 530, c2.w - 36, 22, destino('andamento'))
 
   // Piloto
-  cartao(slide, 592, 314, 376, 250)
-  numeroGrande(slide, 608, 320, r.piloto.total, 'experimentos')
-  detalhes(slide, 772, 330, 180, 22, destino('aguardando'))
-  slide.addShape('roundRect', { x: I(606), y: I(372), w: I(348), h: I(38), rectRadius: I(6), fill: { color: 'FFFFFF' }, line: { color: RED, width: 1.1 } })
+  cartao(slide, c3.x, 314, c3.w, 250)
+  numeroGrande(slide, c3.x + 16, 320, r.piloto.total, 'experimentos')
+  detalhes(slide, c3.x + 180, 330, 180, 22, destino('aguardando'))
+  slide.addShape('roundRect', { x: I(c3.x + 14), y: I(372), w: I(348), h: I(38), rectRadius: I(6), fill: { color: 'FFFFFF' }, line: { color: RED, width: 1.1 } })
   texto(slide, [
     { text: String(r.piloto.aguardando.quantidade), options: { fontSize: P(20), bold: true, color: RED } },
     { text: '  AGUARDANDO PILOTO', options: { fontSize: P(12), color: RED } },
-  ], 618, 372, 190, 38, { valign: 'middle' })
-  potencial(slide, 806, 375, r.piloto.aguardando.beneficio)
-  slide.addShape('roundRect', { x: I(606), y: I(416), w: I(348), h: I(112), rectRadius: I(6), fill: { color: 'FFFFFF' }, line: { color: RED, width: 1.1 } })
+  ], c3.x + 26, 372, 190, 38, { valign: 'middle' })
+  potencial(slide, c3.x + 214, 375, r.piloto.aguardando.beneficio)
+  slide.addShape('roundRect', { x: I(c3.x + 14), y: I(416), w: I(348), h: I(112), rectRadius: I(6), fill: { color: 'FFFFFF' }, line: { color: RED, width: 1.1 } })
   texto(slide, [
     { text: String(r.piloto.execucao.quantidade), options: { fontSize: P(20), bold: true, color: RED } },
     { text: '  EM EXECUÇÃO', options: { fontSize: P(12), color: RED } },
-  ], 618, 420, 190, 32, { valign: 'middle' })
-  potencial(slide, 806, 420, r.piloto.execucao.beneficio, destino('piloto'))
+  ], c3.x + 26, 420, 190, 32, { valign: 'middle' })
+  potencial(slide, c3.x + 214, 420, r.piloto.execucao.beneficio, destino('piloto'))
   const { destaque, demais } = r.piloto.execucao
   if (destaque && demais) {
     const caixas = [
@@ -250,7 +256,7 @@ function resumo(slide: Slide, r: SemanalResumo, ate: string, destino: (id: Seman
       { n: demais.quantidade, titulo: '', valor: demais.beneficio },
     ]
     caixas.forEach((c, i) => {
-      const x = 618 + i * 165
+      const x = c3.x + 26 + i * 165
       slide.addShape('roundRect', { x: I(x), y: I(466), w: I(159), h: I(52), rectRadius: I(4), fill: { color: 'FBE4E4' }, line: { type: 'none' } })
       texto(slide, String(c.n), x + 8, 466, 24, 52, { fontSize: P(18), bold: true, color: INK, valign: 'middle' })
       if (c.titulo) texto(slide, caber(c.titulo, 62, 9, 4), x + 28, 466, 62, 52, { fontSize: P(9), bold: true, color: INK, valign: 'middle', lineSpacingMultiple: 0.9 })
@@ -260,26 +266,140 @@ function resumo(slide: Slide, r: SemanalResumo, ate: string, destino: (id: Seman
       ], x + 70, 466, 81, 52, { align: 'right', valign: 'middle' })
     })
   }
-  rodape(slide, 592, 314, 376, 218, 'microscopio', 'Avaliação e execução de pilotos em ambiente real')
+  rodape(slide, c3.x, 314, c3.w, 218, 'microscopio', 'Avaliação e execução de pilotos em ambiente real')
 
   // Em escala
-  cartao(slide, 980, 314, 256, 250)
-  numeroGrande(slide, 998, 328, r.escala.experimentos, 'experimentos')
-  beneficio(slide, 980, 314, 256, r.escala.beneficio)
-  rodape(slide, 980, 314, 256, 178, 'foguete', 'Escala e geração de valor')
-  detalhes(slide, 998, 530, 220, 22, destino('escala'))
+  cartao(slide, c4.x, 314, c4.w, 250)
+  numeroGrande(slide, c4.x + 18, 328, r.escala.experimentos, 'experimentos')
+  beneficio(slide, c4.x, 314, c4.w, r.escala.beneficio)
+  rodape(slide, c4.x, 314, c4.w, 178, 'foguete', 'Escala e geração de valor')
+  detalhes(slide, c4.x + 18, 530, c4.w - 36, 22, destino('escala'))
 
   // Principais métricas
   texto(slide, 'PRINCIPAIS MÉTRICAS', 44, 578, 400, 18, { fontSize: P(12.5), bold: true, color: RED, charSpacing: P(3) })
   r.metricas.slice(0, 4).forEach((m, i) => {
-    const x = 44 + i * 302
-    cartao(slide, x, 602, 290, 78)
+    const x = 44 + i * 301
+    cartao(slide, x, 602, 289, 78)
     anel(slide, x + 16.5, 611.5, 59, 7, m.pct)
     texto(slide, `${m.pct}%`, x + 14, 609, 64, 64, { fontSize: P(14), bold: true, color: INK, align: 'center', valign: 'middle' })
     texto(slide, [
       { text: m.titulo, options: { fontSize: P(15), bold: true, color: INK, breakLine: true } },
       { text: m.descricao, options: { fontSize: P(11.5), color: MUTED } },
     ], x + 90, 606, 190, 70, { valign: 'middle' })
+  })
+}
+
+// ── Governança beOn Labs ──────────────────────────────────────────────────────────────────────────────
+
+function governanca(slide: Slide, g: SemanalGovernanca, geradoEm: string) {
+  const L = GOV_LAYOUT
+  const lay = layoutGovernanca(g)
+  const AMX = { fontFace: 'AMX' }
+  const DARK_RED = '8B0000'
+  const cor = (h: string) => h.replace('#', '')
+  const x0 = L.margem, x1 = 1280 - L.margem
+  const semLinha = { type: 'none' as const }
+
+  // Título e legendas
+  texto(slide, [
+    { text: 'GOVERNANÇA ', options: { charSpacing: P(2) } },
+    { text: 'beOn Labs' },
+  ], x0, 14, 420, 44, { ...AMX, fontSize: P(30), bold: true, color: RED, valign: 'middle' })
+  texto(slide, 'SUB-STATUS', 440, 16, 190, 14, { ...AMX, fontSize: P(10), bold: true, color: INK })
+  imagem(slide, icone('prioridade'), 440, 35, 14, 14)
+  texto(slide, 'Prioridade', 459, 34, 70, 16, { ...AMX, fontSize: P(11.5), color: MUTED, valign: 'middle' })
+  imagem(slide, icone('cadeado'), 536, 36, 12, 12)
+  texto(slide, 'Bloqueio', 553, 34, 70, 16, { ...AMX, fontSize: P(11.5), color: MUTED, valign: 'middle' })
+  texto(slide, 'TIPO DE TECNOLOGIA', 640, 16, 300, 14, { ...AMX, fontSize: P(10), bold: true, color: INK })
+  let lx = 640
+  for (const t of [...TECNOLOGIAS_GOV, { label: 'Em exploração', cor: GOV_BOLINHA_EXPLORACAO }]) {
+    circulo(slide, lx, 36, 12, cor(t.cor))
+    const w = t.label.length * 5.3 + 4
+    texto(slide, t.label, lx + 17, 34, w, 16, { ...AMX, fontSize: P(11), color: MUTED, valign: 'middle', wrap: false })
+    lx += 17 + w + 8
+  }
+  texto(slide, 'ATUALIZADO EM:', x1 - 120, 16, 120, 14, { ...AMX, fontSize: P(10), bold: true, color: INK, align: 'center' })
+  slide.addText(dataAtualizacao(geradoEm), {
+    x: I(x1 - 120), y: I(33), w: I(120), h: I(19), shape: 'roundRect', rectRadius: I(4), fill: { color: 'FFFFFF' },
+    line: { color: RED, width: 1.1 }, margin: 0, ...AMX, fontSize: P(12), bold: true, color: INK, align: 'center', valign: 'middle',
+  })
+
+  // Total de experimentos
+  slide.addShape('roundRect', {
+    x: I(x0), y: I(L.faixaY), w: I(x1 - x0), h: I(L.faixaH + 12), rectRadius: I(10), fill: { color: 'FFFFFF' }, line: { color: RED, width: 1.5 },
+  })
+  texto(slide, `${g.totalExperimentos} EXPERIMENTOS`, x0, L.faixaY, x1 - x0, L.faixaH, {
+    ...AMX, fontSize: P(15), bold: true, color: RED, align: 'center', valign: 'middle', charSpacing: P(3),
+  })
+
+  // Cabeçalho das fases (cobre a borda de baixo da faixa)
+  // Degradê laranja → vermelho → vinho (GOV_DEGRADE): o pptxgenjs não gera preenchimento em degradê, então vai como imagem.
+  const degrade = join(ASSETS, 'governanca-cabecalho.png')
+  imagem(slide, degrade, x0, L.grupoY, L.areaW, L.grupoH + L.subH)
+  slide.addText('ÁREA', {
+    x: I(x0), y: I(L.grupoY), w: I(L.areaW), h: I(L.grupoH + L.subH), line: semLinha, margin: 0,
+    ...AMX, fontSize: P(15), bold: true, color: 'FFFFFF', align: 'center', valign: 'middle', charSpacing: P(1),
+  })
+  for (const { grupo, x, w } of lay.grupos) {
+    imagem(slide, degrade, x, L.grupoY, w, L.grupoH)
+    slide.addShape('line', { x: I(x), y: I(L.grupoY), w: 0, h: I(L.grupoH + L.subH), line: { color: 'FFFFFF', width: 1.5 } })
+    texto(slide, [
+      { text: `${grupo.total}  `, options: { fontSize: P(24), bold: true } },
+      { text: grupo.label, options: { fontSize: P(14), bold: true } },
+    ], x + 12, L.grupoY, w - 20, L.grupoH, { ...AMX, color: 'FFFFFF', valign: 'middle' })
+    grupo.colunas.forEach((gc, k) => {
+      const col = lay.colunas.find(c => c.id === gc.id)!
+      slide.addShape('rect', { x: I(col.x + (k === 0 ? 1 : 0)), y: I(L.subY), w: I(col.w - (k === 0 ? 1 : 0)), h: I(L.subH), fill: { color: 'FBE4E4' }, line: semLinha })
+      if (k > 0) slide.addShape('line', { x: I(col.x), y: I(L.subY), w: 0, h: I(L.subH), line: { color: 'E8A0A0', width: 0.75, dashType: 'dash' } })
+      if (gc.label) {
+        texto(slide, [
+          { text: `${gc.label} `, options: { bold: true } },
+          { text: `(${gc.total})` },
+        ], col.x, L.subY, col.w, L.subH, { ...AMX, fontSize: P(11), color: DARK_RED, align: 'center', valign: 'middle' })
+      }
+    })
+  }
+
+  // Fundo de destaque dos experimentos em andamento
+  const andamento = lay.grupos.find(gr => gr.grupo.id === 'andamento')
+  if (andamento) slide.addShape('rect', { x: I(andamento.x), y: I(L.gradeY), w: I(andamento.w), h: I(L.gradeFim - L.gradeY), fill: { color: 'FFF6F6' }, line: semLinha })
+
+  // Divisórias das colunas
+  lay.colunas.forEach((c, k) => {
+    if (k === 0) return
+    const inicioDeGrupo = lay.grupos.some(gr => gr.x === c.x)
+    slide.addShape('line', {
+      x: I(c.x), y: I(L.gradeY), w: 0, h: I(L.gradeFim - L.gradeY),
+      line: inicioDeGrupo ? { color: 'C9CDD3', width: 0.75 } : { color: 'E3B5B5', width: 0.75, dashType: 'dash' },
+    })
+  })
+
+  // Linhas por área
+  lay.linhas.forEach((linha, r) => {
+    slide.addText(linha.area.toUpperCase(), {
+      x: I(x0), y: I(linha.y + (r ? 2 : 0)), w: I(L.areaW), h: I(linha.h - (r ? 2 : 0)), fill: { color: cor(GOV_GRAFITE) }, line: semLinha,
+      margin: [0, 10, 0, 10].map(P) as [number, number, number, number],
+      ...AMX, fontSize: P(12.5), bold: true, color: 'FFFFFF', valign: 'middle',
+    })
+    for (const cel of linha.celulas) {
+      for (const { x, y, item, linhasNome } of cel.itens) {
+        const bx = x + (L.itemW - L.bolinha) / 2
+        const corBolinha = cel.coluna === 'exploracao' ? GOV_BOLINHA_EXPLORACAO : TECNOLOGIAS_GOV.find(t => t.id === item.tecnologia)!.cor
+        circulo(slide, bx, y, L.bolinha, cor(corBolinha))
+        if (item.prioridade) imagem(slide, icone('prioridade'), bx - 8, y - 5, 12, 12)
+        if (item.bloqueio) imagem(slide, icone('cadeado'), bx + L.bolinha + 1, y - 4, 10, 10)
+        texto(slide, linhasNome.join('\n'), x - 4, y + L.bolinha + 1, L.itemW + 8, L.linhaH - L.bolinha - 1, {
+          // As linhas já vêm quebradas (quebrarNome): sem quebra automática, uma fonte mais larga não cria uma 3ª linha.
+          ...AMX, fontSize: P(L.fonteNome), color: INK, align: 'center', lineSpacingMultiple: 0.9, wrap: false,
+        })
+      }
+      if (cel.mais) {
+        texto(slide, [
+          { text: `+${cel.mais.n}`, options: { fontSize: P(12), bold: true, breakLine: true } },
+          { text: 'mais', options: { fontSize: P(L.fonteNome) } },
+        ], cel.mais.x - 4, cel.mais.y - 2, L.itemW + 8, L.linhaH, { ...AMX, color: MUTED, align: 'center' })
+      }
+    }
   })
 }
 
@@ -468,6 +588,7 @@ export async function gerarPptxSemanal(data: SemanalData): Promise<Buffer> {
       case 'capa': capa(slide, pg.periodo); break
       case 'objetivo': objetivo(slide); break
       case 'resumo': resumo(slide, data.resumo, pg.ateLabel, id => slideDe.get(id)); break
+      case 'governanca': governanca(slide, data.governanca, data.geradoEm); break
       case 'cancelamento': cancelamento(slide, pg.cancelamento); break
       case 'divisor': divisor(slide, pg.linhas, pg.icone); break
       case 'lista': lista(slide, pg, slideDe.get('resumo')); break
