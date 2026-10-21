@@ -7,8 +7,8 @@ describe('estrutura do deck da Semanal', () => {
   const paginas = montarPaginas(data)
 
   it('segue a ordem do Comitê: capa, objetivo, visão geral, seções e encerramento', () => {
-    expect(paginas.slice(0, 4).map(p => p.tipo)).toEqual(['capa', 'objetivo', 'resumo', 'cancelamento'])
-    expect(paginas[4].tipo).toBe('divisor')
+    expect(paginas.slice(0, 5).map(p => p.tipo)).toEqual(['capa', 'objetivo', 'resumo', 'governanca', 'cancelamento'])
+    expect(paginas[5].tipo).toBe('divisor')
     expect(paginas[paginas.length - 1].tipo).toBe('obrigado')
     expect(periodoLabel(data.geradoEm)).toBe('Outubro de 2026')
     expect(ateLabel(data.geradoEm)).toBe('até out/26')

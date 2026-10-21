@@ -67,6 +67,7 @@ describe('buildSemanalData', () => {
       geradoEm: '2026-10-09T12:00:00Z', isSample: false, experimentosAprovados: epics.length,
       pendenteAnalise: stage('pendente-analise', [], 45),
       semBeneficio: { count: 1, pct: 50, base: 2 }, semSponsor: { count: 1, pct: 50, base: 2 },
+      beneficioConsiderado: 19_600_000, epicsConsiderados: [], foraDaConta: { cancelados: 1, refutados: 2 },
       stages: [
         stage('backlog', ['GL-1']), stage('andamento', ['GL-2']), stage('cancelados', ['GL-3']), stage('concluidos', ['GL-4', 'GL-5']),
         stage('aguardando', ['GL-10']), stage('piloto', ['GL-11']), stage('escala', []),
@@ -81,14 +82,16 @@ describe('buildSemanalData', () => {
     expect(out.resumo.piloto.aguardando.beneficio).toBe(2_000_000)
     expect(out.resumo.piloto.execucao.beneficio).toBe(254_000_000)
 
-    // Cadastro: sobre os 2 experimentos ativos, não sobre o total aprovado.
+    // Benefício e cadastro: só os experimentos considerados (sem cancelados e refutados), não o total aprovado.
+    expect(out.resumo.beneficioTotal).toBe(19_600_000)
+    expect(out.resumo.beneficioDetalhe.fora).toEqual({ cancelados: 1, refutados: 2 })
     const sem = out.resumo.metricas.find(m => m.titulo === 'Sem benefício potencial')!
-    expect(sem).toMatchObject({ pct: 50, descricao: '1 de 2 experimentos ativos sem registro de benefício potencial' })
+    expect(sem).toMatchObject({ pct: 50, descricao: '1 de 2 experimentos considerados sem registro de benefício potencial' })
     const andamento = out.secoes.find(s => s.id === 'andamento')!.rows[0]
     expect(andamento).toMatchObject({ estrategico: true, pendencia: 'Pendente Status', previsao: '2026-10-30', descricao: 'testar' })
   })
 
-  it('os dados de exemplo reproduzem os números do Comitê V7 (cadastro sobre os experimentos ativos)', () => {
+  it('os dados de exemplo reproduzem os números do Comitê V7 (cadastro sobre os experimentos considerados)', () => {
     const r = SAMPLE_SEMANAL_DATA.resumo
     expect(r.totalExperimentos).toBe(210)
     expect(r.fatias.map(f => f.pct)).toEqual([2, 9, 19, 28, 42])

@@ -1,6 +1,7 @@
 import type { DashboardData, EpicDetail, Iniciativa } from './types'
-import type { WeeklyData } from './weekly'
+import type { EpicConsiderado, WeeklyData } from './weekly'
 import { limparDescricao } from './report-utils'
+import { entradaDeEpic, entradaDeIniciativa, montarGovernanca, type EntradaGov, type SemanalGovernanca } from './semanal-governanca'
 
 /**
  * Aba "Semanal" — reproduz o deck do Comitê beOn Labs (V7) com dados do Jira.
@@ -59,10 +60,18 @@ export interface SemanalMetrica {
   pct: number
 }
 
+/** O que compõe o benefício potencial total (botão DETALHES do slide de resumo). */
+export interface SemanalBeneficioDetalhe {
+  itens: EpicConsiderado[]
+  fora: { cancelados: number; refutados: number }
+}
+
 export interface SemanalResumo {
   totalExperimentos: number
   fatias: SemanalFatia[]
+  /** Benefício potencial dos Epics em exploração, em andamento e com hipótese validada (sem cancelados e refutados). */
   beneficioTotal: number
+  beneficioDetalhe: SemanalBeneficioDetalhe
   exploracao: { oportunidades: number; ideiasNaoAvaliadas: number; beneficio: number }
   experimentacao: { experimentos: number; beneficio: number }
   piloto: {
@@ -98,6 +107,8 @@ export interface SemanalCancelamento {
 export interface SemanalData {
   geradoEm: string
   resumo: SemanalResumo
+  /** Slide "Governança beOn Labs": áreas × fases, com cada experimento ou iniciativa como bolinha. */
+  governanca: SemanalGovernanca
   cancelamento: SemanalCancelamento
   secoes: SemanalSecao[]
   isSample: boolean
@@ -248,16 +259,34 @@ export function buildSemanalData(data: DashboardData, weekly: WeeklyData): Seman
   const validadas = aguardando.length + piloto.length + escala.length
   const refutadas = Math.max(0, total - (backlog.length + andamento.length + validadas + cancelados))
 
+  // Quadro de Governança: as mesmas fases da Weekly, com Em andamento separado de Em validação.
+  const epicsDe = (id: string) => (stage(id)?.experimentos ?? []).map(r => epicByKey.get(r.key)).filter((e): e is EpicDetail => !!e)
+  const inisDe = (id: string) => (stage(id)?.experimentos ?? []).map(r => iniByKey.get(r.key)).filter((i): i is Iniciativa => !!i)
+  const emValidacao = (e: EpicDetail) => e.status.id === '10204' || /valida/i.test(e.status.name)
+  const andamentoEpics = epicsDe('andamento')
+
+  const resumo = montarResumo({
+    total, backlog, andamento, aguardando, piloto, escala, cancelados, refutadas,
+    ideiasNaoAvaliadas: weekly.pendenteAnalise.quantidade,
+    beneficioTotal: weekly.beneficioConsiderado,
+    beneficioDetalhe: { itens: weekly.epicsConsiderados, fora: weekly.foraDaConta },
+    semBeneficio: weekly.semBeneficio.count,
+    semSponsor: weekly.semSponsor.count,
+    epicsAtivos: weekly.semBeneficio.base,
+  })
+
   return {
     geradoEm: weekly.geradoEm,
     isSample: weekly.isSample,
-    resumo: montarResumo({
-      total, backlog, andamento, aguardando, piloto, escala, cancelados, refutadas,
-      ideiasNaoAvaliadas: weekly.pendenteAnalise.quantidade,
-      beneficioTotal: data.beneficioTotal,
-      semBeneficio: weekly.semBeneficio.count,
-      semSponsor: weekly.semSponsor.count,
-      epicsAtivos: weekly.semBeneficio.base,
+    resumo,
+    governanca: montarGovernanca(resumo.totalExperimentos, {
+      exploracao: epicsDe('backlog').map(e => entradaDeEpic(e, false)),
+      desenvolvimento: andamentoEpics.filter(e => !emValidacao(e)).map(e => entradaDeEpic(e, true)),
+      validacao: andamentoEpics.filter(emValidacao).map(e => entradaDeEpic(e, true)),
+      concluidos: epicsDe('concluidos').map(e => entradaDeEpic(e, false)),
+      aguardando: inisDe('aguardando').map(entradaDeIniciativa),
+      execucao: inisDe('piloto').map(entradaDeIniciativa),
+      escala: inisDe('escala').map(entradaDeIniciativa),
     }),
     secoes: montarSecoes({ escala, aguardando, piloto, andamento, backlog }),
     cancelamento: montarCancelamento(weekly.motivosCancelamento ?? []),
@@ -275,9 +304,10 @@ interface ResumoInput {
   refutadas: number
   ideiasNaoAvaliadas: number
   beneficioTotal: number
+  beneficioDetalhe: SemanalBeneficioDetalhe
   semBeneficio: number
   semSponsor: number
-  /** Base dos indicadores de cadastro: Epics ativos (nem concluídos nem cancelados). */
+  /** Base dos indicadores de cadastro: Epics considerados (exploração, andamento e hipóteses validadas). */
   epicsAtivos: number
 }
 
@@ -300,6 +330,7 @@ function montarResumo(i: ResumoInput): SemanalResumo {
     totalExperimentos: totalFatias,
     fatias: labels.map(([id, label], k) => ({ id, label, quantidade: qtds[k], pct: pcts[k] })),
     beneficioTotal: i.beneficioTotal,
+    beneficioDetalhe: i.beneficioDetalhe,
     exploracao: { oportunidades: i.backlog.length, ideiasNaoAvaliadas: i.ideiasNaoAvaliadas, beneficio: soma(i.backlog) },
     experimentacao: { experimentos: i.andamento.length, beneficio: soma(i.andamento) },
     piloto: {
@@ -318,11 +349,11 @@ function montarResumo(i: ResumoInput): SemanalResumo {
         descricao: `${i.piloto.length + i.escala.length} de ${totalFatias} experimentos aprovados já realizaram piloto` },
       { titulo: 'Conversão para escala', pct: pct(i.escala.length, totalFatias),
         descricao: `${i.escala.length} de ${totalFatias} experimentos aprovados já em escala` },
-      // Cadastro: só os experimentos ativos, porque são os que ainda dá para corrigir.
+      // Cadastro: sobre os mesmos experimentos do benefício potencial (sem cancelados e sem hipóteses refutadas).
       { titulo: 'Sem benefício potencial', pct: pct(i.semBeneficio, i.epicsAtivos),
-        descricao: `${i.semBeneficio} de ${i.epicsAtivos} experimentos ativos sem registro de benefício potencial` },
+        descricao: `${i.semBeneficio} de ${i.epicsAtivos} experimentos considerados sem registro de benefício potencial` },
       { titulo: 'Sem patrocínio formal', pct: pct(i.semSponsor, i.epicsAtivos),
-        descricao: `${i.semSponsor} de ${i.epicsAtivos} experimentos ativos sem patrocínio formal da diretoria` },
+        descricao: `${i.semSponsor} de ${i.epicsAtivos} experimentos considerados sem patrocínio formal da diretoria` },
     ],
   }
 }
@@ -438,21 +469,34 @@ export const SAMPLE_SEMANAL_DATA: SemanalData = (() => {
   })
   const sec = (id: SemanalSecaoId) => secoes.find(s => s.id === id)!.rows
   const ativos = [...sec('backlog'), ...sec('andamento')]
+  const resumo = montarResumo({
+    total: 210, backlog: sec('backlog'), andamento: sec('andamento'), aguardando: sec('aguardando'),
+    piloto: sec('piloto'), escala: sec('escala'), cancelados: 88, refutadas: 60, ideiasNaoAvaliadas: 45,
+    beneficioTotal: 416_000_000, beneficioDetalhe: { itens: [], fora: { cancelados: 88, refutados: 60 } },
+    semBeneficio: ativos.filter(r => !r.beneficio).length, semSponsor: ativos.filter(r => !r.diretor).length, epicsAtivos: ativos.length,
+  })
+  // Sem Jira não há tecnologia, prioridade nem bloqueio: o exemplo mostra só a distribuição por área.
+  const entrada = (r: SemanalRow): EntradaGov => ({ area: r.area, item: { key: r.key, nome: r.nome, tecnologia: 'ia', prioridade: false, bloqueio: false } })
+  const validando = (r: SemanalRow) => /valida/i.test(r.fase)
   return {
     geradoEm: new Date().toISOString(),
     isSample: true,
     secoes,
+    governanca: montarGovernanca(resumo.totalExperimentos, {
+      exploracao: sec('backlog').map(entrada),
+      desenvolvimento: sec('andamento').filter(r => !validando(r)).map(entrada),
+      validacao: sec('andamento').filter(validando).map(entrada),
+      concluidos: [],
+      aguardando: sec('aguardando').map(entrada),
+      execucao: sec('piloto').map(entrada),
+      escala: sec('escala').map(entrada),
+    }),
     // Mesma distribuição do deck do Comitê (V6), com um cancelado sem motivo para fechar os 88 da visão geral.
     cancelamento: montarCancelamento([
       { motivo: 'Inatividade do Ponto Focal', count: 68 }, { motivo: 'Direcionado para Outra Área', count: 8 },
       { motivo: 'Dados Insuficientes para Execução', count: 6 }, { motivo: 'Despriorizado pelo Solicitante', count: 4 },
       { motivo: 'Ferramentas/Soluções Existentes', count: 1 }, { motivo: 'Motivo não registrado', count: 1 },
     ]),
-    resumo: montarResumo({
-      total: 210, backlog: sec('backlog'), andamento: sec('andamento'), aguardando: sec('aguardando'),
-      piloto: sec('piloto'), escala: sec('escala'), cancelados: 88, refutadas: 60, ideiasNaoAvaliadas: 45,
-      beneficioTotal: 416_000_000,
-      semBeneficio: ativos.filter(r => !r.beneficio).length, semSponsor: ativos.filter(r => !r.diretor).length, epicsAtivos: ativos.length,
-    }),
+    resumo,
   }
 })()
