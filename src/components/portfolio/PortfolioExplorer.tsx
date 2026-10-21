@@ -9,7 +9,7 @@ import { Download, HelpCircle, KanbanSquare, List, Search, X } from 'lucide-reac
 import { cx, focusRing } from '@/components/ui'
 import {
   AGRUPAVEIS, alternarValor, aplicarVisao, CAMPO, criarContexto, entidadeDa, estadoParaQuery, filtrar, FILTROS_RAPIDOS,
-  formatarValor, ordenar, ORDENS, paraCsv, PENDENCIAS, resumir, totalDeFiltros, type EstadoPortfolio, type OrdemId, type VisaoId,
+  formatarValor, ordenar, ORDENS, paraCsv, resumir, totalDeFiltros, type EstadoPortfolio, type OrdemId, type VisaoId,
 } from '@/lib/portfolio/filtros'
 import { SITUACAO_LABEL, type Entidade, type ItemPortfolio, type PortfolioDados } from '@/lib/portfolio/tipos'
 import { COR_SITUACAO, Popover, botaoBarra } from './Comum'
@@ -63,8 +63,10 @@ function Segmentos<T extends string>({ opcoes, valor, onMudar, rotulo }: {
   )
 }
 
-function Indicador({ rotulo, valor, detalhe, ativo, onClick, cor }: {
+function Indicador({ rotulo, valor, detalhe, ativo, onClick, cor, ajuda }: {
   rotulo: string; valor: string; detalhe: string; ativo?: boolean; onClick?: () => void; cor?: string
+  /** Definição do indicador, mostrada ao passar o mouse. */
+  ajuda?: string
 }) {
   const conteudo = (
     <>
@@ -81,8 +83,8 @@ function Indicador({ rotulo, valor, detalhe, ativo, onClick, cor }: {
     ativo ? 'border-beon-ink ring-1 ring-beon-ink' : 'border-beon-line',
   )
   return onClick
-    ? <button type="button" onClick={onClick} aria-pressed={ativo} title="Clique para filtrar" className={cx(classe, 'transition hover:border-stone-300', focusRing)}>{conteudo}</button>
-    : <div className={classe}>{conteudo}</div>
+    ? <button type="button" onClick={onClick} aria-pressed={ativo} title={`${ajuda ? `${ajuda} ` : ''}Clique para filtrar.`} className={cx(classe, 'transition hover:border-stone-300', focusRing)}>{conteudo}</button>
+    : <div className={classe} title={ajuda}>{conteudo}</div>
 }
 
 function ComoLer() {
@@ -107,7 +109,9 @@ function ComoLer() {
               <li key={s} className="flex items-center gap-2"><span className="h-2 w-2 rounded-full" style={{ background: COR_SITUACAO[s] }} />{SITUACAO_LABEL[s]}</li>
             ))}
           </ul>
-          <p>O <b className="text-beon-ink">benefício</b> da iniciativa é a soma dos experimentos dela. Um experimento está <b className="text-beon-ink">bloqueado</b> quando tem impedimento ou motivo de bloqueio e ainda está aberto.</p>
+          <p>O <b className="text-beon-ink">benefício</b> da iniciativa é a soma dos experimentos dela. Um experimento está <b className="text-beon-ink">bloqueado</b> quando ainda está aberto e tem flag de impedimento, motivo ou tipo de impedimento preenchido, status ou etiqueta de bloqueio, ou um vínculo &quot;bloqueado por&quot; com item aberto. O detalhe mostra o porquê.</p>
+          <p>As hipóteses contam só os experimentos <b className="text-beon-ink">concluídos</b>. <b className="text-beon-ink">Validada</b>: a iniciativa-mãe está em Aguardando piloto, Em piloto ou Em escala. <b className="text-beon-ink">Refutada</b>: a iniciativa-mãe não está em nenhuma dessas colunas (ou o experimento não tem iniciativa).</p>
+          <p><b className="text-beon-ink">Em execução</b> soma as colunas de experimentação e piloto; o percentual é sobre o portfólio sem os cancelados.</p>
           <p>Os filtros valem nas três visões: na de iniciativas, um campo do experimento olha os experimentos de cada iniciativa.</p>
         </div>
       )}
@@ -138,7 +142,7 @@ export default function PortfolioExplorer({ dados, estadoInicial, detalheInicial
   const entidade = entidadeDa(estado)
   const base: ItemPortfolio[] = entidade === 'iniciativa' ? dados.iniciativas : dados.experimentos
   const itens = useMemo(() => ordenar(filtrar(base, entidade, estado, ctx), estado.ordem), [base, entidade, estado, ctx])
-  const resumo = useMemo(() => resumir(itens), [itens])
+  const resumo = useMemo(() => resumir(itens, ctx), [itens, ctx])
   const itemAberto = detalhe ? ctx.iniciativas.get(detalhe) ?? ctx.experimentos.get(detalhe) ?? null : null
 
   // A URL acompanha a visão (para compartilhar o link e voltar ao mesmo ponto).
@@ -179,7 +183,7 @@ export default function PortfolioExplorer({ dados, estadoInicial, detalheInicial
   const filtroProps = { itens: base, entidade, estado, ctx, onAlternar: alternar, onLimparCampo: limparCampo }
   const nomeEntidade = entidade === 'iniciativa' ? 'iniciativas' : 'experimentos'
   const kanban = estado.visao !== 'lista'
-  const pct = (n: number) => (resumo.total ? `${Math.round((n / resumo.total) * 100)}% do que está na tela` : '—')
+  const pct = (n: number, base: number) => (base ? `${Math.round((n / base) * 100)}%` : '—')
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -271,21 +275,30 @@ export default function PortfolioExplorer({ dados, estadoInicial, detalheInicial
         />
         <Indicador
           rotulo="Em execução" cor={COR_SITUACAO['em-execucao']}
-          valor={String(resumo.emExecucao)} detalhe={pct(resumo.emExecucao)}
+          valor={String(resumo.emExecucao)} detalhe={`${pct(resumo.emExecucao, resumo.ativos)} dos não cancelados`}
+          ajuda="Em experimentação, aguardando piloto ou em piloto (iniciativas); em andamento ou em validação (experimentos)."
           ativo={atalhoAtivo('situacao', [SITUACAO_LABEL['em-execucao']])}
           onClick={() => alternarAtalho('situacao', [SITUACAO_LABEL['em-execucao']])}
         />
         <Indicador
-          rotulo="Bloqueados" cor="#F59E0B"
-          valor={String(resumo.bloqueados)} detalhe={pct(resumo.bloqueados)}
-          ativo={atalhoAtivo('bloqueio', ['Bloqueado'])}
-          onClick={() => alternarAtalho('bloqueio', ['Bloqueado'])}
+          rotulo="Hipóteses validadas" cor="#059669"
+          valor={String(resumo.validadas)} detalhe={`${pct(resumo.validadas, resumo.concluidos)} de ${resumo.concluidos} concluídos`}
+          ajuda="Experimentos concluídos com a iniciativa-mãe em Aguardando piloto, Em piloto ou Em escala."
+          ativo={atalhoAtivo('hipotese', ['Validada'])}
+          onClick={() => alternarAtalho('hipotese', ['Validada'])}
         />
         <Indicador
-          rotulo="Cadastro incompleto" cor="#A8A29E"
-          valor={String(resumo.incompletos)} detalhe="sem sponsor, lab, domínio ou benefício"
-          ativo={atalhoAtivo('pendencias', PENDENCIAS)}
-          onClick={() => alternarAtalho('pendencias', PENDENCIAS)}
+          rotulo="Hipóteses refutadas" cor="#A8A29E"
+          valor={String(resumo.refutadas)} detalhe={`${pct(resumo.refutadas, resumo.concluidos)} de ${resumo.concluidos} concluídos`}
+          ajuda="Experimentos concluídos cuja iniciativa-mãe não está em Aguardando piloto, Em piloto nem Em escala."
+          ativo={atalhoAtivo('hipotese', ['Refutada'])}
+          onClick={() => alternarAtalho('hipotese', ['Refutada'])}
+        />
+        <Indicador
+          rotulo="Bloqueados" cor="#F59E0B"
+          valor={String(resumo.bloqueados)} detalhe={`${pct(resumo.bloqueados, resumo.ativos)} dos não cancelados`}
+          ativo={atalhoAtivo('bloqueio', ['Bloqueado'])}
+          onClick={() => alternarAtalho('bloqueio', ['Bloqueado'])}
         />
       </div>
 

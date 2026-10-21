@@ -27,7 +27,9 @@ data/community-messages.json
 data/stories.json
 
 # Saídas de scripts
-public/comunidade/
+public/comunidade/*
+# Vídeos da Trilha de Experimentação (servidos em /comunidade/videos, acessíveis à role community)
+!public/comunidade/videos/
 .tmp/
 .worktrees/
 
