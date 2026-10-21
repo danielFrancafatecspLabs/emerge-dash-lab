@@ -51,9 +51,15 @@ export interface SemanalGovernanca {
   linhas: LinhaGov[]
 }
 
+/** Cores do slide: degradê do cabeçalho (laranja → vermelho → vinho), grafite da coluna de áreas e das bolinhas
+ * de Exploração (ainda não têm tecnologia definida em execução). */
+export const GOV_DEGRADE = 'linear-gradient(110deg, #F0561D 0%, #DA1A1A 38%, #B5091B 70%, #6E0A1E 100%)'
+export const GOV_GRAFITE = '#3A3D42'
+export const GOV_BOLINHA_EXPLORACAO = '#4B4F56'
+
 export const COLUNAS_GOV: ColunaGovId[] = ['exploracao', 'desenvolvimento', 'validacao', 'concluidos', 'aguardando', 'execucao', 'escala']
 
-/** Áreas com linha própria; as demais (e os itens sem Domínio) vão para "Outras frentes". */
+/** Áreas com linha própria (as que mais experimentam); as demais e os itens sem Domínio vão para "Outras frentes". */
 const MAX_AREAS = 7
 export const OUTRAS_FRENTES = 'Outras frentes'
 
@@ -110,7 +116,7 @@ export function montarGovernanca(totalExperimentos: number, porColuna: Record<Co
   const contagem = new Map<string, number>()
   for (const c of COLUNAS_GOV) for (const { area } of porColuna[c]) if (area) contagem.set(area, (contagem.get(area) ?? 0) + 1)
   const ordenadas = [...contagem.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], 'pt-BR')).map(([a]) => a)
-  const comLinha = new Set(ordenadas.length <= MAX_AREAS + 1 ? ordenadas : ordenadas.slice(0, MAX_AREAS))
+  const comLinha = new Set(ordenadas.slice(0, MAX_AREAS))
 
   const vazia = (): Record<ColunaGovId, ItemGov[]> => Object.fromEntries(COLUNAS_GOV.map(c => [c, []])) as unknown as Record<ColunaGovId, ItemGov[]>
   const linhas = new Map<string, LinhaGov>()

@@ -1,7 +1,9 @@
 'use client'
 
 import { Fragment } from 'react'
-import { dataAtualizacao, GOV_LAYOUT as L, layoutGovernanca, TECNOLOGIAS_GOV, type SemanalGovernanca } from '@/lib/semanal-governanca'
+import {
+  dataAtualizacao, GOV_BOLINHA_EXPLORACAO, GOV_DEGRADE, GOV_GRAFITE, GOV_LAYOUT as L, layoutGovernanca, TECNOLOGIAS_GOV, type SemanalGovernanca,
+} from '@/lib/semanal-governanca'
 import { SLIDE_H, SLIDE_W } from './SlideArt'
 
 // Slide "Governança beOn Labs": áreas que mais experimentam × fases da jornada. Cada experimento (ou iniciativa,
@@ -12,7 +14,6 @@ const RED = '#CC0000'
 const DARK_RED = '#8B0000'
 const INK = '#1F2328'
 const MUTED = '#5B6472'
-const LINHA = '#E5E7EB'
 const AMX = 'AMX, Calibri, "Segoe UI", Arial, sans-serif'
 const COR = Object.fromEntries(TECNOLOGIAS_GOV.map(t => [t.id, t.cor]))
 
@@ -46,12 +47,15 @@ export default function GovernancaSemanalSlide({ governanca: g, geradoEm }: { go
           <img src="/jira/semanal/icones/cadeado.png" alt="" style={{ width: 12, height: 12 }} />Bloqueio
         </span>
       </Legenda>
-      <Legenda titulo="TIPO DE TECNOLOGIA" x={640} w={480}>
+      <Legenda titulo="TIPO DE TECNOLOGIA" x={640} w={490}>
         {TECNOLOGIAS_GOV.map(t => (
           <span key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
             <span style={{ width: 12, height: 12, borderRadius: '50%', background: t.cor }} />{t.label}
           </span>
         ))}
+        <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+          <span style={{ width: 12, height: 12, borderRadius: '50%', background: GOV_BOLINHA_EXPLORACAO }} />Em exploração
+        </span>
       </Legenda>
       <div style={{ position: 'absolute', right: L.margem, top: 16, width: 120, textAlign: 'center' }}>
         <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: 0.5 }}>ATUALIZADO EM:</div>
@@ -66,10 +70,10 @@ export default function GovernancaSemanalSlide({ governanca: g, geradoEm }: { go
       }}>{g.totalExperimentos} EXPERIMENTOS</div>
 
       {/* Cabeçalho das fases */}
-      <div style={{ position: 'absolute', left: x0, top: L.grupoY, width: L.areaW, height: L.grupoH + L.subH, background: DARK_RED, color: '#fff',
+      <div style={{ position: 'absolute', left: x0, top: L.grupoY, width: L.areaW, height: L.grupoH + L.subH, background: GOV_DEGRADE, color: '#fff',
         display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, fontWeight: 700, letterSpacing: 1 }}>ÁREA</div>
       {lay.grupos.map(({ grupo, x, w }) => (
-        <div key={grupo.id} style={{ position: 'absolute', left: x, top: L.grupoY, width: w, height: L.grupoH, background: RED, color: '#fff',
+        <div key={grupo.id} style={{ position: 'absolute', left: x, top: L.grupoY, width: w, height: L.grupoH, background: GOV_DEGRADE, color: '#fff',
           borderLeft: '2px solid #fff', boxSizing: 'border-box', display: 'flex', alignItems: 'center', gap: 10, padding: '0 12px' }}>
           <span style={{ fontSize: 24, fontWeight: 700 }}>{grupo.total}</span>
           <span style={{ fontSize: 14, fontWeight: 700, lineHeight: 1.1 }}>{grupo.label}</span>
@@ -94,14 +98,13 @@ export default function GovernancaSemanalSlide({ governanca: g, geradoEm }: { go
       {/* Linhas por área */}
       {lay.linhas.map((linha, r) => (
         <Fragment key={linha.area}>
-          <div style={{ position: 'absolute', left: x0, top: linha.y, width: L.areaW, height: linha.h, background: INK, color: '#fff',
+          <div style={{ position: 'absolute', left: x0, top: linha.y, width: L.areaW, height: linha.h, background: GOV_GRAFITE, color: '#fff',
             borderTop: r ? '2px solid #fff' : 'none', boxSizing: 'border-box', display: 'flex', alignItems: 'center', padding: '0 10px',
             fontSize: 12.5, fontWeight: 700, lineHeight: 1.15, textTransform: 'uppercase' }}>{linha.area}</div>
-          {r > 0 && <div style={{ position: 'absolute', left: x0 + L.areaW, top: linha.y, width: x1 - x0 - L.areaW, height: 1, background: LINHA }} />}
           {linha.celulas.flatMap(cel => [
             ...cel.itens.map(({ x, y, item, linhasNome }) => (
               <div key={item.key} title={`${item.key} · ${item.nome}`} style={{ position: 'absolute', left: x, top: y, width: L.itemW, textAlign: 'center' }}>
-                <span style={{ position: 'relative', display: 'inline-block', width: L.bolinha, height: L.bolinha, borderRadius: '50%', background: COR[item.tecnologia],
+                <span style={{ position: 'relative', display: 'inline-block', width: L.bolinha, height: L.bolinha, borderRadius: '50%', background: cel.coluna === 'exploracao' ? GOV_BOLINHA_EXPLORACAO : COR[item.tecnologia],
                   boxShadow: 'inset -2px -2px 3px rgba(0,0,0,0.25)' }}>
                   {item.prioridade && (
                     // eslint-disable-next-line @next/next/no-img-element
