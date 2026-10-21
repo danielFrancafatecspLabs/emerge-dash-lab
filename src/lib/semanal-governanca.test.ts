@@ -54,6 +54,13 @@ describe('montarGovernanca', () => {
     expect(g.grupos.find(x => x.id === 'andamento')!.total).toBe(13)
     expect(g.grupos.find(x => x.id === 'escala')!.total).toBe(1)
   })
+
+  it('sempre no máximo 7 áreas: com 8, a menor já vai para Outras frentes', () => {
+    const c = vazio()
+    c.exploracao = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'].map((a, k) => entradaDeEpic(epic(`GL-${k}`, { dominio: a }), false))
+    const g = montarGovernanca(8, c)
+    expect(g.linhas.map(l => l.area)).toEqual(['A', 'B', 'C', 'D', 'E', 'F', 'G', OUTRAS_FRENTES])
+  })
 })
 
 describe('layoutGovernanca', () => {

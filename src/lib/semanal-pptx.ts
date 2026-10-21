@@ -1,7 +1,9 @@
 import { join } from 'path'
 import PptxGenJS from 'pptxgenjs'
 import type { SemanalCancelamento, SemanalData, SemanalResumo, SemanalRow, SemanalSecaoId } from './semanal'
-import { dataAtualizacao, GOV_LAYOUT, layoutGovernanca, TECNOLOGIAS_GOV, type SemanalGovernanca } from './semanal-governanca'
+import {
+  dataAtualizacao, GOV_BOLINHA_EXPLORACAO, GOV_GRAFITE, GOV_LAYOUT, layoutGovernanca, TECNOLOGIAS_GOV, type SemanalGovernanca,
+} from './semanal-governanca'
 import {
   CANCELAMENTO_LAYOUT, chipCor, colunasDa, contagemPorLab, corDoLab, diretorEPontoFocal, formatBeneficioMM, formatData,
   formatMilhoes, fraseDestaque, LINHAS_POR_PAGINA, montarPaginas, pctUmaCasa, RESUMO_FUNIL, sequenciasDeLab, setaDoFunil, type PaginaDeck,
@@ -310,11 +312,11 @@ function governanca(slide: Slide, g: SemanalGovernanca, geradoEm: string) {
   texto(slide, 'Bloqueio', 553, 34, 70, 16, { ...AMX, fontSize: P(11.5), color: MUTED, valign: 'middle' })
   texto(slide, 'TIPO DE TECNOLOGIA', 640, 16, 300, 14, { ...AMX, fontSize: P(10), bold: true, color: INK })
   let lx = 640
-  for (const t of TECNOLOGIAS_GOV) {
+  for (const t of [...TECNOLOGIAS_GOV, { label: 'Em exploração', cor: GOV_BOLINHA_EXPLORACAO }]) {
     circulo(slide, lx, 36, 12, cor(t.cor))
-    const w = t.label.length * 6.2 + 8
-    texto(slide, t.label, lx + 17, 34, w, 16, { ...AMX, fontSize: P(11.5), color: MUTED, valign: 'middle' })
-    lx += 17 + w + 12
+    const w = t.label.length * 5.3 + 4
+    texto(slide, t.label, lx + 17, 34, w, 16, { ...AMX, fontSize: P(11), color: MUTED, valign: 'middle', wrap: false })
+    lx += 17 + w + 8
   }
   texto(slide, 'ATUALIZADO EM:', x1 - 120, 16, 120, 14, { ...AMX, fontSize: P(10), bold: true, color: INK, align: 'center' })
   slide.addText(dataAtualizacao(geradoEm), {
@@ -331,12 +333,15 @@ function governanca(slide: Slide, g: SemanalGovernanca, geradoEm: string) {
   })
 
   // Cabeçalho das fases (cobre a borda de baixo da faixa)
+  // Degradê laranja → vermelho → vinho (GOV_DEGRADE): o pptxgenjs não gera preenchimento em degradê, então vai como imagem.
+  const degrade = join(ASSETS, 'governanca-cabecalho.png')
+  imagem(slide, degrade, x0, L.grupoY, L.areaW, L.grupoH + L.subH)
   slide.addText('ÁREA', {
-    x: I(x0), y: I(L.grupoY), w: I(L.areaW), h: I(L.grupoH + L.subH), fill: { color: DARK_RED }, line: semLinha, margin: 0,
+    x: I(x0), y: I(L.grupoY), w: I(L.areaW), h: I(L.grupoH + L.subH), line: semLinha, margin: 0,
     ...AMX, fontSize: P(15), bold: true, color: 'FFFFFF', align: 'center', valign: 'middle', charSpacing: P(1),
   })
   for (const { grupo, x, w } of lay.grupos) {
-    slide.addShape('rect', { x: I(x), y: I(L.grupoY), w: I(w), h: I(L.grupoH), fill: { color: RED }, line: semLinha })
+    imagem(slide, degrade, x, L.grupoY, w, L.grupoH)
     slide.addShape('line', { x: I(x), y: I(L.grupoY), w: 0, h: I(L.grupoH + L.subH), line: { color: 'FFFFFF', width: 1.5 } })
     texto(slide, [
       { text: `${grupo.total}  `, options: { fontSize: P(24), bold: true } },
@@ -372,15 +377,15 @@ function governanca(slide: Slide, g: SemanalGovernanca, geradoEm: string) {
   // Linhas por área
   lay.linhas.forEach((linha, r) => {
     slide.addText(linha.area.toUpperCase(), {
-      x: I(x0), y: I(linha.y + (r ? 2 : 0)), w: I(L.areaW), h: I(linha.h - (r ? 2 : 0)), fill: { color: INK }, line: semLinha,
+      x: I(x0), y: I(linha.y + (r ? 2 : 0)), w: I(L.areaW), h: I(linha.h - (r ? 2 : 0)), fill: { color: cor(GOV_GRAFITE) }, line: semLinha,
       margin: [0, 10, 0, 10].map(P) as [number, number, number, number],
       ...AMX, fontSize: P(12.5), bold: true, color: 'FFFFFF', valign: 'middle',
     })
-    if (r > 0) slide.addShape('line', { x: I(x0 + L.areaW), y: I(linha.y), w: I(x1 - x0 - L.areaW), h: 0, line: { color: BORDA, width: 0.75 } })
     for (const cel of linha.celulas) {
       for (const { x, y, item, linhasNome } of cel.itens) {
         const bx = x + (L.itemW - L.bolinha) / 2
-        circulo(slide, bx, y, L.bolinha, cor(TECNOLOGIAS_GOV.find(t => t.id === item.tecnologia)!.cor))
+        const corBolinha = cel.coluna === 'exploracao' ? GOV_BOLINHA_EXPLORACAO : TECNOLOGIAS_GOV.find(t => t.id === item.tecnologia)!.cor
+        circulo(slide, bx, y, L.bolinha, cor(corBolinha))
         if (item.prioridade) imagem(slide, icone('prioridade'), bx - 8, y - 5, 12, 12)
         if (item.bloqueio) imagem(slide, icone('cadeado'), bx + L.bolinha + 1, y - 4, 10, 10)
         texto(slide, linhasNome.join('\n'), x - 4, y + L.bolinha + 1, L.itemW + 8, L.linhaH - L.bolinha - 1, {
