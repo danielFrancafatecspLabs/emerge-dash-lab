@@ -140,6 +140,7 @@ export type PaginaDeck = { key: string; label: string; anchor?: string } & (
   | { tipo: 'capa'; periodo: string }
   | { tipo: 'objetivo' }
   | { tipo: 'resumo'; ateLabel: string }
+  | { tipo: 'governanca' }
   | { tipo: 'cancelamento'; cancelamento: SemanalCancelamento }
   | { tipo: 'divisor'; linhas: string[]; icone: 'check' | 'flask' }
   | { tipo: 'lista'; secao: SemanalSecaoId; titulo: string; subtitulo?: string; rows: SemanalRow[]; todas: SemanalRow[] }
@@ -153,6 +154,7 @@ export function montarPaginas(data: SemanalData): PaginaDeck[] {
     { key: 'objetivo', label: 'Objetivo', tipo: 'objetivo' },
     { key: 'resumo', label: 'beOn Labs — visão geral', anchor: 'resumo', tipo: 'resumo', ateLabel: ateLabel(data.geradoEm) },
   ]
+  if (data.governanca) paginas.push({ key: 'governanca', label: 'Governança beOn Labs', tipo: 'governanca' })
   // Como no deck do Comitê, os motivos de cancelamento vêm logo depois da visão geral.
   if (data.cancelamento?.total) {
     paginas.push({ key: 'cancelamento', label: 'Principais motivos de cancelamento', anchor: 'cancelados', tipo: 'cancelamento', cancelamento: data.cancelamento })

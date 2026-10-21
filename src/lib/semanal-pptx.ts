@@ -1,6 +1,7 @@
 import { join } from 'path'
 import PptxGenJS from 'pptxgenjs'
 import type { SemanalCancelamento, SemanalData, SemanalResumo, SemanalRow, SemanalSecaoId } from './semanal'
+import { dataAtualizacao, GOV_LAYOUT, layoutGovernanca, TECNOLOGIAS_GOV, type SemanalGovernanca } from './semanal-governanca'
 import {
   CANCELAMENTO_LAYOUT, chipCor, colunasDa, contagemPorLab, corDoLab, diretorEPontoFocal, formatBeneficioMM, formatData,
   formatMilhoes, fraseDestaque, LINHAS_POR_PAGINA, montarPaginas, pctUmaCasa, RESUMO_FUNIL, sequenciasDeLab, setaDoFunil, type PaginaDeck,
@@ -286,6 +287,117 @@ function resumo(slide: Slide, r: SemanalResumo, ate: string, destino: (id: Seman
   })
 }
 
+// ── Governança beOn Labs ──────────────────────────────────────────────────────────────────────────────
+
+function governanca(slide: Slide, g: SemanalGovernanca, geradoEm: string) {
+  const L = GOV_LAYOUT
+  const lay = layoutGovernanca(g)
+  const AMX = { fontFace: 'AMX' }
+  const DARK_RED = '8B0000'
+  const cor = (h: string) => h.replace('#', '')
+  const x0 = L.margem, x1 = 1280 - L.margem
+  const semLinha = { type: 'none' as const }
+
+  // Título e legendas
+  texto(slide, [
+    { text: 'GOVERNANÇA ', options: { charSpacing: P(2) } },
+    { text: 'beOn Labs' },
+  ], x0, 14, 420, 44, { ...AMX, fontSize: P(30), bold: true, color: RED, valign: 'middle' })
+  texto(slide, 'SUB-STATUS', 440, 16, 190, 14, { ...AMX, fontSize: P(10), bold: true, color: INK })
+  imagem(slide, icone('prioridade'), 440, 35, 14, 14)
+  texto(slide, 'Prioridade', 459, 34, 70, 16, { ...AMX, fontSize: P(11.5), color: MUTED, valign: 'middle' })
+  imagem(slide, icone('cadeado'), 536, 36, 12, 12)
+  texto(slide, 'Bloqueio', 553, 34, 70, 16, { ...AMX, fontSize: P(11.5), color: MUTED, valign: 'middle' })
+  texto(slide, 'TIPO DE TECNOLOGIA', 640, 16, 300, 14, { ...AMX, fontSize: P(10), bold: true, color: INK })
+  let lx = 640
+  for (const t of TECNOLOGIAS_GOV) {
+    circulo(slide, lx, 36, 12, cor(t.cor))
+    const w = t.label.length * 6.2 + 8
+    texto(slide, t.label, lx + 17, 34, w, 16, { ...AMX, fontSize: P(11.5), color: MUTED, valign: 'middle' })
+    lx += 17 + w + 12
+  }
+  texto(slide, 'ATUALIZADO EM:', x1 - 120, 16, 120, 14, { ...AMX, fontSize: P(10), bold: true, color: INK, align: 'center' })
+  slide.addText(dataAtualizacao(geradoEm), {
+    x: I(x1 - 120), y: I(33), w: I(120), h: I(19), shape: 'roundRect', rectRadius: I(4), fill: { color: 'FFFFFF' },
+    line: { color: RED, width: 1.1 }, margin: 0, ...AMX, fontSize: P(12), bold: true, color: INK, align: 'center', valign: 'middle',
+  })
+
+  // Total de experimentos
+  slide.addShape('roundRect', {
+    x: I(x0), y: I(L.faixaY), w: I(x1 - x0), h: I(L.faixaH + 12), rectRadius: I(10), fill: { color: 'FFFFFF' }, line: { color: RED, width: 1.5 },
+  })
+  texto(slide, `${g.totalExperimentos} EXPERIMENTOS`, x0, L.faixaY, x1 - x0, L.faixaH, {
+    ...AMX, fontSize: P(15), bold: true, color: RED, align: 'center', valign: 'middle', charSpacing: P(3),
+  })
+
+  // Cabeçalho das fases (cobre a borda de baixo da faixa)
+  slide.addText('ÁREA', {
+    x: I(x0), y: I(L.grupoY), w: I(L.areaW), h: I(L.grupoH + L.subH), fill: { color: DARK_RED }, line: semLinha, margin: 0,
+    ...AMX, fontSize: P(15), bold: true, color: 'FFFFFF', align: 'center', valign: 'middle', charSpacing: P(1),
+  })
+  for (const { grupo, x, w } of lay.grupos) {
+    slide.addShape('rect', { x: I(x), y: I(L.grupoY), w: I(w), h: I(L.grupoH), fill: { color: RED }, line: semLinha })
+    slide.addShape('line', { x: I(x), y: I(L.grupoY), w: 0, h: I(L.grupoH + L.subH), line: { color: 'FFFFFF', width: 1.5 } })
+    texto(slide, [
+      { text: `${grupo.total}  `, options: { fontSize: P(24), bold: true } },
+      { text: grupo.label, options: { fontSize: P(14), bold: true } },
+    ], x + 12, L.grupoY, w - 20, L.grupoH, { ...AMX, color: 'FFFFFF', valign: 'middle' })
+    grupo.colunas.forEach((gc, k) => {
+      const col = lay.colunas.find(c => c.id === gc.id)!
+      slide.addShape('rect', { x: I(col.x + (k === 0 ? 1 : 0)), y: I(L.subY), w: I(col.w - (k === 0 ? 1 : 0)), h: I(L.subH), fill: { color: 'FBE4E4' }, line: semLinha })
+      if (k > 0) slide.addShape('line', { x: I(col.x), y: I(L.subY), w: 0, h: I(L.subH), line: { color: 'E8A0A0', width: 0.75, dashType: 'dash' } })
+      if (gc.label) {
+        texto(slide, [
+          { text: `${gc.label} `, options: { bold: true } },
+          { text: `(${gc.total})` },
+        ], col.x, L.subY, col.w, L.subH, { ...AMX, fontSize: P(11), color: DARK_RED, align: 'center', valign: 'middle' })
+      }
+    })
+  }
+
+  // Fundo de destaque dos experimentos em andamento
+  const andamento = lay.grupos.find(gr => gr.grupo.id === 'andamento')
+  if (andamento) slide.addShape('rect', { x: I(andamento.x), y: I(L.gradeY), w: I(andamento.w), h: I(L.gradeFim - L.gradeY), fill: { color: 'FFF6F6' }, line: semLinha })
+
+  // Divisórias das colunas
+  lay.colunas.forEach((c, k) => {
+    if (k === 0) return
+    const inicioDeGrupo = lay.grupos.some(gr => gr.x === c.x)
+    slide.addShape('line', {
+      x: I(c.x), y: I(L.gradeY), w: 0, h: I(L.gradeFim - L.gradeY),
+      line: inicioDeGrupo ? { color: 'C9CDD3', width: 0.75 } : { color: 'E3B5B5', width: 0.75, dashType: 'dash' },
+    })
+  })
+
+  // Linhas por área
+  lay.linhas.forEach((linha, r) => {
+    slide.addText(linha.area.toUpperCase(), {
+      x: I(x0), y: I(linha.y + (r ? 2 : 0)), w: I(L.areaW), h: I(linha.h - (r ? 2 : 0)), fill: { color: INK }, line: semLinha,
+      margin: [0, 10, 0, 10].map(P) as [number, number, number, number],
+      ...AMX, fontSize: P(12.5), bold: true, color: 'FFFFFF', valign: 'middle',
+    })
+    if (r > 0) slide.addShape('line', { x: I(x0 + L.areaW), y: I(linha.y), w: I(x1 - x0 - L.areaW), h: 0, line: { color: BORDA, width: 0.75 } })
+    for (const cel of linha.celulas) {
+      for (const { x, y, item, linhasNome } of cel.itens) {
+        const bx = x + (L.itemW - L.bolinha) / 2
+        circulo(slide, bx, y, L.bolinha, cor(TECNOLOGIAS_GOV.find(t => t.id === item.tecnologia)!.cor))
+        if (item.prioridade) imagem(slide, icone('prioridade'), bx - 8, y - 5, 12, 12)
+        if (item.bloqueio) imagem(slide, icone('cadeado'), bx + L.bolinha + 1, y - 4, 10, 10)
+        texto(slide, linhasNome.join('\n'), x - 4, y + L.bolinha + 1, L.itemW + 8, L.linhaH - L.bolinha - 1, {
+          // As linhas já vêm quebradas (quebrarNome): sem quebra automática, uma fonte mais larga não cria uma 3ª linha.
+          ...AMX, fontSize: P(L.fonteNome), color: INK, align: 'center', lineSpacingMultiple: 0.9, wrap: false,
+        })
+      }
+      if (cel.mais) {
+        texto(slide, [
+          { text: `+${cel.mais.n}`, options: { fontSize: P(12), bold: true, breakLine: true } },
+          { text: 'mais', options: { fontSize: P(L.fonteNome) } },
+        ], cel.mais.x - 4, cel.mais.y - 2, L.itemW + 8, L.linhaH, { ...AMX, color: MUTED, align: 'center' })
+      }
+    }
+  })
+}
+
 // ── Principais motivos de cancelamento ────────────────────────────────────────────────────────────────
 
 function cancelamento(slide: Slide, c: SemanalCancelamento) {
@@ -471,6 +583,7 @@ export async function gerarPptxSemanal(data: SemanalData): Promise<Buffer> {
       case 'capa': capa(slide, pg.periodo); break
       case 'objetivo': objetivo(slide); break
       case 'resumo': resumo(slide, data.resumo, pg.ateLabel, id => slideDe.get(id)); break
+      case 'governanca': governanca(slide, data.governanca, data.geradoEm); break
       case 'cancelamento': cancelamento(slide, pg.cancelamento); break
       case 'divisor': divisor(slide, pg.linhas, pg.icone); break
       case 'lista': lista(slide, pg, slideDe.get('resumo')); break
