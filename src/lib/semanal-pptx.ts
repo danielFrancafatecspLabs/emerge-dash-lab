@@ -3,7 +3,7 @@ import PptxGenJS from 'pptxgenjs'
 import type { SemanalCancelamento, SemanalData, SemanalResumo, SemanalRow, SemanalSecaoId } from './semanal'
 import {
   CANCELAMENTO_LAYOUT, chipCor, colunasDa, contagemPorLab, corDoLab, diretorEPontoFocal, formatBeneficioMM, formatData,
-  formatMilhoes, fraseDestaque, LINHAS_POR_PAGINA, montarPaginas, pctUmaCasa, sequenciasDeLab, type PaginaDeck,
+  formatMilhoes, fraseDestaque, LINHAS_POR_PAGINA, montarPaginas, pctUmaCasa, RESUMO_FUNIL, sequenciasDeLab, setaDoFunil, type PaginaDeck,
 } from './semanal-deck'
 
 /**
@@ -131,7 +131,7 @@ const ETAPAS = [
 ]
 
 function seta(slide: Slide, x: number, y: number, w: number, h: number, cor: string, entalhe: boolean) {
-  const d = w * 0.09
+  const d = RESUMO_FUNIL.ponta
   const pts = entalhe
     ? [[0, 0], [w - d, 0], [w, h / 2], [w - d, h], [0, h], [d, h / 2]]
     : [[0, 0], [w - d, 0], [w, h / 2], [w - d, h], [0, h]]
@@ -200,49 +200,52 @@ function resumo(slide: Slide, r: SemanalResumo, ate: string, destino: (id: Seman
   imagem(slide, icone('moedas'), 1189, 111, 22, 22)
 
   // Etapas do funil
+  const { topoSeta, alturaSeta, ponta } = RESUMO_FUNIL
   ETAPAS.forEach((e, i) => {
-    const x = 44 + i * 298
-    seta(slide, x, 214, 312, 86, e.bg, i > 0)
-    const nx = x + (i === 0 ? 18 : 42)
-    circulo(slide, nx, 242, 30, e.nbg)
-    texto(slide, String(e.n), nx, 242, 30, 30, { fontSize: P(15), bold: true, color: e.nfg, align: 'center', valign: 'middle' })
+    const { x, w } = setaDoFunil(i)
+    seta(slide, x, topoSeta, w, alturaSeta, e.bg, i > 0)
+    const nx = x + (i === 0 ? 16 : ponta + 12)
+    const ny = topoSeta + (alturaSeta - 30) / 2
+    circulo(slide, nx, ny, 30, e.nbg)
+    texto(slide, String(e.n), nx, ny, 30, 30, { fontSize: P(15), bold: true, color: e.nfg, align: 'center', valign: 'middle' })
     texto(slide, [
       { text: e.t, options: { fontSize: P(15), bold: true, color: e.fg, breakLine: true } },
-      { text: e.d, options: { fontSize: P(12.5), color: e.fg } },
-    ], nx + 42, 218, 312 - (nx - x) - 42 - 34, 78, { valign: 'middle', lineSpacingMultiple: 0.95 })
+      { text: e.d, options: { fontSize: P(11.5), color: e.fg } },
+    ], nx + 40, topoSeta + 2, x + w - ponta - 4 - (nx + 40), alturaSeta - 4, { valign: 'middle', lineSpacingMultiple: 0.95 })
   })
+  const [c1, c2, c3, c4] = RESUMO_FUNIL.colunas
 
   // Exploração
-  cartao(slide, 44, 314, 262, 250)
-  texto(slide, `${r.exploracao.ideiasNaoAvaliadas} ideias não avaliadas`, 62, 322, 230, 18, { fontSize: P(12.5), color: MUTED })
-  numeroGrande(slide, 62, 340, r.exploracao.oportunidades, 'oportunidades')
-  beneficio(slide, 44, 314, 262, r.exploracao.beneficio)
-  rodape(slide, 44, 314, 262, 178, 'lampada', 'Triagem e priorização de ideias')
-  detalhes(slide, 62, 530, 226, 22, destino('backlog'))
+  cartao(slide, c1.x, 314, c1.w, 250)
+  texto(slide, `${r.exploracao.ideiasNaoAvaliadas} ideias não avaliadas`, c1.x + 18, 322, c1.w - 32, 18, { fontSize: P(12.5), color: MUTED })
+  numeroGrande(slide, c1.x + 18, 340, r.exploracao.oportunidades, 'oportunidades')
+  beneficio(slide, c1.x, 314, c1.w, r.exploracao.beneficio)
+  rodape(slide, c1.x, 314, c1.w, 178, 'lampada', 'Triagem e priorização de ideias')
+  detalhes(slide, c1.x + 18, 530, c1.w - 36, 22, destino('backlog'))
 
   // Experimentação
-  cartao(slide, 318, 314, 240, 250)
-  numeroGrande(slide, 336, 328, r.experimentacao.experimentos, 'experimentos')
-  beneficio(slide, 318, 314, 240, r.experimentacao.beneficio)
-  rodape(slide, 318, 314, 240, 178, 'engrenagem', 'Construção e validação da solução')
-  detalhes(slide, 336, 530, 204, 22, destino('andamento'))
+  cartao(slide, c2.x, 314, c2.w, 250)
+  numeroGrande(slide, c2.x + 18, 328, r.experimentacao.experimentos, 'experimentos')
+  beneficio(slide, c2.x, 314, c2.w, r.experimentacao.beneficio)
+  rodape(slide, c2.x, 314, c2.w, 178, 'engrenagem', 'Construção e validação da solução')
+  detalhes(slide, c2.x + 18, 530, c2.w - 36, 22, destino('andamento'))
 
   // Piloto
-  cartao(slide, 592, 314, 376, 250)
-  numeroGrande(slide, 608, 320, r.piloto.total, 'experimentos')
-  detalhes(slide, 772, 330, 180, 22, destino('aguardando'))
-  slide.addShape('roundRect', { x: I(606), y: I(372), w: I(348), h: I(38), rectRadius: I(6), fill: { color: 'FFFFFF' }, line: { color: RED, width: 1.1 } })
+  cartao(slide, c3.x, 314, c3.w, 250)
+  numeroGrande(slide, c3.x + 16, 320, r.piloto.total, 'experimentos')
+  detalhes(slide, c3.x + 180, 330, 180, 22, destino('aguardando'))
+  slide.addShape('roundRect', { x: I(c3.x + 14), y: I(372), w: I(348), h: I(38), rectRadius: I(6), fill: { color: 'FFFFFF' }, line: { color: RED, width: 1.1 } })
   texto(slide, [
     { text: String(r.piloto.aguardando.quantidade), options: { fontSize: P(20), bold: true, color: RED } },
     { text: '  AGUARDANDO PILOTO', options: { fontSize: P(12), color: RED } },
-  ], 618, 372, 190, 38, { valign: 'middle' })
-  potencial(slide, 806, 375, r.piloto.aguardando.beneficio)
-  slide.addShape('roundRect', { x: I(606), y: I(416), w: I(348), h: I(112), rectRadius: I(6), fill: { color: 'FFFFFF' }, line: { color: RED, width: 1.1 } })
+  ], c3.x + 26, 372, 190, 38, { valign: 'middle' })
+  potencial(slide, c3.x + 214, 375, r.piloto.aguardando.beneficio)
+  slide.addShape('roundRect', { x: I(c3.x + 14), y: I(416), w: I(348), h: I(112), rectRadius: I(6), fill: { color: 'FFFFFF' }, line: { color: RED, width: 1.1 } })
   texto(slide, [
     { text: String(r.piloto.execucao.quantidade), options: { fontSize: P(20), bold: true, color: RED } },
     { text: '  EM EXECUÇÃO', options: { fontSize: P(12), color: RED } },
-  ], 618, 420, 190, 32, { valign: 'middle' })
-  potencial(slide, 806, 420, r.piloto.execucao.beneficio, destino('piloto'))
+  ], c3.x + 26, 420, 190, 32, { valign: 'middle' })
+  potencial(slide, c3.x + 214, 420, r.piloto.execucao.beneficio, destino('piloto'))
   const { destaque, demais } = r.piloto.execucao
   if (destaque && demais) {
     const caixas = [
@@ -250,7 +253,7 @@ function resumo(slide: Slide, r: SemanalResumo, ate: string, destino: (id: Seman
       { n: demais.quantidade, titulo: '', valor: demais.beneficio },
     ]
     caixas.forEach((c, i) => {
-      const x = 618 + i * 165
+      const x = c3.x + 26 + i * 165
       slide.addShape('roundRect', { x: I(x), y: I(466), w: I(159), h: I(52), rectRadius: I(4), fill: { color: 'FBE4E4' }, line: { type: 'none' } })
       texto(slide, String(c.n), x + 8, 466, 24, 52, { fontSize: P(18), bold: true, color: INK, valign: 'middle' })
       if (c.titulo) texto(slide, caber(c.titulo, 62, 9, 4), x + 28, 466, 62, 52, { fontSize: P(9), bold: true, color: INK, valign: 'middle', lineSpacingMultiple: 0.9 })
@@ -260,20 +263,20 @@ function resumo(slide: Slide, r: SemanalResumo, ate: string, destino: (id: Seman
       ], x + 70, 466, 81, 52, { align: 'right', valign: 'middle' })
     })
   }
-  rodape(slide, 592, 314, 376, 218, 'microscopio', 'Avaliação e execução de pilotos em ambiente real')
+  rodape(slide, c3.x, 314, c3.w, 218, 'microscopio', 'Avaliação e execução de pilotos em ambiente real')
 
   // Em escala
-  cartao(slide, 980, 314, 256, 250)
-  numeroGrande(slide, 998, 328, r.escala.experimentos, 'experimentos')
-  beneficio(slide, 980, 314, 256, r.escala.beneficio)
-  rodape(slide, 980, 314, 256, 178, 'foguete', 'Escala e geração de valor')
-  detalhes(slide, 998, 530, 220, 22, destino('escala'))
+  cartao(slide, c4.x, 314, c4.w, 250)
+  numeroGrande(slide, c4.x + 18, 328, r.escala.experimentos, 'experimentos')
+  beneficio(slide, c4.x, 314, c4.w, r.escala.beneficio)
+  rodape(slide, c4.x, 314, c4.w, 178, 'foguete', 'Escala e geração de valor')
+  detalhes(slide, c4.x + 18, 530, c4.w - 36, 22, destino('escala'))
 
   // Principais métricas
   texto(slide, 'PRINCIPAIS MÉTRICAS', 44, 578, 400, 18, { fontSize: P(12.5), bold: true, color: RED, charSpacing: P(3) })
   r.metricas.slice(0, 4).forEach((m, i) => {
-    const x = 44 + i * 302
-    cartao(slide, x, 602, 290, 78)
+    const x = 44 + i * 301
+    cartao(slide, x, 602, 289, 78)
     anel(slide, x + 16.5, 611.5, 59, 7, m.pct)
     texto(slide, `${m.pct}%`, x + 14, 609, 64, 64, { fontSize: P(14), bold: true, color: INK, align: 'center', valign: 'middle' })
     texto(slide, [

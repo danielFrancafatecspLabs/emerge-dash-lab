@@ -110,6 +110,22 @@ export const CANCELAMENTO_LAYOUT = {
   passo: (linhas: number) => (linhas > 5 ? 62 : 74),
 }
 
+/**
+ * Colunas do funil no slide "beOn Labs" (px no canvas de 1280×720): cada quadro fica exatamente debaixo da sua
+ * seta. A seta ocupa a largura do quadro e a ponta avança sobre o vão até o entalhe da seta seguinte.
+ */
+export const RESUMO_FUNIL = {
+  topoSeta: 214, alturaSeta: 86, ponta: 28, vao: 12, folgaSetas: 14,
+  colunas: [{ x: 44, w: 260 }, { x: 316, w: 260 }, { x: 588, w: 376 }, { x: 976, w: 260 }],
+}
+
+/** Posição e largura da seta da etapa i (a última termina no quadro, sem avançar sobre a margem). */
+export function setaDoFunil(i: number): { x: number; w: number } {
+  const { colunas, vao, ponta, folgaSetas } = RESUMO_FUNIL
+  const c = colunas[i]
+  return { x: c.x, w: i === colunas.length - 1 ? c.w : c.w + vao + ponta - folgaSetas }
+}
+
 /** "1,1%" — percentuais com uma casa decimal, como no deck. */
 export const pctUmaCasa = (v: number) => `${v.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`
 
