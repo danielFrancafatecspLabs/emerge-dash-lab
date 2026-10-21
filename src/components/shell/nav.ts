@@ -3,8 +3,8 @@
 // quem decide o acesso é a política em lib/auth/access-policy.
 
 import {
-  Activity, BarChart2, BookOpen, Bookmark, CalendarCheck, FileText, FlaskConical, Home, Images, Library,
-  MessageCircle, Radar, Route, Target, Telescope, UserCog, Users, Wallet, type LucideIcon,
+  Activity, BarChart2, BookOpen, Bookmark, Bot, CalendarCheck, FileText, FlaskConical, GitCompareArrows, Home, Images, Library,
+  MessageCircle, Route, Target, Telescope, UserCog, Users, Wallet, type LucideIcon,
 } from 'lucide-react'
 import type { AuthSessionRole } from '@/lib/auth/session'
 
@@ -54,6 +54,7 @@ export const PORTAL_GROUPS: NavGroup[] = [
       { label: 'Operacional', href: '/operacional', icon: Activity, roles: ADMIN },
       { label: 'Benefícios', href: '/beneficios', icon: Wallet, roles: ['admin', 'executivo', 'financeiro'] },
       { label: 'Portfólio', href: '/portfolio', icon: BarChart2, roles: ADMIN },
+      { label: 'Comparativo', href: '/comparativo', icon: GitCompareArrows, roles: ['admin', 'executivo', 'financeiro', 'viewer'] },
     ],
   },
   {
@@ -67,8 +68,6 @@ export const PORTAL_GROUPS: NavGroup[] = [
     label: 'Análises',
     items: [
       { label: 'Acervo de pesquisas', href: '/pesquisas', icon: Library, roles: ADMIN },
-      { label: 'OSINT', href: '/osint', icon: Radar, roles: ADMIN },
-      { label: 'Future Thinking', href: '/ft', icon: Telescope, roles: ADMIN },
     ],
   },
   {

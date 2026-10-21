@@ -1160,7 +1160,7 @@ function calculateCycleTimeExperimentacaoDetalhado(
  * Retorna array de intervalos { inicio, fim } em timestamps (ms).
  * Se o Epic ainda está bloqueado, o último intervalo vai até Date.now().
  */
-function getPeriodosBloqueio(
+export function getPeriodosBloqueio(
   epicKey: string,
   epicChangelogs: Record<string, ChangelogEntry[]>
 ): { inicio: number; fim: number }[] {
@@ -1221,7 +1221,7 @@ function getPeriodosBloqueio(
  * períodos de bloqueio, retorna o total de dias dos períodos subtraindo
  * a sobreposição com os bloqueios.
  */
-function subtrairBloqueios(
+export function subtrairBloqueios(
   periodos: { inicio: number; fim: number }[],
   bloqueios: { inicio: number; fim: number }[]
 ): number {
