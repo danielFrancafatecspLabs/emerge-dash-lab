@@ -1,5 +1,5 @@
 import type { DashboardData, EpicDetail, Iniciativa } from './types'
-import type { WeeklyData } from './weekly'
+import type { EpicConsiderado, WeeklyData } from './weekly'
 import { limparDescricao } from './report-utils'
 
 /**
@@ -59,10 +59,18 @@ export interface SemanalMetrica {
   pct: number
 }
 
+/** O que compõe o benefício potencial total (botão DETALHES do slide de resumo). */
+export interface SemanalBeneficioDetalhe {
+  itens: EpicConsiderado[]
+  fora: { cancelados: number; refutados: number }
+}
+
 export interface SemanalResumo {
   totalExperimentos: number
   fatias: SemanalFatia[]
+  /** Benefício potencial dos Epics em exploração, em andamento e com hipótese validada (sem cancelados e refutados). */
   beneficioTotal: number
+  beneficioDetalhe: SemanalBeneficioDetalhe
   exploracao: { oportunidades: number; ideiasNaoAvaliadas: number; beneficio: number }
   experimentacao: { experimentos: number; beneficio: number }
   piloto: {
@@ -254,7 +262,8 @@ export function buildSemanalData(data: DashboardData, weekly: WeeklyData): Seman
     resumo: montarResumo({
       total, backlog, andamento, aguardando, piloto, escala, cancelados, refutadas,
       ideiasNaoAvaliadas: weekly.pendenteAnalise.quantidade,
-      beneficioTotal: data.beneficioTotal,
+      beneficioTotal: weekly.beneficioConsiderado,
+      beneficioDetalhe: { itens: weekly.epicsConsiderados, fora: weekly.foraDaConta },
       semBeneficio: weekly.semBeneficio.count,
       semSponsor: weekly.semSponsor.count,
       epicsAtivos: weekly.semBeneficio.base,
@@ -275,9 +284,10 @@ interface ResumoInput {
   refutadas: number
   ideiasNaoAvaliadas: number
   beneficioTotal: number
+  beneficioDetalhe: SemanalBeneficioDetalhe
   semBeneficio: number
   semSponsor: number
-  /** Base dos indicadores de cadastro: Epics ativos (nem concluídos nem cancelados). */
+  /** Base dos indicadores de cadastro: Epics considerados (exploração, andamento e hipóteses validadas). */
   epicsAtivos: number
 }
 
@@ -300,6 +310,7 @@ function montarResumo(i: ResumoInput): SemanalResumo {
     totalExperimentos: totalFatias,
     fatias: labels.map(([id, label], k) => ({ id, label, quantidade: qtds[k], pct: pcts[k] })),
     beneficioTotal: i.beneficioTotal,
+    beneficioDetalhe: i.beneficioDetalhe,
     exploracao: { oportunidades: i.backlog.length, ideiasNaoAvaliadas: i.ideiasNaoAvaliadas, beneficio: soma(i.backlog) },
     experimentacao: { experimentos: i.andamento.length, beneficio: soma(i.andamento) },
     piloto: {
@@ -318,11 +329,11 @@ function montarResumo(i: ResumoInput): SemanalResumo {
         descricao: `${i.piloto.length + i.escala.length} de ${totalFatias} experimentos aprovados já realizaram piloto` },
       { titulo: 'Conversão para escala', pct: pct(i.escala.length, totalFatias),
         descricao: `${i.escala.length} de ${totalFatias} experimentos aprovados já em escala` },
-      // Cadastro: só os experimentos ativos, porque são os que ainda dá para corrigir.
+      // Cadastro: sobre os mesmos experimentos do benefício potencial (sem cancelados e sem hipóteses refutadas).
       { titulo: 'Sem benefício potencial', pct: pct(i.semBeneficio, i.epicsAtivos),
-        descricao: `${i.semBeneficio} de ${i.epicsAtivos} experimentos ativos sem registro de benefício potencial` },
+        descricao: `${i.semBeneficio} de ${i.epicsAtivos} experimentos considerados sem registro de benefício potencial` },
       { titulo: 'Sem patrocínio formal', pct: pct(i.semSponsor, i.epicsAtivos),
-        descricao: `${i.semSponsor} de ${i.epicsAtivos} experimentos ativos sem patrocínio formal da diretoria` },
+        descricao: `${i.semSponsor} de ${i.epicsAtivos} experimentos considerados sem patrocínio formal da diretoria` },
     ],
   }
 }
@@ -451,7 +462,7 @@ export const SAMPLE_SEMANAL_DATA: SemanalData = (() => {
     resumo: montarResumo({
       total: 210, backlog: sec('backlog'), andamento: sec('andamento'), aguardando: sec('aguardando'),
       piloto: sec('piloto'), escala: sec('escala'), cancelados: 88, refutadas: 60, ideiasNaoAvaliadas: 45,
-      beneficioTotal: 416_000_000,
+      beneficioTotal: 416_000_000, beneficioDetalhe: { itens: [], fora: { cancelados: 88, refutados: 60 } },
       semBeneficio: ativos.filter(r => !r.beneficio).length, semSponsor: ativos.filter(r => !r.diretor).length, epicsAtivos: ativos.length,
     }),
   }

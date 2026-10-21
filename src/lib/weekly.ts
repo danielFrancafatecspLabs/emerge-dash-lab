@@ -2,7 +2,6 @@ import { DashboardData, EpicDetail, Iniciativa, JiraBoardConfiguration } from '.
 import type { ChangelogEntry } from './jira'
 import { formatBeneficioMM, limparDescricao } from './report-utils'
 import { buildGovernancaData, SAMPLE_GOVERNANCA_DATA, type GovernancaData } from './governanca'
-import { statusEncerrado } from './bloqueio'
 
 const EPICOS_CANCELADOS_CSV = `Chave;Título;Descrição;Business Owner (BO);Sponsor;Iniciativa Pai;Data Cancelamento;Último Comentário;Link Jira
 GL-817;Agente para Treinamento Comercial;Capacitar a força de vendas através de simulações conversacionais de atendimento e contorno de objeções guiadas por IA.;Ronaldo Domingues;Leandro Bueno;GL-809;26/09/2026 00:30;Direcionado para Dados & IA avaliar solução. Área de negócio optou por não seguir realizar experimentação no dia 25/09.;https://clarobr.atlassian.net/browse/GL-817
@@ -168,6 +167,22 @@ export interface WeeklyRanking {
   count: number
 }
 
+/**
+ * Epic que entra no benefício potencial e nos indicadores de cadastro: em exploração (Backlog/Refinamento),
+ * em andamento (inclui Em validação) ou concluído com hipótese validada (iniciativa-mãe em Aguardando piloto,
+ * Em piloto ou Em escala/Finalizado). Cancelados e concluídos com hipótese refutada ficam de fora.
+ */
+export interface EpicConsiderado {
+  key: string
+  nome: string
+  grupo: 'exploracao' | 'andamento' | 'validada'
+  status: string
+  iniciativa: { key: string; nome: string; status: string } | null
+  beneficio: number | null
+  semBeneficio: boolean
+  sponsor: string | null
+}
+
 export interface WeeklyData {
   geradoEm: string
   governanca: GovernancaData          // slide 1 — swimlane por Domínio × fase da jornada
@@ -185,9 +200,15 @@ export interface WeeklyData {
   conversaoPilotoNumerador: number   // iniciativas já em Piloto ou Em escala (numerador da conversaoPiloto)
   conversaoEscalaNumerador: number   // iniciativas já em Em escala (numerador da conversaoEscala)
   conversaoDenominador: number       // total de experimentos aprovados (mesmo total do slide 1 — total de Epics)
-  /** Indicadores de cadastro: só os Epics ativos (nem concluídos nem cancelados); `base` é quantos são. */
+  /** Indicadores de cadastro sobre os Epics considerados (ver EpicConsiderado); `base` é quantos são. */
   semBeneficio: { count: number; pct: number; base: number }
   semSponsor: { count: number; pct: number; base: number }
+  /** Epics que entram no benefício potencial e nos indicadores de cadastro (o "DETALHES" do benefício). */
+  epicsConsiderados: EpicConsiderado[]
+  /** Benefício potencial (R$) somado só sobre os Epics considerados. */
+  beneficioConsiderado: number
+  /** O que ficou de fora dessa conta. */
+  foraDaConta: { cancelados: number; refutados: number }
   topSponsors: WeeklyRanking[]       // top 6 sponsors por quantidade de experimentos (todas as fases do funil)
   topDiretorias: WeeklyRanking[]     // top 6 diretorias/domínios por quantidade de experimentos (idem)
   experimentosConcluidos: number     // Epics no board de Experimentação com status Concluído
@@ -589,10 +610,30 @@ export function buildWeeklyData(data: DashboardData, epicChangelogs: Record<stri
   const conversaoEscala = pct(countEmEscala, experimentosAprovados)
 
   const totalEpics = experimentosAprovados
-  // Sem benefício e sem sponsor olham só os Epics ativos: o que já foi concluído ou cancelado não tem mais ação.
-  const epicsAtivos = data.allEpics.filter(e => !statusEncerrado(e.status))
-  const semBeneficioCount = epicsAtivos.filter(semBeneficioPotencial).length
-  const semSponsorCount = epicsAtivos.filter(e => !e.sponsor?.trim()).length
+  // Universo do benefício potencial e dos indicadores de cadastro: Epics em exploração, em andamento ou concluídos
+  // com hipótese validada (a iniciativa-mãe seguiu para Aguardando piloto, Piloto ou Escala). Cancelados e
+  // concluídos com hipótese refutada ficam de fora.
+  const iniciativaPorKey = new Map(data.iniciativas.map(i => [i.key, i]))
+  const iniciativasValidadas = new Set([...aguardandoInis, ...pilotoInis, ...escalaInis].map(i => i.key))
+  const concluidosValidados = concluidosEpics.filter(e => !!e.parentKey && iniciativasValidadas.has(e.parentKey))
+  const considerado = (grupo: EpicConsiderado['grupo']) => (e: EpicDetail): EpicConsiderado => {
+    const mae = e.parentKey ? iniciativaPorKey.get(e.parentKey) : undefined
+    return {
+      key: e.key, nome: e.nome, grupo, status: e.status.name,
+      iniciativa: mae ? { key: mae.key, nome: mae.nome, status: mae.status.name } : null,
+      beneficio: (e.beneficioQuantitativo ?? 0) > 0 ? e.beneficioQuantitativo : null,
+      semBeneficio: semBeneficioPotencial(e),
+      sponsor: e.sponsor?.trim() || null,
+    }
+  }
+  const epicsConsiderados: EpicConsiderado[] = [
+    ...backlogEpics.map(considerado('exploracao')),
+    ...[...emAndamentoEpics, ...emValidacaoEpics].map(considerado('andamento')),
+    ...concluidosValidados.map(considerado('validada')),
+  ]
+  const beneficioConsiderado = epicsConsiderados.reduce((s, e) => s + (e.beneficio ?? 0), 0)
+  const semBeneficioCount = epicsConsiderados.filter(e => e.semBeneficio).length
+  const semSponsorCount = epicsConsiderados.filter(e => !e.sponsor).length
 
   // Aprendizados acionáveis: epics concluídos que documentaram um benefício
   // qualitativo (proxy para "gerou aprendizado", já que não há campo dedicado no Jira).
@@ -628,8 +669,11 @@ export function buildWeeklyData(data: DashboardData, epicChangelogs: Record<stri
     conversaoPilotoNumerador: countEmPiloto + countEmEscala,
     conversaoEscalaNumerador: countEmEscala,
     conversaoDenominador: experimentosAprovados,
-    semBeneficio: { count: semBeneficioCount, pct: pct(semBeneficioCount, epicsAtivos.length), base: epicsAtivos.length },
-    semSponsor: { count: semSponsorCount, pct: pct(semSponsorCount, epicsAtivos.length), base: epicsAtivos.length },
+    semBeneficio: { count: semBeneficioCount, pct: pct(semBeneficioCount, epicsConsiderados.length), base: epicsConsiderados.length },
+    semSponsor: { count: semSponsorCount, pct: pct(semSponsorCount, epicsConsiderados.length), base: epicsConsiderados.length },
+    epicsConsiderados,
+    beneficioConsiderado,
+    foraDaConta: { cancelados: canceladosCount, refutados: concluidosCount - concluidosValidados.length },
     topSponsors,
     topDiretorias,
     experimentosConcluidos: concluidosCount,
@@ -723,7 +767,7 @@ const SAMPLE_STAGES: WeeklyStage[] = [
   },
 ]
 const SAMPLE_TOTAL_EPICS = 199
-/** Epics ativos (nem concluídos nem cancelados) nos dados de exemplo. */
+/** Epics considerados (exploração, andamento e hipóteses validadas) nos dados de exemplo. */
 const SAMPLE_EPICS_ATIVOS = 62
 const SAMPLE_EXPERIMENTOS_APROVADOS = SAMPLE_TOTAL_EPICS   // mesma definição: total de Epics
 const SAMPLE_EM_ANDAMENTO_MAIS_CONCLUIDOS = 56 + 33   // Em andamento + Concluídos
@@ -781,6 +825,9 @@ export const SAMPLE_WEEKLY_DATA: WeeklyData = {
   conversaoDenominador: SAMPLE_CONVERSAO_DENOMINADOR,
   semBeneficio: { count: 36, pct: pct(36, SAMPLE_EPICS_ATIVOS), base: SAMPLE_EPICS_ATIVOS },
   semSponsor: { count: 29, pct: pct(29, SAMPLE_EPICS_ATIVOS), base: SAMPLE_EPICS_ATIVOS },
+  epicsConsiderados: [],
+  beneficioConsiderado: 0,
+  foraDaConta: { cancelados: 0, refutados: 0 },
   topSponsors: SAMPLE_TOP_SPONSORS,
   topDiretorias: SAMPLE_TOP_DIRETORIAS,
   experimentosConcluidos: 42,

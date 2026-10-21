@@ -56,10 +56,12 @@ const ETAPAS = [
   { n: 4, t: 'Em escala', d: 'Operar, evoluir e ampliar a adoção da solução, maximizando a geração de valor para o negócio.', bg: '#6B0000', fg: '#fff', nbg: '#fff', nfg: '#6B0000' },
 ]
 
-export default function ResumoSlide({ resumo, ateLabel, onDetalhes, pagina }: {
+export default function ResumoSlide({ resumo, ateLabel, onDetalhes, onDetalhesBeneficio, pagina }: {
   resumo: SemanalResumo
   ateLabel: string
   onDetalhes?: (secao: SemanalSecaoId) => void
+  /** Abre a lista dos experimentos que compõem o benefício potencial total. */
+  onDetalhesBeneficio?: () => void
   pagina?: number
 }) {
   const r = resumo
@@ -105,9 +107,10 @@ export default function ResumoSlide({ resumo, ateLabel, onDetalhes, pagina }: {
       <div style={{ position: 'absolute', left: 988, top: 90, width: 248, height: 104, background: '#1F2328', borderRadius: 10, padding: '12px 16px', color: '#fff' }}>
         <div style={{ fontSize: 24, fontWeight: 700 }}>R$ {formatMilhoes(r.beneficioTotal, 'milhões', true)}</div>
         <div style={{ fontSize: 14, marginTop: 2 }}>Benefício potencial total</div>
-        <div style={{ fontSize: 10.5, color: '#B8BEC6', marginTop: 4, lineHeight: 1.2 }}>
-          Concedido pelas áreas de negócio para os {r.totalExperimentos} experimentos
+        <div style={{ fontSize: 10.5, color: '#B8BEC6', marginTop: 4, lineHeight: 1.2, width: 132 }}>
+          Exploração, andamento e hipóteses validadas
         </div>
+        <Detalhes onClick={onDetalhesBeneficio} style={{ position: 'absolute', right: 16, bottom: 12, width: 82 }} />
         <div style={{ position: 'absolute', right: 16, top: 12, width: 40, height: 40, borderRadius: '50%', background: RED,
           display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <Coins size={22} color="#fff" />

@@ -195,7 +195,7 @@ function resumo(slide: Slide, r: SemanalResumo, ate: string, destino: (id: Seman
   slide.addShape('roundRect', { x: I(988), y: I(90), w: I(248), h: I(104), rectRadius: I(10), fill: { color: INK }, line: { type: 'none' } })
   texto(slide, `R$ ${formatMilhoes(r.beneficioTotal, 'milhões', true)}`, 1004, 100, 170, 32, { fontSize: P(24), bold: true, color: 'FFFFFF', valign: 'middle' })
   texto(slide, 'Benefício potencial total', 1004, 133, 216, 18, { fontSize: P(14), color: 'FFFFFF' })
-  texto(slide, `Concedido pelas áreas de negócio para os ${r.totalExperimentos} experimentos`, 1004, 154, 216, 30, { fontSize: P(10.5), color: 'B8BEC6' })
+  texto(slide, 'Exploração, andamento e hipóteses validadas (sem cancelados e refutados)', 1004, 154, 216, 30, { fontSize: P(10.5), color: 'B8BEC6' })
   circulo(slide, 1180, 102, 40, RED)
   imagem(slide, icone('moedas'), 1189, 111, 22, 22)
 
