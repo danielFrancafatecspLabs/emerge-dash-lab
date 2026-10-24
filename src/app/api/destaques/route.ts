@@ -3,7 +3,6 @@ import { fetchDashboardRaw } from '@/lib/jira'
 import { buildDashboardData } from '@/lib/mappers'
 import { classifyPortfolios } from '@/lib/portfolio-classifier'
 import { classifySegmentos } from '@/lib/segmento-classifier'
-import { ehExcluidoDosConcluidos } from '@/lib/concluido'
 
 export const dynamic = 'force-dynamic'
 export const maxDuration = 60
@@ -50,10 +49,8 @@ export async function GET() {
     // ── 2. Experimentos (Epics) concluídos EM AGOSTO/2026 ──
     // Apenas experimentos que entraram na coluna "Concluído" do board de experimentação (board 2707, status ID 10019)
     // Usa exclusivamente concluidoEm (data do changelog quando mudou para o status de conclusão)
-    // Os reabertos ou movidos indevidamente não contam (lista única em lib/concluido.ts)
     const experimentosConcluidosAgosto = data.allEpics.filter(epic => {
       if (!epic.concluidoEm) return false
-      if (ehExcluidoDosConcluidos(epic.nome)) return false
       const d = new Date(epic.concluidoEm)
       return d.getMonth() === mesAlvo && d.getFullYear() === anoAlvo
     })
