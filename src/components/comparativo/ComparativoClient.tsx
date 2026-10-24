@@ -11,13 +11,18 @@ import { AlertTriangle, ArrowDownRight, ArrowUpRight, ChevronDown, ExternalLink,
 import { cx, focusRing } from '@/components/ui'
 import { formatarValor } from '@/lib/portfolio/filtros'
 import {
-  amostrasDoAno, ANOS, MINIMO_PARA_COMPARAR, principal, resumirAno, variacao,
+  amostrasDoAno, ANOS, MINIMO_PARA_COMPARAR, principal, resumirAno, serie, variacao,
   type ComparativoDados, type Indicador, type IndicadorId, type ResumoAno,
 } from '@/lib/comparativo/resumo'
 import Panorama from './Panorama'
+import PorArea from './PorArea'
 import { COR_ANO } from './cores'
 
 const MESES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez']
+const TRIMESTRES = ['1º tri', '2º tri', '3º tri', '4º tri']
+
+/** Como o gráfico do detalhe mostra o ano: acumulado (itens e R$), mês a mês ou trimestre a trimestre. */
+type Vista = 'acumulado' | 'mes' | 'trimestre'
 const [A, B] = ANOS
 
 const dias = (v: number | null) => (v === null ? '—' : `${v.toLocaleString('pt-BR')} ${v === 1 ? 'dia' : 'dias'}`)
@@ -96,7 +101,7 @@ function Dica({ active, payload, label, ind, acumulado }: {
           <p key={p.dataKey} className="flex items-center gap-2 tabular-nums text-beon-body">
             <span className="h-2 w-2 rounded-sm" style={{ background: COR_ANO[ano] }} aria-hidden />
             {ano}: <b className="text-beon-ink">{valor(ind, p.value)}</b>
-            {n ? <span className="text-beon-muted">({n} no mês)</span> : null}
+            {n ? <span className="text-beon-muted">({n} {n === 1 ? 'item' : 'itens'} no período)</span> : null}
           </p>
         )
       })}
@@ -104,29 +109,37 @@ function Dica({ active, payload, label, ind, acumulado }: {
   )
 }
 
-function Grafico({ ind, r1, r2, ate, cortar }: { ind: Indicador; r1: ResumoAno; r2: ResumoAno; ate: string; cortar: boolean }) {
+/** Períodos do gráfico e da tabela: rótulo, valor e quantidade de cada ano (vazio depois do corte). */
+function periodos(ind: Indicador, r1: ResumoAno, r2: ResumoAno, vista: Vista, ate: string, cortar: boolean) {
   const mesAtual = Number(ate.slice(0, 2)) - 1
-  const acumulado = ind.unidade !== 'dias'
-  const linhas = MESES.map((mes, m) => {
-    const linha: Record<string, string | number | null> = { mes }
-    for (const r of [r1, r2]) {
-      // Depois do corte (o hoje, no ano corrente; nos dois anos, no "mesmo período") o mês fica vazio.
-      const futuro = (r.ano === B || cortar) && m > mesAtual
-      linha[`a${r.ano}`] = futuro ? null : acumulado ? r.porMes.slice(0, m + 1).reduce<number>((s, v) => s + (v ?? 0), 0) : r.porMes[m]
-      linha[`n${r.ano}`] = r.nPorMes[m]
-    }
+  const g = vista === 'trimestre' ? 'trimestre' : 'mes'
+  const rotulos = g === 'mes' ? MESES : TRIMESTRES
+  const ultimo = g === 'mes' ? mesAtual : Math.floor(mesAtual / 3)
+  const series = [r1, r2].map(r => serie(ind, r, g))
+  return rotulos.map((rotulo, p) => {
+    const linha: Record<string, string | number | null> = { rotulo }
+    ;[r1, r2].forEach((r, k) => {
+      // Depois do corte (o hoje, no ano corrente; nos dois anos, no "mesmo período") o período fica vazio.
+      const futuro = (r.ano === B || cortar) && p > ultimo
+      const acumulado = series[k].slice(0, p + 1).reduce<number>((s, x) => s + (x.valor ?? 0), 0)
+      linha[`a${r.ano}`] = futuro ? null : vista === 'acumulado' ? acumulado : series[k][p].valor
+      linha[`n${r.ano}`] = futuro ? null : series[k][p].n
+    })
     return linha
   })
+}
+
+function Grafico({ ind, linhas, vista }: { ind: Indicador; linhas: Record<string, string | number | null>[]; vista: Vista }) {
   const eixo = { tick: { fill: '#78716C', fontSize: 11 }, axisLine: false, tickLine: false }
+  const formatoEixo = (v: number) => (ind.unidade === 'reais' ? formatarValor(v).replace('R$ ', '') : String(v))
   return (
-    <div className="h-[260px] w-full" role="img" aria-label={`${ind.titulo}: ${acumulado ? 'acumulado' : 'mediana'} por mês em ${A} e ${B}`}>
+    <div className="h-[260px] w-full" role="img" aria-label={`${ind.titulo}: ${vista === 'acumulado' ? 'acumulado' : vista === 'mes' ? 'mês a mês' : 'por trimestre'} em ${A} e ${B}`}>
       <ResponsiveContainer width="100%" height="100%">
-        {acumulado ? (
+        {vista === 'acumulado' ? (
           <LineChart data={linhas} margin={{ top: 8, right: 12, bottom: 0, left: 4 }}>
             <CartesianGrid vertical={false} stroke="#E7E5E4" />
-            <XAxis dataKey="mes" {...eixo} />
-            <YAxis {...eixo} width={ind.unidade === 'reais' ? 64 : 36} allowDecimals={false}
-              tickFormatter={v => (ind.unidade === 'reais' ? formatarValor(v).replace('R$ ', '') : String(v))} />
+            <XAxis dataKey="rotulo" {...eixo} />
+            <YAxis {...eixo} width={ind.unidade === 'reais' ? 64 : 36} allowDecimals={false} tickFormatter={formatoEixo} />
             <Tooltip content={<Dica ind={ind} acumulado />} cursor={{ stroke: '#D6D3D1' }} />
             {[A, B].map(ano => (
               <Line key={ano} dataKey={`a${ano}`} stroke={COR_ANO[ano]} strokeWidth={2} dot={false}
@@ -134,17 +147,59 @@ function Grafico({ ind, r1, r2, ate, cortar }: { ind: Indicador; r1: ResumoAno; 
             ))}
           </LineChart>
         ) : (
-          <BarChart data={linhas} margin={{ top: 8, right: 12, bottom: 0, left: 4 }} barGap={2} barCategoryGap="28%">
+          <BarChart data={linhas} margin={{ top: 8, right: 12, bottom: 0, left: 4 }} barGap={2} barCategoryGap={vista === 'trimestre' ? '36%' : '28%'}>
             <CartesianGrid vertical={false} stroke="#E7E5E4" />
-            <XAxis dataKey="mes" {...eixo} />
-            <YAxis {...eixo} width={40} allowDecimals={false} />
+            <XAxis dataKey="rotulo" {...eixo} />
+            <YAxis {...eixo} width={ind.unidade === 'reais' ? 64 : 40} allowDecimals={false} tickFormatter={formatoEixo} />
             <Tooltip content={<Dica ind={ind} />} cursor={{ fill: '#F7F6F4' }} />
             {[A, B].map(ano => (
-              <Bar key={ano} dataKey={`a${ano}`} fill={COR_ANO[ano]} maxBarSize={14} radius={[4, 4, 0, 0]} isAnimationActive={false} />
+              <Bar key={ano} dataKey={`a${ano}`} fill={COR_ANO[ano]} maxBarSize={vista === 'trimestre' ? 36 : 14} radius={[4, 4, 0, 0]} isAnimationActive={false} />
             ))}
           </BarChart>
         )}
       </ResponsiveContainer>
+    </div>
+  )
+}
+
+/** Tabela período a período: os dois anos lado a lado e a variação, para ler sem o gráfico. */
+function TabelaPeriodos({ ind, linhas, vista }: { ind: Indicador; linhas: Record<string, string | number | null>[]; vista: Vista }) {
+  const num = (v: string | number | null) => (typeof v === 'number' ? v : null)
+  return (
+    <div className="mt-3 max-h-[300px] overflow-auto rounded-xl border border-beon-line">
+      <table className="w-full text-sm">
+        <thead className="sticky top-0 bg-beon-soft text-xs uppercase tracking-[0.06em] text-beon-muted">
+          <tr>
+            <th scope="col" className="px-3 py-2 text-left font-semibold">{vista === 'trimestre' ? 'Trimestre' : 'Mês'}{vista === 'acumulado' ? ' (acumulado)' : ''}</th>
+            {[A, B].map(ano => <th key={ano} scope="col" className="px-3 py-2 text-right font-semibold"><Ano ano={ano} className="justify-end" /></th>)}
+            <th scope="col" className="px-3 py-2 text-right font-semibold">Variação</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-beon-line">
+          {linhas.map(l => {
+            const a = num(l[`a${A}`]), b = num(l[`a${B}`])
+            const v = a !== null && b !== null ? variacao(ind, a, b) : null
+            return (
+              <tr key={String(l.rotulo)}>
+                <th scope="row" className={cx('px-3 py-1.5 text-left font-normal text-beon-body', vista !== 'trimestre' && 'capitalize')}>{l.rotulo}</th>
+                {[A, B].map(ano => {
+                  const x = num(l[`a${ano}`]), n = num(l[`n${ano}`])
+                  return (
+                    <td key={ano} className="whitespace-nowrap px-3 py-1.5 text-right tabular-nums text-beon-ink">
+                      {x === null ? <span className="text-beon-muted">–</span> : valor(ind, x)}
+                      {ind.unidade === 'dias' && n ? <span className="ml-1 text-[11px] text-beon-muted">({n})</span> : null}
+                    </td>
+                  )
+                })}
+                <td className={cx('whitespace-nowrap px-3 py-1.5 text-right text-xs font-semibold tabular-nums',
+                  !v || v.melhorou === null ? 'text-beon-muted' : v.melhorou ? 'text-emerald-700' : 'text-red-700')}>
+                  {v ? `${v.pct > 0 ? '+' : ''}${v.pct}%` : '–'}
+                </td>
+              </tr>
+            )
+          })}
+        </tbody>
+      </table>
     </div>
   )
 }
@@ -290,8 +345,13 @@ function Detalhe({ ind, r1, r2, base, ate, cortar, corte, jiraUrl }: {
   const ordenados = aberto.map(e => e.dias).sort((a, b) => a - b)
   const meio = Math.floor(ordenados.length / 2)
   const medianaAberto = !ordenados.length ? 0 : ordenados.length % 2 ? ordenados[meio] : Math.round((ordenados[meio - 1] + ordenados[meio]) / 2)
-  const legendaGrafico = ind.unidade === 'dias' ? 'Mediana por mês (pelo mês em que o item saiu da etapa)'
-    : ind.unidade === 'reais' ? 'Benefício acumulado no ano' : 'Acumulado no ano, mês a mês'
+  const vistas: [Vista, string][] = [...(ind.unidade === 'dias' ? [] : [['acumulado', 'Acumulado'] as [Vista, string]]), ['mes', 'Por mês'], ['trimestre', 'Por trimestre']]
+  const [escolhida, setVista] = useState<Vista>('acumulado')
+  const vista: Vista = ind.unidade === 'dias' && escolhida === 'acumulado' ? 'mes' : escolhida
+  const linhasPeriodo = periodos(ind, r1, r2, vista, ate, cortar)
+  const legendaGrafico = ind.unidade === 'dias'
+    ? `Mediana ${vista === 'mes' ? 'por mês' : 'por trimestre'} (pelo período em que o item saiu da etapa; entre parênteses, quantos itens)`
+    : vista === 'acumulado' ? `${ind.unidade === 'reais' ? 'Benefício' : 'Quantidade'} acumulada no ano` : `${ind.unidade === 'reais' ? 'Benefício' : 'Quantidade'} ${vista === 'mes' ? 'em cada mês' : 'em cada trimestre'}`
   return (
     <section aria-labelledby="detalhe-titulo" className="overflow-hidden rounded-2xl border border-beon-line bg-white">
       <div className="flex flex-wrap items-start justify-between gap-3 px-5 pt-5">
@@ -331,8 +391,20 @@ function Detalhe({ ind, r1, r2, base, ate, cortar, corte, jiraUrl }: {
           )}
         </div>
         <div className="min-w-0">
-          <p className="mb-2 text-xs font-medium text-beon-muted">{legendaGrafico}</p>
-          <Grafico ind={ind} r1={r1} r2={r2} ate={ate} cortar={cortar} />
+          <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+            <p className="text-xs font-medium text-beon-muted">{legendaGrafico}</p>
+            <div role="radiogroup" aria-label="Granularidade do gráfico" className="inline-flex rounded-full bg-stone-100 p-0.5">
+              {vistas.map(([v, rotulo]) => (
+                <button key={v} type="button" role="radio" aria-checked={vista === v} onClick={() => setVista(v)}
+                  className={cx('h-7 rounded-full px-2.5 text-xs font-medium transition', focusRing,
+                    vista === v ? 'bg-white text-beon-ink shadow-sm' : 'text-beon-muted hover:text-beon-ink')}>
+                  {rotulo}
+                </button>
+              ))}
+            </div>
+          </div>
+          <Grafico ind={ind} linhas={linhasPeriodo} vista={vista} />
+          <TabelaPeriodos ind={ind} linhas={linhasPeriodo} vista={vista} />
         </div>
       </div>
       <Itens ind={ind} r1={r1} r2={r2} jiraUrl={jiraUrl} />
@@ -424,6 +496,8 @@ export default function ComparativoClient({ dados }: { dados: ComparativoDados }
         descricao="Cada experimento conta no ano em que o evento aconteceu: a conclusão (validada ou refutada) ou o cancelamento. Clique num cartão para ver o mês a mês e a lista.">
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5">{cartoes('resultados')}</div>
       </Secao>
+
+      <PorArea experimentos={dados.experimentos} corte={corte} jiraUrl={dados.jiraUrl} />
 
       <Secao olho="Tempos do processo" titulo="Quanto tempo cada etapa leva"
         descricao="Mediana de dias por etapa, no ano em que o item saiu dela. Itens ainda na etapa e itens sem histórico ficam de fora, e o detalhe mostra quantos.">
