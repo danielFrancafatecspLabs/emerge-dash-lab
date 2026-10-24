@@ -1,6 +1,7 @@
 import { DashboardData, EpicDetail, Iniciativa, JiraBoardConfiguration } from './types'
 import type { ChangelogEntry } from './jira'
 import { formatBeneficioMM, limparDescricao } from './report-utils'
+import { ehExperimentoConcluido } from './concluido'
 import { buildGovernancaData, SAMPLE_GOVERNANCA_DATA, type GovernancaData } from './governanca'
 
 const EPICOS_CANCELADOS_CSV = `Chave;Título;Descrição;Business Owner (BO);Sponsor;Iniciativa Pai;Data Cancelamento;Último Comentário;Link Jira
@@ -181,6 +182,8 @@ export interface EpicConsiderado {
   beneficio: number | null
   semBeneficio: boolean
   sponsor: string | null
+  /** Primeira entrada do Epic em Concluído (histórico de status), quando disponível. */
+  concluidoEm: string | null
 }
 
 export interface WeeklyData {
@@ -542,7 +545,7 @@ export function buildWeeklyData(data: DashboardData, epicChangelogs: Record<stri
   const emAndamentoEpics = data.allEpics.filter(e => e.status?.id === '3' || e.status?.name === 'Em andamento')
   const emValidacaoEpics = data.allEpics.filter(e => e.status?.id === '10204' || e.status?.name === 'EM VALIDAÇÃO' || e.status?.name === 'Em validação')
   const canceladosEpics = data.allEpics.filter(e => e.status?.id === '10015' || e.status?.name === 'Cancelado' || e.status?.name === 'CANCELADO')
-  const concluidosEpics = data.allEpics.filter(e => e.status?.id === '10019')
+  const concluidosEpics = data.allEpics.filter(ehExperimentoConcluido)
 
   const emAndamentoCount = emAndamentoEpics.length + emValidacaoEpics.length
   const canceladosCount = canceladosEpics.length
@@ -624,6 +627,7 @@ export function buildWeeklyData(data: DashboardData, epicChangelogs: Record<stri
       beneficio: (e.beneficioQuantitativo ?? 0) > 0 ? e.beneficioQuantitativo : null,
       semBeneficio: semBeneficioPotencial(e),
       sponsor: e.sponsor?.trim() || null,
+      concluidoEm: e.concluidoEm ?? null,
     }
   }
   const epicsConsiderados: EpicConsiderado[] = [

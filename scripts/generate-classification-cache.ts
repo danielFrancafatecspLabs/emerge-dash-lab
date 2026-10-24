@@ -12,6 +12,13 @@
 import { classifyPortfolios } from '../src/lib/portfolio-classifier'
 import type { EpicClassifyInput } from '../src/lib/portfolio-classifier'
 
+/** Os JSONs locais não têm um formato fixo: lê cada entrada como um registro solto. */
+const registros = (dados: unknown): Record<string, unknown>[] =>
+  (Array.isArray(dados) ? dados : dados && typeof dados === 'object' ? Object.values(dados) : [])
+    .filter((x): x is Record<string, unknown> => !!x && typeof x === 'object')
+
+const texto = (...valores: unknown[]) => valores.find((v): v is string => typeof v === 'string') ?? ''
+
 async function main() {
   console.log('=== Gerando cache de classificação de portfólio ===\n')
 
@@ -21,18 +28,16 @@ async function main() {
   // 1. Tenta ler de data/posts.json (formato comunidade)
   try {
     const posts = await import('../data/posts.json', { with: { type: 'json' } })
-    if (Array.isArray(posts.default)) {
-      for (const post of posts.default) {
-        if (post.experimentoKey) {
-          epics.push({
-            key: post.experimentoKey,
-            summary: post.titulo ?? post.summary ?? post.content ?? '',
-            dominio: post.dominio ?? null,
-          })
-        }
+    for (const post of registros(posts.default)) {
+      if (typeof post.experimentoKey === 'string' && post.experimentoKey) {
+        epics.push({
+          key: post.experimentoKey,
+          summary: texto(post.titulo, post.summary, post.content),
+          dominio: texto(post.dominio) || null,
+        })
       }
-      console.log(`  → Carregados ${epics.length} epics de data/posts.json`)
     }
+    console.log(`  → Carregados ${epics.length} epics de data/posts.json`)
   } catch {
     console.log('  → data/posts.json não encontrado ou sem dados de experimentos')
   }
@@ -41,18 +46,16 @@ async function main() {
   if (epics.length === 0) {
     try {
       const beneficios = await import('../data/beneficios.json', { with: { type: 'json' } })
-      if (Array.isArray(beneficios.default)) {
-        for (const item of beneficios.default) {
-          if (item.key) {
-            epics.push({
-              key: item.key,
-              summary: item.nome ?? item.summary ?? item.titulo ?? '',
-              dominio: item.dominio ?? null,
-            })
-          }
+      for (const item of registros(beneficios.default)) {
+        if (typeof item.key === 'string' && item.key) {
+          epics.push({
+            key: item.key,
+            summary: texto(item.nome, item.summary, item.titulo),
+            dominio: texto(item.dominio) || null,
+          })
         }
-        console.log(`  → Carregados ${epics.length} epics de data/beneficios.json`)
       }
+      console.log(`  → Carregados ${epics.length} epics de data/beneficios.json`)
     } catch {
       console.log('  → data/beneficios.json não encontrado')
     }

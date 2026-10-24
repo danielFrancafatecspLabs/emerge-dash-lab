@@ -49,17 +49,8 @@ export async function GET() {
     // ── 2. Experimentos (Epics) concluídos EM AGOSTO/2026 ──
     // Apenas experimentos que entraram na coluna "Concluído" do board de experimentação (board 2707, status ID 10019)
     // Usa exclusivamente concluidoEm (data do changelog quando mudou para o status de conclusão)
-    // Lista de experimentos que não devem ser considerados como concluídos (reabertos ou movidos indevidamente)
-    const EXCLUIR_CONCLUIDOS = new Set([
-      'Otimiza APP - Ciclo 1 (Análise de comentários das lojas de apps)',
-      'IA para IP\'S de rede',
-      'Assistente IA Ágil - Ciclo 2',
-      'Sumarização dos Contratos',
-      'Jurisquery - Consulta de Pareceres Juridicos',
-    ])
     const experimentosConcluidosAgosto = data.allEpics.filter(epic => {
       if (!epic.concluidoEm) return false
-      if (EXCLUIR_CONCLUIDOS.has(epic.nome)) return false
       const d = new Date(epic.concluidoEm)
       return d.getMonth() === mesAlvo && d.getFullYear() === anoAlvo
     })
