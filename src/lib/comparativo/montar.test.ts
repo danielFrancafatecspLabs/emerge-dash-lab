@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { ChangelogEntry } from '../jira'
 import type { JiraIssue } from '../types'
 import { montarComparativo } from './montar'
-import { anoDeCriacao, principal, resumirAno, variacao, type Experimento, type Indicador } from './resumo'
+import { anoDeCriacao, porDimensao, principal, resumirAno, serie, variacao, type Experimento, type Indicador } from './resumo'
 
 const ini = (key: string, status: [string, string], created: string): JiraIssue =>
   ({ key, fields: { summary: `Iniciativa ${key}`, status: { id: status[0], name: status[1] }, issuetype: { name: 'Iniciativa' }, created } }) as JiraIssue
@@ -30,7 +30,7 @@ const CONCLUIDO: [string, string] = ['10019', 'Concluído']
 
 const T = (d: string) => `${d}T12:00:00.000-0300`
 const exp = (key: string, situacao: Experimento['situacao'], beneficio: number | null, criadoEm: string | null) =>
-  ({ key, nome: `Experimento ${key}`, situacao, status: '', beneficio, criadoEm })
+  ({ key, nome: `Experimento ${key}`, situacao, status: '', beneficio, criadoEm, area: 'RH', lab: 'beOn Labs', diretoria: null })
 
 const dados = montarComparativo({
   iniciativas: [
@@ -216,3 +216,37 @@ describe('número principal dos tempos', () => {
     expect(r.media).toBe(109)
   })
 })
+
+describe('granularidade', () => {
+  it('série por trimestre e por mês: quantidade, soma ou mediana de cada período', () => {
+    const conc = ind('concluidos')
+    const r26 = resumirAno(conc, 2026, null)
+    expect(serie(conc, r26, 'trimestre').map(p => p.valor)).toEqual([1, 1, null, null]) // GL-10 em 20/03, GL-12 em 01/04
+    expect(serie(ind('beneficio'), resumirAno(ind('beneficio'), 2026, null), 'mes')[2]).toEqual({ valor: 5_000_000, n: 1 })
+    const exp = ind('leadExperimentacao')
+    expect(serie(exp, resumirAno(exp, 2025, null), 'trimestre').map(p => p.valor)).toEqual([null, 41, null, null])
+  })
+
+  it('por área: métricas de cada ano, taxa de validação e linha "não informada" por último', () => {
+    const lista: Experimento[] = [
+      { ...base('A1', 'validada', 'RH'), concluidoEm: '2025-03-01', beneficio: 1_000_000 },
+      { ...base('A2', 'refutada', 'RH'), concluidoEm: '2026-05-01' },
+      { ...base('A3', 'validada', 'RH'), concluidoEm: '2026-06-01', beneficio: 2_000_000 },
+      { ...base('A4', 'cancelada', 'Jurídico'), canceladoEm: '2026-02-01' },
+      { ...base('A5', 'validada', null), concluidoEm: '2026-11-20' },   // depois do corte de 24/10
+      { ...base('A6', 'andamento', 'RH') },                              // sem evento: não entra
+    ]
+    const { linhas, total } = porDimensao(lista, 'area', '10-24')
+    expect(linhas.map(l => l.nome)).toEqual(['RH', 'Jurídico'])
+    expect(linhas[0].porAno).toEqual([
+      { concluidos: 1, validadas: 1, refutadas: 0, cancelados: 0, beneficio: 1_000_000, taxaValidacao: 100 },
+      { concluidos: 2, validadas: 1, refutadas: 1, cancelados: 0, beneficio: 2_000_000, taxaValidacao: 50 },
+    ])
+    expect(total[1]).toMatchObject({ concluidos: 2, cancelados: 1 })
+    expect(porDimensao(lista, 'area', null).linhas.map(l => l.nome)).toEqual(['RH', 'Jurídico', 'Área não informada'])
+  })
+})
+
+function base(key: string, situacao: Experimento['situacao'], area: string | null): Experimento {
+  return { key, nome: key, situacao, status: '', beneficio: null, area, lab: null, diretoria: null, criadoEm: null, concluidoEm: null, canceladoEm: null }
+}

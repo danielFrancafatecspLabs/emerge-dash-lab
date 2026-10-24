@@ -114,8 +114,11 @@ export function experimentosDoSemanal(data: DashboardData, weekly: WeeklyData): 
   const chaves = (id: string) => new Set((weekly.stages.find(s => s.id === id)?.experimentos ?? []).map(r => r.key))
   const exploracao = chaves('backlog'), andamento = chaves('andamento'), cancelados = chaves('cancelados'), concluidos = chaves('concluidos')
   const validadas = new Set(weekly.epicsConsiderados.filter(e => e.grupo === 'validada').map(e => e.key))
+  const labDaIniciativa = new Map(data.iniciativas.map(i => [i.key, i.timeResponsavel ?? null]))
+  const texto = (v: string | null | undefined) => v?.trim() || null
   return data.allEpics.map(e => ({
     key: e.key, nome: e.nome, status: e.status.name, criadoEm: e.criadoEm ?? null, concluidoEm: e.concluidoEm ?? null,
+    area: texto(e.dominio), lab: texto((e.parentKey ? labDaIniciativa.get(e.parentKey) : null) ?? e.timeResponsavel), diretoria: texto(e.diretoria),
     beneficio: e.beneficioQuantitativo && e.beneficioQuantitativo > 0 ? e.beneficioQuantitativo : null,
     situacao: validadas.has(e.key) ? 'validada' : concluidos.has(e.key) ? 'refutada' : cancelados.has(e.key) ? 'cancelada'
       : andamento.has(e.key) ? 'andamento' : exploracao.has(e.key) ? 'exploracao' : 'outro',

@@ -31,6 +31,10 @@ export interface Experimento {
   situacao: SituacaoExperimento
   status: string
   beneficio: number | null
+  /** Domínio do Epic; laboratório responsável (o da iniciativa-mãe, como no Semanal); diretoria. */
+  area: string | null
+  lab: string | null
+  diretoria: string | null
   criadoEm: string | null     // AAAA-MM-DD
   concluidoEm: string | null
   canceladoEm: string | null
@@ -158,4 +162,84 @@ export function variacao(ind: Indicador, antes: number | null, depois: number | 
   const diferenca = depois - antes
   const pct = Math.round((diferenca / antes) * 100)
   return { pct, diferenca, melhorou: diferenca === 0 || ind.melhor === 'neutro' ? null : ind.melhor === 'menor' ? diferenca < 0 : diferenca > 0 }
+}
+
+// ── Granularidade: por período e por área ────────────────────────────────────────────────────
+
+export type Granularidade = 'mes' | 'trimestre'
+
+/**
+ * Valor de cada mês ou trimestre do ano: quantidade (itens), soma (R$) ou mediana (dias), com quantos itens entraram.
+ * Período sem item fica null.
+ */
+export function serie(ind: Indicador, r: ResumoAno, g: Granularidade): { valor: number | null; n: number }[] {
+  const tamanho = g === 'mes' ? 1 : 3
+  return Array.from({ length: 12 / tamanho }, (_, p) => {
+    const valores = r.amostras.filter(a => Math.floor((Number(a.data.slice(5, 7)) - 1) / tamanho) === p).map(a => a.valor)
+    if (!valores.length) return { valor: null, n: 0 }
+    const valor = ind.unidade === 'itens' ? valores.length : ind.unidade === 'reais' ? valores.reduce((s, v) => s + v, 0) : mediana(valores)
+    return { valor, n: valores.length }
+  })
+}
+
+export type Dimensao = 'area' | 'lab' | 'diretoria'
+export const DIMENSOES: { id: Dimensao; label: string; vazio: string }[] = [
+  { id: 'area', label: 'Área', vazio: 'Área não informada' },
+  { id: 'lab', label: 'Laboratório', vazio: 'Laboratório não informado' },
+  { id: 'diretoria', label: 'Diretoria', vazio: 'Diretoria não informada' },
+]
+
+export interface MetricasAno {
+  concluidos: number
+  validadas: number
+  refutadas: number
+  cancelados: number
+  beneficio: number
+  /** Validadas sobre concluídos; null sem concluídos. */
+  taxaValidacao: number | null
+}
+
+/** Um evento de um experimento no ano: conclusão (validada ou refutada) ou cancelamento. */
+export interface EventoDoAno { ano: number; data: string; experimento: Experimento }
+
+export interface LinhaDimensao { nome: string; informado: boolean; porAno: MetricasAno[]; eventos: EventoDoAno[] }
+
+/** Eventos do ano: conclusões e cancelamentos, com o mesmo corte de período dos cartões. */
+function eventosDoAno(experimentos: Experimento[], ano: number, ate: string | null): EventoDoAno[] {
+  const noAno = (d: string | null): d is string => !!d && d.startsWith(`${ano}-`) && (!ate || d.slice(5) <= ate)
+  return experimentos.flatMap(e => {
+    const data = e.situacao === 'validada' || e.situacao === 'refutada' ? e.concluidoEm : e.situacao === 'cancelada' ? e.canceladoEm : null
+    return noAno(data) ? [{ ano, data, experimento: e }] : []
+  })
+}
+
+function metricas(eventos: EventoDoAno[]): MetricasAno {
+  const de = (s: Experimento['situacao']) => eventos.filter(ev => ev.experimento.situacao === s)
+  const validadas = de('validada'), refutadas = de('refutada')
+  const concluidos = validadas.length + refutadas.length
+  return {
+    concluidos, validadas: validadas.length, refutadas: refutadas.length, cancelados: de('cancelada').length,
+    beneficio: validadas.reduce((s, ev) => s + (ev.experimento.beneficio ?? 0), 0),
+    taxaValidacao: concluidos ? Math.round((validadas.length / concluidos) * 100) : null,
+  }
+}
+
+/**
+ * Resultados dos dois anos quebrados por área, laboratório ou diretoria: cada linha é um valor do campo, com as
+ * métricas de cada ano e os eventos que as formam. Ordem: quem teve mais eventos nos dois anos; "não informado" por último.
+ */
+export function porDimensao(experimentos: Experimento[], dim: Dimensao, ate: string | null): { linhas: LinhaDimensao[]; total: MetricasAno[] } {
+  const vazio = DIMENSOES.find(d => d.id === dim)!.vazio
+  const todos = ANOS.flatMap(ano => eventosDoAno(experimentos, ano, ate))
+  const grupos = new Map<string, EventoDoAno[]>()
+  for (const ev of todos) {
+    const nome = ev.experimento[dim] ?? vazio
+    grupos.set(nome, [...(grupos.get(nome) ?? []), ev])
+  }
+  const linhas = [...grupos.entries()].map(([nome, eventos]) => ({
+    nome, informado: nome !== vazio, eventos,
+    porAno: ANOS.map(ano => metricas(eventos.filter(ev => ev.ano === ano))),
+  }))
+  linhas.sort((a, b) => Number(b.informado) - Number(a.informado) || b.eventos.length - a.eventos.length || a.nome.localeCompare(b.nome, 'pt-BR'))
+  return { linhas, total: ANOS.map(ano => metricas(todos.filter(ev => ev.ano === ano))) }
 }
