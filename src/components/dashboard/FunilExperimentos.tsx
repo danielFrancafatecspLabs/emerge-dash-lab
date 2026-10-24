@@ -11,6 +11,7 @@ import { DashboardData, EpicDetail, Iniciativa } from '@/lib/types'
 import { getPipelineStage } from '@/lib/mappers'
 import ExperimentoModal from './ExperimentoModal'
 import IniciativaModal from './IniciativaModal'
+import { ehExperimentoConcluido } from '@/lib/concluido'
 
 interface Props { data: DashboardData }
 
@@ -45,18 +46,8 @@ export default function FunilExperimentos({ data }: Props) {
     e.status?.id === '10204' || e.status?.name === 'EM VALIDAÇÃO' || e.status?.name === 'Em validação'
   ).length
   const emAndamentoTotal = emAndamento + emValidacao
-  // Exclui os mesmos experimentos que o burnup exclui para manter consistência
-  const EXCLUIR_CONCLUIDOS = new Set([
-    'Otimiza APP - Ciclo 1 (Análise de comentários das lojas de apps)',
-    "IA para IP'S de rede",
-    'Assistente IA Ágil - Ciclo 2',
-    'Sumarização dos Contratos',
-    'Jurisquery - Consulta de Pareceres Juridicos',
-  ])
-  // Alinhado com o burnup (mappers.ts): apenas status 10019 (FINALIZADO)
-  const concluidos = data.allEpics.filter(e =>
-    e.status?.id === '10019' && !EXCLUIR_CONCLUIDOS.has(e.nome)
-  ).length
+  // Mesma regra do report Semanal e do burnup (lib/concluido.ts)
+  const concluidos = data.allEpics.filter(ehExperimentoConcluido).length
   const cancelados = data.allEpics.filter(e =>
     e.status?.id === '10015' || e.status?.name === 'Cancelado'
   ).length
@@ -87,17 +78,8 @@ export default function FunilExperimentos({ data }: Props) {
     const emAndamentoList = data.allEpics.filter(e =>
       e.status?.id === '3' || e.status?.name === 'Em andamento'
     )
-    const EXCLUIR_CONCLUIDOS = new Set([
-      'Otimiza APP - Ciclo 1 (Análise de comentários das lojas de apps)',
-      "IA para IP'S de rede",
-      'Assistente IA Ágil - Ciclo 2',
-      'Sumarização dos Contratos',
-      'Jurisquery - Consulta de Pareceres Juridicos',
-    ])
-    // Alinhado com o burnup: apenas status 10019 (FINALIZADO)
-    const concluidosList = data.allEpics.filter(e =>
-      e.status?.id === '10019' && !EXCLUIR_CONCLUIDOS.has(e.nome)
-    )
+    // Mesma regra do report Semanal e do burnup (lib/concluido.ts)
+    const concluidosList = data.allEpics.filter(ehExperimentoConcluido)
     const canceladosList = data.allEpics.filter(e =>
       e.status?.id === '10015' || e.status?.name === 'Cancelado'
     )

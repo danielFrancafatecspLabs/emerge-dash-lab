@@ -236,8 +236,9 @@ export default function EstrategiaClient({ data, monitoramento, beneficioValidad
   )
 
   const monitoramentoFiltrado = useMemo(
-    () => buildMonitoramentoData(dadosFiltrados, periodoFiltro as any),
-    [dadosFiltrados, periodoFiltro]
+    // O burnup usa todos os Epics (data.allEpics): concluídos não podem sumir por terem sido criados antes do período.
+    () => buildMonitoramentoData(dadosFiltrados, periodoFiltro as any, data.allEpics),
+    [dadosFiltrados, periodoFiltro, data.allEpics]
   )
 
   // ── Domínios disponíveis para o filtro da Jornada de Adoção ──
@@ -371,7 +372,7 @@ export default function EstrategiaClient({ data, monitoramento, beneficioValidad
         {
           id: 'burnup',
           titulo: 'Crescimento da Experimentação no Período',
-          descricao: 'Acumulado mês a mês de experimentos concluídos (status 10003) e benefício quantitativo.',
+          descricao: 'Acumulado mês a mês de experimentos concluídos (mesma contagem do report Semanal: status Concluído), partindo do que já estava concluído antes do período, e benefício quantitativo.',
           dados: {
             realizado: monitoramentoFiltrado.burnup.realizado,
             beneficio: monitoramentoFiltrado.burnup.beneficio,
@@ -516,7 +517,7 @@ export default function EstrategiaClient({ data, monitoramento, beneficioValidad
               <GraficoComInsight
                 step={2}
                 titulo="Crescimento da Experimentação"
-                subtitulo="Acumulado de experimentos concluídos no período"
+                subtitulo="Acumulado de experimentos concluídos (mesma contagem do Semanal)"
                 insight={insightsMap['burnup']}
                 loading={insightsLoading}
                 ocultarInsight
