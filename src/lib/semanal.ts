@@ -1,3 +1,4 @@
+import type { ChangelogEntry } from './jira'
 import type { DashboardData, EpicDetail, Iniciativa } from './types'
 import type { EpicConsiderado, WeeklyData } from './weekly'
 import { limparDescricao } from './report-utils'
@@ -37,6 +38,46 @@ export interface SemanalRow {
   estrategico: boolean
   previsao: string | null      // Data limite (duedate)
   fase: string                 // nome do status no Jira
+  /** Quanto do prazo já passou (só nos experimentos em andamento com início conhecido). */
+  progresso?: ProgressoPrazo | null
+}
+
+export type SituacaoPrazo = 'no-prazo' | 'atencao' | 'atrasado' | 'sem-previsao'
+
+export interface ProgressoPrazo {
+  inicio: string               // AAAA-MM-DD — entrada em "Em andamento"
+  pct: number | null           // % do prazo decorrido (passa de 100 quando atrasa); null sem previsão
+  diasRestantes: number | null // negativo quando atrasado
+  situacao: SituacaoPrazo
+}
+
+/** A partir de quantos % do prazo decorrido o experimento entra em atenção. */
+export const PRAZO_ATENCAO_PCT = 80
+
+const diaDe = (aaaammdd: string) => Math.round(Date.parse(`${aaaammdd.slice(0, 10)}T12:00:00Z`) / 86_400_000)
+
+/** "Hoje" no fuso de Brasília, como AAAA-MM-DD. */
+export function hojeEmBrasilia(iso: string): string {
+  return new Date(iso).toLocaleDateString('sv-SE', { timeZone: 'America/Sao_Paulo' })
+}
+
+/** Data (AAAA-MM-DD) da primeira entrada do Epic em "Em andamento", pelo histórico de status. */
+export function inicioDaExecucao(changelog: ChangelogEntry[] | undefined): string | null {
+  const entradas = (changelog ?? [])
+    .filter(c => c.items.some(it => it.field === 'status' && ((it as { to?: string }).to === '3' || /em andamento|in progress/i.test(it.toString ?? ''))))
+    .map(c => c.created)
+    .sort()
+  return entradas[0]?.slice(0, 10) ?? null
+}
+
+/** Prazo decorrido entre o início da execução e a previsão de conclusão, no dia `hoje` (AAAA-MM-DD). */
+export function progressoDoPrazo(inicio: string, previsao: string | null, hoje: string): ProgressoPrazo {
+  if (!previsao) return { inicio, pct: null, diasRestantes: null, situacao: 'sem-previsao' }
+  const total = Math.max(1, diaDe(previsao) - diaDe(inicio))
+  const pct = Math.max(0, Math.round(((diaDe(hoje) - diaDe(inicio)) / total) * 100))
+  const diasRestantes = diaDe(previsao) - diaDe(hoje)
+  const situacao: SituacaoPrazo = diasRestantes < 0 ? 'atrasado' : pct >= PRAZO_ATENCAO_PCT ? 'atencao' : 'no-prazo'
+  return { inicio, pct, diasRestantes, situacao }
 }
 
 export interface SemanalSecao {
@@ -235,7 +276,7 @@ function rowFromIniciativa(i: Iniciativa): SemanalRow {
   }
 }
 
-export function buildSemanalData(data: DashboardData, weekly: WeeklyData): SemanalData {
+export function buildSemanalData(data: DashboardData, weekly: WeeklyData, epicChangelogs: Record<string, ChangelogEntry[]> = {}): SemanalData {
   const iniByKey = new Map(data.iniciativas.map(i => [i.key, i]))
   const epicByKey = new Map(data.allEpics.map(e => [e.key, e]))
   const labDaIniciativa = new Map(data.iniciativas.map(i => [i.key, i.timeResponsavel ?? null]))
@@ -249,7 +290,13 @@ export function buildSemanalData(data: DashboardData, weekly: WeeklyData): Seman
     .map(rowFromIniciativa)
 
   const backlog = ordenarRows(epicRows('backlog'))
-  const andamento = ordenarRows(epicRows('andamento'))
+  // Barra de progresso dos experimentos em andamento: prazo decorrido desde a entrada em "Em andamento".
+  const hoje = hojeEmBrasilia(weekly.geradoEm)
+  const andamento = ordenarRows(epicRows('andamento').map(r => {
+    const e = epicByKey.get(r.key)
+    const inicio = inicioDaExecucao(epicChangelogs[r.key]) ?? e?.criadoEm?.slice(0, 10) ?? null
+    return { ...r, progresso: inicio ? progressoDoPrazo(inicio, r.previsao, hoje) : null }
+  }))
   const aguardando = ordenarRows(iniRows('aguardando'))
   const piloto = ordenarRows(iniRows('piloto'))
   const escala = ordenarRows(iniRows('escala'))

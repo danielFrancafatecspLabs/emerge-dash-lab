@@ -2,7 +2,15 @@ import { describe, expect, it } from 'vitest'
 import type { ChangelogEntry } from '../jira'
 import type { JiraIssue } from '../types'
 import { montarComparativo } from './montar'
-import { principal, resumirAno, variacao, type Indicador } from './resumo'
+import { montarReport } from './report'
+import {
+  criarComparacao, janelaDe, periodoBase, periodoDeCriacao, periodosDisponiveis, porDimensao, principal, resumir, serie, variacao,
+  type Experimento, type Indicador,
+} from './resumo'
+
+/** Ano inteiro: os testes antigos comparavam 2025 e 2026 completos. */
+const ano = (a: number) => janelaDe(String(a))
+const anual = (hoje: string, mesmoPeriodo: boolean) => criarComparacao({ modo: 'anual', id: '2026', base: 'anterior', mesmoPeriodo, hoje })
 
 const ini = (key: string, status: [string, string], created: string): JiraIssue =>
   ({ key, fields: { summary: `Iniciativa ${key}`, status: { id: status[0], name: status[1] }, issuetype: { name: 'Iniciativa' }, created } }) as JiraIssue
@@ -29,6 +37,8 @@ const VALIDACAO: [string, string] = ['10204', 'EM VALIDAÇÃO']
 const CONCLUIDO: [string, string] = ['10019', 'Concluído']
 
 const T = (d: string) => `${d}T12:00:00.000-0300`
+const exp = (key: string, situacao: Experimento['situacao'], beneficio: number | null, criadoEm: string | null) =>
+  ({ key, nome: `Experimento ${key}`, situacao, status: '', beneficio, criadoEm, area: 'RH', lab: 'beOn Labs', diretoria: null })
 
 const dados = montarComparativo({
   iniciativas: [
@@ -68,7 +78,18 @@ const dados = montarComparativo({
       st(T('2025-04-15'), ANDAMENTO, CONCLUIDO),
     ],
     'GL-12': [st(T('2026-04-01'), ANDAMENTO, CONCLUIDO)],
+    'GL-15': [st(T('2025-08-10'), BACKLOG, ['10015', 'Cancelado'])],
   },
+  // Os Epics com a situação do Semanal (GL-12 concluiu, mas a iniciativa está no backlog: refutada).
+  experimentos: [
+    exp('GL-10', 'validada', 5_000_000, T('2026-01-20')),
+    exp('GL-11', 'validada', 2_000_000, T('2025-02-01')),
+    exp('GL-12', 'refutada', 9_000_000, T('2026-03-01')),
+    { ...exp('GL-13', 'validada', 1_000_000, T('2024-06-01')), concluidoEm: T('2024-11-03') }, // sem histórico: data do mapeamento
+    exp('GL-14', 'validada', null, T('2025-05-01')),       // sem histórico nem data: fora da conta
+    exp('GL-15', 'cancelada', null, T('2025-07-01')),
+    exp('GL-16', 'exploracao', null, null),
+  ],
 }, new Date('2026-10-21T15:00:00Z'), 'https://jira.exemplo/')
 
 const ind = (id: Indicador['id']) => dados.indicadores.find(i => i.id === id)!
@@ -87,11 +108,35 @@ describe('montarComparativo', () => {
     ])
   })
 
-  it('benefício: só hipóteses validadas, no ano da validação', () => {
-    expect(ind('beneficio').amostras.map(a => [a.key, a.valor, a.data])).toEqual([
-      ['GL-10', 5_000_000, '2026-03-20'], // concluiu depois de a iniciativa entrar em Aguardando piloto
-      ['GL-11', 2_000_000, '2025-05-01'], // a iniciativa entrou em Aguardando piloto depois da conclusão
+  it('benefício: os Epics de "Hipóteses validadas" do Semanal, no ano da conclusão', () => {
+    const b = ind('beneficio')
+    expect(b.amostras.map(a => [a.key, a.valor, a.data])).toEqual([
+      ['GL-10', 5_000_000, '2026-03-20'],
+      ['GL-11', 2_000_000, '2025-04-15'],
+      ['GL-13', 1_000_000, '2024-11-03'], // sem histórico: usa a data de conclusão do Epic
     ])
+    // Fecha com o total do Semanal: R$ 8 mi em 4 hipóteses, 1 delas sem data de conclusão.
+    expect(b.conciliacao).toEqual({ total: 8_000_000, n: 4, semData: 1 })
+    expect(b.foraDaConta!.map(f => f.key)).toEqual(['GL-14'])
+  })
+
+  it('resultados por ano: concluídos, validadas, refutadas e cancelados pela data do evento', () => {
+    const anos = (id: Indicador['id']) => ind(id).amostras.map(a => [a.key, a.data.slice(0, 4)])
+    expect(anos('concluidos')).toEqual([['GL-10', '2026'], ['GL-11', '2025'], ['GL-12', '2026'], ['GL-13', '2024']])
+    expect(anos('validadas')).toEqual([['GL-10', '2026'], ['GL-11', '2025'], ['GL-13', '2024']])
+    expect(anos('refutadas')).toEqual([['GL-12', '2026']])
+    expect(anos('cancelados')).toEqual([['GL-15', '2025']])
+    expect(ind('validadas').relativoA).toBe('concluidos')
+  })
+
+  it('panorama: todos os Epics, com o ano de criação', () => {
+    expect(dados.experimentos).toHaveLength(7)
+    expect(dados.experimentos.map(e => periodoDeCriacao(e, anual('2026-12-31', false)))).toEqual(['atual', 'base', 'atual', 'outro', 'base', 'base', 'sem-data'])
+  })
+
+  it('lead time da Experimentação explica quem ficou fora', () => {
+    const fora = ind('leadExperimentacao').foraDaConta!
+    expect(fora.map(f => [f.key, f.motivo])).toEqual([['GL-12', 'Concluído sem passar por Em andamento ou Em validação no histórico']])
   })
 
   it('cycle time de Aguardando piloto e de Piloto, com o que ainda está na etapa à parte', () => {
@@ -104,17 +149,161 @@ describe('montarComparativo', () => {
   })
 })
 
-describe('resumirAno e variacao', () => {
+describe('resumir e variacao', () => {
   it('agrega por ano e mês, com corte no mesmo dia do ano', () => {
     const exp = ind('leadExperimentacao')
-    expect(resumirAno(exp, 2026, null)).toMatchObject({ n: 1, media: 33, mediana: 33 })
-    expect(resumirAno(exp, 2026, '03-15').n).toBe(0)
+    expect(resumir(exp, ano(2026))).toMatchObject({ n: 1, media: 33, mediana: 33 })
+    expect(resumir(exp, { ...ano(2026), fim: '2026-03-15' }).n).toBe(0)
     const b = ind('beneficio')
-    const r25 = resumirAno(b, 2025, null), r26 = resumirAno(b, 2026, null)
-    expect(r26.porMes[2]).toBe(5_000_000)
+    const r25 = resumir(b, ano(2025)), r26 = resumir(b, ano(2026))
+    expect(r26.porParte[2]).toBe(5_000_000)
     expect(principal(b, r25)).toBe(2_000_000)
     expect(variacao(b, principal(b, r25), principal(b, r26))).toEqual({ pct: 150, diferenca: 3_000_000, melhorou: true })
     expect(variacao(exp, 41, 33)).toEqual({ pct: -20, diferenca: -8, melhorou: true })
     expect(variacao(exp, null, 33)).toBeNull()
+  })
+})
+
+describe('etapas pelas colunas reais dos boards', () => {
+  const EM_VALIDACAO_NOVO: [string, string] = ['11201', 'Em validação']
+  const config = (cols: [string, string[]][]) => ({ columnConfig: { columns: cols.map(([name, ids]) => ({ name, statuses: ids.map(id => ({ id })) })) } })
+
+  it('"Em validação" (11201) conta como experimentação até a conclusão', () => {
+    const d = montarComparativo({
+      iniciativas: [],
+      epics: [epic('GL-20', 'GL-1', CONCLUIDO, 0)],
+      iniciativaChangelogs: {},
+      epicChangelogs: { 'GL-20': [st(T('2026-01-01'), BACKLOG, ANDAMENTO), st(T('2026-01-11'), ANDAMENTO, EM_VALIDACAO_NOVO), st(T('2026-01-31'), EM_VALIDACAO_NOVO, CONCLUIDO)] },
+      experimentos: [],
+    }, new Date('2026-10-21T15:00:00Z'))
+    expect(d.indicadores.find(i => i.id === 'leadExperimentacao')!.amostras.map(a => [a.valor, a.data])).toEqual([[30, '2026-01-31']])
+  })
+
+  it('status na coluna CANCELADO do board não conta como concluído nem em andamento', () => {
+    const d = montarComparativo({
+      iniciativas: [],
+      epics: [epic('GL-60', 'GL-1', ['10004', 'BACKLOG'], 0)],
+      iniciativaChangelogs: {},
+      epicChangelogs: { 'GL-60': [st(T('2026-01-01'), ['10057', 'Backlog'], ANDAMENTO)] },
+      board2735Config: config([['BACKLOG', ['10057']], ['CANCELADO', ['10004']]]),
+      experimentos: [],
+    }, new Date('2026-10-21T15:00:00Z'))
+    const exp = d.indicadores.find(i => i.id === 'leadExperimentacao')!
+    expect(exp.amostras).toEqual([])
+    expect(exp.emAberto).toEqual([])
+  })
+
+  it('iniciativa que já nasceu depois da Exploração (troca de status da migração) não vira lead time', () => {
+    const LEGADO: [string, string] = ['12848', 'EM EXPERIMENTAÇÃO']
+    const d = montarComparativo({
+      iniciativas: [ini('GL-7', EXPERIMENTACAO, T('2024-03-01'))],
+      epics: [],
+      iniciativaChangelogs: { 'GL-7': [st(T('2026-01-15'), LEGADO, EXPERIMENTACAO)] },
+      epicChangelogs: {}, experimentos: [],
+    }, new Date('2026-10-21T15:00:00Z'))
+    expect(d.indicadores.find(i => i.id === 'leadExploracao')!.amostras).toEqual([])
+  })
+
+  it('conta os itens sem histórico de status', () => {
+    const d = montarComparativo({
+      iniciativas: [ini('GL-8', BACKLOG, T('2026-01-01')), ini('GL-9', BACKLOG, T('2026-01-01'))],
+      epics: [], iniciativaChangelogs: { 'GL-8': [] }, epicChangelogs: {}, experimentos: [],
+    }, new Date('2026-10-21T15:00:00Z'))
+    expect(d.cobertura).toEqual({ iniciativas: { total: 2, semHistorico: 1 }, epics: { total: 0, semHistorico: 0 } })
+  })
+})
+
+describe('número principal dos tempos', () => {
+  it('é a mediana: poucos itens muito longos não puxam o ano', () => {
+    const ind: Indicador = {
+      id: 'piloto', titulo: '', regra: '', unidade: 'dias', melhor: 'menor', board: 'Ideação', grupo: 'tempos', emAberto: [],
+      amostras: [10, 12, 14, 400].map((valor, k) => ({ key: `GL-${k}`, nome: '', valor, data: `2026-0${k + 1}-10` })),
+    }
+    const r = resumir(ind, ano(2026))
+    expect(principal(ind, r)).toBe(13)
+    expect(r.media).toBe(109)
+  })
+})
+
+describe('granularidade', () => {
+  it('série por trimestre e por mês: quantidade, soma ou mediana de cada período', () => {
+    const conc = ind('concluidos')
+    const r26 = resumir(conc, ano(2026))
+    expect(serie(conc, r26, 3).map(p => p.valor)).toEqual([1, 1, null, null]) // GL-10 em 20/03, GL-12 em 01/04
+    expect(serie(ind('beneficio'), resumir(ind('beneficio'), ano(2026)))[2]).toEqual({ valor: 5_000_000, n: 1 })
+    const exp = ind('leadExperimentacao')
+    expect(serie(exp, resumir(exp, ano(2025)), 3).map(p => p.valor)).toEqual([null, 41, null, null])
+  })
+
+  it('por área: métricas de cada ano, taxa de validação e linha "não informada" por último', () => {
+    const lista: Experimento[] = [
+      { ...base('A1', 'validada', 'RH'), concluidoEm: '2025-03-01', beneficio: 1_000_000 },
+      { ...base('A2', 'refutada', 'RH'), concluidoEm: '2026-05-01' },
+      { ...base('A3', 'validada', 'RH'), concluidoEm: '2026-06-01', beneficio: 2_000_000 },
+      { ...base('A4', 'cancelada', 'Jurídico'), canceladoEm: '2026-02-01' },
+      { ...base('A5', 'validada', null), concluidoEm: '2026-11-20' },   // depois do corte de 24/10
+      { ...base('A6', 'andamento', 'RH') },                              // sem evento: não entra
+    ]
+    const { linhas, total } = porDimensao(lista, 'area', anual('2026-10-24', true))
+    expect(linhas.map(l => l.nome)).toEqual(['RH', 'Jurídico'])
+    expect(linhas[0].porPeriodo).toEqual([
+      { concluidos: 1, validadas: 1, refutadas: 0, cancelados: 0, beneficio: 1_000_000, taxaValidacao: 100 },
+      { concluidos: 2, validadas: 1, refutadas: 1, cancelados: 0, beneficio: 2_000_000, taxaValidacao: 50 },
+    ])
+    expect(total[1]).toMatchObject({ concluidos: 2, cancelados: 1 })
+    expect(porDimensao(lista, 'area', anual('2026-12-31', false)).linhas.map(l => l.nome)).toEqual(['RH', 'Jurídico', 'Área não informada'])
+  })
+})
+
+function base(key: string, situacao: Experimento['situacao'], area: string | null): Experimento {
+  return { key, nome: key, situacao, status: '', beneficio: null, area, lab: null, diretoria: null, criadoEm: null, concluidoEm: null, canceladoEm: null }
+}
+
+describe('report executivo', () => {
+  it('funil do ano, iniciativas que chegaram mais longe e leitura', () => {
+    const r = montarReport(dados, anual('2026-12-31', false))
+    expect(r.funil.map(f => [f.id, f.valores])).toEqual([
+      ['ideias', [1, 2]], ['experimento', [1, 1]], ['concluidos', [1, 2]], ['validadas', [1, 1]], ['piloto', [1, 1]], ['escala', [0, 1]],
+    ])
+    expect(r.exploracao.viraramExperimento).toEqual([1, 1])
+    expect(r.exploracao.emExploracaoHoje).toBe(1)
+    expect(r.exploracao.chegaramLonge.map(d => [d.key, d.detalhe])).toEqual([['GL-2', 'Escala']])
+    expect(r.kpis.find(k => k.id === 'taxa')!.valores).toEqual([100, 50])
+    expect(r.leitura[0]).toBe('Concluímos 2 experimentos em 2026, 100% acima de 2025 (1).')
+  })
+})
+
+describe('períodos: anual, trimestral e mensal', () => {
+  it('janelas, partes e período anterior ou do ano anterior', () => {
+    expect(janelaDe('2026-T4')).toMatchObject({ rotulo: '4º tri/2026', inicio: '2026-10-01', fim: '2026-12-31' })
+    expect(janelaDe('2026-T4').partes.map(p => p.rotulo)).toEqual(['out', 'nov', 'dez'])
+    const fev = janelaDe('2026-02')
+    expect(fev).toMatchObject({ rotulo: 'Fev/2026', inicio: '2026-02-01', fim: '2026-02-28' })
+    expect(fev.partes.map(p => [p.inicio.slice(8), p.fim.slice(8)])).toEqual([['01', '07'], ['08', '14'], ['15', '21'], ['22', '28']])
+    expect(janelaDe('2026-10').partes).toHaveLength(5)
+    expect([periodoBase('2026-T1', 'anterior'), periodoBase('2026-T1', 'ano-anterior'), periodoBase('2026-01', 'anterior'), periodoBase('2026-10', 'ano-anterior')])
+      .toEqual(['2025-T4', '2025-T1', '2025-12', '2025-10'])
+  })
+
+  it('mês atual pela metade: a base é cortada no mesmo número de dias', () => {
+    const c = criarComparacao({ modo: 'mensal', id: '2026-10', base: 'anterior', mesmoPeriodo: true, hoje: '2026-10-24' })
+    expect([c.base.inicio, c.base.fim, c.atual.fim, c.parcial, c.cortada]).toEqual(['2026-09-01', '2026-09-24', '2026-10-24', true, true])
+    const inteiro = criarComparacao({ modo: 'mensal', id: '2026-10', base: 'anterior', mesmoPeriodo: false, hoje: '2026-10-24' })
+    expect(inteiro.base.fim).toBe('2026-09-30')
+    const fechado = criarComparacao({ modo: 'trimestral', id: '2026-T3', base: 'ano-anterior', mesmoPeriodo: true, hoje: '2026-10-24' })
+    expect([fechado.base.rotulo, fechado.base.fim, fechado.cortada]).toEqual(['3º tri/2025', '2025-09-30', false])
+    expect(anual('2026-10-24', true).base.fim).toBe('2025-10-24')
+  })
+
+  it('períodos para escolher, do mais recente ao primeiro', () => {
+    expect(periodosDisponiveis('trimestral', '2026-10-24').map(p => p.id)).toEqual(['2026-T4', '2026-T3', '2026-T2', '2026-T1', '2025-T4', '2025-T3', '2025-T2', '2025-T1'])
+    expect(periodosDisponiveis('mensal', '2026-02-10').map(p => p.rotulo).slice(0, 3)).toEqual(['Fev/2026', 'Jan/2026', 'Dez/2025'])
+    expect(periodosDisponiveis('anual', '2026-10-24').map(p => p.id)).toEqual(['2026'])
+  })
+
+  it('resultados do mês por semana', () => {
+    const c = criarComparacao({ modo: 'mensal', id: '2026-03', base: 'anterior', mesmoPeriodo: false, hoje: '2026-10-24' })
+    const conc = ind('concluidos')
+    expect(serie(conc, resumir(conc, c.atual)).map(p => p.valor)).toEqual([null, null, 1, null, null]) // GL-10 em 20/03
   })
 })

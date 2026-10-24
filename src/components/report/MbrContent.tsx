@@ -10,6 +10,7 @@ import BurnupChart from '@/components/monitoramento/BurnupChart'
 import LeadTimeJornadaComponent from '@/components/dashboard/LeadTimeJornada'
 import MapaDiretorias from '@/components/dashboard/MapaDiretorias'
 import Link from 'next/link'
+import { ehExperimentoConcluido } from '@/lib/concluido'
 
 interface MbrContentProps {
   data: DashboardData
@@ -62,14 +63,6 @@ export default function MbrContent({ data, monitoramento }: MbrContentProps) {
   }, [data.allEpics, filtroFase, data.pipeline])
 
   // Contagens para o filtro (alinhadas com FunilExperimentos visão detalhada)
-  const EXCLUIR_CONCLUIDOS_FUNIL = useMemo(() => new Set([
-    'Otimiza APP - Ciclo 1 (Análise de comentários das lojas de apps)',
-    "IA para IP'S de rede",
-    'Assistente IA Ágil - Ciclo 2',
-    'Sumarização dos Contratos',
-    'Jurisquery - Consulta de Pareceres Juridicos',
-  ]), [])
-
   const contagens = useMemo(() => {
     const total = data.allEpics.length
     const cancelados = data.allEpics.filter(e =>
@@ -86,9 +79,8 @@ export default function MbrContent({ data, monitoramento }: MbrContentProps) {
     const emValidacao = data.allEpics.filter(e =>
       e.status?.id === '10204' || e.status?.name === 'EM VALIDAÇÃO' || e.status?.name === 'Em validação'
     ).length
-    const concluidos = data.allEpics.filter(e =>
-      e.status?.id === '10019' && !EXCLUIR_CONCLUIDOS_FUNIL.has(e.nome)
-    ).length
+    // Mesma regra de concluído do Semanal (lib/concluido.ts)
+    const concluidos = data.allEpics.filter(ehExperimentoConcluido).length
     const emPiloto = data.pipeline?.['EM PILOTO'] ?? 0
     const emEscala = data.pipeline?.['EM ESCALA'] ?? 0
     return {
@@ -100,7 +92,7 @@ export default function MbrContent({ data, monitoramento }: MbrContentProps) {
       'EM PILOTO': emPiloto,
       'EM ESCALA': emEscala,
     } as Record<FiltroFase, number>
-  }, [data.allEpics, data.pipeline, EXCLUIR_CONCLUIDOS_FUNIL])
+  }, [data.allEpics, data.pipeline])
 
   // ── Métricas derivadas ──
   const beneficioEstimado = useMemo(
