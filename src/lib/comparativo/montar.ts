@@ -5,7 +5,7 @@ import type { WeeklyData } from '../weekly'
 import {
   criarClassificador, DEPOIS_DA_EXPLORACAO, ETAPAS_VALIDADAS, type Classificador, type EtapaEpic, type EtapaIniciativa,
 } from './etapas'
-import { ANOS, type Amostra, type ComparativoDados, type EmAberto, type Experimento, type ForaDaConta, type Indicador } from './resumo'
+import { ANOS, type Amostra, type ComparativoDados, type EmAberto, type Experimento, type ForaDaConta, type IniciativaResumo, type Indicador } from './resumo'
 
 /**
  * Monta os indicadores do Comparativo a partir dos dois boards e dos changelogs. Cada indicador vira uma lista
@@ -160,6 +160,26 @@ function conciliacao(validadas: Experimento[]): Indicador['conciliacao'] {
   }
 }
 
+/** Iniciativas com a etapa de hoje e a primeira entrada em Experimentação, na validação, em Piloto e em Escala. */
+function resumoIniciativas(iniciativas: JiraIssue[], logs: Record<string, ChangelogEntry[]>, c: Classificador): IniciativaResumo[] {
+  return iniciativas.map(ini => {
+    const ts = transicoes(logs[ini.key], c.iniciativa)
+    const primeira = (etapas: EtapaIniciativa[]) => {
+      const t = ts.find(x => x.para && etapas.includes(x.para) && !(x.de && etapas.includes(x.de)))
+      return t ? dia(t.data) : null
+    }
+    return {
+      key: ini.key, nome: ini.fields.summary,
+      etapa: c.iniciativa(ini.fields.status.id, ini.fields.status.name) ?? null,
+      criadoEm: ini.fields.created ? dia(ini.fields.created) : null,
+      experimentacaoEm: primeira(DEPOIS_DA_EXPLORACAO),
+      validadaEm: primeira(ETAPAS_VALIDADAS),
+      pilotoEm: primeira(['piloto', 'escala']),
+      escalaEm: primeira(['escala']),
+    }
+  })
+}
+
 /** Cycle time de uma etapa do board de Ideação: soma dos períodos na etapa; conta no ano da última saída. */
 function cycleTimeEstagio(iniciativas: JiraIssue[], logs: Record<string, ChangelogEntry[]>, c: Classificador, alvo: EtapaIniciativa, agora: number): Pick<Indicador, 'amostras' | 'emAberto'> {
   const amostras: Amostra[] = []
@@ -257,7 +277,7 @@ export function montarComparativo(raw: {
     iniciativas: { total: raw.iniciativas.length, semHistorico: raw.iniciativas.filter(i => !raw.iniciativaChangelogs[i.key]).length },
     epics: { total: raw.epics.length, semHistorico: raw.epics.filter(e => !raw.epicChangelogs[e.key]).length },
   }
-  return { indicadores, experimentos, cobertura, hoje: hojeEmSaoPaulo(agora), jiraUrl: jiraUrl ? jiraUrl.replace(/\/+$/, '') : null }
+  return { indicadores, experimentos, iniciativas: resumoIniciativas(raw.iniciativas, raw.iniciativaChangelogs, c), cobertura, hoje: hojeEmSaoPaulo(agora), jiraUrl: jiraUrl ? jiraUrl.replace(/\/+$/, '') : null }
 }
 
 function hojeEmSaoPaulo(d: Date): string {
