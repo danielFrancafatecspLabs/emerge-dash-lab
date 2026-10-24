@@ -40,6 +40,18 @@ export interface Experimento {
   canceladoEm: string | null
 }
 
+/** Iniciativa do board de Ideação, com a etapa de hoje e a primeira entrada em cada etapa (AAAA-MM-DD). */
+export interface IniciativaResumo {
+  key: string
+  nome: string
+  etapa: 'exploracao' | 'experimentacao' | 'aguardando' | 'piloto' | 'escala' | 'concluido' | 'cancelado' | null
+  criadoEm: string | null
+  experimentacaoEm: string | null
+  validadaEm: string | null    // Aguardando piloto, Piloto ou Escala, o que vier primeiro
+  pilotoEm: string | null
+  escalaEm: string | null
+}
+
 /** Item que ficou fora de um indicador, com o motivo (a data, quando há, decide o ano). */
 export interface ForaDaConta { key: string; nome: string; motivo: string; data: string | null }
 
@@ -80,6 +92,8 @@ export interface ComparativoDados {
   indicadores: Indicador[]
   /** Todos os Epics do board de Experimentação (o total do histórico), para o panorama por ano de criação. */
   experimentos: Experimento[]
+  /** Todas as iniciativas do board de Ideação, para o report executivo (exploração e funil). */
+  iniciativas: IniciativaResumo[]
   /** Quantos itens ficaram sem histórico de status (o Jira não devolveu) e por isso fora das contas. */
   cobertura?: { iniciativas: { total: number; semHistorico: number }; epics: { total: number; semHistorico: number } }
   /** Dia da leitura (AAAA-MM-DD), usado no corte "mesmo período". */

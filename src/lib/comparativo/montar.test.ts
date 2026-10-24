@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { ChangelogEntry } from '../jira'
 import type { JiraIssue } from '../types'
 import { montarComparativo } from './montar'
+import { montarReport } from './report'
 import { anoDeCriacao, porDimensao, principal, resumirAno, serie, variacao, type Experimento, type Indicador } from './resumo'
 
 const ini = (key: string, status: [string, string], created: string): JiraIssue =>
@@ -250,3 +251,17 @@ describe('granularidade', () => {
 function base(key: string, situacao: Experimento['situacao'], area: string | null): Experimento {
   return { key, nome: key, situacao, status: '', beneficio: null, area, lab: null, diretoria: null, criadoEm: null, concluidoEm: null, canceladoEm: null }
 }
+
+describe('report executivo', () => {
+  it('funil do ano, iniciativas que chegaram mais longe e leitura', () => {
+    const r = montarReport(dados, null)
+    expect(r.funil.map(f => [f.id, f.valores])).toEqual([
+      ['ideias', [1, 2]], ['experimento', [1, 1]], ['concluidos', [1, 2]], ['validadas', [1, 1]], ['piloto', [1, 1]], ['escala', [0, 1]],
+    ])
+    expect(r.exploracao.viraramExperimento).toEqual([1, 1])
+    expect(r.exploracao.emExploracaoHoje).toBe(1)
+    expect(r.exploracao.chegaramLonge.map(d => [d.key, d.detalhe])).toEqual([['GL-2', 'Escala']])
+    expect(r.kpis.find(k => k.id === 'taxa')!.valores).toEqual([100, 50])
+    expect(r.leitura[0]).toBe('Concluímos 2 experimentos em 2026, 100% acima de 2025 (1).')
+  })
+})

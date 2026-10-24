@@ -16,6 +16,7 @@ import {
 } from '@/lib/comparativo/resumo'
 import Panorama from './Panorama'
 import PorArea from './PorArea'
+import ReportExecutivo from './ReportExecutivo'
 import { COR_ANO } from './cores'
 
 const MESES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez']
@@ -507,6 +508,8 @@ export default function ComparativoClient({ dados }: { dados: ComparativoDados }
       <div ref={detalheRef} className="scroll-mt-16">
         <Detalhe ind={ind} r1={r1} r2={r2} base={baseDe(ind)} ate={ateMMDD} cortar={mesmoPeriodo} corte={corte} jiraUrl={dados.jiraUrl} />
       </div>
+
+      <ReportExecutivo dados={dados} corte={corte} />
 
       <p className="text-xs leading-relaxed text-beon-muted">
         Nos tempos, o número principal é a mediana: metade dos itens levou menos que isso e metade, mais; a média aparece no detalhe.
