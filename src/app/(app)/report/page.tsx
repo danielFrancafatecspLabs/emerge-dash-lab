@@ -25,6 +25,7 @@ import type {
 import type { ChangelogEntry } from '@/lib/jira'
 import { PortalDataError } from '@/components/shell/PortalDataError'
 import { epicBloqueado } from '@/lib/bloqueio'
+import { ehExperimentoConcluido } from '@/lib/concluido'
 
 export const dynamic = 'force-dynamic'
 
@@ -228,20 +229,11 @@ export default async function ReportPage() {
   })
 
   // ── Funil de Inovação ──
-  // O report precisa espelhar a mesma contagem do board de experimentação usada no funil.
-  const EXCLUIR_CONCLUIDOS = new Set([
-    'Otimiza APP - Ciclo 1 (Análise de comentários das lojas de apps)',
-    "IA para IP'S de rede",
-    'Assistente IA Ágil - Ciclo 2',
-    'Sumarização dos Contratos',
-    'Jurisquery - Consulta de Pareceres Juridicos',
-  ])
+  // O report precisa espelhar a mesma contagem do board de experimentação usada no funil (lib/concluido.ts).
   const emAndamentoCount = data.allEpics.filter(e =>
     e.status?.id === '3' || e.status?.name === 'Em andamento'
   ).length
-  const concluidosCount = data.allEpics.filter(e =>
-    e.status?.id === '10019' && !EXCLUIR_CONCLUIDOS.has(e.nome)
-  ).length
+  const concluidosCount = data.allEpics.filter(ehExperimentoConcluido).length
   const backlogIdeacaoCount = data.iniciativas.filter(e =>
     e.status?.id === '10004' || e.status?.name === 'BACKLOG'
   ).length

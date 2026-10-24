@@ -6,6 +6,7 @@ import {
   criarClassificador, DEPOIS_DA_EXPLORACAO, ETAPAS_VALIDADAS, type Classificador, type EtapaEpic, type EtapaIniciativa,
 } from './etapas'
 import { type Amostra, type ComparativoDados, type EmAberto, type Experimento, type ForaDaConta, type IniciativaResumo, type Indicador } from './resumo'
+import { ehExcluidoDosConcluidos } from '../concluido'
 
 /**
  * Monta os indicadores do Comparativo a partir dos dois boards e dos changelogs. Cada indicador vira uma lista
@@ -87,6 +88,8 @@ function leadExperimentacao(epics: JiraIssue[], logs: Record<string, ChangelogEn
     const { periodos, aberto, ultimaSaida } = periodosExperimentacao(logs[e.key], c)
     const bloqueios = getPeriodosBloqueio(e.key, logs)
     if (atual === 'concluido') {
+      // Reabertos ou movidos indevidamente não contam como concluídos (lib/concluido.ts).
+      if (ehExcluidoDosConcluidos(e.fields.summary)) continue
       // Concluídos que não dá para medir também aparecem, com o motivo, no período da conclusão.
       const concluiu = transicoes(logs[e.key], c.epic).find(t => t.para === 'concluido')?.data ?? null
       const fora = (motivo: string) => foraDaConta.push({ key: e.key, nome: e.fields.summary, motivo, data: concluiu ? dia(concluiu) : null })
