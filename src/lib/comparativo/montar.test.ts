@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { ChangelogEntry } from '../jira'
 import type { JiraIssue } from '../types'
 import { montarComparativo } from './montar'
-import { principal, resumirAno, variacao, type Indicador } from './resumo'
+import { anoDeCriacao, principal, resumirAno, variacao, type Experimento, type Indicador } from './resumo'
 
 const ini = (key: string, status: [string, string], created: string): JiraIssue =>
   ({ key, fields: { summary: `Iniciativa ${key}`, status: { id: status[0], name: status[1] }, issuetype: { name: 'Iniciativa' }, created } }) as JiraIssue
@@ -29,6 +29,8 @@ const VALIDACAO: [string, string] = ['10204', 'EM VALIDAÇÃO']
 const CONCLUIDO: [string, string] = ['10019', 'Concluído']
 
 const T = (d: string) => `${d}T12:00:00.000-0300`
+const exp = (key: string, situacao: Experimento['situacao'], beneficio: number | null, criadoEm: string | null) =>
+  ({ key, nome: `Experimento ${key}`, situacao, status: '', beneficio, criadoEm })
 
 const dados = montarComparativo({
   iniciativas: [
@@ -68,13 +70,17 @@ const dados = montarComparativo({
       st(T('2025-04-15'), ANDAMENTO, CONCLUIDO),
     ],
     'GL-12': [st(T('2026-04-01'), ANDAMENTO, CONCLUIDO)],
+    'GL-15': [st(T('2025-08-10'), BACKLOG, ['10015', 'Cancelado'])],
   },
-  // Os Epics de "Hipóteses validadas" do Semanal (GL-12 é refutada, não vem na lista).
-  hipotesesValidadas: [
-    { key: 'GL-10', nome: 'Experimento GL-10', beneficio: 5_000_000, concluidoEm: null },
-    { key: 'GL-11', nome: 'Experimento GL-11', beneficio: 2_000_000, concluidoEm: null },
-    { key: 'GL-13', nome: 'Concluído em 2024', beneficio: 1_000_000, concluidoEm: T('2024-11-03') },
-    { key: 'GL-14', nome: 'Sem histórico', beneficio: null, concluidoEm: null },
+  // Os Epics com a situação do Semanal (GL-12 concluiu, mas a iniciativa está no backlog: refutada).
+  experimentos: [
+    exp('GL-10', 'validada', 5_000_000, T('2026-01-20')),
+    exp('GL-11', 'validada', 2_000_000, T('2025-02-01')),
+    exp('GL-12', 'refutada', 9_000_000, T('2026-03-01')),
+    { ...exp('GL-13', 'validada', 1_000_000, T('2024-06-01')), concluidoEm: T('2024-11-03') }, // sem histórico: data do mapeamento
+    exp('GL-14', 'validada', null, T('2025-05-01')),       // sem histórico nem data: fora da conta
+    exp('GL-15', 'cancelada', null, T('2025-07-01')),
+    exp('GL-16', 'exploracao', null, null),
   ],
 }, new Date('2026-10-21T15:00:00Z'), 'https://jira.exemplo/')
 
@@ -103,6 +109,26 @@ describe('montarComparativo', () => {
     ])
     // Fecha com o total do Semanal: R$ 8 mi em 4 hipóteses, 1 antes de 2025 e 1 sem data.
     expect(b.conciliacao).toEqual({ total: 8_000_000, n: 4, foraDosAnos: 1, semData: 1 })
+    expect(b.foraDaConta!.map(f => f.key)).toEqual(['GL-14'])
+  })
+
+  it('resultados por ano: concluídos, validadas, refutadas e cancelados pela data do evento', () => {
+    const anos = (id: Indicador['id']) => ind(id).amostras.map(a => [a.key, a.data.slice(0, 4)])
+    expect(anos('concluidos')).toEqual([['GL-10', '2026'], ['GL-11', '2025'], ['GL-12', '2026'], ['GL-13', '2024']])
+    expect(anos('validadas')).toEqual([['GL-10', '2026'], ['GL-11', '2025'], ['GL-13', '2024']])
+    expect(anos('refutadas')).toEqual([['GL-12', '2026']])
+    expect(anos('cancelados')).toEqual([['GL-15', '2025']])
+    expect(ind('validadas').relativoA).toBe('concluidos')
+  })
+
+  it('panorama: todos os Epics, com o ano de criação', () => {
+    expect(dados.experimentos).toHaveLength(7)
+    expect(dados.experimentos.map(anoDeCriacao)).toEqual([2026, 2025, 2026, 'antes', 2025, 2025, 'sem-data'])
+  })
+
+  it('lead time da Experimentação explica quem ficou fora', () => {
+    const fora = ind('leadExperimentacao').foraDaConta!
+    expect(fora.map(f => [f.key, f.motivo])).toEqual([['GL-12', 'Concluído sem passar por Em andamento ou Em validação no histórico']])
   })
 
   it('cycle time de Aguardando piloto e de Piloto, com o que ainda está na etapa à parte', () => {
@@ -140,7 +166,7 @@ describe('etapas pelas colunas reais dos boards', () => {
       epics: [epic('GL-20', 'GL-1', CONCLUIDO, 0)],
       iniciativaChangelogs: {},
       epicChangelogs: { 'GL-20': [st(T('2026-01-01'), BACKLOG, ANDAMENTO), st(T('2026-01-11'), ANDAMENTO, EM_VALIDACAO_NOVO), st(T('2026-01-31'), EM_VALIDACAO_NOVO, CONCLUIDO)] },
-      hipotesesValidadas: [],
+      experimentos: [],
     }, new Date('2026-10-21T15:00:00Z'))
     expect(d.indicadores.find(i => i.id === 'leadExperimentacao')!.amostras.map(a => [a.valor, a.data])).toEqual([[30, '2026-01-31']])
   })
@@ -152,7 +178,7 @@ describe('etapas pelas colunas reais dos boards', () => {
       iniciativaChangelogs: {},
       epicChangelogs: { 'GL-60': [st(T('2026-01-01'), ['10057', 'Backlog'], ANDAMENTO)] },
       board2735Config: config([['BACKLOG', ['10057']], ['CANCELADO', ['10004']]]),
-      hipotesesValidadas: [],
+      experimentos: [],
     }, new Date('2026-10-21T15:00:00Z'))
     const exp = d.indicadores.find(i => i.id === 'leadExperimentacao')!
     expect(exp.amostras).toEqual([])
@@ -165,7 +191,7 @@ describe('etapas pelas colunas reais dos boards', () => {
       iniciativas: [ini('GL-7', EXPERIMENTACAO, T('2024-03-01'))],
       epics: [],
       iniciativaChangelogs: { 'GL-7': [st(T('2026-01-15'), LEGADO, EXPERIMENTACAO)] },
-      epicChangelogs: {}, hipotesesValidadas: [],
+      epicChangelogs: {}, experimentos: [],
     }, new Date('2026-10-21T15:00:00Z'))
     expect(d.indicadores.find(i => i.id === 'leadExploracao')!.amostras).toEqual([])
   })
@@ -173,7 +199,7 @@ describe('etapas pelas colunas reais dos boards', () => {
   it('conta os itens sem histórico de status', () => {
     const d = montarComparativo({
       iniciativas: [ini('GL-8', BACKLOG, T('2026-01-01')), ini('GL-9', BACKLOG, T('2026-01-01'))],
-      epics: [], iniciativaChangelogs: { 'GL-8': [] }, epicChangelogs: {}, hipotesesValidadas: [],
+      epics: [], iniciativaChangelogs: { 'GL-8': [] }, epicChangelogs: {}, experimentos: [],
     }, new Date('2026-10-21T15:00:00Z'))
     expect(d.cobertura).toEqual({ iniciativas: { total: 2, semHistorico: 1 }, epics: { total: 0, semHistorico: 0 } })
   })
@@ -182,7 +208,7 @@ describe('etapas pelas colunas reais dos boards', () => {
 describe('número principal dos tempos', () => {
   it('é a mediana: poucos itens muito longos não puxam o ano', () => {
     const ind: Indicador = {
-      id: 'piloto', titulo: '', regra: '', unidade: 'dias', melhor: 'menor', board: 'Ideação', emAberto: [],
+      id: 'piloto', titulo: '', regra: '', unidade: 'dias', melhor: 'menor', board: 'Ideação', grupo: 'tempos', emAberto: [],
       amostras: [10, 12, 14, 400].map((valor, k) => ({ key: `GL-${k}`, nome: '', valor, data: `2026-0${k + 1}-10` })),
     }
     const r = resumirAno(ind, 2026, null)
