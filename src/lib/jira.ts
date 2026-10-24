@@ -1,6 +1,7 @@
 import https from 'https'
 import { JiraIssue, JiraBoardConfiguration } from './types'
 import { CAMPOS_BLOQUEIO_PADRAO, ehCampoDeBloqueio, textoDoValor } from './bloqueio'
+import { comCache, invalidarCache, salvoEm } from './cache-dados'
 
 // Board IDs (use env vars if present, otherwise fall back to the correct defaults)
 export const IDEACAO_BOARD_ID = Number(process.env.JIRA_BOARD_IDEACAO_ID ?? 2734)
@@ -12,9 +13,10 @@ export const EXPERIMENTACAO_BOARD_ID = Number(process.env.JIRA_BOARD_INICIATIVAS
  * redes corporativas com proxy ou SSL inspeccionado.
  */
 function jiraFetch(url: string, headers: HeadersInit, signal?: AbortSignal): Promise<Response> {
-  // Tentativa 1: fetch nativo (mais moderno, suporta cache)
-  // Se falhar (rede corporativa), cairá no catch e tentará com https. Um timeout (signal abortado) não cai no fallback.
-  return fetch(url, { headers, signal }).catch(err => {
+  // Tentativa 1: fetch nativo. Se falhar (rede corporativa), cairá no catch e tentará com https. Um timeout (signal
+  // abortado) não cai no fallback. Sempre `no-store`: o cache dos dados é o de fetchDashboardRaw (cache-dados.ts); o
+  // cache de fetch do Next.js, fora de uma requisição (atualização em segundo plano), devolveria respostas antigas.
+  return fetch(url, { headers, signal, cache: 'no-store' }).catch(err => {
     if (signal?.aborted) throw err
     return jiraFetchHttps(url, headers)
   })
@@ -66,6 +68,7 @@ const FIELDS_INICIATIVA = [
 
 const FIELDS_EPIC = [
   'summary', 'status', 'issuetype', 'parent', 'description', 'priority', 'created',
+  'updated', // permite reaproveitar changelog e comentário de quem não mudou (atualização incremental)
   'customfield_30014', // Domínio (Empresarial / PME / outros) (was customfield_11661)
   'customfield_13406', // Motivo de Bloqueio
   'customfield_10021', // Flagged (Impediment)
@@ -224,14 +227,53 @@ export async function getAllBoardIssues(boardId: number, fields: string): Promis
   return all
 }
 
-export async function fetchDashboardRaw(): Promise<{
+export interface DashboardRaw {
   iniciativas: JiraIssue[]
   epics: JiraIssue[]
   board2734Config: JiraBoardConfiguration
   board2735Config: JiraBoardConfiguration
   epicChangelogs: Record<string, ChangelogEntry[]>
   iniciativaChangelogs: Record<string, ChangelogEntry[]>
-}> {
+}
+
+const CHAVE_CACHE_DASHBOARD = 'jira-dashboard'
+const segundos = (v: string | undefined, padrao: number) => (Number(v) > 0 ? Number(v) : padrao) * 1000
+
+/**
+ * Dados brutos do Jira usados por todas as visões (Estratégia, Portfólio, Comparativo, Semanal…), com cache no
+ * servidor: dentro de JIRA_CACHE_TTL_SECONDS (padrão 5 min) não há nenhuma chamada ao Jira; depois disso a página abre
+ * com a última versão e o Jira é consultado em segundo plano, buscando changelog e comentário só das issues que mudaram.
+ */
+export function fetchDashboardRaw(): Promise<DashboardRaw> {
+  return comCache(CHAVE_CACHE_DASHBOARD, buscarDashboardRaw, {
+    frescoPorMs: segundos(process.env.JIRA_CACHE_TTL_SECONDS, 300),
+    maximoObsoletoMs: segundos(process.env.JIRA_CACHE_MAX_STALE_SECONDS, 24 * 60 * 60),
+  })
+}
+
+/** "Atualizar dados": o próximo pedido busca no Jira (de forma incremental) em vez de servir o cache. */
+export const invalidarDashboardRaw = () => invalidarCache(CHAVE_CACHE_DASHBOARD)
+
+/** Quando os dados em cache foram lidos do Jira. */
+export const dashboardRawAtualizadoEm = () => salvoEm(CHAVE_CACHE_DASHBOARD)
+
+/** Executa `tarefa` para cada item com no máximo `limite` em paralelo (sem esperar o mais lento de cada lote). */
+async function emParalelo<T>(itens: T[], limite: number, tarefa: (item: T) => Promise<void>) {
+  let proximo = 0
+  const trabalhador = async () => {
+    while (proximo < itens.length) await tarefa(itens[proximo++])
+  }
+  await Promise.all(Array.from({ length: Math.min(limite, itens.length) }, trabalhador))
+}
+
+/** A issue não mudou desde a leitura anterior (mesmo `updated`), então o changelog e o comentário dela também não. */
+function semMudanca(issue: JiraIssue, anteriores: Map<string, JiraIssue>): JiraIssue | undefined {
+  const antes = anteriores.get(issue.key)
+  const atual = issue.fields?.updated
+  return antes && atual && antes.fields?.updated === atual ? antes : undefined
+}
+
+async function buscarDashboardRaw(anterior?: DashboardRaw): Promise<DashboardRaw> {
   const campos = await resolverCamposDinamicos()
   const tecnologiaFieldId = campos.tecnologia
   const fieldsEpicComTecnologia = [...new Set([
@@ -258,10 +300,8 @@ export async function fetchDashboardRaw(): Promise<{
     if (!base) throw new Error('JIRA_BASE_URL é obrigatório')
     const url = `${base}/rest/api/3/issue/${issueKey}/comment?maxResults=200`
     const res = await jiraFetch(url, getHeaders())
-    if (!res.ok) {
-      // não aborta toda a construção do dashboard por causa de um comentário
-      return null
-    }
+    // Falha não aborta o dashboard: o epic segue sem comentário (ver o catch abaixo).
+    if (!res.ok) throw new Error(`comentários ${issueKey}: Jira respondeu ${res.status}`)
     const data = await res.json()
     const comments = data.comments ?? []
     if (comments.length === 0) return null
@@ -292,46 +332,52 @@ export async function fetchDashboardRaw(): Promise<{
   // legados/migrados vistos no board 2735 (ver STATUS_PIPELINE em mappers.ts).
   const EPIC_STATUS_NEEDS_COMMENT = new Set(['10139', '14538', '3', '10204', '11201'])
 
+  const epicsAnteriores = new Map((anterior?.epics ?? []).map(e => [e.key, e]))
   const epicsWithComments: JiraIssue[] = await Promise.all(
     epics.map(async e => {
       const copy = { ...e }
       if (!EPIC_STATUS_NEEDS_COMMENT.has(copy.fields?.status?.id ?? '')) return copy
+      const antes = semMudanca(copy, epicsAnteriores)
+      if (antes && antes.fields && 'lastComment' in antes.fields) {
+        copy.fields = { ...copy.fields, lastComment: antes.fields.lastComment }
+        return copy
+      }
       try {
         copy.fields = { ...copy.fields, lastComment: await getIssueLastComment(copy.key) }
       } catch {
-        // silencioso — preferimos continuar mesmo se um fetch falhar
-        copy.fields = { ...copy.fields, lastComment: null }
+        // Silencioso: o epic segue sem comentário nesta leitura, sem `lastComment`, para ser buscado de novo na próxima.
       }
       return copy
     })
   )
 
-  // Buscar changelogs para TODOS os Epics (board 2735) — necessário para calcular cycle time de experimentação
-  // e para TODAS as Iniciativas (board 2734) — necessário para cycle time por etapa.
-  // Rodamos ambos em paralelo com timeout individual de 8s por chamada.
-  const BATCH_SIZE = 8
+  // Changelogs de TODOS os Epics (cycle time de experimentação, data de conclusão) e de TODAS as Iniciativas (cycle
+  // time por etapa). Só busca os de issues novas ou alteradas desde a leitura anterior; os demais são reaproveitados.
+  const CONCORRENCIA = 8
   const CHANGELOG_TIMEOUT_MS = 8000
 
-  async function fetchChangelogsBatch(issues: JiraIssue[]): Promise<Record<string, ChangelogEntry[]>> {
+  async function fetchChangelogs(issues: JiraIssue[], anteriores: JiraIssue[], logsAnteriores: Record<string, ChangelogEntry[]>) {
     const result: Record<string, ChangelogEntry[]> = {}
-    for (let i = 0; i < issues.length; i += BATCH_SIZE) {
-      const batch = issues.slice(i, i + BATCH_SIZE)
-      const results = await Promise.allSettled(
-        batch.map(e => getIssueChangelog(e.key, CHANGELOG_TIMEOUT_MS))
-      )
-      results.forEach((r, idx) => {
-        if (r.status === 'fulfilled') {
-          result[batch[idx].key] = r.value
-        }
-      })
-    }
-    return result
+    const porChave = new Map(anteriores.map(i => [i.key, i]))
+    const faltando = issues.filter(i => {
+      const reaproveitavel = semMudanca(i, porChave) && logsAnteriores[i.key]
+      if (reaproveitavel) result[i.key] = reaproveitavel
+      return !reaproveitavel
+    })
+    await emParalelo(faltando, CONCORRENCIA, async issue => {
+      // Uma falha deixa a issue sem histórico nesta leitura; ela é buscada de novo na próxima.
+      try { result[issue.key] = await getIssueChangelog(issue.key, CHANGELOG_TIMEOUT_MS) } catch { /* segue sem */ }
+    })
+    return { result, buscados: faltando.length }
   }
 
-  const [epicChangelogs, iniciativaChangelogs] = await Promise.all([
-    fetchChangelogsBatch(epics),
-    fetchChangelogsBatch(iniciativas),
+  const [epicLogs, iniciativaLogs] = await Promise.all([
+    fetchChangelogs(epics, anterior?.epics ?? [], anterior?.epicChangelogs ?? {}),
+    fetchChangelogs(iniciativas, anterior?.iniciativas ?? [], anterior?.iniciativaChangelogs ?? {}),
   ])
+  const epicChangelogs = epicLogs.result
+  const iniciativaChangelogs = iniciativaLogs.result
+  console.log(`[jira] changelogs buscados: ${epicLogs.buscados}/${epics.length} epics, ${iniciativaLogs.buscados}/${iniciativas.length} iniciativas`)
 
   return { iniciativas, epics: epicsWithComments, board2734Config, board2735Config, epicChangelogs, iniciativaChangelogs }
 }

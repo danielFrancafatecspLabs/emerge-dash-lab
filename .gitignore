@@ -20,6 +20,8 @@ npm-debug.log*
 # Caches gerados em tempo de execução
 .portfolio-cache.json
 .segmento-cache-v2.json
+# Cache dos dados do Jira (src/lib/cache-dados.ts)
+.cache/
 
 # Dados gravados pela aplicação em tempo de execução (Comunidade)
 data/community-profiles.json
