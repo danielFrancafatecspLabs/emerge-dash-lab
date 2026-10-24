@@ -35,6 +35,8 @@ export interface Indicador {
 
 export interface ComparativoDados {
   indicadores: Indicador[]
+  /** Quantos itens ficaram sem histórico de status (o Jira não devolveu) e por isso fora das contas. */
+  cobertura?: { iniciativas: { total: number; semHistorico: number }; epics: { total: number; semHistorico: number } }
   /** Dia da leitura (AAAA-MM-DD), usado no corte "mesmo período". */
   hoje: string
   jiraUrl: string | null
@@ -48,7 +50,7 @@ export interface ResumoAno {
   media: number | null
   mediana: number | null
   soma: number
-  /** Por mês (jan a dez): média (dias) ou soma (R$); null quando não há amostra. */
+  /** Por mês (jan a dez): mediana (dias) ou soma (R$); null quando não há amostra. */
   porMes: (number | null)[]
   /** Quantidade de amostras por mês. */
   nPorMes: number[]
@@ -68,14 +70,14 @@ export function resumirAno(ind: Indicador, ano: number, ate: string | null): Res
   const meio = Math.floor(n / 2)
   const porMes: (number | null)[] = Array(12).fill(null)
   const nPorMes = Array(12).fill(0)
-  const somaMes = Array(12).fill(0)
+  const valoresMes: number[][] = Array.from({ length: 12 }, () => [])
   for (const a of amostras) {
     const m = Number(a.data.slice(5, 7)) - 1
     nPorMes[m]++
-    somaMes[m] += a.valor
+    valoresMes[m].push(a.valor)
   }
   for (let m = 0; m < 12; m++) {
-    if (nPorMes[m]) porMes[m] = ind.unidade === 'reais' ? somaMes[m] : Math.round(somaMes[m] / nPorMes[m])
+    if (nPorMes[m]) porMes[m] = ind.unidade === 'reais' ? valoresMes[m].reduce((x, v) => x + v, 0) : mediana(valoresMes[m])
   }
   return {
     ano, n, soma, porMes, nPorMes, amostras,
@@ -84,8 +86,20 @@ export function resumirAno(ind: Indicador, ano: number, ate: string | null): Res
   }
 }
 
-/** Valor que resume o ano: média de dias ou soma de R$. */
-export const principal = (ind: Indicador, r: ResumoAno) => (ind.unidade === 'reais' ? (r.n ? r.soma : null) : r.media)
+function mediana(v: number[]): number {
+  const o = [...v].sort((a, b) => a - b)
+  const m = Math.floor(o.length / 2)
+  return o.length % 2 ? o[m] : Math.round((o[m - 1] + o[m]) / 2)
+}
+
+/**
+ * Valor que resume o ano: soma de R$ ou, nos tempos, a mediana de dias. A mediana não deixa um punhado de itens
+ * parados há muito tempo puxar o número do ano inteiro (a média continua no detalhe).
+ */
+export const principal = (ind: Indicador, r: ResumoAno) => (ind.unidade === 'reais' ? (r.n ? r.soma : null) : r.mediana)
+
+/** Abaixo disso a variação percentual não diz muito: o cartão mostra os números, mas não o %. */
+export const MINIMO_PARA_COMPARAR = 3
 
 /** Variação de `antes` para `depois`, em %, e se ela é boa para o indicador. */
 export function variacao(ind: Indicador, antes: number | null, depois: number | null): { pct: number; diferenca: number; melhorou: boolean | null } | null {

@@ -118,3 +118,74 @@ describe('resumirAno e variacao', () => {
     expect(variacao(exp, null, 33)).toBeNull()
   })
 })
+
+describe('etapas pelas colunas reais dos boards', () => {
+  const EM_VALIDACAO_NOVO: [string, string] = ['11201', 'Em validação']
+  const config = (cols: [string, string[]][]) => ({ columnConfig: { columns: cols.map(([name, ids]) => ({ name, statuses: ids.map(id => ({ id })) })) } })
+
+  it('"Em validação" (11201) conta como experimentação até a conclusão', () => {
+    const d = montarComparativo({
+      iniciativas: [],
+      epics: [epic('GL-20', 'GL-1', CONCLUIDO, 0)],
+      iniciativaChangelogs: {},
+      epicChangelogs: { 'GL-20': [st(T('2026-01-01'), BACKLOG, ANDAMENTO), st(T('2026-01-11'), ANDAMENTO, EM_VALIDACAO_NOVO), st(T('2026-01-31'), EM_VALIDACAO_NOVO, CONCLUIDO)] },
+    }, new Date('2026-10-21T15:00:00Z'))
+    expect(d.indicadores.find(i => i.id === 'leadExperimentacao')!.amostras.map(a => [a.valor, a.data])).toEqual([[30, '2026-01-31']])
+  })
+
+  it('a coluna do board decide: iniciativa "Concluído" na coluna EM ESCALA entra no benefício validado', () => {
+    const CONCLUIDA: [string, string] = ['10019', 'Concluído']
+    const d = montarComparativo({
+      iniciativas: [ini('GL-5', CONCLUIDA, T('2025-01-01'))],
+      epics: [epic('GL-50', 'GL-5', CONCLUIDO, 3_000_000)],
+      iniciativaChangelogs: { 'GL-5': [st(T('2026-02-01'), PILOTO, CONCLUIDA)] },
+      epicChangelogs: { 'GL-50': [st(T('2025-12-10'), ANDAMENTO, CONCLUIDO)] },
+      board2734Config: config([['EM PILOTO', ['14459']], ['EM ESCALA', ['13562', '10019']]]),
+    }, new Date('2026-10-21T15:00:00Z'))
+    expect(d.indicadores.find(i => i.id === 'beneficio')!.amostras.map(a => [a.key, a.valor, a.data])).toEqual([['GL-50', 3_000_000, '2026-02-01']])
+  })
+
+  it('status na coluna CANCELADO do board não conta como concluído nem em andamento', () => {
+    const d = montarComparativo({
+      iniciativas: [],
+      epics: [epic('GL-60', 'GL-1', ['10004', 'BACKLOG'], 0)],
+      iniciativaChangelogs: {},
+      epicChangelogs: { 'GL-60': [st(T('2026-01-01'), ['10057', 'Backlog'], ANDAMENTO)] },
+      board2735Config: config([['BACKLOG', ['10057']], ['CANCELADO', ['10004']]]),
+    }, new Date('2026-10-21T15:00:00Z'))
+    const exp = d.indicadores.find(i => i.id === 'leadExperimentacao')!
+    expect(exp.amostras).toEqual([])
+    expect(exp.emAberto).toEqual([])
+  })
+
+  it('iniciativa que já nasceu depois da Exploração (troca de status da migração) não vira lead time', () => {
+    const LEGADO: [string, string] = ['12848', 'EM EXPERIMENTAÇÃO']
+    const d = montarComparativo({
+      iniciativas: [ini('GL-7', EXPERIMENTACAO, T('2024-03-01'))],
+      epics: [],
+      iniciativaChangelogs: { 'GL-7': [st(T('2026-01-15'), LEGADO, EXPERIMENTACAO)] },
+      epicChangelogs: {},
+    }, new Date('2026-10-21T15:00:00Z'))
+    expect(d.indicadores.find(i => i.id === 'leadExploracao')!.amostras).toEqual([])
+  })
+
+  it('conta os itens sem histórico de status', () => {
+    const d = montarComparativo({
+      iniciativas: [ini('GL-8', BACKLOG, T('2026-01-01')), ini('GL-9', BACKLOG, T('2026-01-01'))],
+      epics: [], iniciativaChangelogs: { 'GL-8': [] }, epicChangelogs: {},
+    }, new Date('2026-10-21T15:00:00Z'))
+    expect(d.cobertura).toEqual({ iniciativas: { total: 2, semHistorico: 1 }, epics: { total: 0, semHistorico: 0 } })
+  })
+})
+
+describe('número principal dos tempos', () => {
+  it('é a mediana: poucos itens muito longos não puxam o ano', () => {
+    const ind: Indicador = {
+      id: 'piloto', titulo: '', regra: '', unidade: 'dias', melhor: 'menor', board: 'Ideação', emAberto: [],
+      amostras: [10, 12, 14, 400].map((valor, k) => ({ key: `GL-${k}`, nome: '', valor, data: `2026-0${k + 1}-10` })),
+    }
+    const r = resumirAno(ind, 2026, null)
+    expect(principal(ind, r)).toBe(13)
+    expect(r.media).toBe(109)
+  })
+})
