@@ -1,12 +1,12 @@
 import { join } from 'path'
 import PptxGenJS from 'pptxgenjs'
-import type { SemanalCancelamento, SemanalData, SemanalResumo, SemanalRow, SemanalSecaoId } from './semanal'
+import { PRAZO_ATENCAO_PCT, type SemanalCancelamento, type SemanalData, type SemanalResumo, type SemanalRow, type SemanalSecaoId, type SituacaoPrazo } from './semanal'
 import {
   dataAtualizacao, GOV_BOLINHA_EXPLORACAO, GOV_GRAFITE, GOV_LAYOUT, layoutGovernanca, TECNOLOGIAS_GOV, type SemanalGovernanca,
 } from './semanal-governanca'
 import {
-  CANCELAMENTO_LAYOUT, chipCor, colunasDa, contagemPorLab, corDoLab, diretorEPontoFocal, formatBeneficioMM, formatData,
-  formatMilhoes, fraseDestaque, LINHAS_POR_PAGINA, montarPaginas, pctUmaCasa, RESUMO_FUNIL, sequenciasDeLab, setaDoFunil, type PaginaDeck,
+  CANCELAMENTO_LAYOUT, chipCor, COR_PRAZO, colunasDa, contagemPorLab, corDoLab, diretorEPontoFocal, formatBeneficioMM, formatData,
+  formatMilhoes, fraseDestaque, larguraPrazo, legendaPrazo, LINHAS_POR_PAGINA, montarPaginas, pctUmaCasa, RESUMO_FUNIL, sequenciasDeLab, setaDoFunil, type PaginaDeck,
 } from './semanal-deck'
 
 /**
@@ -483,9 +483,26 @@ function celula(slide: Slide, col: string, row: SemanalRow, x: number, y: number
       })
       return
     }
-    case 'previsao':
-      texto(slide, formatData(row.previsao), cx, y, cw, h, { ...meio, fontSize: P(10.5), color: '374151', align: 'center' })
+    case 'previsao': {
+      const p = row.progresso
+      if (!p) {
+        texto(slide, formatData(row.previsao), cx, y, cw, h, { ...meio, fontSize: P(10.5), color: '374151', align: 'center' })
+        return
+      }
+      // Data, barra de progresso do prazo e legenda, centralizados na linha (mesmo desenho da tela).
+      const cor = COR_PRAZO[p.situacao].slice(1)
+      const topo = y + (h - 38) / 2
+      texto(slide, formatData(row.previsao), cx, topo, cw, 14, { fontSize: P(10.5), color: '374151', align: 'center', valign: 'middle' })
+      slide.addShape('roundRect', { x: I(cx), y: I(topo + 18), w: I(cw), h: I(6), rectRadius: I(3), fill: { color: 'EDEFF2' }, line: { type: 'none' } })
+      const preenchido = (cw * larguraPrazo(p)) / 100
+      if (preenchido > 0) {
+        slide.addShape('roundRect', { x: I(cx), y: I(topo + 18), w: I(Math.max(6, preenchido)), h: I(6), rectRadius: I(3), fill: { color: cor }, line: { type: 'none' } })
+      }
+      texto(slide, legendaPrazo(p), cx - 6, topo + 26, cw + 12, 12, {
+        fontSize: P(9), color: p.situacao === 'atrasado' ? cor : '6B7280', bold: p.situacao === 'atrasado', align: 'center', valign: 'middle', wrap: false,
+      })
       return
+    }
     case 'diretor':
       texto(slide, caber(diretorEPontoFocal(row), cw, 10.5, 3), cx, y, cw, h, { ...meio, fontSize: P(10.5), color: '374151' })
       return
@@ -556,11 +573,14 @@ function lista(slide: Slide, pg: Extract<PaginaDeck, { tipo: 'lista' }>, voltar:
   imagem(slide, icone('estrela-legenda'), 110, 686, 22, 22)
   slide.addShape('line', { x: I(196), y: I(656), w: 0, h: I(64), line: { color: BORDA, width: 0.75 } })
   texto(slide, 'Qt. de Iniciativas + Laboratórios resp.:', 214, 664, 400, 16, { fontSize: P(10.5), color: '6B7280' })
+  // Em andamento, a legenda da barra de prazo ocupa a direita do rodapé.
+  const prazo = pg.secao === 'andamento'
+  const limiteLabs = prazo ? 930 : 1260
   let lx = 214, ly = 688
   for (const [lab, n] of contagemPorLab(pg.todas)) {
     const rotulo = `${String(n).padStart(2, '0')} ${lab}`
     const w = 20 + rotulo.length * 6
-    if (lx + w > 1260) { lx = 214; ly += 16 }
+    if (lx + w > limiteLabs) { lx = 214; ly += 16 }
     const cor = corDoLab(lab).slice(1)
     slide.addShape('roundRect', { x: I(lx), y: I(ly + 2), w: I(11), h: I(11), rectRadius: I(3), fill: { color: 'FFFFFF' }, line: { color: cor, width: 1.1 } })
     texto(slide, [
@@ -568,6 +588,17 @@ function lista(slide: Slide, pg: Extract<PaginaDeck, { tipo: 'lista' }>, voltar:
       { text: ` ${lab}` },
     ], lx + 16, ly, w, 16, { fontSize: P(10.5), color: cor })
     lx += w + 16
+  }
+  if (prazo) {
+    slide.addShape('line', { x: I(948), y: I(656), w: 0, h: I(64), line: { color: BORDA, width: 0.75 } })
+    texto(slide, 'Barra: prazo decorrido desde o início da execução', 966, 664, 310, 16, { fontSize: P(10.5), color: '6B7280' })
+    let px = 966
+    for (const [s, rotulo] of [['no-prazo', 'No prazo'], ['atencao', `Atenção (${PRAZO_ATENCAO_PCT}%+)`], ['atrasado', 'Atrasado']] as [SituacaoPrazo, string][]) {
+      slide.addShape('roundRect', { x: I(px), y: I(693), w: I(18), h: I(6), rectRadius: I(3), fill: { color: COR_PRAZO[s].slice(1) }, line: { type: 'none' } })
+      const w = rotulo.length * 6 + 4
+      texto(slide, rotulo, px + 23, 688, w, 16, { fontSize: P(10.5), color: '6B7280', valign: 'middle', wrap: false })
+      px += 23 + w + 12
+    }
   }
 }
 

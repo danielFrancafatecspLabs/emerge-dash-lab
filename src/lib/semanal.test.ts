@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import type { DashboardData, EpicDetail, Iniciativa } from './types'
 import type { WeeklyData, WeeklyExperimentoRow, WeeklyStage } from './weekly'
-import { buildSemanalData, montarCancelamento, ordenarRows, percentuaisInteiros, SAMPLE_SEMANAL_DATA, type SemanalRow } from './semanal'
+import {
+  buildSemanalData, hojeEmBrasilia, inicioDaExecucao, montarCancelamento, ordenarRows, percentuaisInteiros, progressoDoPrazo,
+  SAMPLE_SEMANAL_DATA, type SemanalRow,
+} from './semanal'
+import { legendaPrazo } from './semanal-deck'
 
 function epic(key: string, over: Partial<EpicDetail> = {}): EpicDetail {
   return {
@@ -129,5 +133,27 @@ describe('montarCancelamento', () => {
 
   it('não tem destaque sem cancelados', () => {
     expect(montarCancelamento([])).toEqual({ total: 0, motivos: [], destaque: null })
+  })
+})
+
+describe('barra de progresso dos experimentos em andamento', () => {
+  it('início é a primeira entrada em "Em andamento" no histórico', () => {
+    const st = (created: string, para: string) => ({ created, items: [{ field: 'status', fieldId: 'status', fromString: 'BACKLOG', toString: para }] })
+    expect(inicioDaExecucao([st('2026-09-10T10:00:00.000-0300', 'EM VALIDAÇÃO'), st('2026-08-01T10:00:00.000-0300', 'Em andamento')])).toBe('2026-08-01')
+    expect(inicioDaExecucao([])).toBeNull()
+  })
+
+  it('prazo decorrido, atenção a partir de 80% e atraso depois da previsão', () => {
+    expect(progressoDoPrazo('2026-10-01', '2026-10-31', '2026-10-16')).toEqual({ inicio: '2026-10-01', pct: 50, diasRestantes: 15, situacao: 'no-prazo' })
+    expect(progressoDoPrazo('2026-10-01', '2026-10-11', '2026-10-09').situacao).toBe('atencao')
+    const atrasado = progressoDoPrazo('2026-10-01', '2026-10-11', '2026-10-14')
+    expect(atrasado).toMatchObject({ pct: 130, diasRestantes: -3, situacao: 'atrasado' })
+    expect(legendaPrazo(atrasado)).toBe('Atrasado há 3 dias')
+    expect(legendaPrazo(progressoDoPrazo('2026-10-01', '2026-10-31', '2026-10-30'))).toBe('97% do prazo · faltam 1 dia')
+    expect(legendaPrazo(progressoDoPrazo('2026-10-01', null, '2026-10-30'))).toBe('Sem previsão de conclusão')
+  })
+
+  it('"hoje" é a data de Brasília', () => {
+    expect(hojeEmBrasilia('2026-10-24T02:00:00.000Z')).toBe('2026-10-23')
   })
 })

@@ -2,9 +2,9 @@
 
 import type { ReactNode } from 'react'
 import { CornerUpLeft, Star } from 'lucide-react'
-import type { SemanalRow, SemanalSecaoId } from '@/lib/semanal'
+import { PRAZO_ATENCAO_PCT, type SemanalRow, type SemanalSecaoId, type SituacaoPrazo } from '@/lib/semanal'
 import {
-  chipCor, colunasDa, contagemPorLab, corDoLab, diretorEPontoFocal, formatBeneficioMM, formatData, LINHAS_POR_PAGINA,
+  chipCor, colunasDa, contagemPorLab, corDoLab, COR_PRAZO, diretorEPontoFocal, formatBeneficioMM, formatData, larguraPrazo, legendaPrazo, LINHAS_POR_PAGINA,
   sequenciasDeLab, type ColunaLista,
 } from '@/lib/semanal-deck'
 import { SLIDE_H, SLIDE_W } from './SlideArt'
@@ -53,8 +53,21 @@ function Celula({ coluna, row, rowH }: { coluna: ColunaLista; row: SemanalRow; r
         <div style={{ background: c.bg, color: c.fg, fontSize: 9.5, borderRadius: 999, padding: '5px 10px', textAlign: 'center', ...clamp(2) }}>{texto}</div>
       )
     }
-    case 'previsao':
-      return <div style={{ fontSize: 10.5, color: '#374151', textAlign: 'center' }}>{formatData(row.previsao)}</div>
+    case 'previsao': {
+      const p = row.progresso
+      if (!p) return <div style={{ fontSize: 10.5, color: '#374151', textAlign: 'center' }}>{formatData(row.previsao)}</div>
+      const cor = COR_PRAZO[p.situacao]
+      return (
+        <div style={{ width: '100%' }} title={`Início da execução: ${formatData(p.inicio)}`}>
+          <div style={{ fontSize: 10.5, color: '#374151', textAlign: 'center' }}>{formatData(row.previsao)}</div>
+          <div style={{ height: 6, borderRadius: 3, background: '#EDEFF2', marginTop: 4, overflow: 'hidden' }}>
+            <div style={{ width: `${larguraPrazo(p)}%`, height: '100%', borderRadius: 3, background: cor }} />
+          </div>
+          <div style={{ fontSize: 9, marginTop: 3, textAlign: 'center', whiteSpace: 'nowrap', fontWeight: p.situacao === 'atrasado' ? 700 : 400,
+            color: p.situacao === 'atrasado' ? cor : '#6B7280' }}>{legendaPrazo(p)}</div>
+        </div>
+      )
+    }
     case 'diretor':
       return (
         <div style={{ fontSize: 10.5, color: '#374151', lineHeight: 1.3, ...clamp(3) }}>
@@ -143,13 +156,15 @@ export default function ListaSlide({ secao, titulo, subtitulo, rows, todas, pagi
         })}
       </div>
 
-      <Legenda rows={todas} />
+      <Legenda rows={todas} prazo={secao === 'andamento'} />
       {pagina !== undefined && <span style={{ position: 'absolute', right: 10, bottom: 6, fontSize: 10, color: MUTED }}>{pagina}</span>}
     </div>
   )
 }
 
-function Legenda({ rows }: { rows: SemanalRow[] }) {
+const LEGENDA_PRAZO: [SituacaoPrazo, string][] = [['no-prazo', 'No prazo'], ['atencao', `Atenção (${PRAZO_ATENCAO_PCT}%+)`], ['atrasado', 'Atrasado']]
+
+function Legenda({ rows, prazo }: { rows: SemanalRow[]; prazo: boolean }) {
   return (
     <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 64, borderTop: '1.5px solid #D9DCE1', display: 'flex', alignItems: 'stretch', fontSize: 10.5, color: '#6B7280' }}>
       <div style={{ width: 92, display: 'flex', alignItems: 'center', paddingLeft: 12 }}>LEGENDAS:</div>
@@ -168,6 +183,18 @@ function Legenda({ rows }: { rows: SemanalRow[] }) {
           ))}
         </div>
       </div>
+      {prazo && (
+        <div style={{ borderLeft: '1px solid #E5E7EB', padding: '8px 18px', width: 330 }}>
+          Barra: prazo decorrido desde o início da execução
+          <div style={{ display: 'flex', gap: 16, marginTop: 8 }}>
+            {LEGENDA_PRAZO.map(([s, rotulo]) => (
+              <span key={s} style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                <span style={{ width: 18, height: 6, borderRadius: 3, background: COR_PRAZO[s] }} />{rotulo}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
