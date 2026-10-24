@@ -26,7 +26,7 @@ export default async function ComparativoPage() {
   if (error || !dados) return <PortalDataError title={TITULO} error={error} />
 
   return (
-    <PortalPage title={TITULO} description="Evolução anual 2025 × 2026 dos indicadores-chave do processo" refreshable>
+    <PortalPage title={TITULO} description="Evolução dos indicadores-chave do processo: ano, trimestre ou mês contra o período anterior" refreshable>
       <ComparativoClient dados={dados} />
     </PortalPage>
   )

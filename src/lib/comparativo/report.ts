@@ -1,13 +1,13 @@
 import { formatarValor } from '../portfolio/filtros'
 import {
-  ANOS, porDimensao, principal, resumirAno, variacao,
-  type ComparativoDados, type Experimento, type Indicador, type IndicadorId, type IniciativaResumo,
+  dentro, porDimensao, principal, resumir, trecho, variacao,
+  type Comparacao, type ComparativoDados, type Experimento, type Indicador, type IndicadorId, type IniciativaResumo, type Janela,
 } from './resumo'
 
 /**
- * Conteúdo do report executivo do Comparativo (o documento para baixar em PDF): números macro de 2025 × 2026, a
- * exploração de iniciativas, o funil, os resultados, a velocidade do processo, as áreas, o valor gerado e uma leitura
- * em texto. Usa o mesmo corte de período da tela.
+ * Conteúdo do report executivo do Comparativo (o documento para baixar em PDF): números macro do período base × o
+ * atual (anos, trimestres ou meses), a exploração de iniciativas, o funil, os resultados, a velocidade do processo, as
+ * áreas, o valor gerado e uma leitura em texto. Usa os mesmos períodos da tela.
  */
 
 export type Par = [number | null, number | null]
@@ -18,6 +18,8 @@ export interface EtapaFunil { id: string; titulo: string; descricao: string; val
 export interface Destaque { key: string; nome: string; detalhe: string }
 
 export interface ReportExecutivo {
+  /** Rótulos dos dois períodos (base, atual) e o trecho de cada um que entra na conta. */
+  rotulos: [string, string]
   periodo: string
   kpis: Kpi[]
   exploracao: {
@@ -25,7 +27,7 @@ export interface ReportExecutivo {
     viraramExperimento: [number, number]   // da safra do ano, quantas já chegaram a Experimentação
     leadMediana: Par
     emExploracaoHoje: number
-    chegaramLonge: Destaque[]              // até 5 iniciativas que entraram em Piloto ou Escala no ano mais recente
+    chegaramLonge: Destaque[]              // até 5 iniciativas que entraram em Piloto ou Escala no período atual
   }
   funil: EtapaFunil[]
   resultados: { concluidos: [number, number]; validadas: [number, number]; refutadas: [number, number]; cancelados: [number, number] }
@@ -36,10 +38,8 @@ export interface ReportExecutivo {
   leitura: string[]
 }
 
-const [A, B] = ANOS
-const noAno = (d: string | null | undefined, ano: number, ate: string | null) => !!d && d.startsWith(`${ano}-`) && (!ate || d.slice(5) <= ate)
-const contar = <T>(lista: T[], data: (x: T) => string | null | undefined, ate: string | null): [number, number] =>
-  [lista.filter(x => noAno(data(x), A, ate)).length, lista.filter(x => noAno(data(x), B, ate)).length]
+const contar = <T>(lista: T[], data: (x: T) => string | null | undefined, c: Comparacao): [number, number] =>
+  [lista.filter(x => dentro(data(x), c.base)).length, lista.filter(x => dentro(data(x), c.atual)).length]
 
 export function formatar(v: number | null, f: Formato): string {
   if (v === null) return '—'
@@ -49,7 +49,7 @@ export function formatar(v: number | null, f: Formato): string {
   return v.toLocaleString('pt-BR')
 }
 
-/** Variação de A para B em %, e se é boa (para tempos, cair é bom). Nula sem base. */
+/** Variação da base para o atual em %, e se é boa (para tempos, cair é bom). Nula sem base. */
 export function variacaoPar([a, b]: Par, melhor: 'maior' | 'menor'): { pct: number; boa: boolean | null } | null {
   if (a === null || b === null || a === 0) return null
   const pct = Math.round(((b - a) / a) * 100)
@@ -59,47 +59,48 @@ export function variacaoPar([a, b]: Par, melhor: 'maior' | 'menor'): { pct: numb
 const pct = (n: number, d: number) => (d ? Math.round((n / d) * 100) : null)
 const ETAPA_LABEL: Record<string, string> = { piloto: 'Piloto', escala: 'Escala' }
 
-export function montarReport(dados: ComparativoDados, ate: string | null): ReportExecutivo {
+export function montarReport(dados: ComparativoDados, c: Comparacao): ReportExecutivo {
   const ind = (id: IndicadorId) => dados.indicadores.find(i => i.id === id)!
-  const par = (i: Indicador): Par => [principal(i, resumirAno(i, A, ate)), principal(i, resumirAno(i, B, ate))]
-  const n = (i: Indicador): [number, number] => [resumirAno(i, A, ate).n, resumirAno(i, B, ate).n]
+  const par = (i: Indicador): Par => [principal(i, resumir(i, c.base)), principal(i, resumir(i, c.atual))]
+  const n = (i: Indicador): [number, number] => [resumir(i, c.base).n, resumir(i, c.atual).n]
+  const rotulos: [string, string] = [c.base.rotulo, c.atual.rotulo]
   const inis = dados.iniciativas
 
   const concluidos = n(ind('concluidos')), validadas = n(ind('validadas')), refutadas = n(ind('refutadas')), cancelados = n(ind('cancelados'))
   const beneficio = par(ind('beneficio')).map(v => v ?? 0) as [number, number]
   const taxa: Par = [pct(validadas[0], concluidos[0]), pct(validadas[1], concluidos[1])]
   const leadExp = par(ind('leadExperimentacao'))
-  const registradas = contar(inis, i => i.criadoEm, ate)
-  const safra = (ano: number) => inis.filter(i => noAno(i.criadoEm, ano, ate))
-  const viraram: [number, number] = [safra(A).filter(i => i.experimentacaoEm).length, safra(B).filter(i => i.experimentacaoEm).length]
+  const registradas = contar(inis, i => i.criadoEm, c)
+  const safra = (j: Janela) => inis.filter(i => dentro(i.criadoEm, j))
+  const viraram: [number, number] = [safra(c.base).filter(i => i.experimentacaoEm).length, safra(c.atual).filter(i => i.experimentacaoEm).length]
 
   const funil: EtapaFunil[] = [
     { id: 'ideias', titulo: 'Ideias registradas', descricao: 'Criadas no board de Ideação', valores: registradas },
-    { id: 'experimento', titulo: 'Viraram experimento', descricao: 'Entraram em Experimentação', valores: contar(inis, i => i.experimentacaoEm, ate) },
+    { id: 'experimento', titulo: 'Viraram experimento', descricao: 'Entraram em Experimentação', valores: contar(inis, i => i.experimentacaoEm, c) },
     { id: 'concluidos', titulo: 'Experimentos concluídos', descricao: 'Validadas ou refutadas', valores: concluidos },
     { id: 'validadas', titulo: 'Hipóteses validadas', descricao: 'A iniciativa seguiu adiante', valores: validadas },
-    { id: 'piloto', titulo: 'Foram para piloto', descricao: 'Entraram em Piloto', valores: contar(inis, i => i.pilotoEm, ate) },
-    { id: 'escala', titulo: 'Chegaram à escala', descricao: 'Entraram em Escala', valores: contar(inis, i => i.escalaEm, ate) },
+    { id: 'piloto', titulo: 'Foram para piloto', descricao: 'Entraram em Piloto', valores: contar(inis, i => i.pilotoEm, c) },
+    { id: 'escala', titulo: 'Chegaram à escala', descricao: 'Entraram em Escala', valores: contar(inis, i => i.escalaEm, c) },
   ]
 
-  const longe = (i: IniciativaResumo) => (noAno(i.escalaEm, B, ate) ? 'escala' : noAno(i.pilotoEm, B, ate) ? 'piloto' : null)
+  const longe = (i: IniciativaResumo) => (dentro(i.escalaEm, c.atual) ? 'escala' : dentro(i.pilotoEm, c.atual) ? 'piloto' : null)
   const chegaramLonge = inis.filter(i => longe(i))
     .sort((a, b) => (longe(b) === 'escala' ? 1 : 0) - (longe(a) === 'escala' ? 1 : 0) || a.nome.localeCompare(b.nome, 'pt-BR'))
     .slice(0, 5)
     .map(i => ({ key: i.key, nome: i.nome, detalhe: ETAPA_LABEL[longe(i)!] }))
 
-  const { linhas } = porDimensao(dados.experimentos, 'area', ate)
+  const { linhas } = porDimensao(dados.experimentos, 'area', c)
   const areas = linhas.filter(l => l.informado)
-    .sort((a, b) => b.porAno[1].validadas - a.porAno[1].validadas || b.porAno[1].concluidos - a.porAno[1].concluidos)
+    .sort((a, b) => b.porPeriodo[1].validadas - a.porPeriodo[1].validadas || b.porPeriodo[1].concluidos - a.porPeriodo[1].concluidos)
     .slice(0, 5)
     .map(l => ({
       nome: l.nome,
-      validadas: [l.porAno[0].validadas, l.porAno[1].validadas] as [number, number],
-      concluidos: [l.porAno[0].concluidos, l.porAno[1].concluidos] as [number, number],
-      beneficio: [l.porAno[0].beneficio, l.porAno[1].beneficio] as [number, number],
+      validadas: [l.porPeriodo[0].validadas, l.porPeriodo[1].validadas] as [number, number],
+      concluidos: [l.porPeriodo[0].concluidos, l.porPeriodo[1].concluidos] as [number, number],
+      beneficio: [l.porPeriodo[0].beneficio, l.porPeriodo[1].beneficio] as [number, number],
     }))
 
-  const validadasB = dados.experimentos.filter(e => e.situacao === 'validada' && noAno(e.concluidoEm, B, ate))
+  const validadasB = dados.experimentos.filter(e => e.situacao === 'validada' && dentro(e.concluidoEm, c.atual))
   const top = [...validadasB].sort((a, b) => (b.beneficio ?? 0) - (a.beneficio ?? 0)).filter(e => e.beneficio).slice(0, 5)
     .map((e: Experimento) => ({ key: e.key, nome: e.nome, detalhe: `${formatarValor(e.beneficio!)}${e.area ? ` · ${e.area}` : ''}` }))
 
@@ -118,7 +119,8 @@ export function montarReport(dados: ComparativoDados, ate: string | null): Repor
   const emAndamentoHoje = dados.experimentos.filter(e => e.situacao === 'andamento').length
 
   return {
-    periodo: ate ? `1º/jan a ${ate.slice(3)}/${ate.slice(0, 2)} de ${A} e de ${B}` : `${A} completo e ${B} até hoje`,
+    rotulos,
+    periodo: `${c.base.rotulo} (${trecho(c.base)}) × ${c.atual.rotulo} (${trecho(c.atual)})`,
     kpis,
     exploracao: { registradas, viraramExperimento: viraram, leadMediana: par(ind('leadExploracao')), emExploracaoHoje, chegaramLonge },
     funil,
@@ -127,15 +129,16 @@ export function montarReport(dados: ComparativoDados, ate: string | null): Repor
     areas,
     valor: { total: beneficio, top },
     emAndamentoHoje,
-    leitura: leitura({ concluidos, taxa, beneficio, leadExp, registradas, areas, emExploracaoHoje, emAndamentoHoje, ind: ind('concluidos') }),
+    leitura: leitura({ concluidos, taxa, beneficio, leadExp, registradas, areas, emExploracaoHoje, emAndamentoHoje, ind: ind('concluidos'), rotulos }),
   }
 }
 
 /** Frases de leitura executiva, só com o que os números sustentam. */
 function leitura(x: {
   concluidos: [number, number]; taxa: Par; beneficio: [number, number]; leadExp: Par; registradas: [number, number]
-  areas: ReportExecutivo['areas']; emExploracaoHoje: number; emAndamentoHoje: number; ind: Indicador
+  areas: ReportExecutivo['areas']; emExploracaoHoje: number; emAndamentoHoje: number; ind: Indicador; rotulos: [string, string]
 }): string[] {
+  const [A, B] = x.rotulos
   const frases: string[] = []
   const mudou = (v: { pct: number } | null) => (!v || v.pct === 0 ? 'no mesmo nível de' : v.pct > 0 ? `${v.pct}% acima de` : `${Math.abs(v.pct)}% abaixo de`)
   const vConc = variacao(x.ind, x.concluidos[0], x.concluidos[1])

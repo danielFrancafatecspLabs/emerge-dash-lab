@@ -5,7 +5,7 @@ import type { WeeklyData } from '../weekly'
 import {
   criarClassificador, DEPOIS_DA_EXPLORACAO, ETAPAS_VALIDADAS, type Classificador, type EtapaEpic, type EtapaIniciativa,
 } from './etapas'
-import { ANOS, type Amostra, type ComparativoDados, type EmAberto, type Experimento, type ForaDaConta, type IniciativaResumo, type Indicador } from './resumo'
+import { type Amostra, type ComparativoDados, type EmAberto, type Experimento, type ForaDaConta, type IniciativaResumo, type Indicador } from './resumo'
 
 /**
  * Monta os indicadores do Comparativo a partir dos dois boards e dos changelogs. Cada indicador vira uma lista
@@ -76,7 +76,7 @@ function periodosExperimentacao(log: ChangelogEntry[] | undefined, c: Classifica
 
 /**
  * Lead time da Experimentação: mesma regra da aba Estratégia. Epics concluídos, tempo em Em andamento + Em validação,
- * descontados os períodos bloqueados. Conta no ano em que o Epic saiu da experimentação.
+ * descontados os períodos bloqueados. Conta no período em que o Epic saiu da experimentação.
  */
 function leadExperimentacao(epics: JiraIssue[], logs: Record<string, ChangelogEntry[]>, c: Classificador, agora: number): Pick<Indicador, 'amostras' | 'emAberto' | 'foraDaConta'> {
   const amostras: Amostra[] = []
@@ -87,7 +87,7 @@ function leadExperimentacao(epics: JiraIssue[], logs: Record<string, ChangelogEn
     const { periodos, aberto, ultimaSaida } = periodosExperimentacao(logs[e.key], c)
     const bloqueios = getPeriodosBloqueio(e.key, logs)
     if (atual === 'concluido') {
-      // Concluídos que não dá para medir também aparecem, com o motivo, no ano da conclusão.
+      // Concluídos que não dá para medir também aparecem, com o motivo, no período da conclusão.
       const concluiu = transicoes(logs[e.key], c.epic).find(t => t.para === 'concluido')?.data ?? null
       const fora = (motivo: string) => foraDaConta.push({ key: e.key, nome: e.fields.summary, motivo, data: concluiu ? dia(concluiu) : null })
       if (!logs[e.key]) { fora('Sem histórico de status no Jira'); continue }
@@ -149,13 +149,11 @@ function eventos(lista: Experimento[], data: (e: Experimento) => string | null, 
   }
 }
 
-/** Benefício: o total de hoje das hipóteses validadas e o que não cai nos anos comparados (fecha com o Semanal). */
+/** Benefício: o total de hoje das hipóteses validadas (fecha com o Semanal) e quantas não têm data de conclusão. */
 function conciliacao(validadas: Experimento[]): Indicador['conciliacao'] {
-  const anos = new Set(ANOS.map(String))
   return {
     total: validadas.reduce((s, h) => s + (h.beneficio ?? 0), 0),
     n: validadas.length,
-    foraDosAnos: validadas.filter(h => h.concluidoEm && !anos.has(h.concluidoEm.slice(0, 4))).length,
     semData: validadas.filter(h => !h.concluidoEm).length,
   }
 }
@@ -180,7 +178,7 @@ function resumoIniciativas(iniciativas: JiraIssue[], logs: Record<string, Change
   })
 }
 
-/** Cycle time de uma etapa do board de Ideação: soma dos períodos na etapa; conta no ano da última saída. */
+/** Cycle time de uma etapa do board de Ideação: soma dos períodos na etapa; conta no período da última saída. */
 function cycleTimeEstagio(iniciativas: JiraIssue[], logs: Record<string, ChangelogEntry[]>, c: Classificador, alvo: EtapaIniciativa, agora: number): Pick<Indicador, 'amostras' | 'emAberto'> {
   const amostras: Amostra[] = []
   const emAberto: EmAberto[] = []
@@ -227,48 +225,48 @@ export function montarComparativo(raw: {
   const indicadores: Indicador[] = [
     {
       id: 'concluidos', titulo: 'Experimentos concluídos', unidade: 'itens', melhor: 'maior', board: 'Experimentação', grupo: 'resultados',
-      regra: 'Experimentos que chegaram a Concluído, com hipótese validada ou refutada. Conta no ano em que o experimento foi concluído.',
+      regra: 'Experimentos que chegaram a Concluído, com hipótese validada ou refutada. Conta no período em que o experimento foi concluído.',
       ...eventos(de('validada', 'refutada'), e => e.concluidoEm),
     },
     {
       id: 'validadas', titulo: 'Hipóteses validadas', unidade: 'itens', melhor: 'maior', board: 'Experimentação', grupo: 'resultados', relativoA: 'concluidos',
-      regra: 'Experimentos concluídos cuja iniciativa-mãe seguiu para Aguardando piloto, Piloto ou Escala (os mesmos do Semanal). Conta no ano em que o experimento foi concluído.',
+      regra: 'Experimentos concluídos cuja iniciativa-mãe seguiu para Aguardando piloto, Piloto ou Escala (os mesmos do Semanal). Conta no período em que o experimento foi concluído.',
       ...eventos(validadas, e => e.concluidoEm),
     },
     {
       id: 'refutadas', titulo: 'Hipóteses refutadas', unidade: 'itens', melhor: 'neutro', board: 'Experimentação', grupo: 'resultados', relativoA: 'concluidos',
-      regra: 'Experimentos concluídos cuja iniciativa-mãe não seguiu para piloto: o experimento gerou aprendizado, mas não avançou. Conta no ano da conclusão.',
+      regra: 'Experimentos concluídos cuja iniciativa-mãe não seguiu para piloto: o experimento gerou aprendizado, mas não avançou. Conta no período da conclusão.',
       ...eventos(de('refutada'), e => e.concluidoEm),
     },
     {
       id: 'cancelados', titulo: 'Experimentos cancelados', unidade: 'itens', melhor: 'menor', board: 'Experimentação', grupo: 'resultados',
-      regra: 'Experimentos encerrados antes de concluir. Conta no ano em que o experimento foi para Cancelado.',
+      regra: 'Experimentos encerrados antes de concluir. Conta no período em que o experimento foi para Cancelado.',
       ...eventos(de('cancelada'), e => e.canceladoEm),
     },
     {
       id: 'beneficio', titulo: 'Benefício das hipóteses validadas', unidade: 'reais', melhor: 'maior', board: 'Experimentação', grupo: 'resultados',
-      regra: 'Os mesmos experimentos do número "Hipóteses validadas" do Semanal: concluídos, com a iniciativa-mãe em Aguardando piloto, Piloto ou Escala. Soma o benefício potencial de cada um no ano em que o experimento foi concluído.',
+      regra: 'Os mesmos experimentos do número "Hipóteses validadas" do Semanal: concluídos, com a iniciativa-mãe em Aguardando piloto, Piloto ou Escala. Soma o benefício potencial de cada um no período em que o experimento foi concluído.',
       ...eventos(validadas, e => e.concluidoEm, e => e.beneficio ?? 0),
       conciliacao: conciliacao(validadas),
     },
     {
       id: 'leadExploracao', grupo: 'tempos', titulo: 'Lead time da Exploração', unidade: 'dias', melhor: 'menor', board: 'Ideação',
-      regra: 'Da criação do card no board de Ideação até a entrada em Experimentação (passando por estruturação e consolidação). Conta no ano em que a iniciativa entrou em Experimentação.',
+      regra: 'Da criação do card no board de Ideação até a entrada em Experimentação (passando por estruturação e consolidação). Conta no período em que a iniciativa entrou em Experimentação.',
       ...leadExploracao(raw.iniciativas, raw.iniciativaChangelogs, c, t),
     },
     {
       id: 'leadExperimentacao', grupo: 'tempos', titulo: 'Lead time da Experimentação', unidade: 'dias', melhor: 'menor', board: 'Experimentação',
-      regra: 'Experimentos concluídos: tempo em Em andamento e Em validação, sem os períodos bloqueados (mesma regra da aba Estratégia). Conta no ano em que o experimento saiu da experimentação.',
+      regra: 'Experimentos concluídos: tempo em Em andamento e Em validação, sem os períodos bloqueados (mesma regra da aba Estratégia). Conta no período em que o experimento saiu da experimentação.',
       ...leadExperimentacao(raw.epics, raw.epicChangelogs, c, t),
     },
     {
       id: 'aguardandoPiloto', grupo: 'tempos', titulo: 'Cycle time de Aguardando piloto', unidade: 'dias', melhor: 'menor', board: 'Ideação',
-      regra: 'Tempo que a iniciativa ficou em Aguardando piloto até sair da coluna. Conta no ano da saída.',
+      regra: 'Tempo que a iniciativa ficou em Aguardando piloto até sair da coluna. Conta no período da saída.',
       ...cycleTimeEstagio(raw.iniciativas, raw.iniciativaChangelogs, c, 'aguardando', t),
     },
     {
       id: 'piloto', grupo: 'tempos', titulo: 'Cycle time do Piloto', unidade: 'dias', melhor: 'menor', board: 'Ideação',
-      regra: 'Tempo que a iniciativa ficou Em piloto até sair da coluna. Conta no ano da saída.',
+      regra: 'Tempo que a iniciativa ficou Em piloto até sair da coluna. Conta no período da saída.',
       ...cycleTimeEstagio(raw.iniciativas, raw.iniciativaChangelogs, c, 'piloto', t),
     },
   ]

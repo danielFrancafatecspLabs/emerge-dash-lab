@@ -1,15 +1,15 @@
 'use client'
 
-// Panorama do Comparativo: todos os experimentos do board de Experimentação (o total do histórico), separados pelo
-// ano em que foram criados, e onde cada safra está hoje (validada, refutada, cancelada, em andamento…). Sempre o ano
-// inteiro: é uma foto do estoque, não um evento do período.
+// Panorama do Comparativo: todos os experimentos do board de Experimentação (o total do histórico), quantos foram
+// criados em cada um dos dois períodos comparados (a safra) e onde cada safra está hoje (validada, refutada, cancelada,
+// em andamento…).
 
 import { useState } from 'react'
 import { ChevronDown, ExternalLink } from 'lucide-react'
 import { cx, focusRing } from '@/components/ui'
 import { formatarValor } from '@/lib/portfolio/filtros'
-import { anoDeCriacao, ANOS, SITUACOES, type Experimento, type SituacaoExperimento } from '@/lib/comparativo/resumo'
-import { COR_ANO } from './cores'
+import { periodoDeCriacao, SITUACOES, trecho, type Comparacao, type Experimento, type Janela, type SituacaoExperimento } from '@/lib/comparativo/resumo'
+import { COR_PERIODO } from './cores'
 
 const pct = (n: number, total: number) => (total ? Math.round((n / total) * 100) : 0)
 const plural = (n: number, um: string, varios: string) => `${n.toLocaleString('pt-BR')} ${n === 1 ? um : varios}`
@@ -69,8 +69,8 @@ function Lista({ itens, jiraUrl }: { itens: Experimento[]; jiraUrl: string | nul
   )
 }
 
-/** Uma safra (ano de criação): quantos são, onde estão hoje e as taxas que importam para a decisão. */
-function Safra({ ano, itens, jiraUrl }: { ano: number; itens: Experimento[]; jiraUrl: string | null }) {
+/** Uma safra (criados no período): quantos são, onde estão hoje e as taxas que importam para a decisão. */
+function Safra({ k, janela, itens, jiraUrl }: { k: 0 | 1; janela: Janela; itens: Experimento[]; jiraUrl: string | null }) {
   const [aberto, setAberto] = useState(false)
   const [filtro, setFiltro] = useState<SituacaoExperimento | null>(null)
   const c = contar(itens)
@@ -85,12 +85,12 @@ function Safra({ ano, itens, jiraUrl }: { ano: number; itens: Experimento[]; jir
       <div className="px-5 pt-5">
         <div className="flex items-baseline justify-between gap-3">
           <h3 className="inline-flex items-center gap-2 text-sm font-semibold text-beon-ink">
-            <span className="h-3 w-3 rounded-sm" style={{ background: COR_ANO[ano] }} aria-hidden /> Safra {ano}
+            <span className="h-3 w-3 rounded-sm" style={{ background: COR_PERIODO[k] }} aria-hidden /> Safra {janela.rotulo}
           </h3>
-          <span className="text-xs text-beon-muted">criados de jan a dez</span>
+          <span className="text-xs text-beon-muted">criados de {trecho(janela)}</span>
         </div>
         <p className="mt-2 text-4xl font-semibold tracking-tight tabular-nums text-beon-ink">{total}</p>
-        <p className="text-xs text-beon-muted">experimentos criados em {ano}</p>
+        <p className="text-xs text-beon-muted">experimentos criados em {janela.rotulo}</p>
         <div className="mt-4"><BarraSituacoes contagem={c} total={Math.max(1, total)} /></div>
         <ul className="mt-3 grid grid-cols-1 gap-y-0.5 text-[13px]">
           {SITUACOES.filter(s => c[s.id] || s.id !== 'outro').map(s => (
@@ -133,17 +133,15 @@ function Safra({ ano, itens, jiraUrl }: { ano: number; itens: Experimento[]; jir
   )
 }
 
-export default function Panorama({ experimentos, jiraUrl }: { experimentos: Experimento[]; jiraUrl: string | null }) {
+export default function Panorama({ experimentos, comparacao, jiraUrl }: { experimentos: Experimento[]; comparacao: Comparacao; jiraUrl: string | null }) {
   const total = experimentos.length
-  const porAno = new Map<number | 'antes' | 'sem-data', Experimento[]>()
-  for (const e of experimentos) {
-    const a = anoDeCriacao(e)
-    porAno.set(a, [...(porAno.get(a) ?? []), e])
-  }
+  const grupo = (g: ReturnType<typeof periodoDeCriacao>) => experimentos.filter(e => periodoDeCriacao(e, comparacao) === g)
+  const janelas = [comparacao.base, comparacao.atual] as const
   const faixas = [
-    { id: 'antes', label: `Antes de ${ANOS[0]}`, n: porAno.get('antes')?.length ?? 0, cor: '#C4C7CE' },
-    ...ANOS.map(a => ({ id: String(a), label: String(a), n: porAno.get(a)?.length ?? 0, cor: COR_ANO[a] })),
-    { id: 'sem-data', label: 'Sem data de criação', n: porAno.get('sem-data')?.length ?? 0, cor: '#E5E7EB' },
+    { id: 'base', label: `Criados em ${comparacao.base.rotulo}`, n: grupo('base').length, cor: COR_PERIODO[0] as string },
+    { id: 'atual', label: `Criados em ${comparacao.atual.rotulo}`, n: grupo('atual').length, cor: COR_PERIODO[1] as string },
+    { id: 'outro', label: 'Criados em outros períodos', n: grupo('outro').length, cor: '#C4C7CE' },
+    { id: 'sem-data', label: 'Sem data de criação', n: grupo('sem-data').length, cor: '#E5E7EB' },
   ].filter(f => f.n)
   const c = contar(experimentos)
 
@@ -153,7 +151,7 @@ export default function Panorama({ experimentos, jiraUrl }: { experimentos: Expe
         <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-beon-red">Panorama</p>
         <h2 id="panorama-titulo" className="text-lg font-semibold tracking-tight text-beon-ink">De onde vêm os {total} experimentos e onde estão hoje</h2>
         <p className="mt-0.5 max-w-3xl text-sm text-beon-muted">
-          Todos os experimentos do board de Experimentação, separados pelo ano em que foram criados (a safra). A situação de cada um segue a mesma classificação do Semanal.
+          Todos os experimentos do board de Experimentação e, em destaque, os criados em cada período comparado (a safra). A situação de cada um segue a mesma classificação do Semanal.
         </p>
       </div>
       <div className="grid gap-3 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1fr)_minmax(0,1fr)]">
@@ -168,7 +166,7 @@ export default function Panorama({ experimentos, jiraUrl }: { experimentos: Expe
             {faixas.map(f => (
               <li key={f.id} className="flex items-center gap-2">
                 <span className="h-2.5 w-2.5 rounded-sm" style={{ background: f.cor }} aria-hidden />
-                <span className="flex-1 text-beon-body">{f.id === 'antes' || f.id === 'sem-data' ? f.label : `Criados em ${f.label}`}</span>
+                <span className="flex-1 text-beon-body">{f.label}</span>
                 <span className="font-semibold tabular-nums text-beon-ink">{f.n}</span>
                 <span className="w-9 text-right text-xs tabular-nums text-beon-muted">{pct(f.n, total)}%</span>
               </li>
@@ -183,7 +181,7 @@ export default function Panorama({ experimentos, jiraUrl }: { experimentos: Expe
             </p>
           </div>
         </article>
-        {ANOS.map(ano => <Safra key={ano} ano={ano} itens={porAno.get(ano) ?? []} jiraUrl={jiraUrl} />)}
+        {janelas.map((j, k) => <Safra key={j.id} k={k as 0 | 1} janela={j} itens={grupo(k ? 'atual' : 'base')} jiraUrl={jiraUrl} />)}
       </div>
     </section>
   )

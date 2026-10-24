@@ -1,2 +1,2 @@
-// Paleta validada (dataviz/validate_palette: lightness, chroma, CVD e contraste OK): ano anterior em azul, atual na cor da marca.
-export const COR_ANO: Record<number, string> = { 2025: '#2F6FB3', 2026: '#D31809' }
+// Paleta validada (dataviz/validate_palette: lightness, chroma, CVD e contraste OK): período base em azul, atual na cor da marca.
+export const COR_PERIODO = ['#2F6FB3', '#D31809'] as const

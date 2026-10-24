@@ -1,19 +1,19 @@
 'use client'
 
 // Comparativo por área, laboratório ou diretoria: onde os experimentos foram concluídos, validados, refutados e
-// cancelados em cada ano. Mesmo corte de período dos cartões; cada linha abre os experimentos que formam os números.
+// cancelados em cada período. Mesmo corte de período dos cartões; cada linha abre os experimentos que formam os números.
 
 import { Fragment, useMemo, useState } from 'react'
 import { ChevronDown, ExternalLink } from 'lucide-react'
 import { cx, focusRing } from '@/components/ui'
 import { formatarValor } from '@/lib/portfolio/filtros'
-import { ANOS, DIMENSOES, porDimensao, SITUACOES, type Dimensao, type Experimento, type MetricasAno } from '@/lib/comparativo/resumo'
-import { COR_ANO } from './cores'
+import { DIMENSOES, porDimensao, SITUACOES, type Comparacao, type Dimensao, type Experimento, type Metricas } from '@/lib/comparativo/resumo'
+import { COR_PERIODO } from './cores'
 
 const LIMITE = 10
 const dataBR = (d: string) => `${d.slice(8, 10)}/${d.slice(5, 7)}/${d.slice(0, 4)}`
 
-const COLUNAS: { id: keyof MetricasAno; label: string; formato: (v: number | null) => string }[] = [
+const COLUNAS: { id: keyof Metricas; label: string; formato: (v: number | null) => string }[] = [
   { id: 'concluidos', label: 'Concluídos', formato: v => (v ? String(v) : '–') },
   { id: 'validadas', label: 'Hipóteses validadas', formato: v => (v ? String(v) : '–') },
   { id: 'refutadas', label: 'Hipóteses refutadas', formato: v => (v ? String(v) : '–') },
@@ -22,7 +22,7 @@ const COLUNAS: { id: keyof MetricasAno; label: string; formato: (v: number | nul
   { id: 'beneficio', label: 'Benefício validado', formato: v => (v ? formatarValor(v) : '–') },
 ]
 
-function Cabecalho() {
+function Cabecalho({ rotulos }: { rotulos: string[] }) {
   return (
     <thead className="bg-beon-soft text-[11px] uppercase tracking-[0.06em] text-beon-muted">
       <tr>
@@ -30,9 +30,9 @@ function Cabecalho() {
         {COLUNAS.map(c => <th key={c.id} scope="colgroup" colSpan={2} className="border-l border-beon-line px-3 pt-2 text-center font-semibold">{c.label}</th>)}
       </tr>
       <tr>
-        {COLUNAS.map(c => ANOS.map((ano, k) => (
-          <th key={`${c.id}-${ano}`} scope="col" className={cx('px-3 pb-2 pt-1 text-right font-medium normal-case tracking-normal', k === 0 && 'border-l border-beon-line')}>
-            <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-sm" style={{ background: COR_ANO[ano] }} aria-hidden />{ano}</span>
+        {COLUNAS.map(c => rotulos.map((rotulo, k) => (
+          <th key={`${c.id}-${k}`} scope="col" className={cx('whitespace-nowrap px-3 pb-2 pt-1 text-right font-medium normal-case tracking-normal', k === 0 && 'border-l border-beon-line')}>
+            <span className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-sm" style={{ background: COR_PERIODO[k] }} aria-hidden />{rotulo}</span>
           </th>
         )))}
       </tr>
@@ -40,16 +40,16 @@ function Cabecalho() {
   )
 }
 
-/** Células de um ano a outro; na taxa de validação, a diferença em pontos percentuais acompanha 2026. */
-function Celulas({ porAno, negrito }: { porAno: MetricasAno[]; negrito?: boolean }) {
+/** Células da base e do período atual; na taxa de validação, a diferença em pontos percentuais acompanha o atual. */
+function Celulas({ porPeriodo, negrito }: { porPeriodo: Metricas[]; negrito?: boolean }) {
   return (
     <>
-      {COLUNAS.map(c => ANOS.map((ano, k) => {
-        const v = porAno[k][c.id] as number | null
-        const antes = porAno[0].taxaValidacao
+      {COLUNAS.map(c => porPeriodo.map((m, k) => {
+        const v = m[c.id] as number | null
+        const antes = porPeriodo[0].taxaValidacao
         const delta = c.id === 'taxaValidacao' && k === 1 && v !== null && antes !== null ? v - antes : null
         return (
-          <td key={`${c.id}-${ano}`} className={cx('whitespace-nowrap px-3 py-2 text-right tabular-nums', k === 0 && 'border-l border-beon-line',
+          <td key={`${c.id}-${k}`} className={cx('whitespace-nowrap px-3 py-2 text-right tabular-nums', k === 0 && 'border-l border-beon-line',
             v ? 'text-beon-ink' : 'text-beon-muted', negrito && 'font-semibold')}>
             {c.formato(v)}
             {delta !== null && delta !== 0 && (
@@ -64,11 +64,12 @@ function Celulas({ porAno, negrito }: { porAno: MetricasAno[]; negrito?: boolean
   )
 }
 
-export default function PorArea({ experimentos, corte, jiraUrl }: { experimentos: Experimento[]; corte: string | null; jiraUrl: string | null }) {
+export default function PorArea({ experimentos, comparacao, jiraUrl }: { experimentos: Experimento[]; comparacao: Comparacao; jiraUrl: string | null }) {
   const [dim, setDim] = useState<Dimensao>('area')
   const [aberta, setAberta] = useState<string | null>(null)
   const [todas, setTodas] = useState(false)
-  const { linhas, total } = useMemo(() => porDimensao(experimentos, dim, corte), [experimentos, dim, corte])
+  const { linhas, total } = useMemo(() => porDimensao(experimentos, dim, comparacao), [experimentos, dim, comparacao])
+  const janelas = [comparacao.base, comparacao.atual]
   const visiveis = todas ? linhas : linhas.slice(0, LIMITE)
   const rotulo = DIMENSOES.find(d => d.id === dim)!.label
 
@@ -79,7 +80,7 @@ export default function PorArea({ experimentos, corte, jiraUrl }: { experimentos
           <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-beon-red">Por {rotulo.toLowerCase()}</p>
           <h2 id="por-area-titulo" className="text-lg font-semibold tracking-tight text-beon-ink">Onde os resultados aconteceram</h2>
           <p className="mt-0.5 max-w-3xl text-sm text-beon-muted">
-            Os mesmos resultados dos cartões, quebrados por {rotulo.toLowerCase()}, no ano da conclusão ou do cancelamento. Clique numa linha para ver os experimentos.
+            Os mesmos resultados dos cartões, quebrados por {rotulo.toLowerCase()}, no período da conclusão ou do cancelamento. Clique numa linha para ver os experimentos.
           </p>
         </div>
         <div role="radiogroup" aria-label="Quebrar por" className="inline-flex rounded-full bg-stone-100 p-1">
@@ -96,7 +97,7 @@ export default function PorArea({ experimentos, corte, jiraUrl }: { experimentos
       <div className="overflow-hidden rounded-2xl border border-beon-line bg-white">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[1100px] text-sm">
-            <Cabecalho />
+            <Cabecalho rotulos={janelas.map(j => j.rotulo)} />
             <tbody className="divide-y divide-beon-line">
               {visiveis.map(l => (
                 <Fragment key={l.nome}>
@@ -107,19 +108,19 @@ export default function PorArea({ experimentos, corte, jiraUrl }: { experimentos
                         <span className="truncate">{l.nome}</span>
                       </button>
                     </th>
-                    <Celulas porAno={l.porAno} />
+                    <Celulas porPeriodo={l.porPeriodo} />
                   </tr>
                   {aberta === l.nome && (
                     <tr>
                       <td colSpan={1 + COLUNAS.length * 2} className="bg-white px-4 py-3">
                         <ul className="grid gap-x-6 gap-y-1.5 md:grid-cols-2">
-                          {ANOS.map(ano => (
-                            <li key={ano}>
+                          {janelas.map((j, k) => (
+                            <li key={j.id}>
                               <p className="mb-1 inline-flex items-center gap-1.5 text-xs font-semibold text-beon-ink">
-                                <span className="h-2.5 w-2.5 rounded-sm" style={{ background: COR_ANO[ano] }} aria-hidden />{ano}
+                                <span className="h-2.5 w-2.5 rounded-sm" style={{ background: COR_PERIODO[k] }} aria-hidden />{j.rotulo}
                               </p>
                               <ul className="space-y-1">
-                                {l.eventos.filter(ev => ev.ano === ano).sort((a, b) => a.data.localeCompare(b.data)).map(ev => {
+                                {l.eventos.filter(ev => ev.periodo === k).sort((a, b) => a.data.localeCompare(b.data)).map(ev => {
                                   const s = SITUACOES.find(x => x.id === ev.experimento.situacao)!
                                   return (
                                     <li key={ev.experimento.key} className="flex items-center gap-2 text-[13px]">
@@ -132,7 +133,7 @@ export default function PorArea({ experimentos, corte, jiraUrl }: { experimentos
                                     </li>
                                   )
                                 })}
-                                {!l.eventos.some(ev => ev.ano === ano) && <li className="text-xs text-beon-muted">Nenhum resultado no período.</li>}
+                                {!l.eventos.some(ev => ev.periodo === k) && <li className="text-xs text-beon-muted">Nenhum resultado no período.</li>}
                               </ul>
                             </li>
                           ))}
@@ -149,7 +150,7 @@ export default function PorArea({ experimentos, corte, jiraUrl }: { experimentos
             <tfoot className="border-t-2 border-beon-line bg-beon-soft">
               <tr>
                 <th scope="row" className="sticky left-0 z-[1] bg-beon-soft px-4 py-2 text-left font-semibold text-beon-ink">Total</th>
-                <Celulas porAno={total} negrito />
+                <Celulas porPeriodo={total} negrito />
               </tr>
             </tfoot>
           </table>
