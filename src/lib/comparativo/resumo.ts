@@ -6,7 +6,38 @@
 export const ANOS = [2025, 2026] as const
 export type Ano = (typeof ANOS)[number]
 
-export type IndicadorId = 'leadExploracao' | 'leadExperimentacao' | 'beneficio' | 'aguardandoPiloto' | 'piloto'
+export type IndicadorId =
+  | 'concluidos' | 'cancelados' | 'validadas' | 'refutadas' | 'beneficio'
+  | 'leadExploracao' | 'leadExperimentacao' | 'aguardandoPiloto' | 'piloto'
+
+/** Situação de hoje de cada Epic, com a mesma classificação do Semanal. */
+export type SituacaoExperimento = 'exploracao' | 'andamento' | 'validada' | 'refutada' | 'cancelada' | 'outro'
+
+// Paleta validada (dataviz/validate_palette, modo claro: faixa de luminosidade, croma, daltonismo e separação OK).
+// Matizes diferentes do azul de 2025 e do vermelho de 2026; "Outros status" fica em cinza neutro, sempre com o número.
+export const SITUACOES: { id: SituacaoExperimento; label: string; cor: string; descricao: string }[] = [
+  { id: 'validada', label: 'Hipótese validada', cor: '#0F8A6C', descricao: 'Concluído, com a iniciativa em Aguardando piloto, Piloto ou Escala' },
+  { id: 'refutada', label: 'Hipótese refutada', cor: '#D49A0A', descricao: 'Concluído, sem a iniciativa seguir para piloto' },
+  { id: 'cancelada', label: 'Cancelado', cor: '#B5461E', descricao: 'Encerrado antes de concluir' },
+  { id: 'andamento', label: 'Em andamento', cor: '#2B88C8', descricao: 'Em andamento ou em validação' },
+  { id: 'exploracao', label: 'Em exploração', cor: '#6F8F12', descricao: 'Backlog ou em refinamento' },
+  { id: 'outro', label: 'Outros status', cor: '#C4C7CE', descricao: 'Por exemplo, Pronto para execução' },
+]
+
+/** Um Epic do board de Experimentação, com as datas que decidem o ano de cada evento. */
+export interface Experimento {
+  key: string
+  nome: string
+  situacao: SituacaoExperimento
+  status: string
+  beneficio: number | null
+  criadoEm: string | null     // AAAA-MM-DD
+  concluidoEm: string | null
+  canceladoEm: string | null
+}
+
+/** Item que ficou fora de um indicador, com o motivo (a data, quando há, decide o ano). */
+export interface ForaDaConta { key: string; nome: string; motivo: string; data: string | null }
 
 export interface Amostra {
   key: string
@@ -25,10 +56,16 @@ export interface Indicador {
   titulo: string
   /** Como o número é calculado, em uma frase para quem lê a tela. */
   regra: string
-  unidade: 'dias' | 'reais'
-  /** Para tempos, menor é melhor; para benefício, maior. */
-  melhor: 'menor' | 'maior'
+  unidade: 'dias' | 'reais' | 'itens'
+  /** Para tempos, menor é melhor; para benefício e validadas, maior; refutadas não têm lado bom. */
+  melhor: 'menor' | 'maior' | 'neutro'
   board: 'Ideação' | 'Experimentação'
+  /** Seção da tela: resultados do ano (eventos) ou tempos do processo. */
+  grupo: 'resultados' | 'tempos'
+  /** Mostra o indicador também como % de outro no mesmo ano (validadas e refutadas sobre os concluídos). */
+  relativoA?: IndicadorId
+  /** Itens que poderiam entrar e ficaram de fora, com o motivo. */
+  foraDaConta?: ForaDaConta[]
   amostras: Amostra[]
   emAberto: EmAberto[]
   /** Benefício: o total de hoje das hipóteses validadas (o mesmo conjunto do Semanal) e o que não cai em 2025 nem 2026. */
@@ -37,6 +74,8 @@ export interface Indicador {
 
 export interface ComparativoDados {
   indicadores: Indicador[]
+  /** Todos os Epics do board de Experimentação (o total do histórico), para o panorama por ano de criação. */
+  experimentos: Experimento[]
   /** Quantos itens ficaram sem histórico de status (o Jira não devolveu) e por isso fora das contas. */
   cobertura?: { iniciativas: { total: number; semHistorico: number }; epics: { total: number; semHistorico: number } }
   /** Dia da leitura (AAAA-MM-DD), usado no corte "mesmo período". */
@@ -52,7 +91,7 @@ export interface ResumoAno {
   media: number | null
   mediana: number | null
   soma: number
-  /** Por mês (jan a dez): mediana (dias) ou soma (R$); null quando não há amostra. */
+  /** Por mês (jan a dez): mediana (dias), soma (R$) ou quantidade (itens); null quando não há amostra. */
   porMes: (number | null)[]
   /** Quantidade de amostras por mês. */
   nPorMes: number[]
@@ -79,7 +118,9 @@ export function resumirAno(ind: Indicador, ano: number, ate: string | null): Res
     valoresMes[m].push(a.valor)
   }
   for (let m = 0; m < 12; m++) {
-    if (nPorMes[m]) porMes[m] = ind.unidade === 'reais' ? valoresMes[m].reduce((x, v) => x + v, 0) : mediana(valoresMes[m])
+    if (nPorMes[m]) {
+      porMes[m] = ind.unidade === 'reais' ? valoresMes[m].reduce((x, v) => x + v, 0) : ind.unidade === 'itens' ? nPorMes[m] : mediana(valoresMes[m])
+    }
   }
   return {
     ano, n, soma, porMes, nPorMes, amostras,
@@ -95,10 +136,18 @@ function mediana(v: number[]): number {
 }
 
 /**
- * Valor que resume o ano: soma de R$ ou, nos tempos, a mediana de dias. A mediana não deixa um punhado de itens
- * parados há muito tempo puxar o número do ano inteiro (a média continua no detalhe).
+ * Valor que resume o ano: soma de R$, quantidade de itens ou, nos tempos, a mediana de dias. A mediana não deixa um
+ * punhado de itens parados há muito tempo puxar o número do ano inteiro (a média continua no detalhe).
  */
-export const principal = (ind: Indicador, r: ResumoAno) => (ind.unidade === 'reais' ? (r.n ? r.soma : null) : r.mediana)
+export const principal = (ind: Indicador, r: ResumoAno) =>
+  ind.unidade === 'reais' ? (r.n ? r.soma : null) : ind.unidade === 'itens' ? r.n : r.mediana
+
+/** Ano de criação de cada Epic: os dois anos comparados, antes deles ou sem data. */
+export function anoDeCriacao(e: Experimento): number | 'antes' | 'sem-data' {
+  if (!e.criadoEm) return 'sem-data'
+  const ano = Number(e.criadoEm.slice(0, 4))
+  return (ANOS as readonly number[]).includes(ano) ? ano : ano < ANOS[0] ? 'antes' : 'sem-data'
+}
 
 /** Abaixo disso a variação percentual não diz muito: o cartão mostra os números, mas não o %. */
 export const MINIMO_PARA_COMPARAR = 3
@@ -108,5 +157,5 @@ export function variacao(ind: Indicador, antes: number | null, depois: number | 
   if (antes === null || depois === null || antes === 0) return null
   const diferenca = depois - antes
   const pct = Math.round((diferenca / antes) * 100)
-  return { pct, diferenca, melhorou: diferenca === 0 ? null : ind.melhor === 'menor' ? diferenca < 0 : diferenca > 0 }
+  return { pct, diferenca, melhorou: diferenca === 0 || ind.melhor === 'neutro' ? null : ind.melhor === 'menor' ? diferenca < 0 : diferenca > 0 }
 }
