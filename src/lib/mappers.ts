@@ -23,6 +23,7 @@ import {
 } from './types'
 import type { ChangelogEntry } from './jira'
 import { epicBloqueado, sinaisDeBloqueio } from './bloqueio'
+import { ehExperimentoConcluido } from './concluido'
 import type { MetaCategoria } from './portfolio-classifier'
 // Simplified type for board configuration (shape varies by API); keep as any to avoid strict coupling here
 type JiraBoardConfiguration = any
@@ -156,7 +157,10 @@ function mapEpicToDetail(epic: JiraIssue, changelog?: ChangelogEntry[]): EpicDet
       for (const item of entry.items) {
         if (item.field === 'status') {
           const toStr = item.toString?.trim() ?? ''
-          if (STATUS_CONCLUIDO_IDS.has(toStr) || STATUS_CONCLUIDO_NOMES.has(toStr)) {
+          // O changelog traz o id do status em `to` e o nome em `toString` (que pode vir em caixa alta ou sem acento).
+          const toId = (item as typeof item & { to?: string }).to ?? ''
+          const nome = toStr.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase()
+          if (STATUS_CONCLUIDO_IDS.has(toId) || STATUS_CONCLUIDO_IDS.has(toStr) || STATUS_CONCLUIDO_NOMES.has(toStr) || nome === 'CONCLUIDO' || nome === 'DONE') {
             concluidoEm = entry.created
             break
           }
@@ -1586,16 +1590,14 @@ function getMesesDoPeriodo(periodo: PeriodoFiltro): { mes: string; ano: number; 
  * dos mesmos dados reais usados pelo DashboardData.
  * @param periodo Filtro de período (ultimos12, semestre, tudo)
  */
-// Lista de experimentos que não devem ser considerados como concluídos (reabertos ou movidos indevidamente)
-const EXCLUIR_CONCLUIDOS = new Set([
-  'Otimiza APP - Ciclo 1 (Análise de comentários das lojas de apps)',
-  "IA para IP'S de rede",
-  'Assistente IA Ágil - Ciclo 2',
-  'Sumarização dos Contratos',
-  'Jurisquery - Consulta de Pareceres Juridicos',
-])
-
-export function buildMonitoramentoData(data: DashboardData, periodo: PeriodoFiltro = { tipo: 'ultimos12' }): MonitoramentoData {
+/**
+ * Constrói os dados para o dashboard de Monitoramento Estratégico a partir
+ * dos mesmos dados reais usados pelo DashboardData.
+ * @param periodo Filtro de período (ultimos12, semestre, tudo)
+ * @param todosEpics Todos os Epics, sem o filtro de período por data de criação. O burnup precisa deles: um
+ *   experimento criado antes do período e concluído dentro dele conta, e o acumulado parte do que já estava concluído.
+ */
+export function buildMonitoramentoData(data: DashboardData, periodo: PeriodoFiltro = { tipo: 'ultimos12' }, todosEpics: EpicDetail[] = data.allEpics): MonitoramentoData {
   const allEpics = data.allEpics
 
   // Filtrar epics pelo período (usando concluidoEm se disponível, senão criadoEm)
@@ -1603,10 +1605,23 @@ export function buildMonitoramentoData(data: DashboardData, periodo: PeriodoFilt
     ? allEpics
     : allEpics.filter(e => dataEstaNoPeriodo(e.concluidoEm ?? e.criadoEm, periodo))
 
+  // ── Concluídos: a mesma regra do Semanal (lib/concluido.ts), pela data de conclusão (sem histórico, a de criação) ──
+  const meses = getMesesDoPeriodo(periodo)
+  const concluidos = todosEpics.filter(ehExperimentoConcluido)
+  const dataConclusao = (e: EpicDetail) => e.concluidoEm ?? e.criadoEm
+  const noMes = (e: EpicDetail, ano: number, mesIdx: number) => {
+    const d = dataConclusao(e)
+    if (!d) return false
+    const dt = new Date(d)
+    return dt.getFullYear() === ano && dt.getMonth() === mesIdx
+  }
+  const inicio = meses.length ? new Date(meses[0].ano, meses[0].mesIdx, 1).getTime() : 0
+  // Já concluídos antes do primeiro mês do gráfico (ou sem data nenhuma): o ponto de partida do acumulado.
+  const anteriores = concluidos.filter(e => { const d = dataConclusao(e); return !d || new Date(d).getTime() < inicio })
+  const doPeriodo = concluidos.filter(e => meses.some(m => noMes(e, m.ano, m.mesIdx)))
+
   // ── KPIs ──
-  const experimentosConcluidos = epicsNoPeriodo.filter(e =>
-    (e.status.id === '10019' || e.status.id === '10003') && !EXCLUIR_CONCLUIDOS.has(e.nome)
-  ).length
+  const experimentosConcluidos = doPeriodo.length
 
   const totalPipeline = Object.values(data.pipeline).reduce((s, v) => s + v, 0)
   const taxaConversao = totalPipeline > 0 ? Math.round((experimentosConcluidos / totalPipeline) * 100) : 0
@@ -1617,31 +1632,23 @@ export function buildMonitoramentoData(data: DashboardData, periodo: PeriodoFilt
   const beneficioNoPeriodo = epicsNoPeriodo.reduce((s, e) => s + (e.beneficioQuantitativo ?? 0), 0)
   const roi = custoTotal > 0 ? beneficioNoPeriodo / custoTotal : null
 
-  // ── Burnup: acumulado mês a mês apenas de experimentos CONCLUÍDOS (status 10019 e 10003) ──
-  // Usa concluidoEm como referência; fallback para criadoEm
-  const meses = getMesesDoPeriodo(periodo)
+  // ── Burnup: acumulado mês a mês dos concluídos. O último ponto é o total de concluídos até o fim do período, o
+  // mesmo número do Semanal quando o período termina hoje. ──
   const realizado: { mes: string; ano: number; valor: number; epics: EpicDetail[] }[] = []
   const beneficioAcumulado: { mes: string; ano: number; valor: number }[] = []
-  let acumulado = 0
-  let acumuladoBeneficio = 0
-  const todosEpicsConcluidos: EpicDetail[] = []
+  let acumulado = anteriores.length
+  let acumuladoBeneficio = anteriores.reduce((s, e) => s + (e.beneficioQuantitativo ?? 0), 0)
+  const todosEpicsConcluidos: EpicDetail[] = [...anteriores]
   for (const { mes, ano, mesIdx } of meses) {
-    const epicsNoMes = epicsNoPeriodo.filter(e => {
-      if (EXCLUIR_CONCLUIDOS.has(e.nome)) return false
-      const dataRef = e.concluidoEm ?? e.criadoEm
-      if (!dataRef) return false
-      const d = new Date(dataRef)
-      return d.getFullYear() === ano && d.getMonth() === mesIdx && (e.status.id === '10019' || e.status.id === '10003')
-    })
+    const epicsNoMes = concluidos.filter(e => noMes(e, ano, mesIdx))
     todosEpicsConcluidos.push(...epicsNoMes)
     acumulado += epicsNoMes.length
     realizado.push({ mes, ano, valor: acumulado, epics: [...todosEpicsConcluidos] })
 
-    // Benefício acumulado: soma o benefício de TODOS os epics até o mês
     acumuladoBeneficio += epicsNoMes.reduce((s, e) => s + (e.beneficioQuantitativo ?? 0), 0)
     beneficioAcumulado.push({ mes, ano, valor: acumuladoBeneficio })
   }
-  const burnup: SerieMensal = { realizado, beneficio: beneficioAcumulado }
+  const burnup: SerieMensal = { realizado, beneficio: beneficioAcumulado, anteriores: anteriores.length, noPeriodo: doPeriodo.length }
 
   // ── Benefício por Área (via domínio) ──
   const areaMap = new Map<string, number>()
@@ -1664,13 +1671,7 @@ export function buildMonitoramentoData(data: DashboardData, periodo: PeriodoFilt
 
   // ── Conclusões mensais (quantidade + benefício) ──
   const conclusoesMensais: ConclusaoMensal[] = meses.map(({ mes, ano, mesIdx }) => {
-    const epicsMes = epicsNoPeriodo.filter(e => {
-      // Usa concluidoEm como referência para data de conclusão
-      const dataRef = e.concluidoEm ?? e.criadoEm
-      if (!dataRef) return false
-      const d = new Date(dataRef)
-      return d.getFullYear() === ano && d.getMonth() === mesIdx && (e.status.id === '10019' || e.status.id === '10003')
-    })
+    const epicsMes = concluidos.filter(e => noMes(e, ano, mesIdx))
     return {
       mes: periodo.tipo === 'tudo' ? `${mes}/${String(ano).slice(2)}` : mes,
       quantidade: epicsMes.length,

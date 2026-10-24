@@ -250,6 +250,8 @@ export interface SerieMensal {
   meta?: number            // meta anual (opcional, configurável)
   realizado: MesValor[]    // valores acumulados mês a mês (concluídos)
   beneficio: MesValor[]    // benefício potencial acumulado mês a mês (R$)
+  anteriores?: number      // concluídos antes do primeiro mês (o ponto de partida do acumulado)
+  noPeriodo?: number       // concluídos dentro dos meses do gráfico
 }
 
 export interface SerieMensalComEpics extends SerieMensal {

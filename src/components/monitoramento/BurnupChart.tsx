@@ -27,7 +27,8 @@ export default function BurnupChart({ data }: Props) {
       {/* Header com total */}
       <div className="flex items-center justify-between flex-shrink-0">
         <span className="text-[11px] text-gray-500">
-          Total acumulado: <strong className="text-gray-800">{totalRealizado}</strong> experimentos
+          Total acumulado: <strong className="text-gray-800">{totalRealizado}</strong> experimentos concluídos
+          {data.noPeriodo !== undefined && <> · <strong className="text-gray-800">+{data.noPeriodo}</strong> no período</>}
         </span>
       </div>
 
