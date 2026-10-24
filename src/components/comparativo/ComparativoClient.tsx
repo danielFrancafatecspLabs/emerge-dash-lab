@@ -5,11 +5,11 @@
 
 import { useMemo, useState } from 'react'
 import { Bar, BarChart, CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
-import { ArrowDownRight, ArrowUpRight, ChevronDown, ExternalLink, Info, Minus } from 'lucide-react'
+import { AlertTriangle, ArrowDownRight, ArrowUpRight, ChevronDown, ExternalLink, Info, Minus } from 'lucide-react'
 import { cx, focusRing } from '@/components/ui'
 import { formatarValor } from '@/lib/portfolio/filtros'
 import {
-  ANOS, principal, resumirAno, variacao, type ComparativoDados, type Indicador, type IndicadorId, type ResumoAno,
+  ANOS, MINIMO_PARA_COMPARAR, principal, resumirAno, variacao, type ComparativoDados, type Indicador, type IndicadorId, type ResumoAno,
 } from '@/lib/comparativo/resumo'
 
 // Paleta validada (dataviz/validate_palette: lightness, chroma, CVD e contraste OK): ano anterior em azul, atual na cor da marca.
@@ -31,6 +31,9 @@ function Ano({ ano, className }: { ano: number; className?: string }) {
 
 /** Variação com ícone e texto (nunca só a cor): verde quando melhora, vermelho quando piora. */
 function Variacao({ ind, r1, r2, compacta = false }: { ind: Indicador; r1: ResumoAno; r2: ResumoAno; compacta?: boolean }) {
+  if (Math.min(r1.n, r2.n) < MINIMO_PARA_COMPARAR) {
+    return <span className="text-xs text-beon-muted">Poucos itens para comparar (mín. {MINIMO_PARA_COMPARAR} por ano)</span>
+  }
   const v = variacao(ind, principal(ind, r1), principal(ind, r2))
   if (!v) return <span className="text-xs text-beon-muted">Sem base de comparação</span>
   const Icone = v.diferenca === 0 ? Minus : v.diferenca < 0 ? ArrowDownRight : ArrowUpRight
@@ -53,7 +56,7 @@ function CartaoResumo({ ind, r1, r2, ativo, onClick }: { ind: Indicador; r1: Res
       className={cx('flex min-w-0 flex-col rounded-2xl border bg-white p-4 text-left transition hover:border-stone-300', focusRing,
         ativo ? 'border-beon-ink ring-1 ring-beon-ink' : 'border-beon-line')}>
       <span className="text-[13px] font-semibold leading-snug text-beon-ink">{ind.titulo}</span>
-      <span className="mt-0.5 text-[11px] text-beon-muted">{ind.unidade === 'reais' ? 'Soma no ano' : 'Média no ano'} · board de {ind.board}</span>
+      <span className="mt-0.5 text-[11px] text-beon-muted">{ind.unidade === 'reais' ? 'Soma no ano' : 'Mediana no ano'} · board de {ind.board}</span>
       <span className="mt-3 grid grid-cols-2 gap-2">
         {[r1, r2].map(r => (
           <span key={r.ano} className="min-w-0">
@@ -110,7 +113,7 @@ function Grafico({ ind, r1, r2, ate, cortar }: { ind: Indicador; r1: ResumoAno; 
   })
   const eixo = { tick: { fill: '#78716C', fontSize: 11 }, axisLine: false, tickLine: false }
   return (
-    <div className="h-[260px] w-full" role="img" aria-label={`${ind.titulo}: ${reais ? 'acumulado' : 'média'} por mês em ${A} e ${B}`}>
+    <div className="h-[260px] w-full" role="img" aria-label={`${ind.titulo}: ${reais ? 'acumulado' : 'mediana'} por mês em ${A} e ${B}`}>
       <ResponsiveContainer width="100%" height="100%">
         {reais ? (
           <LineChart data={linhas} margin={{ top: 8, right: 12, bottom: 0, left: 4 }}>
@@ -188,9 +191,11 @@ function Detalhe({ ind, r1, r2, ate, cortar, jiraUrl }: { ind: Indicador; r1: Re
   const reais = ind.unidade === 'reais'
   const linhas: [string, (r: ResumoAno) => string][] = reais
     ? [['Benefício', r => valor(ind, principal(ind, r))], ['Hipóteses validadas', r => String(r.n)], ['Média por hipótese', r => valor(ind, r.media)]]
-    : [['Média', r => dias(r.media)], ['Mediana', r => dias(r.mediana)], ['Itens', r => String(r.n)]]
+    : [['Mediana', r => dias(r.mediana)], ['Média', r => dias(r.media)], ['Itens', r => String(r.n)]]
   const aberto = ind.emAberto
-  const mediaAberto = aberto.length ? Math.round(aberto.reduce((s, e) => s + e.dias, 0) / aberto.length) : 0
+  const ordenados = aberto.map(e => e.dias).sort((a, b) => a - b)
+  const meio = Math.floor(ordenados.length / 2)
+  const medianaAberto = !ordenados.length ? 0 : ordenados.length % 2 ? ordenados[meio] : Math.round((ordenados[meio - 1] + ordenados[meio]) / 2)
   return (
     <section aria-labelledby="detalhe-titulo" className="overflow-hidden rounded-2xl border border-beon-line bg-white">
       <div className="flex flex-wrap items-start justify-between gap-3 px-5 pt-5">
@@ -221,17 +226,33 @@ function Detalhe({ ind, r1, r2, ate, cortar, jiraUrl }: { ind: Indicador; r1: Re
           {aberto.length > 0 && (
             <p className="mt-4 flex gap-2 rounded-xl bg-beon-soft px-3 py-2.5 text-xs leading-relaxed text-beon-body">
               <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-beon-muted" aria-hidden />
-              <span>Hoje, <b className="text-beon-ink">{aberto.length}</b> {aberto.length === 1 ? 'item ainda está' : 'itens ainda estão'} nesta etapa, há {dias(mediaAberto)} em média. Só entram na conta quando saem.</span>
+              <span>Hoje, <b className="text-beon-ink">{aberto.length}</b> {aberto.length === 1 ? 'item ainda está' : 'itens ainda estão'} nesta etapa, há {dias(medianaAberto)} (mediana). Só entram na conta quando saem.</span>
             </p>
           )}
         </div>
         <div className="min-w-0">
-          <p className="mb-2 text-xs font-medium text-beon-muted">{reais ? 'Benefício acumulado no ano' : 'Média por mês (pelo mês em que o item saiu da etapa)'}</p>
+          <p className="mb-2 text-xs font-medium text-beon-muted">{reais ? 'Benefício acumulado no ano' : 'Mediana por mês (pelo mês em que o item saiu da etapa)'}</p>
           <Grafico ind={ind} r1={r1} r2={r2} ate={ate} cortar={cortar} />
         </div>
       </div>
       <Itens ind={ind} r1={r1} r2={r2} jiraUrl={jiraUrl} />
     </section>
+  )
+}
+
+/** Itens sem histórico de status (o Jira não devolveu) ficam fora das contas: avisa para não ler o número como completo. */
+function AvisoCobertura({ dados }: { dados: ComparativoDados }) {
+  const c = dados.cobertura
+  if (!c || (c.iniciativas.semHistorico === 0 && c.epics.semHistorico === 0)) return null
+  const partes = [
+    c.iniciativas.semHistorico ? `${c.iniciativas.semHistorico} de ${c.iniciativas.total} iniciativas` : null,
+    c.epics.semHistorico ? `${c.epics.semHistorico} de ${c.epics.total} experimentos` : null,
+  ].filter(Boolean)
+  return (
+    <p role="status" className="flex gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-relaxed text-amber-900">
+      <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
+      <span>O Jira não devolveu o histórico de status de {partes.join(' e ')}. Esses itens ficam fora dos cálculos; atualize a página para tentar de novo.</span>
+    </p>
   )
 }
 
@@ -265,6 +286,8 @@ export default function ComparativoClient({ dados }: { dados: ComparativoDados }
         </div>
       </div>
 
+      <AvisoCobertura dados={dados} />
+
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5">
         {dados.indicadores.map(i => {
           const [x, y] = resumos.get(i.id)!
@@ -273,6 +296,11 @@ export default function ComparativoClient({ dados }: { dados: ComparativoDados }
       </div>
 
       <Detalhe ind={ind} r1={r1} r2={r2} ate={ateMMDD} cortar={mesmoPeriodo} jiraUrl={dados.jiraUrl} />
+      <p className="text-xs leading-relaxed text-beon-muted">
+        Nos tempos, o número principal é a mediana: metade dos itens levou menos que isso e metade, mais. Assim, poucos itens
+        parados por muito tempo não distorcem o ano inteiro; a média aparece no detalhe. A etapa de cada status segue as
+        colunas atuais dos boards de Ideação e de Experimentação.
+      </p>
     </div>
   )
 }

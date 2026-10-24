@@ -11,10 +11,13 @@ export const EXPERIMENTACAO_BOARD_ID = Number(process.env.JIRA_BOARD_INICIATIVAS
  * Necessário porque o fetch nativo do Node.js 22 falha em algumas
  * redes corporativas com proxy ou SSL inspeccionado.
  */
-function jiraFetch(url: string, headers: HeadersInit): Promise<Response> {
+function jiraFetch(url: string, headers: HeadersInit, signal?: AbortSignal): Promise<Response> {
   // Tentativa 1: fetch nativo (mais moderno, suporta cache)
-  // Se falhar (rede corporativa), cairá no catch e tentará com https.
-  return fetch(url, { headers }).catch(() => jiraFetchHttps(url, headers))
+  // Se falhar (rede corporativa), cairá no catch e tentará com https. Um timeout (signal abortado) não cai no fallback.
+  return fetch(url, { headers, signal }).catch(err => {
+    if (signal?.aborted) throw err
+    return jiraFetchHttps(url, headers)
+  })
 }
 
 /**
@@ -346,27 +349,38 @@ export async function getIssueChangelog(issueKey: string, timeoutMs = 8000): Pro
   const maxResults = 100
   let startAt = 0
   let total = Infinity
+  let tentativas = 0
 
   while (startAt < total) {
     const url = `${base}/rest/api/3/issue/${issueKey}/changelog?maxResults=${maxResults}&startAt=${startAt}`
     const controller = new AbortController()
     const timer = setTimeout(() => controller.abort(), timeoutMs)
+    let res: Response
     try {
-      const res = await jiraFetch(url, getHeaders())
-
-      if (!res.ok) return all // silencioso — retorna o que conseguiu
-
-      const data = await res.json()
-      total = data.total ?? 0
-      const values: ChangelogEntry[] = data.values ?? []
-      all.push(...values)
-      startAt += values.length
-      if (values.length === 0) break
-    } catch {
-      return all // timeout ou erro de rede — retorna o que conseguiu
+      res = await jiraFetch(url, getHeaders(), controller.signal)
+    } catch (err) {
+      // Timeout ou erro de rede: uma nova tentativa; depois disso o histórico conta como indisponível.
+      if (++tentativas > 2) throw new Error(`changelog ${issueKey}: ${String(err)}`)
+      continue
     } finally {
       clearTimeout(timer)
     }
+
+    // Limite de requisições (429) ou instabilidade (5xx): espera e tenta de novo, em vez de devolver o histórico vazio.
+    if (res.status === 429 || res.status >= 500) {
+      if (++tentativas > 3) throw new Error(`changelog ${issueKey}: Jira respondeu ${res.status}`)
+      const espera = Number(res.headers.get('retry-after'))
+      await new Promise(r => setTimeout(r, Math.min(10_000, (espera > 0 ? espera * 1000 : 1000 * 2 ** (tentativas - 1)))))
+      continue
+    }
+    if (!res.ok) throw new Error(`changelog ${issueKey}: Jira respondeu ${res.status}`)
+
+    const data = await res.json()
+    total = data.total ?? 0
+    const values: ChangelogEntry[] = data.values ?? []
+    all.push(...values)
+    startAt += values.length
+    if (values.length === 0) break
   }
 
   return all
