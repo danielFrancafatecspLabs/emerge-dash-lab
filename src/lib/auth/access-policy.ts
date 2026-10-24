@@ -39,6 +39,12 @@ const ROLE_RULES: RoleRule[] = [
   { prefix: '/api/weekly', roles: ADMIN },
   { prefix: '/semanal', roles: ADMIN },
   { prefix: '/api/semanal', roles: ADMIN },
+  // Future Thinking e OSINT (vault de sinais e o app OSINT embutido): só admin.
+  { prefix: '/ft', roles: ADMIN },
+  { prefix: '/api/ft', roles: ADMIN },
+  { prefix: '/osint', roles: ADMIN },
+  { prefix: '/osint-app', roles: ADMIN },
+  { prefix: '/api/osint', roles: ADMIN },
   // Chamadas a LLM e limpeza de cache têm custo: só para quem usa os painéis executivos.
   { prefix: '/cientista', roles: ADMIN },
   { prefix: '/api/cientista', roles: ADMIN },
