@@ -15,7 +15,17 @@ const nextConfig = {
   basePath: '/jira',
   poweredByHeader: false,
   async headers() {
-    return [{ source: '/:path*', headers: SECURITY_HEADERS }]
+    return [
+      { source: '/:path*', headers: SECURITY_HEADERS },
+      // O painel OSINT é incorporado pelo próprio Jira Viewer via iframe.
+      {
+        source: '/osint-app/:path*',
+        headers: [
+          { key: 'Content-Security-Policy', value: "frame-ancestors 'self'; object-src 'none'; base-uri 'self'; form-action 'self'" },
+          { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
+        ],
+      },
+    ]
   },
   // Aumenta o timeout para 60s (máximo no plano Pro da Vercel).
   // Necessário porque o fetch de changelogs do Jira pode ser lento.
