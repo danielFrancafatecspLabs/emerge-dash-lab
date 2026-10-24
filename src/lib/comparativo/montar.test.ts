@@ -3,7 +3,14 @@ import type { ChangelogEntry } from '../jira'
 import type { JiraIssue } from '../types'
 import { montarComparativo } from './montar'
 import { montarReport } from './report'
-import { anoDeCriacao, porDimensao, principal, resumirAno, serie, variacao, type Experimento, type Indicador } from './resumo'
+import {
+  criarComparacao, janelaDe, periodoBase, periodoDeCriacao, periodosDisponiveis, porDimensao, principal, resumir, serie, variacao,
+  type Experimento, type Indicador,
+} from './resumo'
+
+/** Ano inteiro: os testes antigos comparavam 2025 e 2026 completos. */
+const ano = (a: number) => janelaDe(String(a))
+const anual = (hoje: string, mesmoPeriodo: boolean) => criarComparacao({ modo: 'anual', id: '2026', base: 'anterior', mesmoPeriodo, hoje })
 
 const ini = (key: string, status: [string, string], created: string): JiraIssue =>
   ({ key, fields: { summary: `Iniciativa ${key}`, status: { id: status[0], name: status[1] }, issuetype: { name: 'Iniciativa' }, created } }) as JiraIssue
@@ -108,8 +115,8 @@ describe('montarComparativo', () => {
       ['GL-11', 2_000_000, '2025-04-15'],
       ['GL-13', 1_000_000, '2024-11-03'], // sem histórico: usa a data de conclusão do Epic
     ])
-    // Fecha com o total do Semanal: R$ 8 mi em 4 hipóteses, 1 antes de 2025 e 1 sem data.
-    expect(b.conciliacao).toEqual({ total: 8_000_000, n: 4, foraDosAnos: 1, semData: 1 })
+    // Fecha com o total do Semanal: R$ 8 mi em 4 hipóteses, 1 delas sem data de conclusão.
+    expect(b.conciliacao).toEqual({ total: 8_000_000, n: 4, semData: 1 })
     expect(b.foraDaConta!.map(f => f.key)).toEqual(['GL-14'])
   })
 
@@ -124,7 +131,7 @@ describe('montarComparativo', () => {
 
   it('panorama: todos os Epics, com o ano de criação', () => {
     expect(dados.experimentos).toHaveLength(7)
-    expect(dados.experimentos.map(anoDeCriacao)).toEqual([2026, 2025, 2026, 'antes', 2025, 2025, 'sem-data'])
+    expect(dados.experimentos.map(e => periodoDeCriacao(e, anual('2026-12-31', false)))).toEqual(['atual', 'base', 'atual', 'outro', 'base', 'base', 'sem-data'])
   })
 
   it('lead time da Experimentação explica quem ficou fora', () => {
@@ -142,14 +149,14 @@ describe('montarComparativo', () => {
   })
 })
 
-describe('resumirAno e variacao', () => {
+describe('resumir e variacao', () => {
   it('agrega por ano e mês, com corte no mesmo dia do ano', () => {
     const exp = ind('leadExperimentacao')
-    expect(resumirAno(exp, 2026, null)).toMatchObject({ n: 1, media: 33, mediana: 33 })
-    expect(resumirAno(exp, 2026, '03-15').n).toBe(0)
+    expect(resumir(exp, ano(2026))).toMatchObject({ n: 1, media: 33, mediana: 33 })
+    expect(resumir(exp, { ...ano(2026), fim: '2026-03-15' }).n).toBe(0)
     const b = ind('beneficio')
-    const r25 = resumirAno(b, 2025, null), r26 = resumirAno(b, 2026, null)
-    expect(r26.porMes[2]).toBe(5_000_000)
+    const r25 = resumir(b, ano(2025)), r26 = resumir(b, ano(2026))
+    expect(r26.porParte[2]).toBe(5_000_000)
     expect(principal(b, r25)).toBe(2_000_000)
     expect(variacao(b, principal(b, r25), principal(b, r26))).toEqual({ pct: 150, diferenca: 3_000_000, melhorou: true })
     expect(variacao(exp, 41, 33)).toEqual({ pct: -20, diferenca: -8, melhorou: true })
@@ -212,7 +219,7 @@ describe('número principal dos tempos', () => {
       id: 'piloto', titulo: '', regra: '', unidade: 'dias', melhor: 'menor', board: 'Ideação', grupo: 'tempos', emAberto: [],
       amostras: [10, 12, 14, 400].map((valor, k) => ({ key: `GL-${k}`, nome: '', valor, data: `2026-0${k + 1}-10` })),
     }
-    const r = resumirAno(ind, 2026, null)
+    const r = resumir(ind, ano(2026))
     expect(principal(ind, r)).toBe(13)
     expect(r.media).toBe(109)
   })
@@ -221,11 +228,11 @@ describe('número principal dos tempos', () => {
 describe('granularidade', () => {
   it('série por trimestre e por mês: quantidade, soma ou mediana de cada período', () => {
     const conc = ind('concluidos')
-    const r26 = resumirAno(conc, 2026, null)
-    expect(serie(conc, r26, 'trimestre').map(p => p.valor)).toEqual([1, 1, null, null]) // GL-10 em 20/03, GL-12 em 01/04
-    expect(serie(ind('beneficio'), resumirAno(ind('beneficio'), 2026, null), 'mes')[2]).toEqual({ valor: 5_000_000, n: 1 })
+    const r26 = resumir(conc, ano(2026))
+    expect(serie(conc, r26, 3).map(p => p.valor)).toEqual([1, 1, null, null]) // GL-10 em 20/03, GL-12 em 01/04
+    expect(serie(ind('beneficio'), resumir(ind('beneficio'), ano(2026)))[2]).toEqual({ valor: 5_000_000, n: 1 })
     const exp = ind('leadExperimentacao')
-    expect(serie(exp, resumirAno(exp, 2025, null), 'trimestre').map(p => p.valor)).toEqual([null, 41, null, null])
+    expect(serie(exp, resumir(exp, ano(2025)), 3).map(p => p.valor)).toEqual([null, 41, null, null])
   })
 
   it('por área: métricas de cada ano, taxa de validação e linha "não informada" por último', () => {
@@ -237,14 +244,14 @@ describe('granularidade', () => {
       { ...base('A5', 'validada', null), concluidoEm: '2026-11-20' },   // depois do corte de 24/10
       { ...base('A6', 'andamento', 'RH') },                              // sem evento: não entra
     ]
-    const { linhas, total } = porDimensao(lista, 'area', '10-24')
+    const { linhas, total } = porDimensao(lista, 'area', anual('2026-10-24', true))
     expect(linhas.map(l => l.nome)).toEqual(['RH', 'Jurídico'])
-    expect(linhas[0].porAno).toEqual([
+    expect(linhas[0].porPeriodo).toEqual([
       { concluidos: 1, validadas: 1, refutadas: 0, cancelados: 0, beneficio: 1_000_000, taxaValidacao: 100 },
       { concluidos: 2, validadas: 1, refutadas: 1, cancelados: 0, beneficio: 2_000_000, taxaValidacao: 50 },
     ])
     expect(total[1]).toMatchObject({ concluidos: 2, cancelados: 1 })
-    expect(porDimensao(lista, 'area', null).linhas.map(l => l.nome)).toEqual(['RH', 'Jurídico', 'Área não informada'])
+    expect(porDimensao(lista, 'area', anual('2026-12-31', false)).linhas.map(l => l.nome)).toEqual(['RH', 'Jurídico', 'Área não informada'])
   })
 })
 
@@ -254,7 +261,7 @@ function base(key: string, situacao: Experimento['situacao'], area: string | nul
 
 describe('report executivo', () => {
   it('funil do ano, iniciativas que chegaram mais longe e leitura', () => {
-    const r = montarReport(dados, null)
+    const r = montarReport(dados, anual('2026-12-31', false))
     expect(r.funil.map(f => [f.id, f.valores])).toEqual([
       ['ideias', [1, 2]], ['experimento', [1, 1]], ['concluidos', [1, 2]], ['validadas', [1, 1]], ['piloto', [1, 1]], ['escala', [0, 1]],
     ])
@@ -263,5 +270,40 @@ describe('report executivo', () => {
     expect(r.exploracao.chegaramLonge.map(d => [d.key, d.detalhe])).toEqual([['GL-2', 'Escala']])
     expect(r.kpis.find(k => k.id === 'taxa')!.valores).toEqual([100, 50])
     expect(r.leitura[0]).toBe('Concluímos 2 experimentos em 2026, 100% acima de 2025 (1).')
+  })
+})
+
+describe('períodos: anual, trimestral e mensal', () => {
+  it('janelas, partes e período anterior ou do ano anterior', () => {
+    expect(janelaDe('2026-T4')).toMatchObject({ rotulo: '4º tri/2026', inicio: '2026-10-01', fim: '2026-12-31' })
+    expect(janelaDe('2026-T4').partes.map(p => p.rotulo)).toEqual(['out', 'nov', 'dez'])
+    const fev = janelaDe('2026-02')
+    expect(fev).toMatchObject({ rotulo: 'Fev/2026', inicio: '2026-02-01', fim: '2026-02-28' })
+    expect(fev.partes.map(p => [p.inicio.slice(8), p.fim.slice(8)])).toEqual([['01', '07'], ['08', '14'], ['15', '21'], ['22', '28']])
+    expect(janelaDe('2026-10').partes).toHaveLength(5)
+    expect([periodoBase('2026-T1', 'anterior'), periodoBase('2026-T1', 'ano-anterior'), periodoBase('2026-01', 'anterior'), periodoBase('2026-10', 'ano-anterior')])
+      .toEqual(['2025-T4', '2025-T1', '2025-12', '2025-10'])
+  })
+
+  it('mês atual pela metade: a base é cortada no mesmo número de dias', () => {
+    const c = criarComparacao({ modo: 'mensal', id: '2026-10', base: 'anterior', mesmoPeriodo: true, hoje: '2026-10-24' })
+    expect([c.base.inicio, c.base.fim, c.atual.fim, c.parcial, c.cortada]).toEqual(['2026-09-01', '2026-09-24', '2026-10-24', true, true])
+    const inteiro = criarComparacao({ modo: 'mensal', id: '2026-10', base: 'anterior', mesmoPeriodo: false, hoje: '2026-10-24' })
+    expect(inteiro.base.fim).toBe('2026-09-30')
+    const fechado = criarComparacao({ modo: 'trimestral', id: '2026-T3', base: 'ano-anterior', mesmoPeriodo: true, hoje: '2026-10-24' })
+    expect([fechado.base.rotulo, fechado.base.fim, fechado.cortada]).toEqual(['3º tri/2025', '2025-09-30', false])
+    expect(anual('2026-10-24', true).base.fim).toBe('2025-10-24')
+  })
+
+  it('períodos para escolher, do mais recente ao primeiro', () => {
+    expect(periodosDisponiveis('trimestral', '2026-10-24').map(p => p.id)).toEqual(['2026-T4', '2026-T3', '2026-T2', '2026-T1', '2025-T4', '2025-T3', '2025-T2', '2025-T1'])
+    expect(periodosDisponiveis('mensal', '2026-02-10').map(p => p.rotulo).slice(0, 3)).toEqual(['Fev/2026', 'Jan/2026', 'Dez/2025'])
+    expect(periodosDisponiveis('anual', '2026-10-24').map(p => p.id)).toEqual(['2026'])
+  })
+
+  it('resultados do mês por semana', () => {
+    const c = criarComparacao({ modo: 'mensal', id: '2026-03', base: 'anterior', mesmoPeriodo: false, hoje: '2026-10-24' })
+    const conc = ind('concluidos')
+    expect(serie(conc, resumir(conc, c.atual)).map(p => p.valor)).toEqual([null, null, 1, null, null]) // GL-10 em 20/03
   })
 })

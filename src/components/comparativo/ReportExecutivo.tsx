@@ -6,11 +6,10 @@
 import { useMemo, useRef } from 'react'
 import { ArrowDownRight, ArrowUpRight, Download, Minus } from 'lucide-react'
 import { Button, cx } from '@/components/ui'
-import { ANOS, SITUACOES, type ComparativoDados } from '@/lib/comparativo/resumo'
+import { SITUACOES, type Comparacao, type ComparativoDados } from '@/lib/comparativo/resumo'
 import { formatar, montarReport, variacaoPar, type Formato, type Par } from '@/lib/comparativo/report'
-import { COR_ANO } from './cores'
+import { COR_PERIODO } from './cores'
 
-const [A, B] = ANOS
 const RED = '#C8102E'
 const COR = Object.fromEntries(SITUACOES.map(s => [s.id, s.cor]))
 
@@ -54,8 +53,8 @@ function Titulo({ numero, children, subtitulo }: { numero: string; children: Rea
   )
 }
 
-function AnoTag({ ano }: { ano: number }) {
-  return <span className="inline-flex items-center gap-1 text-[10px] font-medium text-stone-500"><span className="h-2 w-2 rounded-sm" style={{ background: COR_ANO[ano] }} />{ano}</span>
+function AnoTag({ ano, k }: { ano: string; k: number }) {
+  return <span className="inline-flex items-center gap-1 whitespace-nowrap text-[10px] font-medium text-stone-500"><span className="h-2 w-2 rounded-sm" style={{ background: COR_PERIODO[k] }} />{ano}</span>
 }
 
 /** Duas barras (2025 e 2026) na mesma escala, com o número ao lado. */
@@ -65,7 +64,7 @@ function BarrasAno({ valores, max, formato = 'numero' }: { valores: [number, num
       {valores.map((v, k) => (
         <div key={k} className="flex items-center gap-2">
           <div className="h-2.5 flex-1 rounded-sm bg-stone-100">
-            <div className="h-full rounded-sm" style={{ width: `${max ? Math.max(v ? 2 : 0, (v / max) * 100) : 0}%`, background: COR_ANO[ANOS[k]] }} />
+            <div className="h-full rounded-sm" style={{ width: `${max ? Math.max(v ? 2 : 0, (v / max) * 100) : 0}%`, background: COR_PERIODO[k] }} />
           </div>
           <span className="w-16 text-right text-[11px] font-semibold tabular-nums text-stone-800">{formatar(v, formato)}</span>
         </div>
@@ -74,9 +73,12 @@ function BarrasAno({ valores, max, formato = 'numero' }: { valores: [number, num
   )
 }
 
-export default function ReportExecutivo({ dados, corte }: { dados: ComparativoDados; corte: string | null }) {
+const NOME_MODO = { anual: 'anual', trimestral: 'trimestral', mensal: 'mensal' } as const
+
+export default function ReportExecutivo({ dados, comparacao }: { dados: ComparativoDados; comparacao: Comparacao }) {
   const ref = useRef<HTMLDivElement>(null)
-  const r = useMemo(() => montarReport(dados, corte), [dados, corte])
+  const r = useMemo(() => montarReport(dados, comparacao), [dados, comparacao])
+  const [A, B] = r.rotulos
   const gerado = new Date(`${dados.hoje}T12:00:00`).toLocaleDateString('pt-BR')
   const maxFunil = Math.max(1, ...r.funil.flatMap(f => f.valores))
 
@@ -88,7 +90,7 @@ export default function ReportExecutivo({ dados, corte }: { dados: ComparativoDa
     area.innerHTML = ref.current.outerHTML
     document.body.appendChild(area)
     const titulo = document.title
-    document.title = `Report executivo beOn Labs ${A} x ${B}`
+    document.title = `Report executivo beOn Labs ${A} x ${B}`.replace(/\//g, '-')
     const limpar = () => { area.remove(); document.title = titulo; window.removeEventListener('afterprint', limpar) }
     window.addEventListener('afterprint', limpar)
     window.print()
@@ -98,7 +100,7 @@ export default function ReportExecutivo({ dados, corte }: { dados: ComparativoDa
     id, label: SITUACOES.find(s => s.id === id)!.label,
     valores: id === 'validada' ? r.resultados.validadas : id === 'refutada' ? r.resultados.refutadas : r.resultados.cancelados,
   }))
-  const encerrados = ANOS.map((_, k) => resultados.reduce((s, x) => s + x.valores[k], 0))
+  const encerrados = [0, 1].map(k => resultados.reduce((s, x) => s + x.valores[k], 0))
 
   return (
     <section aria-labelledby="report-titulo" className="space-y-3">
@@ -106,9 +108,9 @@ export default function ReportExecutivo({ dados, corte }: { dados: ComparativoDa
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-beon-red">Report executivo</p>
-          <h2 id="report-titulo" className="text-lg font-semibold tracking-tight text-beon-ink">O ano em duas páginas, pronto para levar à diretoria</h2>
+          <h2 id="report-titulo" className="text-lg font-semibold tracking-tight text-beon-ink">{A} × {B} em duas páginas, pronto para levar à diretoria</h2>
           <p className="mt-0.5 max-w-3xl text-sm text-beon-muted">
-            Os números macro desta página num documento só, com o mesmo período escolhido acima. Em &quot;Baixar PDF&quot;, escolha &quot;Salvar como PDF&quot; e desmarque &quot;Cabeçalhos e rodapés&quot;.
+            Os números macro desta página num documento só, com os mesmos períodos escolhidos acima. Em &quot;Baixar PDF&quot;, escolha &quot;Salvar como PDF&quot; e desmarque &quot;Cabeçalhos e rodapés&quot;.
           </p>
         </div>
         <Button variant="primary" icon={Download} onClick={baixar}>Baixar PDF</Button>
@@ -124,7 +126,7 @@ export default function ReportExecutivo({ dados, corte }: { dados: ComparativoDa
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src="/jira/semanal/logo.png" alt="beOn Labs" style={{ height: 28 }} />
               </div>
-              <p className="text-right text-[11px] leading-relaxed text-white/85">Report executivo<br />Gerado em {gerado}</p>
+              <p className="text-right text-[11px] leading-relaxed text-white/85">Report executivo {NOME_MODO[comparacao.modo]}<br />Gerado em {gerado}</p>
             </div>
             <h1 className="mt-4 text-[26px] font-semibold leading-tight tracking-tight">Experimentação beOn Labs</h1>
             <p className="mt-0.5 text-[15px] font-light text-white/90">{A} × {B} · do que exploramos ao que chegou à escala</p>
@@ -151,9 +153,9 @@ export default function ReportExecutivo({ dados, corte }: { dados: ComparativoDa
               <div className="grid grid-cols-[1.1fr_1fr] gap-6">
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 gap-3">
-                    {ANOS.map((ano, k) => (
+                    {r.rotulos.map((ano, k) => (
                       <div key={ano} className="rounded-xl bg-stone-50 p-3">
-                        <AnoTag ano={ano} />
+                        <AnoTag ano={ano} k={k} />
                         <p className="mt-1 text-[26px] font-semibold leading-none tabular-nums text-stone-900">{r.exploracao.registradas[k]}</p>
                         <p className="mt-1 text-[10.5px] text-stone-500">ideias registradas</p>
                         <p className="mt-2 text-[11px] text-stone-700">
@@ -196,8 +198,8 @@ export default function ReportExecutivo({ dados, corte }: { dados: ComparativoDa
             </section>
 
             <section className="inteiro">
-              <Titulo numero="02" subtitulo="Quantas iniciativas e experimentos passaram por cada etapa no ano">Nosso funil de experimentos</Titulo>
-              <div className="mb-2 flex justify-end gap-3"><AnoTag ano={A} /><AnoTag ano={B} /></div>
+              <Titulo numero="02" subtitulo="Quantas iniciativas e experimentos passaram por cada etapa no período">Nosso funil de experimentos</Titulo>
+              <div className="mb-2 flex justify-end gap-3"><AnoTag ano={A} k={0} /><AnoTag ano={B} k={1} /></div>
               <ol className="space-y-1.5">
                 {r.funil.map((f, i) => (
                   <li key={f.id} className="grid grid-cols-[22px_180px_1fr_64px] items-center gap-3">
@@ -224,11 +226,11 @@ export default function ReportExecutivo({ dados, corte }: { dados: ComparativoDa
           </div>
           <div className="space-y-4 px-8 py-5">
             <section className="inteiro">
-              <Titulo numero="03" subtitulo="Como terminaram os experimentos encerrados no ano">Resultados dos experimentos</Titulo>
+              <Titulo numero="03" subtitulo="Como terminaram os experimentos encerrados no período">Resultados dos experimentos</Titulo>
               <div className="space-y-3">
-                {ANOS.map((ano, k) => (
-                  <div key={ano} className="grid grid-cols-[60px_1fr_92px] items-center gap-3">
-                    <AnoTag ano={ano} />
+                {r.rotulos.map((ano, k) => (
+                  <div key={ano} className="grid grid-cols-[84px_1fr_92px] items-center gap-3">
+                    <AnoTag ano={ano} k={k} />
                     <div className="flex h-5 w-full gap-[2px] overflow-hidden rounded">
                       {resultados.filter(x => x.valores[k]).map(x => (
                         <div key={x.id} className="flex items-center justify-center text-[10px] font-semibold text-white"
@@ -240,7 +242,7 @@ export default function ReportExecutivo({ dados, corte }: { dados: ComparativoDa
                     <span className="whitespace-nowrap text-right text-[11px] tabular-nums text-stone-600">{encerrados[k]} encerrados</span>
                   </div>
                 ))}
-                <div className="flex flex-wrap gap-4 pl-[72px] text-[10px] text-stone-600">
+                <div className="flex flex-wrap gap-4 pl-[96px] text-[10px] text-stone-600">
                   {resultados.map(x => <span key={x.id} className="inline-flex items-center gap-1"><span className="h-2 w-2 rounded-sm" style={{ background: COR[x.id] }} />{x.label}</span>)}
                 </div>
               </div>
@@ -282,12 +284,12 @@ export default function ReportExecutivo({ dados, corte }: { dados: ComparativoDa
             </div>
 
             <section className="inteiro">
-              <Titulo numero="06" subtitulo="Benefício potencial das hipóteses validadas no ano">Valor gerado</Titulo>
+              <Titulo numero="06" subtitulo="Benefício potencial das hipóteses validadas no período">Valor gerado</Titulo>
               <div className="grid grid-cols-[1fr_1.4fr] gap-6">
                 <div className="space-y-3">
-                  {ANOS.map((ano, k) => (
+                  {r.rotulos.map((ano, k) => (
                     <div key={ano}>
-                      <AnoTag ano={ano} />
+                      <AnoTag ano={ano} k={k} />
                       <p className={cx('tabular-nums tracking-tight', k === 1 ? 'text-[28px] font-semibold text-stone-900' : 'text-[18px] font-medium text-stone-500')}>{formatar(r.valor.total[k], 'reais')}</p>
                     </div>
                   ))}
@@ -321,7 +323,7 @@ export default function ReportExecutivo({ dados, corte }: { dados: ComparativoDa
             </section>
 
             <footer className="border-t border-stone-200 pt-3 text-[9.5px] leading-relaxed text-stone-400">
-              Fonte: Jira (boards de Ideação e de Experimentação), lido em {gerado}. Cada número conta no ano em que o evento aconteceu (criação,
+              Fonte: Jira (boards de Ideação e de Experimentação), lido em {gerado}. Cada número conta no período em que o evento aconteceu (criação,
               entrada na etapa, conclusão ou cancelamento). Hipótese validada: experimento concluído cuja iniciativa seguiu para Aguardando piloto,
               Piloto ou Escala; refutada: concluído sem seguir. Tempos em mediana. Período: {r.periodo}.
             </footer>
