@@ -31,6 +31,8 @@ export interface Indicador {
   board: 'Ideação' | 'Experimentação'
   amostras: Amostra[]
   emAberto: EmAberto[]
+  /** Benefício: o total de hoje das hipóteses validadas (o mesmo conjunto do Semanal) e o que não cai em 2025 nem 2026. */
+  conciliacao?: { total: number; n: number; foraDosAnos: number; semData: number }
 }
 
 export interface ComparativoDados {

@@ -187,6 +187,34 @@ function Itens({ ind, r1, r2, jiraUrl }: { ind: Indicador; r1: ResumoAno; r2: Re
   )
 }
 
+/** Fecha o benefício com o Semanal: o total de hoje das hipóteses validadas e em que ano cada uma foi concluída. */
+function Conciliacao({ ind }: { ind: Indicador }) {
+  const c = ind.conciliacao!
+  const doAno = (ano: number) => {
+    const xs = ind.amostras.filter(a => a.data.startsWith(`${ano}-`))
+    return { n: xs.length, soma: xs.reduce((s, a) => s + a.valor, 0) }
+  }
+  const anos = ANOS.map(ano => ({ ano, ...doAno(ano) }))
+  const experimentos = (n: number) => `${n} ${n === 1 ? 'experimento' : 'experimentos'}`
+  return (
+    <div className="mt-4 rounded-xl bg-beon-soft px-3 py-2.5 text-xs leading-relaxed text-beon-body">
+      <p>
+        Hoje, as <b className="text-beon-ink">hipóteses validadas</b> do Semanal somam{' '}
+        <b className="text-beon-ink">{formatarValor(c.total)}</b> em {experimentos(c.n)}. Pelo ano em que cada experimento foi concluído (ano inteiro):
+      </p>
+      <ul className="mt-1.5 space-y-0.5 tabular-nums">
+        {anos.map(a => (
+          <li key={a.ano} className="flex items-center justify-between gap-3">
+            <Ano ano={a.ano} /> <span><b className="text-beon-ink">{experimentos(a.n)}</b> · {formatarValor(a.soma)}</span>
+          </li>
+        ))}
+        {c.foraDosAnos > 0 && <li className="flex justify-between gap-3"><span>Antes de {ANOS[0]}</span><span>{experimentos(c.foraDosAnos)}</span></li>}
+        {c.semData > 0 && <li className="flex justify-between gap-3"><span>Sem data de conclusão no Jira</span><span>{experimentos(c.semData)}</span></li>}
+      </ul>
+    </div>
+  )
+}
+
 function Detalhe({ ind, r1, r2, ate, cortar, jiraUrl }: { ind: Indicador; r1: ResumoAno; r2: ResumoAno; ate: string; cortar: boolean; jiraUrl: string | null }) {
   const reais = ind.unidade === 'reais'
   const linhas: [string, (r: ResumoAno) => string][] = reais
@@ -223,6 +251,7 @@ function Detalhe({ ind, r1, r2, ate, cortar, jiraUrl }: { ind: Indicador; r1: Re
               ))}
             </tbody>
           </table>
+          {ind.conciliacao && <Conciliacao ind={ind} />}
           {aberto.length > 0 && (
             <p className="mt-4 flex gap-2 rounded-xl bg-beon-soft px-3 py-2.5 text-xs leading-relaxed text-beon-body">
               <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-beon-muted" aria-hidden />
