@@ -4,7 +4,7 @@ import type { JiraIssue } from '../types'
 import {
   criarClassificador, DEPOIS_DA_EXPLORACAO, ETAPAS_VALIDADAS, type Classificador, type EtapaEpic, type EtapaIniciativa,
 } from './etapas'
-import type { Amostra, ComparativoDados, EmAberto, Indicador } from './resumo'
+import { ANOS, type Amostra, type ComparativoDados, type EmAberto, type Indicador } from './resumo'
 
 /**
  * Monta os indicadores do Comparativo a partir dos dois boards e dos changelogs. Cada indicador vira uma lista
@@ -95,26 +95,30 @@ function leadExperimentacao(epics: JiraIssue[], logs: Record<string, ChangelogEn
   return { amostras, emAberto }
 }
 
+/** Epic do número "Hipóteses validadas" do Semanal (WeeklyData.epicsConsiderados, grupo "validada"). */
+export interface HipoteseValidada { key: string; nome: string; beneficio: number | null; concluidoEm: string | null }
+
 /**
- * Benefício potencial das hipóteses validadas: Epics concluídos cuja iniciativa-mãe está em Aguardando piloto,
- * Piloto ou Escala (inclui Finalizado; as refutadas ficam de fora), como na Semanal. Conta no ano da validação: a
- * data mais recente entre a conclusão do Epic e a entrada da iniciativa nessas colunas.
+ * Benefício potencial das hipóteses validadas: os mesmos Epics do número "Hipóteses validadas" do Semanal
+ * (concluídos, com a iniciativa-mãe em Aguardando piloto, Piloto ou Escala). Cada um conta no ano em que foi concluído.
  */
-function beneficio(iniciativas: JiraIssue[], epics: JiraIssue[], logsIni: Record<string, ChangelogEntry[]>, logsEpic: Record<string, ChangelogEntry[]>, c: Classificador): Pick<Indicador, 'amostras' | 'emAberto'> {
-  const maes = new Map(iniciativas.map(i => [i.key, i]))
-  const amostras: Amostra[] = []
-  for (const e of epics) {
-    if (c.epic(e.fields.status.id, e.fields.status.name) !== 'concluido') continue
-    const mae = e.fields.parent?.key ? maes.get(e.fields.parent.key) : undefined
-    const etapaMae = mae ? c.iniciativa(mae.fields.status.id, mae.fields.status.name) : undefined
-    if (!mae || !etapaMae || !ETAPAS_VALIDADAS.includes(etapaMae)) continue
-    const concluiu = transicoes(logsEpic[e.key], c.epic).find(t => t.para === 'concluido')?.data ?? null
-    const validou = transicoes(logsIni[mae.key], c.iniciativa).find(t => t.para && ETAPAS_VALIDADAS.includes(t.para))?.data ?? null
-    const quando = [concluiu, validou].filter((d): d is string => !!d).sort((a, b) => Date.parse(b) - Date.parse(a))[0]
-    if (!quando) continue
-    amostras.push({ key: e.key, nome: e.fields.summary, valor: Number(e.fields.customfield_30216) || 0, data: dia(quando) })
+function beneficio(validadas: HipoteseValidada[], logsEpic: Record<string, ChangelogEntry[]>, c: Classificador): Pick<Indicador, 'amostras' | 'emAberto' | 'conciliacao'> {
+  const amostras: Amostra[] = validadas.flatMap(h => {
+    // Data de conclusão pela coluna do board no histórico; sem histórico, a que veio do mapeamento do Epic.
+    const concluiu = transicoes(logsEpic[h.key], c.epic).find(t => t.para === 'concluido')?.data ?? h.concluidoEm
+    return concluiu ? [{ key: h.key, nome: h.nome, valor: h.beneficio ?? 0, data: dia(concluiu) }] : []
+  })
+  const anos = new Set(ANOS.map(String))
+  return {
+    amostras,
+    emAberto: [],
+    conciliacao: {
+      total: validadas.reduce((s, h) => s + (h.beneficio ?? 0), 0),
+      n: validadas.length,
+      foraDosAnos: amostras.filter(a => !anos.has(a.data.slice(0, 4))).length,
+      semData: validadas.length - amostras.length,
+    },
   }
-  return { amostras, emAberto: [] }
 }
 
 /** Cycle time de uma etapa do board de Ideação: soma dos períodos na etapa; conta no ano da última saída. */
@@ -153,6 +157,8 @@ export function montarComparativo(raw: {
   epicChangelogs: Record<string, ChangelogEntry[]>
   board2734Config?: unknown
   board2735Config?: unknown
+  /** Epics de "Hipóteses validadas" do Semanal; o benefício do Comparativo é calculado sobre eles. */
+  hipotesesValidadas: HipoteseValidada[]
 }, agora = new Date(), jiraUrl: string | null = null): ComparativoDados {
   const t = agora.getTime()
   const c = criarClassificador(raw.board2734Config, raw.board2735Config)
@@ -168,9 +174,9 @@ export function montarComparativo(raw: {
       ...leadExperimentacao(raw.epics, raw.epicChangelogs, c, t),
     },
     {
-      id: 'beneficio', titulo: 'Benefício potencial validado', unidade: 'reais', melhor: 'maior', board: 'Experimentação',
-      regra: 'Soma do benefício dos experimentos concluídos com hipótese validada (iniciativa-mãe em Aguardando piloto, Em piloto ou Em escala/Finalizado), como na Semanal. Refutadas não entram. Conta no ano da validação.',
-      ...beneficio(raw.iniciativas, raw.epics, raw.iniciativaChangelogs, raw.epicChangelogs, c),
+      id: 'beneficio', titulo: 'Benefício potencial das hipóteses validadas', unidade: 'reais', melhor: 'maior', board: 'Experimentação',
+      regra: 'Os mesmos experimentos do número "Hipóteses validadas" do Semanal: concluídos, com a iniciativa-mãe em Aguardando piloto, Piloto ou Escala. Soma o benefício potencial de cada um no ano em que o experimento foi concluído.',
+      ...beneficio(raw.hipotesesValidadas, raw.epicChangelogs, c),
     },
     {
       id: 'aguardandoPiloto', titulo: 'Cycle time de Aguardando piloto', unidade: 'dias', melhor: 'menor', board: 'Ideação',

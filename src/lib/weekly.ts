@@ -181,6 +181,8 @@ export interface EpicConsiderado {
   beneficio: number | null
   semBeneficio: boolean
   sponsor: string | null
+  /** Primeira entrada do Epic em Concluído (histórico de status), quando disponível. */
+  concluidoEm: string | null
 }
 
 export interface WeeklyData {
@@ -624,6 +626,7 @@ export function buildWeeklyData(data: DashboardData, epicChangelogs: Record<stri
       beneficio: (e.beneficioQuantitativo ?? 0) > 0 ? e.beneficioQuantitativo : null,
       semBeneficio: semBeneficioPotencial(e),
       sponsor: e.sponsor?.trim() || null,
+      concluidoEm: e.concluidoEm ?? null,
     }
   }
   const epicsConsiderados: EpicConsiderado[] = [

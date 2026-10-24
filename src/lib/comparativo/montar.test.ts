@@ -69,6 +69,13 @@ const dados = montarComparativo({
     ],
     'GL-12': [st(T('2026-04-01'), ANDAMENTO, CONCLUIDO)],
   },
+  // Os Epics de "Hipóteses validadas" do Semanal (GL-12 é refutada, não vem na lista).
+  hipotesesValidadas: [
+    { key: 'GL-10', nome: 'Experimento GL-10', beneficio: 5_000_000, concluidoEm: null },
+    { key: 'GL-11', nome: 'Experimento GL-11', beneficio: 2_000_000, concluidoEm: null },
+    { key: 'GL-13', nome: 'Concluído em 2024', beneficio: 1_000_000, concluidoEm: T('2024-11-03') },
+    { key: 'GL-14', nome: 'Sem histórico', beneficio: null, concluidoEm: null },
+  ],
 }, new Date('2026-10-21T15:00:00Z'), 'https://jira.exemplo/')
 
 const ind = (id: Indicador['id']) => dados.indicadores.find(i => i.id === id)!
@@ -87,11 +94,15 @@ describe('montarComparativo', () => {
     ])
   })
 
-  it('benefício: só hipóteses validadas, no ano da validação', () => {
-    expect(ind('beneficio').amostras.map(a => [a.key, a.valor, a.data])).toEqual([
-      ['GL-10', 5_000_000, '2026-03-20'], // concluiu depois de a iniciativa entrar em Aguardando piloto
-      ['GL-11', 2_000_000, '2025-05-01'], // a iniciativa entrou em Aguardando piloto depois da conclusão
+  it('benefício: os Epics de "Hipóteses validadas" do Semanal, no ano da conclusão', () => {
+    const b = ind('beneficio')
+    expect(b.amostras.map(a => [a.key, a.valor, a.data])).toEqual([
+      ['GL-10', 5_000_000, '2026-03-20'],
+      ['GL-11', 2_000_000, '2025-04-15'],
+      ['GL-13', 1_000_000, '2024-11-03'], // sem histórico: usa a data de conclusão do Epic
     ])
+    // Fecha com o total do Semanal: R$ 8 mi em 4 hipóteses, 1 antes de 2025 e 1 sem data.
+    expect(b.conciliacao).toEqual({ total: 8_000_000, n: 4, foraDosAnos: 1, semData: 1 })
   })
 
   it('cycle time de Aguardando piloto e de Piloto, com o que ainda está na etapa à parte', () => {
@@ -129,20 +140,9 @@ describe('etapas pelas colunas reais dos boards', () => {
       epics: [epic('GL-20', 'GL-1', CONCLUIDO, 0)],
       iniciativaChangelogs: {},
       epicChangelogs: { 'GL-20': [st(T('2026-01-01'), BACKLOG, ANDAMENTO), st(T('2026-01-11'), ANDAMENTO, EM_VALIDACAO_NOVO), st(T('2026-01-31'), EM_VALIDACAO_NOVO, CONCLUIDO)] },
+      hipotesesValidadas: [],
     }, new Date('2026-10-21T15:00:00Z'))
     expect(d.indicadores.find(i => i.id === 'leadExperimentacao')!.amostras.map(a => [a.valor, a.data])).toEqual([[30, '2026-01-31']])
-  })
-
-  it('a coluna do board decide: iniciativa "Concluído" na coluna EM ESCALA entra no benefício validado', () => {
-    const CONCLUIDA: [string, string] = ['10019', 'Concluído']
-    const d = montarComparativo({
-      iniciativas: [ini('GL-5', CONCLUIDA, T('2025-01-01'))],
-      epics: [epic('GL-50', 'GL-5', CONCLUIDO, 3_000_000)],
-      iniciativaChangelogs: { 'GL-5': [st(T('2026-02-01'), PILOTO, CONCLUIDA)] },
-      epicChangelogs: { 'GL-50': [st(T('2025-12-10'), ANDAMENTO, CONCLUIDO)] },
-      board2734Config: config([['EM PILOTO', ['14459']], ['EM ESCALA', ['13562', '10019']]]),
-    }, new Date('2026-10-21T15:00:00Z'))
-    expect(d.indicadores.find(i => i.id === 'beneficio')!.amostras.map(a => [a.key, a.valor, a.data])).toEqual([['GL-50', 3_000_000, '2026-02-01']])
   })
 
   it('status na coluna CANCELADO do board não conta como concluído nem em andamento', () => {
@@ -152,6 +152,7 @@ describe('etapas pelas colunas reais dos boards', () => {
       iniciativaChangelogs: {},
       epicChangelogs: { 'GL-60': [st(T('2026-01-01'), ['10057', 'Backlog'], ANDAMENTO)] },
       board2735Config: config([['BACKLOG', ['10057']], ['CANCELADO', ['10004']]]),
+      hipotesesValidadas: [],
     }, new Date('2026-10-21T15:00:00Z'))
     const exp = d.indicadores.find(i => i.id === 'leadExperimentacao')!
     expect(exp.amostras).toEqual([])
@@ -164,7 +165,7 @@ describe('etapas pelas colunas reais dos boards', () => {
       iniciativas: [ini('GL-7', EXPERIMENTACAO, T('2024-03-01'))],
       epics: [],
       iniciativaChangelogs: { 'GL-7': [st(T('2026-01-15'), LEGADO, EXPERIMENTACAO)] },
-      epicChangelogs: {},
+      epicChangelogs: {}, hipotesesValidadas: [],
     }, new Date('2026-10-21T15:00:00Z'))
     expect(d.indicadores.find(i => i.id === 'leadExploracao')!.amostras).toEqual([])
   })
@@ -172,7 +173,7 @@ describe('etapas pelas colunas reais dos boards', () => {
   it('conta os itens sem histórico de status', () => {
     const d = montarComparativo({
       iniciativas: [ini('GL-8', BACKLOG, T('2026-01-01')), ini('GL-9', BACKLOG, T('2026-01-01'))],
-      epics: [], iniciativaChangelogs: { 'GL-8': [] }, epicChangelogs: {},
+      epics: [], iniciativaChangelogs: { 'GL-8': [] }, epicChangelogs: {}, hipotesesValidadas: [],
     }, new Date('2026-10-21T15:00:00Z'))
     expect(d.cobertura).toEqual({ iniciativas: { total: 2, semHistorico: 1 }, epics: { total: 0, semHistorico: 0 } })
   })
