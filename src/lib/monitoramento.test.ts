@@ -3,6 +3,7 @@ import type { ChangelogEntry } from './jira'
 import { buildDashboardData, buildMonitoramentoData } from './mappers'
 import type { JiraIssue } from './types'
 import { buildWeeklyData } from './weekly'
+import { ehExperimentoConcluido } from './concluido'
 
 const epic = (key: string, status: [string, string], created: string): JiraIssue =>
   ({ key, fields: { summary: `Experimento ${key}`, status: { id: status[0], name: status[1] }, issuetype: { name: 'Epic' }, created } }) as unknown as JiraIssue
@@ -38,5 +39,24 @@ describe('Crescimento da Experimentação (aba Estratégia)', () => {
     // GL-3 entra em agosto/2026, pela data de conclusão (não pela de criação).
     const ago = m.burnup.realizado.find(p => p.ano === 2026 && p.mes.toLowerCase().startsWith('ago'))!
     expect(ago.epics!.map(e => e.key)).toContain('GL-3')
+  })
+})
+
+describe('experimentos fora dos concluídos', () => {
+  beforeEach(() => { vi.useFakeTimers(); vi.setSystemTime(new Date('2026-10-24T12:00:00Z')) })
+  afterEach(() => vi.useRealTimers())
+
+  it('os 5 reabertos ou movidos indevidamente não contam no Semanal nem na Estratégia', () => {
+    const epics = [
+      epic('GL-1', CONCLUIDO, '2026-01-10T10:00:00.000-0300'),
+      { ...epic('GL-2', CONCLUIDO, '2026-01-10T10:00:00.000-0300'), fields: { ...epic('GL-2', CONCLUIDO, '2026-01-10T10:00:00.000-0300').fields, summary: 'Sumarização dos  Contratos' } } as JiraIssue,
+      { ...epic('GL-3', CONCLUIDO, '2026-01-10T10:00:00.000-0300'), fields: { ...epic('GL-3', CONCLUIDO, '2026-01-10T10:00:00.000-0300').fields, summary: 'ASSISTENTE IA AGIL - Ciclo 2' } } as JiraIssue,
+    ]
+    const logs = { 'GL-1': concluiu('2026-05-01'), 'GL-2': concluiu('2026-05-01'), 'GL-3': concluiu('2026-05-01') }
+    const data = buildDashboardData([], epics, {}, {}, undefined, logs)
+    expect(buildWeeklyData(data, logs).experimentosConcluidos).toBe(1)
+    const m = buildMonitoramentoData(data, { tipo: 'ultimos12' }, data.allEpics)
+    expect(m.burnup.realizado[m.burnup.realizado.length - 1].valor).toBe(1)
+    expect(ehExperimentoConcluido({ nome: 'Jurisquery - Consulta de Pareceres Jurídicos', status: { id: '10019', name: 'Concluído' } })).toBe(false)
   })
 })
