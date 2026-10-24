@@ -4,21 +4,13 @@ import {
   AreaChart, Area, XAxis, YAxis, Tooltip, ReferenceLine,
   ResponsiveContainer, Label, Customized,
 } from 'recharts'
-import { LeadTimeJornada, CycleTimeEstagio, EpicDetail } from '@/lib/types'
-import { Clock, AlertTriangle, Zap, Lock, TrendingDown, TrendingUp, Filter } from 'lucide-react'
+import { LeadTimeJornada, CycleTimeEstagio } from '@/lib/types'
+import { Clock, AlertTriangle, Zap, Lock, TrendingDown, TrendingUp } from 'lucide-react'
 
 interface Props {
   data?: LeadTimeJornada | null
   cycleTimeExperimentacao: CycleTimeEstagio[]
   cycleTimeExperimentacaoGeral?: CycleTimeEstagio | null
-  /** Lista de todos os epics para filtrar por domínio */
-  allEpics?: EpicDetail[]
-  /** Domínio selecionado (opcional) */
-  dominio?: string | null
-  /** Callback quando o domínio muda */
-  onDominioChange?: (dominio: string | null) => void
-  /** Lista de domínios disponíveis */
-  dominiosDisponiveis?: string[]
 }
 
 /** Gera dados determinísticos de lead time mensal para o gráfico.
@@ -61,10 +53,6 @@ export default function LeadTimeJornadaComponent({
   data,
   cycleTimeExperimentacao,
   cycleTimeExperimentacaoGeral,
-  allEpics,
-  dominio,
-  onDominioChange,
-  dominiosDisponiveis,
 }: Props) {
   const temDadosAuxiliares = (cycleTimeExperimentacao?.length ?? 0) > 0 || !!cycleTimeExperimentacaoGeral?.mediaDias
   const fallbackExperimentacaoDias = cycleTimeExperimentacaoGeral?.mediaDias ?? 1
@@ -122,46 +110,8 @@ export default function LeadTimeJornadaComponent({
     ? leadTimeMensal[leadTimeMensal.length - 1].dias - leadTimeMensal[leadTimeMensal.length - 2].dias
     : 0
 
-  // ── Filtro por domínio ──
-  const dominios = dominiosDisponiveis ?? []
-  const temFiltroDominio = dominios.length > 0 && !!onDominioChange
-
   return (
     <div className="flex flex-col min-w-0 overflow-hidden gap-3 h-full">
-      {/* Seletor de Domínio */}
-      {temFiltroDominio && (
-        <div className="flex items-center gap-1.5 flex-shrink-0">
-          <Filter size={11} className="text-gray-400" />
-          <span className="text-[10px] font-medium text-gray-500">Domínio:</span>
-          <div className="flex flex-wrap gap-1">
-            <button
-              onClick={() => onDominioChange(null)}
-              className={`px-2 py-0.5 rounded-full text-[10px] font-medium transition-colors ${
-                !dominio
-                  ? 'text-white'
-                  : 'text-gray-600 bg-gray-100 hover:bg-gray-200'
-              }`}
-              style={!dominio ? { background: '#8B0000' } : undefined}
-            >
-              Todos
-            </button>
-            {dominios.map(d => (
-              <button
-                key={d}
-                onClick={() => onDominioChange(d)}
-                className={`px-2 py-0.5 rounded-full text-[10px] font-medium transition-colors ${
-                  dominio === d
-                    ? 'text-white'
-                    : 'text-gray-600 bg-gray-100 hover:bg-gray-200'
-                }`}
-                style={dominio === d ? { background: '#8B0000' } : undefined}
-              >
-                {d}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* Timeline compacta */}
       <div className="flex-shrink-0">

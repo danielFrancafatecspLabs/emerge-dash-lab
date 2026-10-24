@@ -67,7 +67,6 @@ export const PORTAL_GROUPS: NavGroup[] = [
   {
     label: 'Análises',
     items: [
-      { label: 'Assistente do portfólio', href: '/cientista', icon: Bot, roles: ADMIN },
       { label: 'Acervo de pesquisas', href: '/pesquisas', icon: Library, roles: ADMIN },
     ],
   },
