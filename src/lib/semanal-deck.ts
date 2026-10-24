@@ -1,4 +1,4 @@
-import type { SemanalCancelamento, SemanalData, SemanalRow, SemanalSecaoId } from './semanal'
+import type { ProgressoPrazo, SemanalCancelamento, SemanalData, SemanalRow, SemanalSecaoId, SituacaoPrazo } from './semanal'
 
 export { formatBeneficioMM } from './report-utils'
 
@@ -77,8 +77,8 @@ export function colunasDa(secao: SemanalSecaoId): ColunaLista[] {
       { id: 'observacao', label: 'Observação', w: 140 }, ...fim]
   }
   if (secao === 'andamento') {
-    return [{ id: 'nome', label: 'Nome da iniciativa', w: 224 }, { id: 'descricao', label: 'Descrição', w: 284 },
-      { id: 'fase', label: 'Fase / Pendências', w: 186 }, { id: 'previsao', label: 'Previsão de conclusão', w: 110 }, ...fim]
+    return [{ id: 'nome', label: 'Nome da iniciativa', w: 224 }, { id: 'descricao', label: 'Descrição', w: 254 },
+      { id: 'fase', label: 'Fase / Pendências', w: 186 }, { id: 'previsao', label: 'Previsão e prazo', w: 140 }, ...fim]
   }
   return [{ id: 'nome', label: 'Nome da iniciativa', w: 224 },
     { id: 'descricao', label: secao === 'backlog' ? 'Objetivo' : 'Descrição', w: 330 },
@@ -101,6 +101,22 @@ export function contagemPorLab(rows: SemanalRow[]): [string, number][] {
   const porLab = new Map<string, number>()
   for (const r of rows) porLab.set(r.lab ?? 'Não definido', (porLab.get(r.lab ?? 'Não definido') ?? 0) + 1)
   return [...porLab.entries()].sort((a, b) => b[1] - a[1])
+}
+
+/** Cor da barra de progresso pela situação do prazo. */
+export const COR_PRAZO: Record<SituacaoPrazo, string> = {
+  'no-prazo': '#1E8E3E', atencao: '#E6A100', atrasado: '#CC0000', 'sem-previsao': '#B5BAC1',
+}
+
+/** Largura preenchida da barra (0–100): atrasado enche a barra. */
+export const larguraPrazo = (p: ProgressoPrazo) => (p.pct === null ? 0 : Math.min(100, p.pct))
+
+/** Texto embaixo da barra: "62% do prazo · faltam 12 dias", "Atrasado há 3 dias", "Sem previsão". */
+export function legendaPrazo(p: ProgressoPrazo): string {
+  if (p.situacao === 'sem-previsao' || p.diasRestantes === null) return 'Sem previsão de conclusão'
+  const dias = (n: number) => `${n} dia${n === 1 ? '' : 's'}`
+  if (p.diasRestantes < 0) return `Atrasado há ${dias(-p.diasRestantes)}`
+  return `${p.pct}% do prazo · ${p.diasRestantes === 0 ? 'vence hoje' : `faltam ${dias(p.diasRestantes)}`}`
 }
 
 /** Geometria do slide de motivos de cancelamento (px no canvas de 1280×720), usada pela tela e pelo PPTX. */

@@ -9,7 +9,7 @@ export async function carregarSemanal(): Promise<SemanalData> {
     const raw = await fetchDashboardRaw()
     const data = buildDashboardData(raw.iniciativas, raw.epics, {}, {}, raw.board2734Config)
     const weekly = buildWeeklyData(data, raw.epicChangelogs, raw.board2735Config)
-    return buildSemanalData(data, weekly)
+    return buildSemanalData(data, weekly, raw.epicChangelogs)
   } catch (err) {
     console.error('[semanal] usando dados de exemplo — Jira indisponível:', err)
     return { ...SAMPLE_SEMANAL_DATA, geradoEm: new Date().toISOString() }
