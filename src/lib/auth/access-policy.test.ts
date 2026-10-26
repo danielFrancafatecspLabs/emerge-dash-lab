@@ -23,8 +23,8 @@ describe('decideAccess', () => {
     expect(decideAccess('/estrategia', 'GET', as('viewer')).type).toBe('allow')
   })
 
-  it('deixa Future Thinking e OSINT só para admin', () => {
-    for (const rota of ['/ft', '/api/ft/sinais', '/osint', '/osint-app/index.html', '/api/osint/busca']) {
+  it('deixa Future Thinking, OSINT e a prévia de Exploração só para admin', () => {
+    for (const rota of ['/ft', '/api/ft/sinais', '/osint', '/osint-app/index.html', '/api/osint/busca', '/exploracao']) {
       expect(decideAccess(rota, 'GET', as('executivo')).type).toBe('forbidden')
       expect(decideAccess(rota, 'GET', as('admin')).type).toBe('allow')
     }
