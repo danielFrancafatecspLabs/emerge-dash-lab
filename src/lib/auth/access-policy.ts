@@ -38,6 +38,8 @@ const ROLE_RULES: RoleRule[] = [
   { prefix: '/weekly', roles: ADMIN },
   { prefix: '/api/weekly', roles: ADMIN },
   { prefix: '/semanal', roles: ADMIN },
+  // Exploração (Discovery Flow 2.0): prévia com dados ilustrativos, só admin.
+  { prefix: '/exploracao', roles: ADMIN },
   { prefix: '/api/semanal', roles: ADMIN },
   // Future Thinking e OSINT (vault de sinais e o app OSINT embutido): só admin.
   { prefix: '/ft', roles: ADMIN },
