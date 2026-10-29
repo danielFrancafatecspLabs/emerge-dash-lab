@@ -12,7 +12,7 @@ import { MIN_PASSWORD_LENGTH, passwordProblem } from '@/lib/auth/password-rules'
 type Modo = 'entrar' | 'cadastro'
 
 /** Foto do login (pode ser trocada por NEXT_PUBLIC_LOGIN_PHOTO_URL). */
-const FOTO = process.env.NEXT_PUBLIC_LOGIN_PHOTO_URL || '/jira/login-fundo.png'
+const FOTO = process.env.NEXT_PUBLIC_LOGIN_PHOTO_URL || '/jira/login-fundo.jpg'
 
 /** Foco automático só em telas grandes: no celular, o teclado cobriria a página. */
 function useFocoInicial<T extends HTMLElement>() {

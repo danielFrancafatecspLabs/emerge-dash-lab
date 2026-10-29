@@ -4,7 +4,7 @@
 
 import {
   Activity, BarChart2, BookOpen, Bookmark, Bot, CalendarCheck, FileText, FlaskConical, GitCompareArrows, Home, Images, Library,
-  MessageCircle, Route, Target, Telescope, UserCog, Users, Wallet, type LucideIcon,
+  MessageCircle, Radar, Route, Target, UserCog, Users, Wallet, type LucideIcon,
 } from 'lucide-react'
 import type { AuthSessionRole } from '@/lib/auth/session'
 
@@ -33,8 +33,8 @@ const ADMIN: AuthSessionRole[] = ['admin']
 export const COMMUNITY_AREAS: NavItem[] = [
   { label: 'Início', short: 'Início', href: '/comunidade', icon: Home },
   { label: 'Cientista', short: 'Cientista', href: '/comunidade/cientista', icon: FlaskConical },
-  { label: 'Pesquisas', short: 'Pesquisas', href: '/comunidade/pesquisas', icon: BookOpen, also: ['/comunidade/experimentos'] },
-  { label: 'Future Thinking', short: 'Futuro', href: '/comunidade/future-thinking', icon: Telescope },
+  { label: 'Acervo de Pesquisas', short: 'Acervo', href: '/comunidade/pesquisas', icon: BookOpen, also: ['/comunidade/experimentos'] },
+  { label: 'OSINT', short: 'OSINT', href: '/osint', icon: Radar },
   { label: 'Trilha de Experimentação', short: 'Trilha', href: '/comunidade/trilha', icon: Route },
 ]
 
@@ -66,9 +66,7 @@ export const PORTAL_GROUPS: NavGroup[] = [
   },
   {
     label: 'Análises',
-    items: [
-      { label: 'Acervo de pesquisas', href: '/pesquisas', icon: Library, roles: ADMIN },
-    ],
+    items: [],
   },
   {
     label: 'Administração',
