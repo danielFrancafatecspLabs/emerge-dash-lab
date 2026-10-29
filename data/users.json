@@ -57,9 +57,9 @@
   {
     "id": "local-admin",
     "username": "admin",
-    "passwordHash": "e666a2f05d6f720e045ff29175f863ec:b3b581b8482350615bf13f82b18cbc82d8fb8bb18ca6bc0d80fc4140e80c8c798d868044e375a32b5514c5d7cb34839872ad84e1e2d603402266b7a47925ead9",
+    "passwordHash": "a6975778f6dc7e7f0cf3f1ebfef0bd6d:f86c5694c4a625a852e1367e15725aadec352f40245890ecc3c6e7eddddc6ffb15f5b1e4be5d41207e469dd63bcfd8b0009161f1e3689b66d3ab7f7a5dadab82",
     "role": "admin",
-    "nome": "Administrador",
+    "nome": "Admin",
     "laboratorio": "BeOn Lab",
     "avatar": "",
     "createdAt": "2026-09-18T00:00:00.000Z",
