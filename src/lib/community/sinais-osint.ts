@@ -125,3 +125,32 @@ export function talvezSincronizarSinaisOsint(agora = Date.now()) {
     console.error('[sinais-osint] falha ao publicar sinais:', err)
   }
 }
+
+export interface ResumoDoOsint {
+  total: number
+  modulos: number
+  /** [longitude, latitude] de cada sinal com local. */
+  pontos: [number, number][]
+  recentes: { id: string; postId: string; titulo: string; modulo: string; local: string; data: string | null }[]
+}
+
+/** O que a prévia do Radar OSINT mostra na home: totais, pontos no mapa e os sinais mais recentes. */
+export function resumoDoOsint(sinais = lerSinaisOsint(), quantos = 4): ResumoDoOsint {
+  const itens = sinais.map(s => {
+    const p = s.properties ?? {}
+    const id = texto(p.id) || texto(s.id)
+    const geo = (s as { geometry?: { type?: string; coordinates?: unknown } }).geometry
+    const c = geo?.type === 'Point' && Array.isArray(geo.coordinates) ? geo.coordinates : null
+    const ponto = c && Number.isFinite(c[0]) && Number.isFinite(c[1]) && Math.abs(Number(c[0])) <= 180 && Math.abs(Number(c[1])) <= 90
+      ? [Number(c[0]), Number(c[1])] as [number, number] : null
+    return { id, titulo: texto(p.title), modulo: texto(p.module), local: texto(p.location), data: id ? dataDaVarredura(id, p) : null, ponto }
+  }).filter(x => x.id && x.titulo)
+  const unicos = [...new Map(itens.map(x => [x.id, x])).values()]
+  return {
+    total: unicos.length,
+    modulos: new Set(unicos.map(x => x.modulo).filter(Boolean)).size,
+    pontos: unicos.flatMap(x => (x.ponto ? [x.ponto] : [])),
+    recentes: [...unicos].sort((a, b) => (b.data ?? '').localeCompare(a.data ?? '')).slice(0, quantos)
+      .map(({ ponto: _p, ...x }) => ({ ...x, postId: `osint:${x.id}` })),
+  }
+}
