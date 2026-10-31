@@ -19,7 +19,7 @@ import { Toaster } from '@/components/comunidade/Toaster'
 import { topicIcon } from '@/components/comunidade/visuals'
 import { Avatar, CountBadge, IconButton, cx, focusRing } from '@/components/ui'
 import { useChromeHidden } from './AppChrome'
-import { COMMUNITY_SHORTCUTS, communityAreasFor, isNavActive, portalGroupsFor, type NavGroup, type NavItem } from './nav'
+import { COMMUNITY_SHORTCUTS, FUTURE_THINKING, communityAreasFor, isNavActive, portalGroupsFor, type NavGroup, type NavItem } from './nav'
 import { usePendingSignups } from './usePendingSignups'
 
 type Badges = Record<NonNullable<NavItem['badge']>, number>
@@ -52,13 +52,14 @@ function NavLink({ item, path, badges, compact, onNavigate }: {
   )
 }
 
-function GroupLabel({ children, compact }: { children: ReactNode; compact?: boolean }) {
+function GroupLabel({ children, compact, first }: { children: ReactNode; compact?: boolean; first?: boolean }) {
+  const label = cx('mb-1 px-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-beon-muted', first ? 'mt-0' : 'mt-4')
   return compact
-    ? <><div className="mx-auto my-3 h-px w-8 bg-beon-line xl:hidden" aria-hidden /><p className="mb-1 mt-4 hidden px-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-beon-muted xl:block">{children}</p></>
-    : <p className="mb-1 mt-4 px-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-beon-muted">{children}</p>
+    ? <>{!first && <div className="mx-auto my-3 h-px w-8 bg-beon-line xl:hidden" aria-hidden />}<p className={cx(label, 'hidden xl:block')}>{children}</p></>
+    : <p className={label}>{children}</p>
 }
 
-/** Todo o menu: Comunidade, atalhos pessoais e as visões do perfil. */
+/** Todo o menu: a seção Comunidade (áreas, atalhos pessoais e notificações), Future Thinking e as visões do perfil. */
 function Navigation({ path, areas, groups, badges, compact, onNavigate, onNotifications, notificacoes }: {
   path: string; areas: NavItem[]; groups: NavGroup[]; badges: Badges; compact?: boolean; onNavigate?: () => void
   onNotifications: () => void; notificacoes: number
@@ -66,10 +67,8 @@ function Navigation({ path, areas, groups, badges, compact, onNavigate, onNotifi
   return (
     <>
       <nav aria-label="Comunidade" className="space-y-0.5">
+        <GroupLabel compact={compact} first>Comunidade</GroupLabel>
         {areas.map(item => <NavLink key={item.href} item={item} path={path} badges={badges} compact={compact} onNavigate={onNavigate} />)}
-      </nav>
-      <div className={cx('my-3 h-px bg-beon-line', compact && 'mx-auto w-8 xl:mx-0 xl:w-auto')} aria-hidden />
-      <nav aria-label="Atalhos" className="space-y-0.5">
         {COMMUNITY_SHORTCUTS.map(item => <NavLink key={item.href} item={item} path={path} badges={badges} compact={compact} onNavigate={onNavigate} />)}
         <button
           type="button"
@@ -87,7 +86,7 @@ function Navigation({ path, areas, groups, badges, compact, onNavigate, onNotifi
           <span className="sr-only">{notificacoes ? `${notificacoes} não lidas` : ''}</span>
         </button>
       </nav>
-      {groups.map(group => (
+      {[FUTURE_THINKING, ...groups].map(group => (
         <nav key={group.label} aria-label={group.label}>
           <GroupLabel compact={compact}>{group.label}</GroupLabel>
           <div className="space-y-0.5">
