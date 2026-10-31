@@ -87,6 +87,15 @@ export function classificar(titulo: string, resumo: string): Secao | null {
   return 'emergentes'
 }
 
+/** Idioma provável da notícia (para avisar quando a fonte é em inglês). */
+export function idiomaDe(texto: string): 'pt' | 'en' {
+  const t = ` ${texto.toLowerCase()} `
+  const pt = [' de ', ' da ', ' do ', ' em ', ' para ', ' com ', ' que ', ' os ', ' as ', ' não ', 'ção', 'ções', 'ões', 'ã', 'õ', 'ç']
+  const en = [' the ', ' of ', ' and ', ' to ', ' in ', ' for ', ' with ', ' is ', ' as ', ' on ', ' its ', ' by ']
+  const n = (lista: string[]) => lista.filter(k => t.includes(k)).length
+  return n(pt) >= n(en) ? 'pt' : 'en'
+}
+
 export interface Noticia {
   id: string
   titulo: string
