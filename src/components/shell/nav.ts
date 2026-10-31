@@ -3,7 +3,7 @@
 // quem decide o acesso é a política em lib/auth/access-policy.
 
 import {
-  Activity, BarChart2, BookOpen, Bookmark, Bot, CalendarCheck, Compass, FileText, FlaskConical, GitCompareArrows, Home, Images, Library,
+  Activity, BarChart2, BookOpen, Bookmark, Bot, CalendarCheck, Compass, GitFork, FileText, FlaskConical, GitCompareArrows, Home, Images, Library,
   Lightbulb, MessageCircle, Radar, Route, Target, UserCog, Users, Wallet, type LucideIcon,
 } from 'lucide-react'
 import type { AuthSessionRole } from '@/lib/auth/session'
@@ -36,6 +36,11 @@ export const COMMUNITY_AREAS: NavItem[] = [
   { label: 'Acervo de Pesquisas', short: 'Acervo', href: '/comunidade/pesquisas', icon: BookOpen, also: ['/comunidade/experimentos'] },
   { label: 'OSINT', short: 'OSINT', href: '/osint', icon: Radar },
   { label: 'Trilha de Experimentação', short: 'Trilha', href: '/comunidade/trilha', icon: Route },
+]
+
+/** Mais áreas da Comunidade, no menu (fora da navegação inferior do celular, que tem as cinco principais). */
+export const COMMUNITY_EXTRAS: NavItem[] = [
+  { label: 'World Open Source', href: '/comunidade/open-source', icon: GitFork },
 ]
 
 /** Atalhos pessoais da Comunidade (Notificações é um botão à parte, que abre o painel). */
