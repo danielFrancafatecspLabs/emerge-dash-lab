@@ -1,4 +1,5 @@
 import { isHttpUrl } from '@/lib/validation/url'
+import { automacaoDe } from './automacao'
 
 // Modelo de dados e regras puras da Comunidade beOn Labs (feed, fórum, pesquisas e Future Thinking).
 // Tudo o que é publicado na Comunidade é um CommunityPost; o `kind` diferencia discussões,
@@ -191,6 +192,21 @@ export function filterFeed(posts: CommunityPost[], filter: FeedFilter, ctx: Feed
       return { posts: [...relevantes, ...sorted.filter(p => !ids.has(p.id))], fallback: false }
     }
   }
+}
+
+/**
+ * Publicações das automações (notícias do Radar, sinais do OSINT) intercaladas com as das pessoas: no máximo uma a cada
+ * `cada` publicações de pessoas, para as discussões da comunidade ficarem em cima. Sobrando, vão para o fim, na ordem.
+ */
+export function intercalarAutomacoes<T extends Pick<CommunityPost, 'authorUsername'>>(posts: T[], cada = 3): T[] {
+  const pessoas = posts.filter(p => !automacaoDe(p.authorUsername))
+  const automacoes = posts.filter(p => automacaoDe(p.authorUsername))
+  const out: T[] = []
+  pessoas.forEach((p, i) => {
+    out.push(p)
+    if ((i + 1) % cada === 0 && automacoes.length) out.push(automacoes.shift()!)
+  })
+  return [...out, ...automacoes]
 }
 
 export function matchesSearch(post: CommunityPost, query: string): boolean {

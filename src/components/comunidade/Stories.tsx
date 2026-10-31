@@ -3,22 +3,33 @@
 // Faixa de stories no topo do feed e visualização imersiva.
 // Editoriais (publicados pela equipe beOn Labs em Admin › Stories) usam a imagem cadastrada e o selo beOn Labs;
 // os da comunidade são as publicações recentes de membros, com capa ilustrada pelo tipo de conteúdo.
+// E há sempre um story no ar de cada frente: a notícia do dia no beOn Radar (com a provocação da discussão), a pesquisa
+// mais recente do acervo, o que estamos experimentando agora (Jira) e o sinal mais recente do Radar OSINT.
 
 import Link from 'next/link'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ArrowUpRight, ChevronLeft, ChevronRight, Pause, Play, X } from 'lucide-react'
 import { POST_KIND_LABEL, postTitle, type CommunityPost, type PostKind } from '@/lib/community/model'
-import { ehAutomacaoDeSinais } from '@/lib/community/automacao'
+import { ehAutomacaoDeSinais, ehAutomacaoDoRadar } from '@/lib/community/automacao'
+import type { ExperimentoAtivo } from '@/lib/community/experimentos-ativos'
 import { STORY_CATEGORIA_LABEL, type Story, type StoryCategoria } from '@/lib/community/stories'
+import { SECOES, type Edicao } from '@/lib/newsletter/edicao'
+import type { ResearchVault } from '@/lib/research-vault'
 import { api } from './api'
+import { linkDaPesquisa, pesquisasRecentes, provocacaoDoPost, useAcervo, useEdicaoDoRadar, useExperimentosAtivos } from './panorama/dados'
 import { useCommunity } from './CommunityProvider'
 import { tempoRelativo } from './format'
 import { Avatar, Skeleton, cx, focusRing } from '@/components/ui'
 import { CoverArt, type CoverPattern } from './visuals'
 
-interface StoryItem {
+export interface StoryItem {
   id: string
-  origem: 'editorial' | 'comunidade'
+  /** panorama: os stories fixos de cada frente (Radar, acervo, experimentos), com o selo da frente. */
+  origem: 'editorial' | 'comunidade' | 'panorama'
+  /** Selo do story de panorama (ex.: "beOn Radar"). */
+  selo?: string
+  /** Texto do botão (padrão: "Ver publicação completa" / "Ver conteúdo"). */
+  acao?: string
   categoria: string
   titulo: string
   texto: string
@@ -54,33 +65,119 @@ function writeSeen(seen: Set<string>) {
   try { localStorage.setItem(SEEN_KEY, JSON.stringify([...seen].slice(-300))) } catch { /* armazenamento indisponível */ }
 }
 
+const SEMANA = 7 * 86_400_000
+
+function storyDePost(p: CommunityPost, categoria = POST_KIND_LABEL[p.kind]): StoryItem {
+  const [pattern, tone] = KIND_COVER[p.kind]
+  return {
+    id: `post:${p.id}`, origem: 'comunidade', categoria, titulo: postTitle(p),
+    texto: p.content.length > 280 ? `${p.content.slice(0, 277)}…` : p.content,
+    pattern, tone, href: `/comunidade/post/${p.id}`, externo: false,
+    autor: { nome: p.authorName, username: p.authorUsername, avatar: p.authorAvatar }, quando: p.createdAt,
+  }
+}
+
 /**
  * Publicações recentes (até 7 dias) viram stories da comunidade: uma por pessoa e, da automação "Sinais FT - beOn Labs",
- * uma por sinal do Radar OSINT (até 8).
+ * uma por sinal do Radar OSINT (até 8). O sinal mais recente fica no ar mesmo depois de 7 dias. As discussões do beOn
+ * Radar entram pelos stories da edição (ver radarStories), não aqui.
  */
 export function communityStories(posts: CommunityPost[], now = Date.now()): StoryItem[] {
   const porAutor = new Set<string>()
   let sinais = 0
   const out: StoryItem[] = []
-  for (const p of [...posts].sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt))) {
-    if (now - Date.parse(p.createdAt) > 7 * 86_400_000) continue
-    if (ehAutomacaoDeSinais(p.authorUsername)) {
+  const ordenados = [...posts].sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt))
+  for (const p of ordenados) {
+    if (ehAutomacaoDoRadar(p.authorUsername)) continue
+    const sinal = ehAutomacaoDeSinais(p.authorUsername)
+    if (now - Date.parse(p.createdAt) > SEMANA && !(sinal && sinais === 0)) continue
+    if (sinal) {
       if (sinais >= 8) continue
       sinais++
     } else {
       if (porAutor.has(p.authorUsername)) continue
       porAutor.add(p.authorUsername)
     }
-    const [pattern, tone] = KIND_COVER[p.kind]
-    out.push({
-      id: `post:${p.id}`, origem: 'comunidade', categoria: ehAutomacaoDeSinais(p.authorUsername) ? 'Sinal OSINT' : POST_KIND_LABEL[p.kind], titulo: postTitle(p),
-      texto: p.content.length > 280 ? `${p.content.slice(0, 277)}…` : p.content,
-      pattern, tone, href: `/comunidade/post/${p.id}`, externo: false,
-      autor: { nome: p.authorName, username: p.authorUsername, avatar: p.authorAvatar }, quando: p.createdAt,
-    })
+    out.push(storyDePost(p, sinal ? 'Sinal OSINT' : undefined))
     if (out.length >= 20) break
   }
   return out
+}
+
+const NOME_DA_SECAO = Object.fromEntries(SECOES.map(s => [s.id, s.nome])) as Record<string, string>
+
+/**
+ * Notícias do dia no beOn Radar (até 5): cada uma leva à discussão aberta no fórum, com a provocação dela. Sem edição
+ * (fontes fora do ar), fica no ar a discussão mais recente do Radar.
+ */
+export function radarStories(edicao: Edicao | null, posts: CommunityPost[], quantas = 5): StoryItem[] {
+  const discussoes = new Map(posts.filter(p => ehAutomacaoDoRadar(p.authorUsername)).map(p => [p.id, p]))
+  if (edicao?.noticias.length) {
+    return edicao.noticias.slice(0, quantas).map(n => {
+      const post = discussoes.get(`radar:${n.id}`)
+      const provocacao = post && provocacaoDoPost(post.content)
+      return {
+        id: `radar:${n.id}`, origem: 'panorama', selo: 'beOn Radar', categoria: NOME_DA_SECAO[n.secao] ?? 'Notícia',
+        titulo: n.titulo, texto: provocacao ? `Provocação: ${provocacao}` : n.resumo.slice(0, 280),
+        imagem: n.imagem ?? undefined, pattern: 'ondas', tone: 'ink',
+        href: post ? `/comunidade/post/${post.id}` : '/comunidade/newsletter', externo: false,
+        acao: post ? 'Entrar na discussão' : 'Ler no beOn Radar', quando: n.publicadoEm ?? edicao.geradoEm,
+      } satisfies StoryItem
+    })
+  }
+  const ultima = [...discussoes.values()].sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt))[0]
+  if (!ultima) return []
+  const provocacao = provocacaoDoPost(ultima.content)
+  return [{
+    ...storyDePost(ultima), origem: 'panorama', selo: 'beOn Radar', categoria: 'Notícia', autor: undefined,
+    texto: provocacao ? `Provocação: ${provocacao}` : ultima.content.slice(0, 280), pattern: 'ondas', tone: 'ink', acao: 'Entrar na discussão',
+  }]
+}
+
+/** A pesquisa mais recente do Acervo de Pesquisas. */
+export function pesquisaStory(vault: ResearchVault | null): StoryItem | null {
+  const [doc] = pesquisasRecentes(vault, 1)
+  if (!doc) return null
+  return {
+    id: `acervo:${doc.path}`, origem: 'panorama', selo: 'Acervo', categoria: doc.category, titulo: doc.title,
+    texto: `A pesquisa mais recente do Acervo de Pesquisas, em ${doc.category}.${doc.tags.length ? ` Assuntos: ${doc.tags.slice(0, 4).join(', ')}.` : ''} Abra no acervo para ler e seguir as conexões com conceitos e papers.`,
+    pattern: 'dados', tone: 'sky', href: linkDaPesquisa(doc.path), externo: false, acao: 'Ler no acervo',
+    quando: doc.updated ?? doc.created ?? new Date().toISOString(),
+  }
+}
+
+/** O que estamos experimentando agora: as Iniciativas com Experimento em andamento, com a Diretoria. */
+export function experimentosStory(itens: ExperimentoAtivo[] | null, atualizadoEm: string | null = null): StoryItem | null {
+  if (!itens?.length) return null
+  const lista = itens.slice(0, 5).map(e => `• ${e.iniciativa}${e.diretoria ? ` (${e.diretoria})` : ''}`).join('\n')
+  const resto = itens.length > 5 ? `\n…e mais ${itens.length - 5}.` : ''
+  return {
+    id: `experimentos:${itens.map(e => e.chave).join(',')}`, origem: 'panorama', selo: 'Experimentos', categoria: 'Experimentando agora',
+    titulo: itens.length === 1 ? '1 iniciativa em experimentação agora' : `${itens.length} iniciativas em experimentação agora`,
+    texto: `${lista}${resto}`, pattern: 'rede', tone: 'red', href: '/comunidade/trilha', externo: false,
+    acao: 'Conhecer a Trilha de Experimentação', quando: atualizadoEm ?? new Date().toISOString(),
+  }
+}
+
+/**
+ * A faixa completa: editoriais, depois um story de cada frente (notícia do Radar, pesquisa, experimentos, sinal), depois
+ * as demais notícias e as publicações da comunidade.
+ */
+export function montarStories({ editoriais, posts, edicao, vault, experimentos, experimentosEm, now = Date.now() }: {
+  editoriais: Story[]
+  posts: CommunityPost[]
+  edicao: Edicao | null
+  vault: ResearchVault | null
+  experimentos: ExperimentoAtivo[] | null
+  experimentosEm?: string | null
+  now?: number
+}): StoryItem[] {
+  const radar = radarStories(edicao, posts)
+  const comunidade = communityStories(posts, now)
+  const iSinal = comunidade.findIndex(s => s.categoria === 'Sinal OSINT')
+  const sinal = iSinal >= 0 ? comunidade.splice(iSinal, 1)[0] : null
+  const fixos = [radar[0], pesquisaStory(vault), experimentosStory(experimentos, experimentosEm), sinal].filter((x): x is StoryItem => !!x)
+  return [...editorialStories(editoriais), ...fixos, ...radar.slice(1), ...comunidade]
 }
 
 function editorialStories(stories: Story[]): StoryItem[] {
@@ -100,6 +197,9 @@ function Cover({ item, className }: { item: StoryItem; className?: string }) {
 
 export function StoriesRail() {
   const { posts } = useCommunity()
+  const edicao = useEdicaoDoRadar()
+  const acervo = useAcervo()
+  const experimentos = useExperimentosAtivos()
   const [editoriais, setEditoriais] = useState<Story[] | null>(null)
   const [seen, setSeen] = useState<Set<string>>(new Set())
   const [aberto, setAberto] = useState<number | null>(null)
@@ -110,8 +210,11 @@ export function StoriesRail() {
   }, [])
 
   const items = useMemo(
-    () => [...editorialStories(editoriais ?? []), ...communityStories(posts.data ?? [])],
-    [editoriais, posts.data],
+    () => montarStories({
+      editoriais: editoriais ?? [], posts: posts.data ?? [], edicao: edicao.data, vault: acervo.data,
+      experimentos: experimentos.data?.itens ?? null, experimentosEm: experimentos.data?.atualizadoEm,
+    }),
+    [editoriais, posts.data, edicao.data, acervo.data, experimentos.data],
   )
 
   const marcarVisto = useCallback((id: string) => {
@@ -142,22 +245,22 @@ export function StoriesRail() {
               <button
                 type="button"
                 onClick={() => setAberto(i)}
-                aria-label={`${item.origem === 'editorial' ? 'beOn Labs' : item.autor?.nome}: ${item.titulo}${visto ? ' (visto)' : ''}`}
+                aria-label={`${item.origem === 'editorial' ? 'beOn Labs' : item.origem === 'panorama' ? item.selo : item.autor?.nome}: ${item.titulo}${visto ? ' (visto)' : ''}`}
                 className={cx(
                   'group relative block h-[168px] w-[108px] overflow-hidden rounded-2xl text-left ring-2 ring-offset-2 transition-transform hover:-translate-y-0.5',
-                  visto ? 'ring-beon-line' : item.origem === 'editorial' ? 'ring-beon-red' : 'ring-beon-ink/70',
+                  visto ? 'ring-beon-line' : item.origem === 'comunidade' ? 'ring-beon-ink/70' : 'ring-beon-red',
                   focusRing,
                 )}
               >
                 <Cover item={item} className="transition-transform duration-500 group-hover:scale-105" />
                 <span className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/10 to-black/20" />
-                {item.origem === 'editorial' ? (
-                  <span className="absolute left-2 top-2 rounded-full bg-white/95 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-beon-red">beOn Labs</span>
+                {item.origem !== 'comunidade' ? (
+                  <span className="absolute left-2 top-2 rounded-full bg-white/95 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-beon-red">{item.selo ?? 'beOn Labs'}</span>
                 ) : item.autor && (
                   <span className="absolute left-2 top-2 rounded-full ring-2 ring-white"><Avatar nome={item.autor.nome} src={item.autor.avatar} size={26} /></span>
                 )}
                 <span className="absolute inset-x-2 bottom-2">
-                  <span className="block text-[10px] font-medium uppercase tracking-wide text-white/75">{item.categoria}</span>
+                  <span className="block truncate text-[10px] font-medium uppercase tracking-wide text-white/75">{item.categoria}</span>
                   <span className="line-clamp-3 text-[12px] font-semibold leading-tight text-white">{item.titulo}</span>
                 </span>
               </button>
@@ -208,7 +311,7 @@ function StoryViewer({ items, start, onSeen, onClose }: { items: StoryItem[]; st
 
   const cta = item.href && (item.externo
     ? <a href={item.href} target="_blank" rel="noopener noreferrer" className={ctaCls}>Abrir conteúdo <ArrowUpRight className="h-4 w-4" aria-hidden /></a>
-    : <Link href={item.href} onClick={onClose} className={ctaCls}>{item.origem === 'comunidade' ? 'Ver publicação completa' : 'Ver conteúdo'} <ArrowUpRight className="h-4 w-4" aria-hidden /></Link>)
+    : <Link href={item.href} onClick={onClose} className={ctaCls}>{item.acao ?? (item.origem === 'comunidade' ? 'Ver publicação completa' : 'Ver conteúdo')} <ArrowUpRight className="h-4 w-4" aria-hidden /></Link>)
 
   return (
     <div role="dialog" aria-modal="true" aria-label={`Story: ${item.titulo}`} className="fixed inset-0 z-50 flex items-center justify-center bg-stone-950/90 backdrop-blur-sm">
@@ -227,11 +330,11 @@ function StoryViewer({ items, start, onSeen, onClose }: { items: StoryItem[]; st
 
         <div className="absolute inset-x-4 top-7 flex items-center justify-between gap-3 text-white">
           <div className="flex min-w-0 items-center gap-2.5">
-            {item.origem === 'editorial'
-              ? <span className="rounded-full bg-white px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-beon-red">beOn Labs</span>
+            {item.origem !== 'comunidade'
+              ? <span className="rounded-full bg-white px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-beon-red">{item.selo ?? 'beOn Labs'}</span>
               : item.autor && <Avatar nome={item.autor.nome} src={item.autor.avatar} size={32} />}
             <span className="min-w-0 text-sm">
-              <span className="block truncate font-semibold">{item.origem === 'editorial' ? item.categoria : item.autor?.nome}</span>
+              <span className="block truncate font-semibold">{item.origem !== 'comunidade' ? item.categoria : item.autor?.nome}</span>
               <span className="block text-xs text-white/70">{item.origem === 'comunidade' ? `${item.categoria} · ` : ''}{tempoRelativo(item.quando)}</span>
             </span>
           </div>
