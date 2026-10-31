@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useMemo, type ReactNode } from 'react'
 import ReactMarkdown, { type Components } from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import {
@@ -27,6 +27,10 @@ interface ResearchDocumentPanelProps {
   onClose: () => void
   onSelect: (path: string) => void
   onRetry: () => void
+  /** Largura do painel (padrão: a coluna lateral do explorador). */
+  className?: string
+  /** Conteúdo depois do documento (ex.: "continue explorando"). */
+  rodape?: ReactNode
 }
 
 function formatDate(value: string | null) {
@@ -50,9 +54,16 @@ export function ResearchDocumentPanel({
   onClose,
   onSelect,
   onRetry,
+  className = 'lg:w-[46%] xl:w-[42%]',
+  rodape,
 }: ResearchDocumentPanelProps) {
   const linkIndex = useMemo(() => buildResearchLinkIndex(documents), [documents])
-  const markdown = useMemo(() => prepareResearchMarkdown(value?.content ?? ''), [value?.content])
+  // O título já está no cabeçalho: um "# Título" igual no começo do documento não se repete.
+  const markdown = useMemo(() => {
+    const titulo = value?.document.title.trim().toLowerCase()
+    const texto = (value?.content ?? '').replace(/^\s*#\s+(.+)\n?/, (linha, h1: string) => (h1.trim().toLowerCase() === titulo ? '' : linha))
+    return prepareResearchMarkdown(texto)
+  }, [value?.content, value?.document.title])
 
   const components = useMemo<Components>(() => ({
     h1: ({ children }) => <h1 className="mb-4 mt-8 text-2xl font-bold tracking-tight text-slate-950 first:mt-0">{children}</h1>,
@@ -121,7 +132,7 @@ export function ResearchDocumentPanel({
   }), [linkIndex, onSelect])
 
   return (
-    <aside className="flex h-full min-h-0 w-full flex-col border-l border-slate-200 bg-white shadow-[-12px_0_40px_rgba(15,23,42,0.08)] lg:w-[46%] xl:w-[42%]">
+    <aside className={`flex h-full min-h-0 w-full flex-col border-l border-slate-200 bg-white shadow-[-12px_0_40px_rgba(15,23,42,0.08)] ${className}`}>
       <div className="flex h-14 shrink-0 items-center justify-between border-b border-slate-200 px-4">
         <div className="flex items-center gap-2 text-sm font-semibold text-slate-700">
           <BookOpen className="h-4 w-4 text-red-700" />
@@ -195,9 +206,12 @@ export function ResearchDocumentPanel({
               ) : null}
             </header>
 
-            <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>
-              {markdown}
-            </ReactMarkdown>
+            <div className="min-w-0 break-words">
+              <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>
+                {markdown}
+              </ReactMarkdown>
+            </div>
+            {rodape}
           </article>
         ) : null}
       </div>

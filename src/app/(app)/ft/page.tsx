@@ -8,10 +8,10 @@ export default function FtPage() {
         <Telescope className="h-5 w-5 shrink-0 text-red-700" />
         <div className="min-w-0">
           <h1 className="truncate text-[15px] font-bold tracking-[0.08em] text-slate-800">
-            FUTURE THINKING
+            CATÁLOGO DE SINAIS
           </h1>
           <p className="truncate text-[10px] text-slate-500">
-            Sinais, watchlist e análises de horizonte do beOn Labs
+            Future Thinking · sinais, watchlist e notas analíticas do beOn Labs
           </p>
         </div>
         <div className="ml-auto">

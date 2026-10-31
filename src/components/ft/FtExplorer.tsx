@@ -102,6 +102,7 @@ export function FtExplorer() {
   const [query, setQuery] = useState('')
   const deferredQuery = useDeferredValue(query)
   const [domain, setDomain] = useState('')
+  const [modulo, setModulo] = useState('')
   const [kind, setKind] = useState<'all' | 'signal' | 'watch' | 'note'>('all')
   const [selectedPath, setSelectedPath] = useState<string | null>(null)
   const [documentValue, setDocumentValue] = useState<SignalDocumentContent | null>(null)
@@ -167,6 +168,13 @@ export function FtExplorer() {
     () => Array.from(new Set(documents.map(d => d.domain).filter((d): d is string => !!d))).sort(),
     [documents],
   )
+  // Módulos (type=module, pasta modules/ do vault): a lista acompanha o que o vault tiver.
+  const modulos = useMemo(
+    () => documents.filter(d => d.type === 'module' && d.module)
+      .map(d => ({ slug: d.module as string, titulo: d.title }))
+      .sort((a, b) => a.titulo.localeCompare(b.titulo, 'pt-BR')),
+    [documents],
+  )
   const index = useMemo(() => {
     const byId = new Map(documents.map(d => [d.id, d]))
     const children = new Map<string, SignalDocument[]>()
@@ -181,11 +189,12 @@ export function FtExplorer() {
 
   const normalizedQuery = normalize(deferredQuery)
   const matches = useCallback((document: SignalDocument) => {
+    if (modulo && document.module !== modulo) return false
     if (domain && document.domain !== domain) return false
     if (kind !== 'all' && document.type !== kind) return false
     return !normalizedQuery || searchText(document).includes(normalizedQuery)
-  }, [domain, kind, normalizedQuery])
-  const filtering = Boolean(normalizedQuery || domain || kind !== 'all')
+  }, [modulo, domain, kind, normalizedQuery])
+  const filtering = Boolean(normalizedQuery || modulo || domain || kind !== 'all')
 
   const leafMatches = useMemo(
     () => documents.filter(d => (d.type === 'signal' || d.type === 'watch' || d.type === 'note') && matches(d)),
@@ -367,6 +376,15 @@ export function FtExplorer() {
 
         <div className="flex items-center gap-2">
           <ListFilter className="h-4 w-4 text-slate-400" />
+          <select
+            value={modulo}
+            onChange={event => setModulo(event.target.value)}
+            aria-label="Módulo"
+            className="h-10 max-w-[220px] rounded-xl border border-slate-200 bg-slate-50 px-2 text-xs font-semibold text-slate-700"
+          >
+            <option value="">Todos os módulos</option>
+            {modulos.map(item => <option key={item.slug} value={item.slug}>{item.titulo}</option>)}
+          </select>
           <select
             value={domain}
             onChange={event => setDomain(event.target.value)}

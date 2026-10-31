@@ -8,6 +8,7 @@ import Link from 'next/link'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ArrowUpRight, ChevronLeft, ChevronRight, Pause, Play, X } from 'lucide-react'
 import { POST_KIND_LABEL, postTitle, type CommunityPost, type PostKind } from '@/lib/community/model'
+import { ehAutomacaoDeSinais } from '@/lib/community/automacao'
 import { STORY_CATEGORIA_LABEL, type Story, type StoryCategoria } from '@/lib/community/stories'
 import { api } from './api'
 import { useCommunity } from './CommunityProvider'
@@ -53,21 +54,31 @@ function writeSeen(seen: Set<string>) {
   try { localStorage.setItem(SEEN_KEY, JSON.stringify([...seen].slice(-300))) } catch { /* armazenamento indisponível */ }
 }
 
-/** Publicações recentes de membros (até 7 dias, uma por pessoa) viram stories da comunidade. */
+/**
+ * Publicações recentes (até 7 dias) viram stories da comunidade: uma por pessoa e, da automação "Sinais FT - beOn Labs",
+ * uma por sinal do Radar OSINT (até 8).
+ */
 export function communityStories(posts: CommunityPost[], now = Date.now()): StoryItem[] {
   const porAutor = new Set<string>()
+  let sinais = 0
   const out: StoryItem[] = []
   for (const p of [...posts].sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt))) {
-    if (now - Date.parse(p.createdAt) > 7 * 86_400_000 || porAutor.has(p.authorUsername)) continue
-    porAutor.add(p.authorUsername)
+    if (now - Date.parse(p.createdAt) > 7 * 86_400_000) continue
+    if (ehAutomacaoDeSinais(p.authorUsername)) {
+      if (sinais >= 8) continue
+      sinais++
+    } else {
+      if (porAutor.has(p.authorUsername)) continue
+      porAutor.add(p.authorUsername)
+    }
     const [pattern, tone] = KIND_COVER[p.kind]
     out.push({
-      id: `post:${p.id}`, origem: 'comunidade', categoria: POST_KIND_LABEL[p.kind], titulo: postTitle(p),
+      id: `post:${p.id}`, origem: 'comunidade', categoria: ehAutomacaoDeSinais(p.authorUsername) ? 'Sinal OSINT' : POST_KIND_LABEL[p.kind], titulo: postTitle(p),
       texto: p.content.length > 280 ? `${p.content.slice(0, 277)}…` : p.content,
       pattern, tone, href: `/comunidade/post/${p.id}`, externo: false,
       autor: { nome: p.authorName, username: p.authorUsername, avatar: p.authorAvatar }, quando: p.createdAt,
     })
-    if (out.length >= 12) break
+    if (out.length >= 20) break
   }
   return out
 }

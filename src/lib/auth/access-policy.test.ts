@@ -23,11 +23,21 @@ describe('decideAccess', () => {
     expect(decideAccess('/estrategia', 'GET', as('viewer')).type).toBe('allow')
   })
 
-  it('deixa Future Thinking e OSINT só para admin', () => {
-    for (const rota of ['/ft', '/api/ft/sinais', '/osint', '/osint-app/index.html', '/api/osint/busca']) {
-      expect(decideAccess(rota, 'GET', as('executivo')).type).toBe('forbidden')
-      expect(decideAccess(rota, 'GET', as('admin')).type).toBe('allow')
+  it('abre Catálogo de Sinais e OSINT a todos os perfis e deixa a Exploração só para admin', () => {
+    for (const role of ['admin', 'executivo', 'viewer', 'community'] as const) {
+      for (const rota of ['/ft', '/api/ft', '/osint', '/osint-app/index.html', '/api/osint/data/graph.json']) {
+        expect(decideAccess(rota, 'GET', as(role)).type).toBe('allow')
+      }
     }
+    expect(decideAccess('/exploracao', 'GET', as('executivo')).type).toBe('forbidden')
+    expect(decideAccess('/exploracao', 'GET', as('admin')).type).toBe('allow')
+  })
+
+  it('Benefícios só para admin e financeiro', () => {
+    expect(decideAccess('/beneficios', 'GET', as('financeiro')).type).toBe('allow')
+    expect(decideAccess('/api/beneficios', 'PATCH', as('financeiro')).type).toBe('allow')
+    expect(decideAccess('/beneficios', 'GET', as('executivo')).type).toBe('forbidden')
+    expect(decideAccess('/api/beneficios', 'GET', as('viewer')).type).toBe('forbidden')
   })
 
   it('mantém a role community dentro da Comunidade', () => {

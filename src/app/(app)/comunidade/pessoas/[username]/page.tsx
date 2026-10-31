@@ -1,69 +1,22 @@
 'use client'
 
 import Link from 'next/link'
-import { useMemo, useState, type FormEvent } from 'react'
+import { useMemo, useState } from 'react'
 import { ArrowLeft, MessageCircle, PenLine, UserX, Inbox } from 'lucide-react'
 import { POST_KIND_LABEL, type PostKind } from '@/lib/community/model'
-import { COMMUNITY_TOPICS, topicLabel } from '@/lib/community/topics'
+import { topicLabel } from '@/lib/community/topics'
 import { useCommunity } from '@/components/comunidade/CommunityProvider'
 import { FollowButton } from '@/components/comunidade/DiscoveryRail'
 import { tempoRelativo } from '@/components/comunidade/format'
 import { PostItem } from '@/components/comunidade/PostItem'
-import { Avatar, Button, Chip, EmptyState, ErrorState, Skeleton, cx, focusRing, inputClass } from '@/components/ui'
+import { Avatar, EmptyState, ErrorState, Skeleton, cx, focusRing } from '@/components/ui'
 import { topicIcon } from '@/components/comunidade/visuals'
 
 type Aba = 'todas' | PostKind
 
-function EditarPerfil({ onDone }: { onDone: () => void }) {
-  const { me, patchProfile, reloadMembers, toast } = useCommunity()
-  const [form, setForm] = useState({
-    cargo: me?.profile.cargo ?? '', especialidade: me?.profile.especialidade ?? '', bio: me?.profile.bio ?? '', interesses: me?.profile.interesses ?? [],
-  })
-  const [saving, setSaving] = useState(false)
-  async function submit(e: FormEvent) {
-    e.preventDefault()
-    setSaving(true)
-    const ok = await patchProfile(form)
-    setSaving(false)
-    if (ok) { reloadMembers(); toast('Perfil atualizado.'); onDone() }
-  }
-  const toggle = (id: string) => setForm(f => ({ ...f, interesses: f.interesses.includes(id) ? f.interesses.filter(x => x !== id) : [...f.interesses, id] }))
-  return (
-    <form onSubmit={submit} className="mt-6 space-y-4 rounded-2xl border border-beon-line p-5">
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div>
-          <label htmlFor="pf-cargo" className="mb-1.5 block text-sm font-medium">Cargo</label>
-          <input id="pf-cargo" className={inputClass} maxLength={80} value={form.cargo} onChange={e => setForm(f => ({ ...f, cargo: e.target.value }))} placeholder="Ex.: Engenheira de dados" />
-        </div>
-        <div>
-          <label htmlFor="pf-esp" className="mb-1.5 block text-sm font-medium">Especialidade</label>
-          <input id="pf-esp" className={inputClass} maxLength={80} value={form.especialidade} onChange={e => setForm(f => ({ ...f, especialidade: e.target.value }))} placeholder="Ex.: Visão computacional" />
-        </div>
-      </div>
-      <div>
-        <label htmlFor="pf-bio" className="mb-1.5 block text-sm font-medium">Apresentação</label>
-        <textarea id="pf-bio" className={cx(inputClass, 'min-h-[88px]')} maxLength={400} value={form.bio} onChange={e => setForm(f => ({ ...f, bio: e.target.value }))}
-          placeholder="Em que você trabalha, o que está explorando e como pode ajudar a comunidade." />
-        <p className="mt-1 text-xs text-beon-muted">{form.bio.length}/400</p>
-      </div>
-      <fieldset>
-        <legend className="mb-2 text-sm font-medium">Interesses</legend>
-        <div className="flex flex-wrap gap-2">
-          {COMMUNITY_TOPICS.map(t => <Chip key={t.id} selected={form.interesses.includes(t.id)} onClick={() => toggle(t.id)}>{t.label}</Chip>)}
-        </div>
-      </fieldset>
-      <div className="flex justify-end gap-2">
-        <Button variant="ghost" onClick={onDone}>Cancelar</Button>
-        <Button type="submit" variant="primary" loading={saving}>Salvar perfil</Button>
-      </div>
-    </form>
-  )
-}
-
 export default function PerfilPage({ params }: { params: { username: string } }) {
   const username = decodeURIComponent(params.username)
   const { me, member, members, posts, reloadMembers } = useCommunity()
-  const [editando, setEditando] = useState(false)
   const [aba, setAba] = useState<Aba>('todas')
   const m = member(username)
   const souEu = me?.username === username
@@ -108,7 +61,9 @@ export default function PerfilPage({ params }: { params: { username: string } })
           </div>
           <div className="flex gap-2">
             {souEu ? (
-              !editando && <Button icon={PenLine} onClick={() => setEditando(true)}>Editar perfil</Button>
+              <Link href="/comunidade/perfil" className={cx('inline-flex h-10 items-center gap-2 rounded-full border border-beon-line bg-white px-4 text-sm font-medium text-beon-ink hover:bg-beon-soft', focusRing)}>
+                <PenLine className="h-4 w-4" aria-hidden /> Editar perfil
+              </Link>
             ) : (
               <>
                 <Link href={`/comunidade/mensagens?com=${encodeURIComponent(m.username)}`}
@@ -121,7 +76,7 @@ export default function PerfilPage({ params }: { params: { username: string } })
           </div>
         </div>
 
-        {editando ? <EditarPerfil onDone={() => setEditando(false)} /> : (
+        {(
           <>
             {m.bio && <p className="mt-5 max-w-2xl whitespace-pre-line text-[15px] leading-relaxed text-beon-body">{m.bio}</p>}
             {interesses.length > 0 && (
@@ -140,7 +95,7 @@ export default function PerfilPage({ params }: { params: { username: string } })
             )}
             {souEu && !m.bio && interesses.length === 0 && (
               <p className="mt-5 rounded-xl bg-beon-soft px-4 py-3 text-sm text-beon-body">
-                Perfis com especialidade e interesses recebem e geram melhores conexões. <button type="button" onClick={() => setEditando(true)} className="font-medium text-beon-red hover:underline">Completar agora</button>
+                Perfis com especialidade e interesses recebem e geram melhores conexões. <Link href="/comunidade/perfil" className="font-medium text-beon-red hover:underline">Completar agora</Link>
               </p>
             )}
           </>

@@ -16,10 +16,13 @@ cai no feed. Para a role `community` é a única área; executivos, financeiro e
 |---|---|
 | `/comunidade` | Feed: stories, publicar, filtros (Para você, Mais recentes, Em alta, Sem resposta, Pesquisas, Experimentos, Seguindo), tópicos e busca |
 | `/comunidade/cientista` e `/[sid]` | Chat com o Cientista (cientista-lab): jornadas Solicitante e Desenvolvedor, mapa do problema, ficha, desenho e kit |
-| `/comunidade/pessoas` e `/[username]` | Diretório de pessoas e perfil (edição do próprio perfil) |
+| `/comunidade/pessoas` e `/[username]` | Diretório de pessoas e perfil público |
+| `/comunidade/perfil` | Meu perfil: foto (com recorte), nome, e-mail (também serve para entrar), área, laboratório (Hitss, Digital, Dados & IA, GE), cargo, especialidade, bio, interesses e troca de senha |
 | `/comunidade/pesquisas` | Materiais da comunidade, acervo beOn Labs (`/api/pesquisas`) e catálogo de experimentos |
 | `/comunidade/future-thinking` | Sinais de futuro, radar por dimensão e horizonte, provocações |
 | `/comunidade/trilha` | Trilha de Experimentação em 8 etapas, com progresso por pessoa |
+| `/comunidade/newsletter` | beOn Radar: newsletter diária de tecnologias emergentes, mercado e bolsa, bolhas e impactos, montada automaticamente a partir de feeds públicos (`NEWSLETTER_FEEDS`), com manchete, resumo em 30 segundos e seções; cada notícia leva ao site de origem. Renovada a cada 6 h em segundo plano; se as fontes falham, vale a edição anterior |
+| `/comunidade/open-source` | World Open Source: o que é open source, como ler as licenças e uma vitrine de repositórios (card + modal com o que é, para que serve, como começar e licença). Qualquer pessoa publica e edita; só quem publicou ou um admin remove |
 | `/comunidade/mensagens` | Mensagens diretas |
 | `/comunidade/salvos` | Publicações salvas, tópicos acompanhados e pessoas seguidas |
 | `/comunidade/post/[id]` | Publicação com a conversa completa (link compartilhável) |
@@ -36,6 +39,16 @@ Tudo o que é publicado é um `CommunityPost` (`src/lib/community/model.ts`), di
 | `community-messages.json` | `COMMUNITY_MESSAGES_PATH` | Conversas diretas |
 | `chat-presence.json` | `CHAT_PRESENCE_PATH` | Último acesso (base de "ativo agora") |
 | `stories.json` | `STORIES_FILE_PATH` | Stories editoriais (Admin › Stories) |
+| `open-source.json` | `OPEN_SOURCE_FILE_PATH` | Repositórios do World Open Source (sem o arquivo, começa com VoiceStudio e Animate) |
+| `avatars/` | `AVATARS_DIR` | Fotos de perfil enviadas em Meu perfil (servidas por `/api/community/avatar/[id]`) |
+
+## Sinais FT - beOn Labs (automação)
+
+Todo sinal encontrado pelo Radar OSINT (`$SIGNAL_VAULT_PATH/_export/signals.geojson`) vira uma publicação pública do
+tipo "sinal" no fórum, assinada por **Sinais FT - beOn Labs** (`src/lib/community/sinais-osint.ts`): título, detalhes,
+implicação, contexto e link da fonte, com dimensão e horizonte mapeados do OSINT e a data da varredura. A sincronização
+roda ao carregar o feed, no máximo a cada 5 minutos, e usa o id do sinal (`osint:<id>`), então nada se repete. Nos 7 dias
+seguintes, cada sinal também aparece como story (até 8 de uma vez). O nome da automação leva ao Radar OSINT.
 
 ## Cientista
 

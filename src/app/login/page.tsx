@@ -92,6 +92,7 @@ function Entrar({ onCadastro }: { onCadastro: () => void }) {
       })
       const data = await res.json().catch(() => ({}))
       if (res.ok) {
+        try { window.localStorage.setItem(JA_ENTROU, '1') } catch { /* sem armazenamento */ }
         window.location.replace('/jira/comunidade')
         return
       }
@@ -270,11 +271,18 @@ function Cadastro({ onEntrar }: { onEntrar: () => void }) {
   )
 }
 
-/** Mensagem de boas-vindas sobre a foto. */
+/** Marca que este navegador já entrou uma vez: o "Bem-vindo ao" só aparece no primeiro acesso. */
+const JA_ENTROU = 'beon:ja-entrou'
+
+/** Mensagem sobre a foto: com "Bem-vindo ao" no primeiro acesso; depois, só a marca. */
 function Mensagem({ compacta }: { compacta?: boolean }) {
+  const [primeiroAcesso, setPrimeiroAcesso] = useState(false)
+  useEffect(() => {
+    try { setPrimeiroAcesso(window.localStorage.getItem(JA_ENTROU) !== '1') } catch { setPrimeiroAcesso(true) }
+  }, [])
   return (
     <div className={compacta ? '' : 'max-w-xl'}>
-      <p className="text-xs font-semibold uppercase tracking-[0.16em] text-white/80 sm:text-sm">Bem-vindo ao</p>
+      {primeiroAcesso && <p className="text-xs font-semibold uppercase tracking-[0.16em] text-white/80 sm:text-sm">Bem-vindo ao</p>}
       <h1 className={cx('font-bold leading-[1.02] tracking-tight', compacta ? 'mt-1 text-4xl' : 'mt-2 text-6xl xl:text-7xl')}>beOn Labs</h1>
       <p className={cx('font-semibold leading-snug text-white', compacta ? 'mt-1.5 text-lg' : 'mt-3 text-2xl xl:text-[28px]')}>
         Comunidade de Experimentação da Claro

@@ -18,9 +18,16 @@ export function Onboarding() {
   const [step, setStep] = useState(0)
   const [interesses, setInteresses] = useState<string[]>([])
 
+  // Só no primeiro acesso. A marca local evita repetir as boas-vindas se o perfil não chegar a ser gravado no servidor.
+  const marca = me ? `beon:boas-vindas:${me.username}` : ''
   useEffect(() => {
-    if (me && !me.profile.onboardedAt) { setOpen(true); setInteresses(me.profile.interesses) }
-  }, [me])
+    if (!me || me.profile.onboardedAt) return
+    let jaViu = false
+    try { jaViu = window.localStorage.getItem(marca) === '1' } catch { /* sem armazenamento */ }
+    if (jaViu) return
+    setOpen(true)
+    setInteresses(me.profile.interesses)
+  }, [me, marca])
 
   const sugestoes = useMemo(() => {
     if (!me || interesses.length === 0) return []
@@ -33,6 +40,7 @@ export function Onboarding() {
 
   async function concluir(depois?: () => void) {
     setOpen(false)
+    try { window.localStorage.setItem(marca, '1') } catch { /* sem armazenamento */ }
     await patchProfile({ concluirOnboarding: true, interesses }, p => ({ ...p, onboardedAt: new Date().toISOString(), interesses }))
     depois?.()
   }

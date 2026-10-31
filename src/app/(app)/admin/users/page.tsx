@@ -64,7 +64,7 @@ function PedidoCard({ user, onDecidir }: { user: UserPublic; onDecidir: (decisao
           <p className="font-semibold text-beon-ink">{user.nome || '—'}</p>
           <p className="truncate text-sm text-beon-muted">{user.username}</p>
           <p className="mt-1 text-sm text-beon-body">
-            {user.laboratorio || 'Área não informada'} · pedido em {dataCurta(user.createdAt)}
+            {user.area || user.laboratorio || 'Área não informada'} · pedido em {dataCurta(user.createdAt)}
           </p>
           {user.motivo && <p className="mt-2 rounded-lg bg-beon-soft px-3 py-2 text-sm text-beon-body">“{user.motivo}”</p>}
         </div>

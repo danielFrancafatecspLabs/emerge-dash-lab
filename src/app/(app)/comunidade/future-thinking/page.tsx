@@ -96,8 +96,8 @@ export default function FutureThinkingPage() {
 
   return (
     <div className="mx-auto max-w-[1080px]">
-      <PageHeader eyebrow="Future Thinking" title="Sinais do que está mudando"
-        description="Tendências tecnológicas, sociais, econômicas, ambientais e regulatórias — com evidências, horizonte e o que podem significar para clientes, negócios e operações."
+      <PageHeader eyebrow="Future Thinking" title="Propor um sinal"
+        description="Viu uma mudança concreta (tecnológica, social, econômica, ambiental ou regulatória)? Traga a evidência, o horizonte e o que ela pode significar para a Claro. Os sinais propostos aqui passam por análise e curadoria antes de entrar no Catálogo de Sinais."
         action={<Button variant="primary" icon={Radar} onClick={() => openComposer({ kind: 'sinal' })}>Propor um sinal</Button>} />
 
       <div className="grid gap-8 px-4 sm:px-6 lg:grid-cols-[1fr_360px]">

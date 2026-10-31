@@ -206,9 +206,13 @@ export async function loadSignalVault(root: string): Promise<SignalVault> {
 
   const moduleTitles = new Map<string, string>()
   const bodies = new Map<string, string>()
-  const parsed = await Promise.all(files.map(async ({ relativePath, type }) => {
+  const lidos = await Promise.all(files.map(async ({ relativePath, type }) => {
     const raw = await readFile(path.join(resolvedRoot, ...relativePath.split('/')), 'utf8')
-    const { data, body } = parseFrontmatter(raw)
+    return { relativePath, type, ...parseFrontmatter(raw) }
+  }))
+  // Notas analíticas só entram publicadas (frontmatter `release: public`); as demais nem aparecem nem podem ser abertas.
+  const publicados = lidos.filter(({ type, data }) => type !== 'note' || text(data, 'release')?.toLowerCase() === 'public')
+  const parsed = publicados.map(({ relativePath, type, data, body }) => {
     bodies.set(relativePath, body)
     const name = path.posix.basename(relativePath, '.md')
     const heading = body.match(/^#\s+(.+)$/m)?.[1]?.trim()
@@ -239,7 +243,7 @@ export async function loadSignalVault(root: string): Promise<SignalVault> {
       tags: Array.isArray(data.tags) ? data.tags : [],
     }
     return document
-  }))
+  })
 
   const byPath = new Map(parsed.map(document => [document.path.replace(/\.md$/i, ''), document]))
   const edges: SignalEdge[] = []
