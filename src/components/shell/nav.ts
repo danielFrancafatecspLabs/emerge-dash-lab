@@ -4,7 +4,7 @@
 
 import {
   Activity, BarChart2, BookOpen, Bookmark, Bot, CalendarCheck, Compass, FileText, FlaskConical, GitCompareArrows, Home, Images, Library,
-  MessageCircle, Radar, Route, Target, UserCog, Users, Wallet, type LucideIcon,
+  Lightbulb, MessageCircle, Radar, Route, Target, UserCog, Users, Wallet, type LucideIcon,
 } from 'lucide-react'
 import type { AuthSessionRole } from '@/lib/auth/session'
 
@@ -45,6 +45,16 @@ export const COMMUNITY_SHORTCUTS: NavItem[] = [
   { label: 'Salvos e seguidos', href: '/comunidade/salvos', icon: Bookmark },
 ]
 
+/** Future Thinking: propor sinais, o catálogo do vault de sinais e o radar OSINT. Para todos os perfis. */
+export const FUTURE_THINKING: NavGroup = {
+  label: 'Future Thinking',
+  items: [
+    { label: 'Propor Sinal', href: '/comunidade/future-thinking', icon: Lightbulb },
+    { label: 'Catálogo de Sinais', href: '/ft', icon: Library },
+    { label: 'Radar OSINT', href: '/osint', icon: Radar },
+  ],
+}
+
 /** Visões executivas e administração, por perfil. */
 export const PORTAL_GROUPS: NavGroup[] = [
   {
@@ -83,12 +93,12 @@ export function isNavActive(path: string, item: NavItem): boolean {
   return [item.href, ...(item.also ?? [])].some(h => path === h || path.startsWith(`${h}/`))
 }
 
-/** Grupos executivos e de administração visíveis para o perfil (nenhum enquanto o perfil não carrega). */
 /** Áreas da Comunidade que o perfil acessa. */
 export function communityAreasFor(role: AuthSessionRole | null | undefined): NavItem[] {
   return COMMUNITY_AREAS.filter(i => !i.roles || (role && i.roles.includes(role)))
 }
 
+/** Grupos executivos e de administração visíveis para o perfil (nenhum enquanto o perfil não carrega). */
 export function portalGroupsFor(role: AuthSessionRole | null | undefined): NavGroup[] {
   if (!role) return []
   return PORTAL_GROUPS
