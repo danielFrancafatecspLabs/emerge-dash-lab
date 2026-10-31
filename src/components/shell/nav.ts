@@ -4,7 +4,7 @@
 
 import {
   Activity, BarChart2, BookOpen, Bookmark, Bot, CalendarCheck, Compass, GitFork, FileText, FlaskConical, GitCompareArrows, Home, Images, Library,
-  Lightbulb, MessageCircle, Radar, Route, Target, UserCog, Users, Wallet, type LucideIcon,
+  Lightbulb, MessageCircle, Newspaper, Radar, Route, Target, UserCog, Users, Wallet, type LucideIcon,
 } from 'lucide-react'
 import type { AuthSessionRole } from '@/lib/auth/session'
 
@@ -40,6 +40,7 @@ export const COMMUNITY_AREAS: NavItem[] = [
 
 /** Mais áreas da Comunidade, no menu (fora da navegação inferior do celular, que tem as cinco principais). */
 export const COMMUNITY_EXTRAS: NavItem[] = [
+  { label: 'Newsletter', href: '/comunidade/newsletter', icon: Newspaper },
   { label: 'World Open Source', href: '/comunidade/open-source', icon: GitFork },
 ]
 

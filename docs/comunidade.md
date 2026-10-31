@@ -21,6 +21,7 @@ cai no feed. Para a role `community` é a única área; executivos, financeiro e
 | `/comunidade/pesquisas` | Materiais da comunidade, acervo beOn Labs (`/api/pesquisas`) e catálogo de experimentos |
 | `/comunidade/future-thinking` | Sinais de futuro, radar por dimensão e horizonte, provocações |
 | `/comunidade/trilha` | Trilha de Experimentação em 8 etapas, com progresso por pessoa |
+| `/comunidade/newsletter` | beOn Radar: newsletter diária de tecnologias emergentes, mercado e bolsa, bolhas e impactos, montada automaticamente a partir de feeds públicos (`NEWSLETTER_FEEDS`), com manchete, resumo em 30 segundos e seções; cada notícia leva ao site de origem. Renovada a cada 6 h em segundo plano; se as fontes falham, vale a edição anterior |
 | `/comunidade/open-source` | World Open Source: o que é open source, como ler as licenças e uma vitrine de repositórios (card + modal com o que é, para que serve, como começar e licença). Qualquer pessoa publica e edita; só quem publicou ou um admin remove |
 | `/comunidade/mensagens` | Mensagens diretas |
 | `/comunidade/salvos` | Publicações salvas, tópicos acompanhados e pessoas seguidas |
