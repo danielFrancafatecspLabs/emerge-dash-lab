@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { classificar, fontesConfiguradas, montarNoticias, numeroDaEdicao } from './edicao'
+import { classificar, fontesConfiguradas, idiomaDe, montarNoticias, numeroDaEdicao } from './edicao'
 import { imagemDaPagina, lerFeed } from './rss'
 
 const RSS = `<?xml version="1.0"?><rss xmlns:media="http://search.yahoo.com/mrss/"><channel>
@@ -46,6 +46,12 @@ describe('newsletter', () => {
     const n = montarNoticias([{ fonte, itens }, { fonte: { nome: 'Br', url: 'https://ex.br' }, itens: lerFeed(ATOM) }], agora)
     expect(n.map(x => x.link).sort()).toEqual(['https://ex.br/quantica', 'https://ex.com/bolha', 'https://ex.com/nvidia'])
     expect(n.find(x => x.link === 'https://ex.com/bolha')?.secao).toBe('bolhas')
+  })
+
+  it('reconhece o idioma da notícia', () => {
+    expect(idiomaDe('Big techs perdem US$ 800 bilhões em valor de mercado em dia de correção')).toBe('pt')
+    expect(idiomaDe('Is the AI bubble about to burst? Investors draw dot-com comparisons')).toBe('en')
+    expect(idiomaDe('Computação quântica: IBM apresenta novo chip')).toBe('pt')
   })
 
   it('fontes configuráveis e número da edição', () => {
