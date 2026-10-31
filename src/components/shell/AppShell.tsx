@@ -19,7 +19,7 @@ import { Toaster } from '@/components/comunidade/Toaster'
 import { topicIcon } from '@/components/comunidade/visuals'
 import { Avatar, CountBadge, IconButton, cx, focusRing } from '@/components/ui'
 import { useChromeHidden } from './AppChrome'
-import { COMMUNITY_SHORTCUTS, FUTURE_THINKING, communityAreasFor, isNavActive, portalGroupsFor, type NavGroup, type NavItem } from './nav'
+import { COMMUNITY_EXTRAS, COMMUNITY_SHORTCUTS, FUTURE_THINKING, communityAreasFor, isNavActive, portalGroupsFor, type NavGroup, type NavItem } from './nav'
 import { usePendingSignups } from './usePendingSignups'
 
 type Badges = Record<NonNullable<NavItem['badge']>, number>
@@ -68,7 +68,7 @@ function Navigation({ path, areas, groups, badges, compact, onNavigate, onNotifi
     <>
       <nav aria-label="Comunidade" className="space-y-0.5">
         <GroupLabel compact={compact} first>Comunidade</GroupLabel>
-        {areas.map(item => <NavLink key={item.href} item={item} path={path} badges={badges} compact={compact} onNavigate={onNavigate} />)}
+        {[...areas, ...COMMUNITY_EXTRAS].map(item => <NavLink key={item.href} item={item} path={path} badges={badges} compact={compact} onNavigate={onNavigate} />)}
         {COMMUNITY_SHORTCUTS.map(item => <NavLink key={item.href} item={item} path={path} badges={badges} compact={compact} onNavigate={onNavigate} />)}
         <button
           type="button"
