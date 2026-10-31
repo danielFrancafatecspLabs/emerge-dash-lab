@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { emailDe } from '@/lib/auth/account'
 import { getSessionUser } from '@/lib/auth/request'
 import { applyProfilePatch, getProfile, saveProfile } from '@/lib/community/profile'
 import { badRequest, unauthorized } from '@/lib/community/server'
@@ -14,6 +15,8 @@ export async function GET(request: NextRequest) {
     nome: member.user?.nome || member.username,
     laboratorio: member.user?.laboratorio || '',
     avatar: member.user?.avatar || '',
+    email: member.user ? emailDe(member.user) : '',
+    area: member.user?.area || '',
     profile: getProfile(member.username),
   })
 }

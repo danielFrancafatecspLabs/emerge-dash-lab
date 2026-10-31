@@ -16,7 +16,8 @@ cai no feed. Para a role `community` é a única área; executivos, financeiro e
 |---|---|
 | `/comunidade` | Feed: stories, publicar, filtros (Para você, Mais recentes, Em alta, Sem resposta, Pesquisas, Experimentos, Seguindo), tópicos e busca |
 | `/comunidade/cientista` e `/[sid]` | Chat com o Cientista (cientista-lab): jornadas Solicitante e Desenvolvedor, mapa do problema, ficha, desenho e kit |
-| `/comunidade/pessoas` e `/[username]` | Diretório de pessoas e perfil (edição do próprio perfil) |
+| `/comunidade/pessoas` e `/[username]` | Diretório de pessoas e perfil público |
+| `/comunidade/perfil` | Meu perfil: foto (com recorte), nome, e-mail (também serve para entrar), área, laboratório (Hitss, Digital, Dados & IA, GE), cargo, especialidade, bio, interesses e troca de senha |
 | `/comunidade/pesquisas` | Materiais da comunidade, acervo beOn Labs (`/api/pesquisas`) e catálogo de experimentos |
 | `/comunidade/future-thinking` | Sinais de futuro, radar por dimensão e horizonte, provocações |
 | `/comunidade/trilha` | Trilha de Experimentação em 8 etapas, com progresso por pessoa |
@@ -36,6 +37,7 @@ Tudo o que é publicado é um `CommunityPost` (`src/lib/community/model.ts`), di
 | `community-messages.json` | `COMMUNITY_MESSAGES_PATH` | Conversas diretas |
 | `chat-presence.json` | `CHAT_PRESENCE_PATH` | Último acesso (base de "ativo agora") |
 | `stories.json` | `STORIES_FILE_PATH` | Stories editoriais (Admin › Stories) |
+| `avatars/` | `AVATARS_DIR` | Fotos de perfil enviadas em Meu perfil (servidas por `/api/community/avatar/[id]`) |
 
 ## Cientista
 
