@@ -34,8 +34,7 @@ export const COMMUNITY_AREAS: NavItem[] = [
   { label: 'Início', short: 'Início', href: '/comunidade', icon: Home },
   { label: 'Cientista', short: 'Cientista', href: '/comunidade/cientista', icon: FlaskConical },
   { label: 'Acervo de Pesquisas', short: 'Acervo', href: '/comunidade/pesquisas', icon: BookOpen, also: ['/comunidade/experimentos'] },
-  // O OSINT é só admin (lib/auth/access-policy): para os demais perfis o item não aparece.
-  { label: 'OSINT', short: 'OSINT', href: '/osint', icon: Radar, roles: ADMIN },
+  { label: 'OSINT', short: 'OSINT', href: '/osint', icon: Radar },
   { label: 'Trilha de Experimentação', short: 'Trilha', href: '/comunidade/trilha', icon: Route },
 ]
 
@@ -53,8 +52,7 @@ export const PORTAL_GROUPS: NavGroup[] = [
     items: [
       { label: 'Estratégia', href: '/estrategia', icon: Target, roles: ['admin', 'executivo', 'financeiro', 'viewer'] },
       { label: 'Operacional', href: '/operacional', icon: Activity, roles: ADMIN },
-      // A política de acesso deixa Benefícios só para admin; o menu segue a política.
-      { label: 'Benefícios', href: '/beneficios', icon: Wallet, roles: ADMIN },
+      { label: 'Benefícios', href: '/beneficios', icon: Wallet, roles: ['admin', 'financeiro'] },
       { label: 'Portfólio', href: '/portfolio', icon: BarChart2, roles: ADMIN },
       { label: 'Comparativo', href: '/comparativo', icon: GitCompareArrows, roles: ['admin', 'executivo', 'financeiro', 'viewer'] },
       { label: 'Exploração', href: '/exploracao', icon: Compass, roles: ADMIN },
