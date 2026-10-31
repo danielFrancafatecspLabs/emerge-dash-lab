@@ -12,8 +12,7 @@ describe('menu', () => {
     expect(bloqueados).toEqual([])
   })
 
-  it('o OSINT aparece para admin e some para os demais', () => {
-    expect(communityAreasFor('admin').map(i => i.href)).toContain('/osint')
-    expect(communityAreasFor('community').map(i => i.href)).not.toContain('/osint')
+  it('o OSINT aparece para todos os perfis', () => {
+    for (const role of PERFIS) expect(communityAreasFor(role).map(i => i.href)).toContain('/osint')
   })
 })

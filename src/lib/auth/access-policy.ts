@@ -16,7 +16,11 @@ const PUBLIC_PATHS = ['/login', '/api/auth/login', '/api/auth/logout', '/api/aut
 const PUBLIC_IMAGE = /^\/[\w.-]+\.(png|jpe?g|svg|webp|gif|ico)$/i
 
 /** Únicas rotas da role community. */
-const COMMUNITY_PATHS = ['/comunidade', '/api/community', '/api/stories', '/api/auth']
+const COMMUNITY_PATHS = [
+  '/comunidade', '/api/community', '/api/stories', '/api/auth',
+  // Future Thinking: Catálogo de Sinais e Radar OSINT são de toda a Comunidade.
+  '/ft', '/api/ft', '/osint', '/osint-app', '/api/osint',
+]
 
 interface RoleRule {
   prefix: string
@@ -27,12 +31,14 @@ interface RoleRule {
 
 const ADMIN: readonly AuthSessionRole[] = ['admin']
 const EXECUTIVOS: readonly AuthSessionRole[] = ['admin', 'executivo']
+const FINANCEIRO: readonly AuthSessionRole[] = ['admin', 'financeiro']
 
 /** A primeira regra que casar com o caminho decide quem pode acessar. */
 const ROLE_RULES: RoleRule[] = [
   { prefix: '/admin', roles: ADMIN },
   { prefix: '/api/admin', roles: ADMIN },
-  { prefix: '/beneficios', roles: ADMIN },
+  { prefix: '/beneficios', roles: FINANCEIRO },
+  { prefix: '/api/beneficios', roles: FINANCEIRO },
   { prefix: '/pesquisas', roles: ADMIN },
   { prefix: '/api/pesquisas', roles: ADMIN },
   { prefix: '/weekly', roles: ADMIN },
@@ -41,12 +47,6 @@ const ROLE_RULES: RoleRule[] = [
   // Exploração (Discovery Flow 2.0): prévia com dados ilustrativos, só admin.
   { prefix: '/exploracao', roles: ADMIN },
   { prefix: '/api/semanal', roles: ADMIN },
-  // Future Thinking e OSINT (vault de sinais e o app OSINT embutido): só admin.
-  { prefix: '/ft', roles: ADMIN },
-  { prefix: '/api/ft', roles: ADMIN },
-  { prefix: '/osint', roles: ADMIN },
-  { prefix: '/osint-app', roles: ADMIN },
-  { prefix: '/api/osint', roles: ADMIN },
   // Chamadas a LLM e limpeza de cache têm custo: só para quem usa os painéis executivos.
   { prefix: '/cientista', roles: ADMIN },
   { prefix: '/api/cientista', roles: ADMIN },
