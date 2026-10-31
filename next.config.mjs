@@ -36,7 +36,8 @@ const nextConfig = {
     // Keep native/server-only packages out of the Next.js 14 webpack bundle.
     serverComponentsExternalPackages: ['@react-pdf/renderer', '@resvg/resvg-js', 'pptxgenjs'],
     // O PPTX da Semanal usa a arte e os ícones de public/semanal, lidos do disco em tempo de execução.
-    outputFileTracingIncludes: { '/api/semanal/pptx': ['./public/semanal/**'] },
+    // O app OSINT de reserva (osint/bundle) é lido do disco pela rota /osint-app.
+    outputFileTracingIncludes: { '/api/semanal/pptx': ['./public/semanal/**'], '/osint-app/[[...caminho]]': ['./osint/bundle/**'] },
   },
   webpack: (config) => {
     // @react-pdf/renderer needs these Node.js modules

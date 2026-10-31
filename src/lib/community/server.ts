@@ -21,6 +21,7 @@ export interface MemberPublic {
   username: string
   nome: string
   laboratorio: string
+  area: string
   avatar: string
   cargo: string
   especialidade: string
@@ -43,6 +44,7 @@ export function memberDirectory(posts: CommunityPost[] = loadNormalizedPosts(), 
         username: u.username,
         nome: u.nome || u.username,
         laboratorio: u.laboratorio,
+        area: u.area ?? '',
         avatar: u.avatar,
         cargo: profile.cargo,
         especialidade: profile.especialidade,

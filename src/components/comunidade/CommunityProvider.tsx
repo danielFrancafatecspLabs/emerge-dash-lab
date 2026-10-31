@@ -16,6 +16,8 @@ export interface Me {
   nome: string
   laboratorio: string
   avatar: string
+  email: string
+  area: string
   profile: CommunityProfile
 }
 

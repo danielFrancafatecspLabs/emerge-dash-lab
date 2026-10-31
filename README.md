@@ -43,6 +43,18 @@ ADMIN_PASSWORD='uma-senha-forte-de-12+' node scripts/create_admin.js nome.sobren
 
 Todas as variáveis de ambiente estão descritas em [.env.example](.env.example).
 
+### Cache dos dados do Jira
+
+Todas as visões leem o Jira por `fetchDashboardRaw` (`src/lib/jira.ts`), que guarda o resultado em memória e em
+`.cache/jira-dashboard.json` (`src/lib/cache-dados.ts`):
+
+- Por 5 minutos (`JIRA_CACHE_TTL_SECONDS`), nenhuma página chama o Jira.
+- Depois disso, a página abre na hora com a última versão e o Jira é consultado em segundo plano. Changelog e último
+  comentário só são buscados para issues novas ou com `updated` diferente; as demais são reaproveitadas.
+- Pedidos simultâneos dividem uma única consulta. Se o Jira falhar, a última versão continua valendo.
+- O arquivo em disco sobrevive a reinícios; acima de 24 h (`JIRA_CACHE_MAX_STALE_SECONDS`) a página espera os dados novos.
+- "Atualizar dados" (`POST /api/clear-cache`) faz o próximo carregamento buscar no Jira, também de forma incremental.
+
 ## Estrutura
 
 ```

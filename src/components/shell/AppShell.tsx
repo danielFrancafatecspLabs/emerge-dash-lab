@@ -19,7 +19,7 @@ import { Toaster } from '@/components/comunidade/Toaster'
 import { topicIcon } from '@/components/comunidade/visuals'
 import { Avatar, CountBadge, IconButton, cx, focusRing } from '@/components/ui'
 import { useChromeHidden } from './AppChrome'
-import { COMMUNITY_AREAS, COMMUNITY_SHORTCUTS, isNavActive, portalGroupsFor, type NavGroup, type NavItem } from './nav'
+import { COMMUNITY_EXTRAS, COMMUNITY_SHORTCUTS, FUTURE_THINKING, communityAreasFor, isNavActive, portalGroupsFor, type NavGroup, type NavItem } from './nav'
 import { usePendingSignups } from './usePendingSignups'
 
 type Badges = Record<NonNullable<NavItem['badge']>, number>
@@ -52,24 +52,23 @@ function NavLink({ item, path, badges, compact, onNavigate }: {
   )
 }
 
-function GroupLabel({ children, compact }: { children: ReactNode; compact?: boolean }) {
+function GroupLabel({ children, compact, first }: { children: ReactNode; compact?: boolean; first?: boolean }) {
+  const label = cx('mb-1 px-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-beon-muted', first ? 'mt-0' : 'mt-4')
   return compact
-    ? <><div className="mx-auto my-3 h-px w-8 bg-beon-line xl:hidden" aria-hidden /><p className="mb-1 mt-4 hidden px-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-beon-muted xl:block">{children}</p></>
-    : <p className="mb-1 mt-4 px-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-beon-muted">{children}</p>
+    ? <>{!first && <div className="mx-auto my-3 h-px w-8 bg-beon-line xl:hidden" aria-hidden />}<p className={cx(label, 'hidden xl:block')}>{children}</p></>
+    : <p className={label}>{children}</p>
 }
 
-/** Todo o menu: Comunidade, atalhos pessoais e as visões do perfil. */
-function Navigation({ path, groups, badges, compact, onNavigate, onNotifications, notificacoes }: {
-  path: string; groups: NavGroup[]; badges: Badges; compact?: boolean; onNavigate?: () => void
+/** Todo o menu: a seção Comunidade (áreas, atalhos pessoais e notificações), Future Thinking e as visões do perfil. */
+function Navigation({ path, areas, groups, badges, compact, onNavigate, onNotifications, notificacoes }: {
+  path: string; areas: NavItem[]; groups: NavGroup[]; badges: Badges; compact?: boolean; onNavigate?: () => void
   onNotifications: () => void; notificacoes: number
 }) {
   return (
     <>
       <nav aria-label="Comunidade" className="space-y-0.5">
-        {COMMUNITY_AREAS.map(item => <NavLink key={item.href} item={item} path={path} badges={badges} compact={compact} onNavigate={onNavigate} />)}
-      </nav>
-      <div className={cx('my-3 h-px bg-beon-line', compact && 'mx-auto w-8 xl:mx-0 xl:w-auto')} aria-hidden />
-      <nav aria-label="Atalhos" className="space-y-0.5">
+        <GroupLabel compact={compact} first>Comunidade</GroupLabel>
+        {[...areas, ...COMMUNITY_EXTRAS].map(item => <NavLink key={item.href} item={item} path={path} badges={badges} compact={compact} onNavigate={onNavigate} />)}
         {COMMUNITY_SHORTCUTS.map(item => <NavLink key={item.href} item={item} path={path} badges={badges} compact={compact} onNavigate={onNavigate} />)}
         <button
           type="button"
@@ -87,7 +86,7 @@ function Navigation({ path, groups, badges, compact, onNavigate, onNotifications
           <span className="sr-only">{notificacoes ? `${notificacoes} não lidas` : ''}</span>
         </button>
       </nav>
-      {groups.map(group => (
+      {[FUTURE_THINKING, ...groups].map(group => (
         <nav key={group.label} aria-label={group.label}>
           <GroupLabel compact={compact}>{group.label}</GroupLabel>
           <div className="space-y-0.5">
@@ -134,7 +133,7 @@ function ProfileMenu({ onPrefs, full }: { onPrefs: () => void; full?: boolean })
       </button>
       {open && (
         <div role="menu" className="absolute bottom-full left-0 z-40 mb-2 w-60 rounded-xl border border-beon-line bg-white p-1.5 shadow-xl">
-          <Link role="menuitem" href={`/comunidade/pessoas/${encodeURIComponent(me.username)}`} className={itemCls} onClick={() => setOpen(false)}>
+          <Link role="menuitem" href="/comunidade/perfil" className={itemCls} onClick={() => setOpen(false)}>
             <UserRound className="h-4 w-4" aria-hidden /> Meu perfil
           </Link>
           <button role="menuitem" type="button" className={itemCls} onClick={() => { setOpen(false); onPrefs() }}>
@@ -166,6 +165,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [notifOpen, setNotifOpen] = useState(false)
   const [prefsOpen, setPrefsOpen] = useState(false)
   const [drawer, setDrawer] = useState(false)
+  const areas = communityAreasFor(me?.role)
   const groups = portalGroupsFor(me?.role)
   const pendentes = usePendingSignups(me?.role === 'admin')
   const badges: Badges = { mensagens: counts.mensagens, pendentes }
@@ -211,7 +211,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             {!!counts.mensagens && <CountBadge n={counts.mensagens} className="absolute -right-0.5 -top-0.5" />}
           </Link>
           {me && (
-            <Link href={`/comunidade/pessoas/${encodeURIComponent(me.username)}`} aria-label="Meu perfil" className={cx('ml-1 rounded-full', focusRing)}>
+            <Link href="/comunidade/perfil" aria-label="Meu perfil" className={cx('ml-1 rounded-full', focusRing)}>
               <Avatar nome={me.nome} src={me.avatar} size={30} />
             </Link>
           )}
@@ -227,8 +227,8 @@ export function AppShell({ children }: { children: ReactNode }) {
               <Logo withName />
               <IconButton icon={X} label="Fechar menu" onClick={() => setDrawer(false)} />
             </div>
-            <div className="-mx-1 flex-1 overflow-y-auto px-1 pb-4">
-              <Navigation path={path} groups={groups} badges={badges} onNavigate={() => setDrawer(false)} onNotifications={() => setNotifOpen(true)} notificacoes={counts.notificacoes} />
+            <div className="-mx-1 min-h-0 flex-1 overflow-y-auto overscroll-contain px-1 pb-4">
+              <Navigation path={path} areas={areas} groups={groups} badges={badges} onNavigate={() => setDrawer(false)} onNotifications={() => setNotifOpen(true)} notificacoes={counts.notificacoes} />
             </div>
             <div className="border-t border-beon-line pt-3"><ProfileMenu full onPrefs={() => setPrefsOpen(true)} /></div>
           </div>
@@ -240,8 +240,8 @@ export function AppShell({ children }: { children: ReactNode }) {
         {!hidden && <aside className="sticky top-0 hidden h-dvh w-[76px] shrink-0 flex-col border-r border-beon-line bg-white px-3 py-5 md:flex xl:w-64">
           <div className="mb-5 flex justify-center xl:justify-start xl:px-2"><Logo /></div>
 
-          <div className="-mx-1 flex-1 overflow-y-auto px-1 [scrollbar-width:thin]">
-            <Navigation path={path} groups={groups} badges={badges} compact onNotifications={() => setNotifOpen(true)} notificacoes={counts.notificacoes} />
+          <div className="-mx-1 min-h-0 flex-1 overflow-y-auto overscroll-contain px-1 [scrollbar-width:thin]">
+            <Navigation path={path} areas={areas} groups={groups} badges={badges} compact onNotifications={() => setNotifOpen(true)} notificacoes={counts.notificacoes} />
 
             {topicos.length > 0 && (
               <div className="mt-5 hidden xl:block">
@@ -282,8 +282,9 @@ export function AppShell({ children }: { children: ReactNode }) {
       </div>
 
       {/* Navegação inferior — celular */}
-      {!hidden && <nav aria-label="Comunidade" className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t border-beon-line bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
-        {COMMUNITY_AREAS.map(item => {
+      {!hidden && <nav aria-label="Comunidade" className="fixed inset-x-0 bottom-0 z-30 grid border-t border-beon-line bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden"
+        style={{ gridTemplateColumns: `repeat(${areas.length}, minmax(0, 1fr))` }}>
+        {areas.map(item => {
           const active = isNavActive(path, item)
           const Icon = item.icon
           return (

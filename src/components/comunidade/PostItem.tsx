@@ -15,6 +15,7 @@ import {
   type CommunityComment, type CommunityPost,
 } from '@/lib/community/model'
 import { api, BASE_PATH, errorMessage } from './api'
+import { AUTOMACAO_SINAIS, ehAutomacaoDeSinais } from '@/lib/community/automacao'
 import { useCommunity } from './CommunityProvider'
 import { dataHora, tempoRelativo } from './format'
 import { Avatar, Button, Dialog, Skeleton, cx, focusRing, inputClass } from '@/components/ui'
@@ -89,6 +90,7 @@ function PostMenu({ post, onDelete }: { post: CommunityPost; onDelete: () => voi
   }, [open])
   const canDelete = !!me && (me.username === post.authorUsername || me.role === 'admin')
   const isMine = me?.username === post.authorUsername
+  const automacao = ehAutomacaoDeSinais(post.authorUsername)
   const item = cx('flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm text-beon-body hover:bg-beon-soft hover:text-beon-ink', focusRing)
   return (
     <div ref={ref} className="relative">
@@ -98,10 +100,16 @@ function PostMenu({ post, onDelete }: { post: CommunityPost; onDelete: () => voi
       </button>
       {open && (
         <div role="menu" className="absolute right-0 top-full z-20 mt-1 w-56 rounded-xl border border-beon-line bg-white p-1.5 shadow-xl">
-          <Link role="menuitem" href={`/comunidade/pessoas/${encodeURIComponent(post.authorUsername)}`} className={item}>
-            <UserRound className="h-4 w-4" aria-hidden /> {isMine ? 'Ver meu perfil' : 'Ver perfil'}
-          </Link>
-          {!isMine && (
+          {automacao ? (
+            <Link role="menuitem" href={AUTOMACAO_SINAIS.href} className={item}>
+              <UserRound className="h-4 w-4" aria-hidden /> Abrir o Radar OSINT
+            </Link>
+          ) : (
+            <Link role="menuitem" href={`/comunidade/pessoas/${encodeURIComponent(post.authorUsername)}`} className={item}>
+              <UserRound className="h-4 w-4" aria-hidden /> {isMine ? 'Ver meu perfil' : 'Ver perfil'}
+            </Link>
+          )}
+          {!isMine && !automacao && (
             <button role="menuitem" type="button" className={item} onClick={() => router.push(`/comunidade/mensagens?com=${encodeURIComponent(post.authorUsername)}`)}>
               <MessageCircle className="h-4 w-4" aria-hidden /> Enviar mensagem
             </button>
@@ -323,7 +331,8 @@ export function PostItem({ post, detail, onTopic }: { post: CommunityPost; detai
     }
   }
 
-  const perfil = `/comunidade/pessoas/${encodeURIComponent(post.authorUsername)}`
+  const automacao = ehAutomacaoDeSinais(post.authorUsername)
+  const perfil = automacao ? AUTOMACAO_SINAIS.href : `/comunidade/pessoas/${encodeURIComponent(post.authorUsername)}`
   const subtitulo = autor?.especialidade || autor?.cargo || post.authorLab || autor?.laboratorio
 
   return (

@@ -15,6 +15,10 @@ export interface User {
   nome: string
   laboratorio: string
   avatar: string
+  /** E-mail de contato, editável em Meu perfil; também serve para entrar. */
+  email?: string
+  /** Área ou diretoria. */
+  area?: string
   createdAt: string
   active: boolean
   /** Cadastro feito pela tela de login que ainda espera a aprovação de um admin. */
@@ -30,6 +34,8 @@ export interface UserPublic {
   nome: string
   laboratorio: string
   avatar: string
+  email?: string
+  area?: string
   createdAt: string
   active: boolean
   status?: 'pendente'
@@ -152,7 +158,10 @@ export type LoginCheck = { user: User } | { pendente: true } | null
  * para os demais, a resposta é igual à de credenciais erradas.
  */
 export function checkLogin(username: string, password: string): LoginCheck {
-  const user = loadUsers().find(u => u.username.toLowerCase() === username.toLowerCase())
+  // Entra com o usuário de acesso ou com o e-mail cadastrado em Meu perfil.
+  const login = username.toLowerCase()
+  const users = loadUsers()
+  const user = users.find(u => u.username.toLowerCase() === login) ?? users.find(u => u.email?.toLowerCase() === login)
   const ok = verifyPassword(password, user?.passwordHash ?? DUMMY_HASH)
   if (!user || !ok) return null
   if (user.active) return { user }
@@ -255,7 +264,7 @@ export function requestSignup(input: SignupInput, id: string): 'criado' | 'exist
   if (users.filter(u => u.status === 'pendente').length >= MAX_PENDING_SIGNUPS) return 'lotado'
   saveUsers([...users, {
     id, username: input.email, passwordHash: hashPassword(input.password), role: 'community',
-    nome: input.nome, laboratorio: input.area, avatar: '', createdAt: new Date().toISOString(),
+    nome: input.nome, laboratorio: '', area: input.area, email: input.email, avatar: '', createdAt: new Date().toISOString(),
     active: false, status: 'pendente', ...(input.motivo ? { motivo: input.motivo } : {}),
   }])
   return 'criado'
