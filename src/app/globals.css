@@ -12,11 +12,20 @@
 
 html, body {
   max-width: 100vw;
-  overflow-x: hidden;
-  overflow-y: auto;
   background-color: #f0f0f0;
   font-family: 'Inter', system-ui, sans-serif;
   min-height: 100dvh;
+}
+
+/* Sem rolagem lateral. Só o <html> pode ter overflow "hidden" (ele vale para a janela): no <body>, "hidden" o tornaria
+   um contêiner de rolagem que nunca rola, e todo `position: sticky` (menu lateral, barras do topo) passaria a subir com
+   a página. "clip" corta igual, sem criar contêiner de rolagem. */
+html {
+  overflow-x: hidden;
+}
+
+body {
+  overflow-x: clip;
 }
 
 /* Modo de apresentação da Weekly — reaproveita a mesma classe .no-print já
