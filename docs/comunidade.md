@@ -39,6 +39,14 @@ Tudo o que é publicado é um `CommunityPost` (`src/lib/community/model.ts`), di
 | `stories.json` | `STORIES_FILE_PATH` | Stories editoriais (Admin › Stories) |
 | `avatars/` | `AVATARS_DIR` | Fotos de perfil enviadas em Meu perfil (servidas por `/api/community/avatar/[id]`) |
 
+## Sinais FT - beOn Labs (automação)
+
+Todo sinal encontrado pelo Radar OSINT (`$SIGNAL_VAULT_PATH/_export/signals.geojson`) vira uma publicação pública do
+tipo "sinal" no fórum, assinada por **Sinais FT - beOn Labs** (`src/lib/community/sinais-osint.ts`): título, detalhes,
+implicação, contexto e link da fonte, com dimensão e horizonte mapeados do OSINT e a data da varredura. A sincronização
+roda ao carregar o feed, no máximo a cada 5 minutos, e usa o id do sinal (`osint:<id>`), então nada se repete. Nos 7 dias
+seguintes, cada sinal também aparece como story (até 8 de uma vez). O nome da automação leva ao Radar OSINT.
+
 ## Cientista
 
 O chat inteligente vem do projeto [cientista-lab](https://github.com/danielFrancafatecspLabs/cientista-lab) (METAEXP, FastAPI).
