@@ -1,0 +1,14 @@
+[Unit]
+Description=Publish the OSINT app from Colab-Claro/signals-osint
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=azureuser
+Group=azureuser
+ExecStart=/usr/local/bin/osint-app-deploy
+TimeoutStartSec=15min
+
+[Install]
+WantedBy=multi-user.target
