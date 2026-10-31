@@ -227,7 +227,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               <Logo withName />
               <IconButton icon={X} label="Fechar menu" onClick={() => setDrawer(false)} />
             </div>
-            <div className="-mx-1 flex-1 overflow-y-auto px-1 pb-4">
+            <div className="-mx-1 min-h-0 flex-1 overflow-y-auto overscroll-contain px-1 pb-4">
               <Navigation path={path} areas={areas} groups={groups} badges={badges} onNavigate={() => setDrawer(false)} onNotifications={() => setNotifOpen(true)} notificacoes={counts.notificacoes} />
             </div>
             <div className="border-t border-beon-line pt-3"><ProfileMenu full onPrefs={() => setPrefsOpen(true)} /></div>
@@ -240,7 +240,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         {!hidden && <aside className="sticky top-0 hidden h-dvh w-[76px] shrink-0 flex-col border-r border-beon-line bg-white px-3 py-5 md:flex xl:w-64">
           <div className="mb-5 flex justify-center xl:justify-start xl:px-2"><Logo /></div>
 
-          <div className="-mx-1 flex-1 overflow-y-auto px-1 [scrollbar-width:thin]">
+          <div className="-mx-1 min-h-0 flex-1 overflow-y-auto overscroll-contain px-1 [scrollbar-width:thin]">
             <Navigation path={path} areas={areas} groups={groups} badges={badges} compact onNotifications={() => setNotifOpen(true)} notificacoes={counts.notificacoes} />
 
             {topicos.length > 0 && (
