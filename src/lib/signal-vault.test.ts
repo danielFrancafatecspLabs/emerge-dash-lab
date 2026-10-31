@@ -109,6 +109,31 @@ describe('loadSignalVault', () => {
     await expect(loadSignalDocument(vault, '../../etc/passwd')).rejects.toBeInstanceOf(SignalDocumentNotFoundError)
   })
 
+  it('only exposes analytical notes released as public', async () => {
+    await write('notes/2026-10-01-publica.md', `---
+title: Nota pública
+release: "public"
+date: 2026-10-01
+---
+Pública
+`)
+    await write('notes/2026-10-02-interna.md', `---
+title: Nota interna
+release: internal
+---
+Interna
+`)
+    await write('notes/2026-10-03-sem-release.md', `---
+title: Nota sem release
+---
+Rascunho
+`)
+    const vault = await loadSignalVault(root)
+    expect(vault.documents.filter(d => d.type === 'note').map(d => d.title)).toEqual(['Nota pública'])
+    await expect(loadSignalDocument(vault, 'notes/2026-10-02-interna.md')).rejects.toBeInstanceOf(SignalDocumentNotFoundError)
+    expect((await loadSignalDocument(vault, 'notes/2026-10-01-publica.md')).content).toBe('Pública')
+  })
+
   it('throws unavailable for a missing or empty vault', async () => {
     await expect(loadSignalVault(path.join(root, 'nope'))).rejects.toBeInstanceOf(SignalVaultUnavailableError)
     const empty = await mkdtemp(path.join(tmpdir(), 'signal-empty-'))
