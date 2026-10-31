@@ -27,6 +27,8 @@ npm-debug.log*
 data/community-profiles.json
 data/community-messages.json
 data/stories.json
+# Fotos de perfil enviadas em Meu perfil
+data/avatars/
 
 # Saídas de scripts
 public/comunidade/*

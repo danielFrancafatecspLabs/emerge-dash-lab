@@ -133,7 +133,7 @@ function ProfileMenu({ onPrefs, full }: { onPrefs: () => void; full?: boolean })
       </button>
       {open && (
         <div role="menu" className="absolute bottom-full left-0 z-40 mb-2 w-60 rounded-xl border border-beon-line bg-white p-1.5 shadow-xl">
-          <Link role="menuitem" href={`/comunidade/pessoas/${encodeURIComponent(me.username)}`} className={itemCls} onClick={() => setOpen(false)}>
+          <Link role="menuitem" href="/comunidade/perfil" className={itemCls} onClick={() => setOpen(false)}>
             <UserRound className="h-4 w-4" aria-hidden /> Meu perfil
           </Link>
           <button role="menuitem" type="button" className={itemCls} onClick={() => { setOpen(false); onPrefs() }}>
@@ -211,7 +211,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             {!!counts.mensagens && <CountBadge n={counts.mensagens} className="absolute -right-0.5 -top-0.5" />}
           </Link>
           {me && (
-            <Link href={`/comunidade/pessoas/${encodeURIComponent(me.username)}`} aria-label="Meu perfil" className={cx('ml-1 rounded-full', focusRing)}>
+            <Link href="/comunidade/perfil" aria-label="Meu perfil" className={cx('ml-1 rounded-full', focusRing)}>
               <Avatar nome={me.nome} src={me.avatar} size={30} />
             </Link>
           )}
