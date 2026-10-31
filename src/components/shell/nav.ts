@@ -4,7 +4,7 @@
 
 import {
   Activity, BarChart2, BookOpen, Bookmark, Bot, CalendarCheck, Compass, FileText, FlaskConical, GitCompareArrows, Home, Images, Library,
-  MessageCircle, Route, Target, Telescope, UserCog, Users, Wallet, type LucideIcon,
+  MessageCircle, Radar, Route, Target, UserCog, Users, Wallet, type LucideIcon,
 } from 'lucide-react'
 import type { AuthSessionRole } from '@/lib/auth/session'
 
@@ -33,8 +33,9 @@ const ADMIN: AuthSessionRole[] = ['admin']
 export const COMMUNITY_AREAS: NavItem[] = [
   { label: 'Início', short: 'Início', href: '/comunidade', icon: Home },
   { label: 'Cientista', short: 'Cientista', href: '/comunidade/cientista', icon: FlaskConical },
-  { label: 'Pesquisas', short: 'Pesquisas', href: '/comunidade/pesquisas', icon: BookOpen, also: ['/comunidade/experimentos'] },
-  { label: 'Future Thinking', short: 'Futuro', href: '/comunidade/future-thinking', icon: Telescope },
+  { label: 'Acervo de Pesquisas', short: 'Acervo', href: '/comunidade/pesquisas', icon: BookOpen, also: ['/comunidade/experimentos'] },
+  // O OSINT é só admin (lib/auth/access-policy): para os demais perfis o item não aparece.
+  { label: 'OSINT', short: 'OSINT', href: '/osint', icon: Radar, roles: ADMIN },
   { label: 'Trilha de Experimentação', short: 'Trilha', href: '/comunidade/trilha', icon: Route },
 ]
 
@@ -52,7 +53,8 @@ export const PORTAL_GROUPS: NavGroup[] = [
     items: [
       { label: 'Estratégia', href: '/estrategia', icon: Target, roles: ['admin', 'executivo', 'financeiro', 'viewer'] },
       { label: 'Operacional', href: '/operacional', icon: Activity, roles: ADMIN },
-      { label: 'Benefícios', href: '/beneficios', icon: Wallet, roles: ['admin', 'executivo', 'financeiro'] },
+      // A política de acesso deixa Benefícios só para admin; o menu segue a política.
+      { label: 'Benefícios', href: '/beneficios', icon: Wallet, roles: ADMIN },
       { label: 'Portfólio', href: '/portfolio', icon: BarChart2, roles: ADMIN },
       { label: 'Comparativo', href: '/comparativo', icon: GitCompareArrows, roles: ['admin', 'executivo', 'financeiro', 'viewer'] },
       { label: 'Exploração', href: '/exploracao', icon: Compass, roles: ADMIN },
@@ -67,9 +69,7 @@ export const PORTAL_GROUPS: NavGroup[] = [
   },
   {
     label: 'Análises',
-    items: [
-      { label: 'Acervo de pesquisas', href: '/pesquisas', icon: Library, roles: ADMIN },
-    ],
+    items: [],
   },
   {
     label: 'Administração',
@@ -86,6 +86,11 @@ export function isNavActive(path: string, item: NavItem): boolean {
 }
 
 /** Grupos executivos e de administração visíveis para o perfil (nenhum enquanto o perfil não carrega). */
+/** Áreas da Comunidade que o perfil acessa. */
+export function communityAreasFor(role: AuthSessionRole | null | undefined): NavItem[] {
+  return COMMUNITY_AREAS.filter(i => !i.roles || (role && i.roles.includes(role)))
+}
+
 export function portalGroupsFor(role: AuthSessionRole | null | undefined): NavGroup[] {
   if (!role) return []
   return PORTAL_GROUPS
