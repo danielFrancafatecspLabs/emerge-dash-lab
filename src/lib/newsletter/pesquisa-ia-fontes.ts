@@ -1,4 +1,6 @@
-import { comCache } from '@/lib/cache-dados'
+import fs from 'fs'
+import path from 'path'
+import { comCache, diretorioDoCache } from '@/lib/cache-dados'
 import {
   DESTAQUES, PESQUISADORES, consultaDosPesquisadores, fotoDaWikipedia, lerArxiv, papersDoHuggingFace, papersPorPesquisador,
   type DadosDePesquisa, type FotoDoPesquisador,
@@ -8,7 +10,8 @@ import {
 // As leituras ficam em cache (renovadas a cada 6 horas; fotos a cada 7 dias). Se uma fonte falhar, segue o que foi lido
 // da última vez.
 
-const UA = 'beOnLabs-Radar/1.0 (newsletter interna de tecnologia)'
+// A Wikimedia pede um User-Agent que identifique quem chama (com um endereço de contato), senão pode recusar.
+const UA = 'beOnLabs-Radar/1.0 (+https://github.com/danielFrancafatecspLabs/emerge-dash-lab; newsletter interna de tecnologia)'
 
 async function buscar(url: string, aceitar: string, timeoutMs = 15_000): Promise<string> {
   const controller = new AbortController()
@@ -98,4 +101,51 @@ export function dadosDePesquisa(): Promise<DadosDePesquisa> {
   return comCache('radar-pesquisa-ia', anterior => lerFontes(anterior), {
     frescoPorMs: 6 * 3600_000, maximoObsoletoMs: 7 * 86_400_000, esperaAposFalhaMs: 30 * 60_000,
   })
+}
+
+// ── Fotos servidas pelo próprio app ─────────────────────────────────────────────────────────
+// O servidor baixa a foto uma vez e guarda em disco: quem abre a newsletter não precisa alcançar a Wikimedia (redes
+// corporativas costumam bloquear), e a Wikimedia recebe uma visita por foto, não uma por pessoa.
+
+const LIMITE_DA_FOTO = 3_000_000
+const falhasDeFoto = new Map<string, number>()
+
+export interface ImagemGuardada { bytes: Buffer; tipo: string }
+
+const pastaDasFotos = () => path.join(diretorioDoCache(), 'pesquisadores')
+
+export async function fotoGuardada(id: string): Promise<ImagemGuardada | null> {
+  if (!PESQUISADORES.some(p => p.id === id)) return null
+  const foto = (await dadosDePesquisa()).fotos[id]
+  if (!foto) return null
+  const base = path.join(pastaDasFotos(), id)
+  try {
+    const meta = JSON.parse(fs.readFileSync(`${base}.json`, 'utf-8')) as { url: string; tipo: string }
+    if (meta.url === foto.url) return { bytes: fs.readFileSync(`${base}.img`), tipo: meta.tipo }
+  } catch { /* ainda não guardada */ }
+
+  const falhou = falhasDeFoto.get(id)
+  if (falhou && Date.now() - falhou < 3600_000) return null
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), 10_000)
+  try {
+    const res = await fetch(foto.url, { signal: controller.signal, cache: 'no-store', redirect: 'follow', headers: { 'User-Agent': UA, Accept: 'image/*' } })
+    const tipo = res.headers.get('content-type') ?? ''
+    if (!res.ok || !/^image\/(jpeg|png|webp|gif|svg\+xml)/i.test(tipo)) throw new Error(`HTTP ${res.status} ${tipo}`)
+    const bytes = Buffer.from(await res.arrayBuffer())
+    if (bytes.length > LIMITE_DA_FOTO) throw new Error('foto grande demais')
+    try {
+      fs.mkdirSync(pastaDasFotos(), { recursive: true })
+      fs.writeFileSync(`${base}.img`, bytes)
+      fs.writeFileSync(`${base}.json`, JSON.stringify({ url: foto.url, tipo }))
+    } catch { /* sem disco: serve sem guardar */ }
+    falhasDeFoto.delete(id)
+    return { bytes, tipo }
+  } catch (err) {
+    console.warn(`[pesquisa-ia] foto de ${id} indisponível:`, String(err))
+    falhasDeFoto.set(id, Date.now())
+    return null
+  } finally {
+    clearTimeout(timer)
+  }
 }
