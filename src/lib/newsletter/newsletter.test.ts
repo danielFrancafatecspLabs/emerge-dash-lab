@@ -37,7 +37,7 @@ describe('newsletter', () => {
     expect(classificar('Nvidia stock hits record as AI chip demand explodes', 'hyperscalers raised capex guidance; market cap tops $5 trillion')).toBe('mercado')
     expect(classificar('Receita de bolo de cenoura', '')).toBeNull()
     expect(classificar('Ibovespa fecha em alta com bancos', 'ações de bancos sobem')).toBeNull()
-    expect(classificar('Anatel libera espectro para Open RAN', 'teste de conectividade em redes móveis')).toBe('emergentes')
+    expect(classificar('Anatel prepara leilão de espectro para Open RAN', 'teste de conectividade em redes móveis')).toBe('emergentes')
   })
 
   it('monta a edição: recentes, sem duplicatas, só do tema', () => {
