@@ -2,7 +2,8 @@
 
 // beOn Radar: a newsletter diária de tecnologias emergentes, mercado e bolsa, bolhas e impactos, montada a partir de
 // fontes públicas. Capa com a manchete e a pauta do dia, briefing em tela cheia, termômetro da edição e as seções em
-// trilhos. Cada notícia leva ao site de origem. As peças visuais estão em src/components/newsletter.
+// trilhos, os tópicos especiais e a Pesquisa em IA (pesquisadores e papers). Cada notícia leva ao site de origem.
+// As peças visuais estão em src/components/newsletter.
 
 import Link from 'next/link'
 import { useCallback, useEffect, useMemo, useState } from 'react'
@@ -16,6 +17,7 @@ import { BotaoAlertas } from '@/components/newsletter/Alertas'
 import { FaixaDaBolsa, ReguaDoMercado, useBolsa } from '@/components/newsletter/Bolsa'
 import { Briefing } from '@/components/newsletter/Briefing'
 import { Capa } from '@/components/newsletter/Capa'
+import { SecaoPesquisaIA, usePesquisaIA } from '@/components/newsletter/PesquisaIA'
 import { NavegacaoDeSecoes, TermometroDoDia, TrilhoDaSecao } from '@/components/newsletter/Secoes'
 import { TopicosEspeciais } from '@/components/newsletter/Topicos'
 import { useLeituraDoRadar } from '@/components/newsletter/useLeituraDoRadar'
@@ -30,6 +32,7 @@ export default function NewsletterPage() {
   const [ativa, setAtiva] = useState<Secao | null>(null)
   const { lidas, marcarLida, ehNova } = useLeituraDoRadar()
   const bolsa = useBolsa()
+  const pesquisa = usePesquisaIA()
   const { posts } = useCommunity()
   // Discussão de cada notícia no fórum (aberta pela automação do Radar), pelo id da notícia.
   const discussoes = useMemo(() => new Map((posts.data ?? [])
@@ -127,7 +130,11 @@ export default function NewsletterPage() {
         <TopicosEspeciais noticias={edicao.noticias} lidas={lidas} ehNova={ehNova} onAbrir={marcarLida} discussoes={discussoes} />
       </div>
 
-      <div className="mt-10">
+      <div className="mt-14">
+        <SecaoPesquisaIA painel={pesquisa.painel} erro={pesquisa.erro} />
+      </div>
+
+      <div className="mt-12">
         <NavegacaoDeSecoes grupos={grupos} ativa={ativa} onIrPara={irPara} />
       </div>
 
