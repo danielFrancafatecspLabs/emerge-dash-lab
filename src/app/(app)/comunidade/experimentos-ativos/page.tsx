@@ -6,15 +6,19 @@
 
 import { Suspense, useCallback, useEffect, useMemo, useState } from 'react'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
-import { ArrowRight, FileText, Search, X } from 'lucide-react'
+import { ArrowRight, FileText, Mail, Search, SearchX, X } from 'lucide-react'
 import type { ExperimentoDetalhado, FaseDoExperimento, LinksDoExperimento } from '@/lib/community/experimentos-ativos'
 import { api, errorMessage } from '@/components/comunidade/api'
 import { CardDoExperimento, DetalheDoExperimento, FASE } from '@/components/comunidade/experimentos/Experimento'
 import { JiraIndisponivel } from '@/components/jira/JiraIndisponivel'
 import { LeituraDoJira } from '@/components/jira/LeituraDoJira'
+import { CONTATOS_DO_JIRA } from '@/lib/jira-contatos'
 import { Skeleton, cx, focusRing } from '@/components/ui'
 
 interface Resposta { itens: ExperimentoDetalhado[]; atualizadoEm: string | null; podeEditarLinks: boolean }
+
+/** Quem procurar quando um experimento não aparece na lista. */
+const RESPONSAVEL = CONTATOS_DO_JIRA[0]
 
 const sem = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
 
@@ -188,7 +192,29 @@ function Pagina() {
         )}
       </div>
 
-      <section className="mt-12 grid gap-4 rounded-[28px] bg-beon-soft p-6 sm:grid-cols-[auto_1fr] sm:items-center sm:p-8">
+      {/* Quem não achou o próprio experimento sabe a quem recorrer. */}
+      <section aria-labelledby="t-nao-encontrou" className="relative mt-12 overflow-hidden rounded-[32px] border border-beon-red/20 bg-beon-tint px-6 py-9 sm:px-12 sm:py-12">
+        <div className="pointer-events-none absolute -right-16 -top-20 h-64 w-64 rounded-full bg-white/60 blur-2xl" aria-hidden />
+        <div className="relative grid gap-6 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
+          <div className="flex gap-5">
+            <span className="hidden h-16 w-16 shrink-0 items-center justify-center rounded-3xl bg-white text-beon-red shadow-sm sm:flex"><SearchX className="h-8 w-8" aria-hidden /></span>
+            <div>
+              <h2 id="t-nao-encontrou" className="text-[28px] font-extrabold leading-tight tracking-tight text-beon-ink sm:text-[36px]">
+                Não encontrou seu experimento por aqui?
+              </h2>
+              <p className="mt-2 max-w-2xl text-[17px] leading-relaxed text-beon-body sm:text-lg">
+                Por gentileza, entre em contato com <strong className="font-bold text-beon-ink">{RESPONSAVEL.nome}</strong>.
+              </p>
+            </div>
+          </div>
+          <a href={`mailto:${RESPONSAVEL.email}?subject=${encodeURIComponent('Meu experimento não aparece em Experimentos ativos')}`}
+            className={cx('inline-flex h-14 items-center justify-center gap-2.5 rounded-full bg-beon-red px-7 text-[16px] font-bold text-white shadow-lg shadow-beon-red/20 transition-transform hover:-translate-y-0.5 hover:bg-beon-redhi', focusRing)}>
+            <Mail className="h-5 w-5" aria-hidden />{RESPONSAVEL.email}
+          </a>
+        </div>
+      </section>
+
+      <section className="mt-6 grid gap-4 rounded-[28px] bg-beon-soft p-6 sm:grid-cols-[auto_1fr] sm:items-center sm:p-8">
         <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-beon-red shadow-sm"><FileText className="h-6 w-6" aria-hidden /></span>
         <div>
           <p className="font-bold text-beon-ink">De onde vêm esses dados</p>
