@@ -1,8 +1,8 @@
 'use client'
 
-// Fronteira da IA no beOn Radar: a galeria de retratos dos pesquisadores para acompanhar (no canto direito de cada
-// retrato, se há algo novo dele) e os papers em alta do dia. Clicar no retrato abre o perfil com as novidades, a linha
-// do tempo de papers e as notícias.
+// Fronteira da tecnologia no beOn Radar: a galeria de retratos de quem move a IA e as demais tecnologias emergentes
+// dos tópicos especiais (no canto direito de cada retrato, se há algo novo da pessoa), com filtro por área, e os papers
+// de cada área. Clicar no retrato abre o perfil com as novidades, a linha do tempo de papers e as notícias.
 //
 // Foto, em camadas: a cópia que o servidor baixou da Wikipedia (servida pelo próprio app), o endereço original na
 // Wikimedia, a busca direto do navegador na Wikipedia e, por fim, um retrato gráfico com as iniciais.
@@ -10,15 +10,16 @@
 import Link from 'next/link'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { ArrowUpRight, BookOpen, FileText, MessageSquare, Newspaper, Share2, Sparkles, Star, ThumbsUp, X, type LucideIcon } from 'lucide-react'
+import { ArrowUpRight, BookOpen, BrainCircuit, FileText, MessageSquare, Newspaper, Share2, Sparkles, Star, ThumbsUp, X, type LucideIcon } from 'lucide-react'
 import {
-  compartilhamentosDe, ehAutor,
-  type Compartilhamento, type Novidade, type PainelDePesquisa, type Paper, type PesquisadorNoRadar,
+  AREAS, compartilhamentosDe, ehAutor, nomeCurtoDaArea, nomeDaArea,
+  type AreaId, type Compartilhamento, type Novidade, type PainelDePesquisa, type Paper, type PesquisadorNoRadar,
 } from '@/lib/newsletter/pesquisa-ia'
 import { BASE_PATH, api, errorMessage } from '@/components/comunidade/api'
 import { useCommunity } from '@/components/comunidade/CommunityProvider'
 import { tempoRelativo } from '@/components/comunidade/format'
 import { Skeleton, cx, focusRing, iniciais } from '@/components/ui'
+import { IDENTIDADE_DO_TOPICO } from './Topicos'
 
 export function usePesquisaIA() {
   const [painel, setPainel] = useState<PainelDePesquisa | null>(null)
@@ -50,6 +51,9 @@ const TIPO: Record<Item['tipo'], { rotulo: string; icone: LucideIcon; cor: strin
   compartilhado: { rotulo: 'Compartilhado aqui', icone: Share2, cor: '#0E7490', suave: '#ECFEFF' },
   noticia: { rotulo: 'Nas notícias', icone: Newspaper, cor: '#1E3A5F', suave: '#EEF2F7' },
 }
+
+/** Ícone e cores de cada área (as dos tópicos especiais; IA com a cor da marca). */
+const identidadeDaArea = (id: AreaId) => id === 'ia' ? { icone: BrainCircuit, cor: '#D31809', suave: '#FDF1F0' } : IDENTIDADE_DO_TOPICO[id]
 
 const chaveDe = (p: PesquisadorNoRadar, i: Item) => `${p.id}|${i.tipo}|${i.link}`
 const dataCurta = (iso: string | null) => iso ? new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' }).replace(/ de /g, ' ').replace('.', '') : ''
@@ -172,10 +176,14 @@ function CartaoDoPesquisador({ p, itens, novos, onAbrir }: { p: PesquisadorNoRad
       <span className="absolute inset-0 bg-gradient-to-t from-black/95 from-5% via-black/65 via-45% to-black/0 to-80%" aria-hidden />
       <span className="absolute right-2.5 top-2.5"><SeloDeNovidade itens={itens} novos={novos} /></span>
       <span className="absolute inset-x-0 bottom-0 p-3.5 sm:p-4">
+        <span className="mb-1 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.12em] text-white/75">
+          <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: identidadeDaArea(p.area).cor, boxShadow: '0 0 0 2px rgba(255,255,255,.35)' }} aria-hidden />
+          <span className="truncate">{nomeCurtoDaArea(p.area)}</span>
+        </span>
         <span className="block text-[17px] font-extrabold leading-tight tracking-tight text-white">{p.nome}</span>
-        <span className="mt-1 line-clamp-2 block text-[11.5px] leading-snug text-white/70">{p.conhecidoPor}</span>
+        <span className="mt-1 line-clamp-2 text-[11.5px] leading-snug text-white/70">{p.conhecidoPor}</span>
         {ultima && (
-          <span className="mt-2.5 line-clamp-2 block border-t border-white/15 pt-2 text-[11px] leading-snug text-white/90">
+          <span className="mt-2.5 line-clamp-2 border-t border-white/15 pt-2 text-[11px] leading-snug text-white/90">
             {ultima.em && <b className="font-bold text-white">{tempoRelativo(ultima.em)} · </b>}{ultima.titulo}
           </span>
         )}
@@ -245,7 +253,7 @@ function PaperPrincipal({ paper, pesquisadores, fonte, onAbrir }: { paper: Paper
         <CapaDoPaper paper={paper} />
         <span className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" aria-hidden />
         <span className="absolute left-4 top-4 inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1 text-xs font-extrabold text-beon-ink shadow">
-          <Sparkles className="h-3.5 w-3.5 text-beon-red" aria-hidden />{fonte === 'huggingface' ? 'Nº 1 em alta hoje' : 'Mais recente'}
+          <Sparkles className="h-3.5 w-3.5 text-beon-red" aria-hidden />{fonte === 'huggingface' ? 'Nº 1 em alta hoje' : 'Mais recente no arXiv'}
         </span>
         {paper.votos !== undefined && (
           <span className="absolute bottom-4 left-4 inline-flex items-baseline gap-1.5 text-white">
@@ -300,11 +308,30 @@ function PaperDaLista({ paper, posicao, maximo, pesquisadores, onAbrir }: { pape
 
 // ── Seção ───────────────────────────────────────────────────────────────────────────────────
 
+type Filtro = 'todos' | 'novidade' | AreaId
+const NA_PRIMEIRA_VISTA = 12
+
+/** Papers mais recentes do arXiv numa área (lidos só quando a área é aberta). */
+function usePapersDaArea(area: AreaId) {
+  const [porArea, setPorArea] = useState<Partial<Record<AreaId, Paper[] | 'erro'>>>({})
+  useEffect(() => {
+    if (area === 'ia' || porArea[area]) return
+    let vivo = true
+    api<{ papers: Paper[] }>(`/community/newsletter/pesquisa/papers?area=${area}`)
+      .then(r => { if (vivo) setPorArea(m => ({ ...m, [area]: r.papers })) })
+      .catch(() => { if (vivo) setPorArea(m => ({ ...m, [area]: 'erro' })) })
+    return () => { vivo = false }
+  }, [area, porArea])
+  return porArea[area]
+}
+
 export function SecaoPesquisaIA({ painel, erro }: { painel: PainelDePesquisa | null; erro: string | null }) {
   const { posts } = useCommunity()
   const { vistas, marcar } = useVistas()
   const [aberto, setAberto] = useState<string | null>(null)
-  const [soNovidades, setSoNovidades] = useState(false)
+  const [filtro, setFiltro] = useState<Filtro>('todos')
+  const [todas, setTodas] = useState(false)
+  const [areaDosPapers, setAreaDosPapers] = useState<AreaId>('ia')
 
   const linhas = useMemo(() => (painel?.pesquisadores ?? []).map(p => {
     const itens = itensDe(p, compartilhamentosDe(p, painel?.destaques ?? [], posts.data ?? []))
@@ -313,7 +340,16 @@ export function SecaoPesquisaIA({ painel, erro }: { painel: PainelDePesquisa | n
   // Quem tem algo ainda não visto vem primeiro; depois quem tem novidade; depois a ordem do servidor.
   const ordenadas = useMemo(() => [...linhas].sort((a, b) => Number(b.novos > 0) - Number(a.novos > 0) || Number(b.itens.length > 0) - Number(a.itens.length > 0)), [linhas])
   const comNovidade = linhas.filter(l => l.itens.length).length
-  const visiveis = soNovidades ? ordenadas.filter(l => l.itens.length) : ordenadas
+  const areasComGente = AREAS.filter(a => linhas.some(l => l.p.area === a.id))
+  const filtradas = filtro === 'todos' ? ordenadas : filtro === 'novidade' ? ordenadas.filter(l => l.itens.length) : ordenadas.filter(l => l.p.area === filtro)
+  const visiveis = filtro === 'todos' && !todas ? filtradas.slice(0, NA_PRIMEIRA_VISTA) : filtradas
+  const areasDePapers = AREAS.filter(a => a.id === 'ia' || a.arxiv)
+
+  function escolherFiltro(f: Filtro) {
+    setFiltro(f)
+    // A área escolhida na galeria também abre os papers dela.
+    if (f !== 'todos' && f !== 'novidade' && areasDePapers.some(a => a.id === f)) setAreaDosPapers(f)
+  }
 
   // Link direto para um pesquisador: /comunidade/newsletter?pesquisador=hinton
   useEffect(() => {
@@ -335,8 +371,15 @@ export function SecaoPesquisaIA({ painel, erro }: { painel: PainelDePesquisa | n
   }, [linhas, marcar])
 
   const selecionada = linhas.find(l => l.p.id === aberto)
-  const [principal, ...demais] = painel?.destaques ?? []
-  const maximo = Math.max(0, ...(painel?.destaques ?? []).map(d => d.votos ?? 0))
+  const daArea = usePapersDaArea(areaDosPapers)
+  const papers = areaDosPapers === 'ia' ? painel?.destaques ?? [] : Array.isArray(daArea) ? daArea : []
+  const carregandoPapers = areaDosPapers !== 'ia' && daArea === undefined
+  const fonteDosPapers: PainelDePesquisa['destaquesFonte'] = areaDosPapers === 'ia' ? painel?.destaquesFonte ?? null : 'arxiv'
+  const [principal, ...demais] = papers
+  const maximo = Math.max(0, ...papers.map(d => d.votos ?? 0))
+
+  const chip = (ativo: boolean) => cx('inline-flex h-9 shrink-0 whitespace-nowrap items-center gap-1.5 rounded-full px-3.5 text-sm font-semibold transition-colors disabled:opacity-40', focusRing,
+    ativo ? 'bg-beon-ink text-white' : 'border border-beon-line bg-white text-beon-ink hover:bg-beon-soft')
 
   return (
     <section id="pesquisa-ia" aria-labelledby="t-pesquisa-ia" className="scroll-mt-36 md:scroll-mt-20">
@@ -344,14 +387,14 @@ export function SecaoPesquisaIA({ painel, erro }: { painel: PainelDePesquisa | n
         <div>
           <p className="inline-flex items-center gap-2 text-[12px] font-bold uppercase tracking-[0.16em] text-beon-red">
             <span className="relative flex h-2 w-2" aria-hidden><span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-beon-red/60 motion-reduce:hidden" /><span className="relative inline-flex h-2 w-2 rounded-full bg-beon-red" /></span>
-            Fronteira da IA
+            Fronteira da tecnologia
           </p>
           <h2 id="t-pesquisa-ia" className="mt-2 max-w-3xl text-[30px] font-black leading-[1.05] tracking-tight text-beon-ink sm:text-[44px]">
-            As mentes que estão desenhando o futuro da <span className="text-beon-red">inteligência artificial</span>
+            As mentes que estão desenhando o <span className="text-beon-red">futuro</span>
           </h2>
           <p className="mt-3 max-w-2xl text-[15px] leading-relaxed text-beon-body">
-            Quem está na fronteira da IA e o que publicou agora. No canto de cada retrato, a novidade: paper novo, paper em alta,
-            compartilhado na comunidade ou nas notícias.
+            Quem está na fronteira da IA, da computação quântica, dos carros autônomos, da robótica, da biotecnologia e das demais
+            tecnologias emergentes, e o que publicou agora. No canto de cada retrato, a novidade.
           </p>
         </div>
         {painel && (
@@ -361,8 +404,8 @@ export function SecaoPesquisaIA({ painel, erro }: { painel: PainelDePesquisa | n
               <dd className="mt-0.5 text-2xl font-black tabular-nums text-beon-ink">{comNovidade}<span className="text-sm font-bold text-beon-muted">/{linhas.length}</span></dd>
             </div>
             <div className="px-4 py-3 sm:px-5">
-              <dt className="text-[11px] font-semibold uppercase tracking-wide text-beon-muted">Papers em alta</dt>
-              <dd className="mt-0.5 text-2xl font-black tabular-nums text-beon-ink">{painel.destaques.length}</dd>
+              <dt className="text-[11px] font-semibold uppercase tracking-wide text-beon-muted">Áreas</dt>
+              <dd className="mt-0.5 text-2xl font-black tabular-nums text-beon-ink">{areasComGente.length}</dd>
             </div>
             <div className="px-4 py-3 sm:px-5">
               <dt className="text-[11px] font-semibold uppercase tracking-wide text-beon-muted">Janela</dt>
@@ -377,28 +420,28 @@ export function SecaoPesquisaIA({ painel, erro }: { painel: PainelDePesquisa | n
       )}
 
       {!painel && !erro && (
-        <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6" aria-busy="true" aria-label="Carregando pesquisadores e papers">
+        <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6" aria-busy="true" aria-label="Carregando pessoas e papers">
           {Array.from({ length: 6 }, (_, i) => <Skeleton key={i} className="aspect-[3/4] rounded-[22px]" />)}
         </div>
       )}
 
       {painel && (
         <>
-          <div className="mt-7 flex flex-wrap items-center justify-between gap-3">
-            <div className="flex gap-2" role="group" aria-label="Filtrar pesquisadores">
-              {[{ v: false, r: `Todos · ${linhas.length}` }, { v: true, r: `Com novidade · ${comNovidade}` }].map(f => (
-                <button key={String(f.v)} type="button" aria-pressed={soNovidades === f.v} onClick={() => setSoNovidades(f.v)} disabled={f.v && !comNovidade}
-                  className={cx('h-9 rounded-full px-4 text-sm font-semibold transition-colors disabled:opacity-40', focusRing,
-                    soNovidades === f.v ? 'bg-beon-ink text-white' : 'border border-beon-line bg-white text-beon-ink hover:bg-beon-soft')}>
-                  {f.r}
+          <div className="-mx-4 mt-7 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0" role="group" aria-label="Filtrar por área">
+            <button type="button" aria-pressed={filtro === 'todos'} onClick={() => escolherFiltro('todos')} className={chip(filtro === 'todos')}>Todas <span className={filtro === 'todos' ? 'text-white/70' : 'text-beon-muted'}>{linhas.length}</span></button>
+            <button type="button" aria-pressed={filtro === 'novidade'} onClick={() => escolherFiltro('novidade')} disabled={!comNovidade} className={chip(filtro === 'novidade')}>
+              <span className="h-2 w-2 rounded-full bg-beon-red" aria-hidden />Com novidade <span className={filtro === 'novidade' ? 'text-white/70' : 'text-beon-muted'}>{comNovidade}</span>
+            </button>
+            {areasComGente.map(a => {
+              const id = identidadeDaArea(a.id)
+              const I = id.icone
+              return (
+                <button key={a.id} type="button" aria-pressed={filtro === a.id} onClick={() => escolherFiltro(a.id)} className={chip(filtro === a.id)}>
+                  <I className="h-4 w-4" style={{ color: filtro === a.id ? '#fff' : id.cor }} aria-hidden />
+                  {a.curto} <span className={filtro === a.id ? 'text-white/70' : 'text-beon-muted'}>{linhas.filter(l => l.p.area === a.id).length}</span>
                 </button>
-              ))}
-            </div>
-            <p className="flex flex-wrap gap-x-3.5 gap-y-1 text-[11px] text-beon-body">
-              {(Object.keys(TIPO) as Item['tipo'][]).map(t => (
-                <span key={t} className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-full" style={{ background: TIPO[t].cor }} aria-hidden />{TIPO[t].rotulo}</span>
-              ))}
-            </p>
+              )
+            })}
           </div>
 
           <ul className="-mx-4 mt-4 flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-px-4 px-4 pb-3 pt-2 [scrollbar-width:none] sm:mx-0 sm:grid sm:grid-cols-3 sm:gap-4 sm:overflow-visible sm:px-0 lg:grid-cols-4 xl:grid-cols-6">
@@ -409,28 +452,61 @@ export function SecaoPesquisaIA({ painel, erro }: { painel: PainelDePesquisa | n
             ))}
           </ul>
 
-          <div className="mt-12 flex flex-wrap items-end justify-between gap-2">
-            <div>
-              <h3 className="text-xl font-extrabold tracking-tight text-beon-ink sm:text-2xl">Papers em alta hoje</h3>
-              <p className="mt-0.5 text-sm text-beon-muted">
-                {painel.destaquesFonte === 'huggingface' ? 'Os mais votados do dia no Daily Papers do Hugging Face'
-                  : painel.destaquesFonte === 'arxiv' ? 'Os mais recentes do arXiv em IA, aprendizado de máquina e linguagem' : 'Sem destaques nesta leitura'}
-              </p>
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+            <p className="flex flex-wrap gap-x-3.5 gap-y-1 text-[11px] text-beon-body">
+              {(Object.keys(TIPO) as Item['tipo'][]).map(t => (
+                <span key={t} className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-full" style={{ background: TIPO[t].cor }} aria-hidden />{TIPO[t].rotulo}</span>
+              ))}
+            </p>
+            {filtro === 'todos' && filtradas.length > NA_PRIMEIRA_VISTA && (
+              <button type="button" onClick={() => setTodas(v => !v)} className={chip(false)}>
+                {todas ? 'Mostrar menos' : `Ver todas as ${filtradas.length} pessoas`}
+              </button>
+            )}
+          </div>
+
+          <div className="mt-12">
+            <h3 className="text-xl font-extrabold tracking-tight text-beon-ink sm:text-2xl">Papers da fronteira</h3>
+            <p className="mt-0.5 text-sm text-beon-muted">
+              {areaDosPapers === 'ia'
+                ? (fonteDosPapers === 'huggingface' ? 'IA: os mais votados do dia no Daily Papers do Hugging Face' : 'IA: os mais recentes do arXiv em IA, aprendizado de máquina e linguagem')
+                : `${nomeDaArea(areaDosPapers)}: os mais recentes do arXiv`}
+            </p>
+            <div className="-mx-4 mt-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0" role="tablist" aria-label="Área dos papers">
+              {areasDePapers.map(a => {
+                const id = identidadeDaArea(a.id)
+                const I = id.icone
+                const sel = areaDosPapers === a.id
+                return (
+                  <button key={a.id} type="button" role="tab" aria-selected={sel} onClick={() => setAreaDosPapers(a.id)}
+                    className={cx('inline-flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border px-3.5 text-sm font-semibold transition-colors', focusRing,
+                      sel ? 'border-transparent text-white' : 'border-beon-line bg-white text-beon-ink hover:bg-beon-soft')}
+                    style={sel ? { background: id.cor } : undefined}>
+                    <I className="h-4 w-4" style={{ color: sel ? '#fff' : id.cor }} aria-hidden />{a.curto}
+                  </button>
+                )
+              })}
             </div>
           </div>
 
-          {principal ? (
-            <div className="mt-4 grid items-start gap-5 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
-              <PaperPrincipal paper={principal} pesquisadores={painel.pesquisadores} fonte={painel.destaquesFonte} onAbrir={abrir} />
-              {demais.length > 0 && (
-                <ol start={2} className="divide-y divide-beon-line overflow-hidden rounded-[26px] border border-beon-line bg-white">
-                  {demais.map((x, i) => <PaperDaLista key={x.id} paper={x} posicao={i + 1} maximo={maximo} pesquisadores={painel.pesquisadores} onAbrir={abrir} />)}
-                </ol>
-              )}
-            </div>
-          ) : (
-            <p className="mt-4 rounded-[26px] border border-beon-line px-5 py-12 text-center text-sm text-beon-body">Os papers em alta não puderam ser lidos agora.</p>
-          )}
+          <div role="tabpanel" aria-label={`Papers de ${nomeDaArea(areaDosPapers)}`}>
+            {carregandoPapers ? (
+              <div className="mt-5 grid gap-5 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]" aria-busy="true">
+                <Skeleton className="h-[420px] rounded-[26px]" /><Skeleton className="h-[420px] rounded-[26px]" />
+              </div>
+            ) : principal ? (
+              <div className="mt-5 grid items-start gap-5 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
+                <PaperPrincipal paper={principal} pesquisadores={painel.pesquisadores} fonte={fonteDosPapers} onAbrir={abrir} />
+                {demais.length > 0 && (
+                  <ol start={2} className="divide-y divide-beon-line overflow-hidden rounded-[26px] border border-beon-line bg-white">
+                    {demais.map((x, i) => <PaperDaLista key={x.id} paper={x} posicao={i + 1} maximo={maximo} pesquisadores={painel.pesquisadores} onAbrir={abrir} />)}
+                  </ol>
+                )}
+              </div>
+            ) : (
+              <p className="mt-5 rounded-[26px] border border-beon-line px-5 py-12 text-center text-sm text-beon-body">Os papers desta área não puderam ser lidos agora.</p>
+            )}
+          </div>
 
           <p className="mt-4 text-xs leading-relaxed text-beon-muted">
             Papers do arXiv e do Daily Papers do Hugging Face; fotos da Wikipedia (Wikimedia Commons). Leitura {tempoRelativo(painel.atualizadoEm)}.
@@ -460,7 +536,7 @@ function PerfilDoPesquisador({ l, painel, onFechar }: { l: { p: PesquisadorNoRad
 
   const limite = Date.now() - painel.diasDeNovidade * 86_400_000
   const links = [
-    { rotulo: 'Papers no arXiv', href: `https://arxiv.org/search/?searchtype=author&query=${encodeURIComponent(p.nome)}` },
+    ...(p.nomesNoArxiv.length ? [{ rotulo: 'Papers no arXiv', href: `https://arxiv.org/search/?searchtype=author&query=${encodeURIComponent(p.nome)}` }] : []),
     { rotulo: 'Google Scholar', href: `https://scholar.google.com/scholar?q=${encodeURIComponent(`author:"${p.nome}"`)}` },
     { rotulo: 'Wikipedia', href: p.foto?.pagina || `https://en.wikipedia.org/wiki/${encodeURIComponent(p.wikipedia)}` },
   ]
@@ -477,7 +553,7 @@ function PerfilDoPesquisador({ l, painel, onFechar }: { l: { p: PesquisadorNoRad
             <X className="h-5 w-5" aria-hidden />
           </button>
           <div className="absolute inset-x-0 bottom-0 p-5 sm:p-7">
-            <p className="text-[12px] font-bold uppercase tracking-[0.16em] text-white/70">Fronteira da IA</p>
+            <p className="text-[12px] font-bold uppercase tracking-[0.16em] text-white/75">{nomeDaArea(p.area)}</p>
             <h2 id="t-pesquisador" className="mt-1 text-[34px] font-black leading-none tracking-tight text-white sm:text-[40px]">{p.nome}</h2>
             <p className="mt-2 max-w-md text-sm leading-relaxed text-white/80">{p.conhecidoPor}</p>
           </div>
@@ -552,7 +628,8 @@ function PerfilDoPesquisador({ l, painel, onFechar }: { l: { p: PesquisadorNoRad
               </ol>
             ) : (
               <p className="mt-3 rounded-2xl bg-beon-soft px-4 py-4 text-sm text-beon-body">
-                {painel.arxivDesde ? `Nenhum paper no arXiv desde ${dataCurta(painel.arxivDesde)}.` : 'Os papers do arXiv não puderam ser lidos agora.'}
+                {!p.nomesNoArxiv.length ? `${p.nome} não publica no arXiv: acompanhe pelas notícias do Radar e pelos links acima.`
+                  : painel.arxivDesde ? `Nenhum paper no arXiv desde ${dataCurta(painel.arxivDesde)}.` : 'Os papers do arXiv não puderam ser lidos agora.'}
               </p>
             )}
           </section>

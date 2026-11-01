@@ -2,8 +2,8 @@ import fs from 'fs'
 import path from 'path'
 import { comCache, diretorioDoCache } from '@/lib/cache-dados'
 import {
-  DESTAQUES, PESQUISADORES, consultaDosPesquisadores, fotoDaWikipedia, lerArxiv, papersDoHuggingFace, papersPorPesquisador,
-  type DadosDePesquisa, type FotoDoPesquisador,
+  AREAS, DESTAQUES, PESQUISADORES, consultaDosPesquisadores, fotoDaWikipedia, lerArxiv, papersDoHuggingFace, papersPorPesquisador,
+  type AreaId, type DadosDePesquisa, type FotoDoPesquisador, type Paper,
 } from './pesquisa-ia'
 
 // Leitura das fontes da Pesquisa em IA (só no servidor): arXiv, Daily Papers do Hugging Face e fotos da Wikipedia.
@@ -34,6 +34,15 @@ const bases = () => ({
 const consultaArxiv = (base: string, q: string, max: number) =>
   `${base}/api/query?search_query=${encodeURIComponent(q)}&sortBy=submittedDate&sortOrder=descending&max_results=${max}`
 
+// O arXiv pede no máximo uma chamada a cada 3 segundos: as chamadas daqui entram numa fila.
+let filaDoArxiv: Promise<unknown> = Promise.resolve()
+function buscarNoArxiv(url: string): Promise<string> {
+  const vez = filaDoArxiv.then(() => buscar(url, 'application/atom+xml'))
+  const intervalo = Number(process.env.RADAR_ARXIV_INTERVALO_MS ?? 3_000)
+  filaDoArxiv = vez.catch(() => undefined).then(() => new Promise(r => setTimeout(r, intervalo)))
+  return vez
+}
+
 const FOTOS_VALEM_MS = 7 * 86_400_000
 
 /** Lê as fontes. O que falhar fica com a leitura anterior. */
@@ -42,7 +51,7 @@ export async function lerFontes(anterior?: DadosDePesquisa, pesquisadores = PESQ
   const fontes: DadosDePesquisa['fontes'] = []
 
   const [arxiv, hf] = await Promise.all([
-    buscar(consultaArxiv(b.arxiv, consultaDosPesquisadores(pesquisadores), 300), 'application/atom+xml').then(lerArxiv).catch(err => {
+    buscarNoArxiv(consultaArxiv(b.arxiv, consultaDosPesquisadores(pesquisadores), 400)).then(lerArxiv).catch(err => {
       console.warn('[pesquisa-ia] arXiv indisponível:', String(err)); return null
     }),
     buscar(`${b.hf}/api/daily_papers?limit=50`, 'application/json').then(t => papersDoHuggingFace(JSON.parse(t))).catch(err => {
@@ -55,7 +64,7 @@ export async function lerFontes(anterior?: DadosDePesquisa, pesquisadores = PESQ
   let destaquesFonte: DadosDePesquisa['destaquesFonte'] = destaques ? 'huggingface' : null
   if (!destaques) {
     // Sem o Daily Papers: os mais recentes do arXiv em IA, aprendizado de máquina e linguagem.
-    const recentes = await buscar(consultaArxiv(b.arxiv, 'cat:cs.AI OR cat:cs.LG OR cat:cs.CL', DESTAQUES), 'application/atom+xml').then(lerArxiv).catch(() => null)
+    const recentes = await buscarNoArxiv(consultaArxiv(b.arxiv, 'cat:cs.AI OR cat:cs.LG OR cat:cs.CL', DESTAQUES)).then(lerArxiv).catch(() => null)
     if (recentes?.length) { destaques = recentes; destaquesFonte = 'arxiv' }
   }
   if (!destaques && anterior?.destaques.length) { destaques = anterior.destaques; destaquesFonte = anterior.destaquesFonte }
@@ -148,4 +157,18 @@ export async function fotoGuardada(id: string): Promise<ImagemGuardada | null> {
   } finally {
     clearTimeout(timer)
   }
+}
+
+// ── Papers de cada área (lidos só quando alguém abre a área) ───────────────────────────────
+
+export interface PapersDaArea { area: AreaId; papers: Paper[]; atualizadoEm: string }
+
+export function papersDaArea(area: AreaId): Promise<PapersDaArea> {
+  const consulta = AREAS.find(a => a.id === area)?.arxiv
+  if (!consulta) return Promise.resolve({ area, papers: [], atualizadoEm: new Date().toISOString() })
+  return comCache(`radar-pesquisa-area-${area}`, async () => {
+    const papers = lerArxiv(await buscarNoArxiv(consultaArxiv(bases().arxiv, consulta, DESTAQUES)))
+    if (!papers.length) throw new Error(`nenhum paper do arXiv em ${area}`)
+    return { area, papers, atualizadoEm: new Date().toISOString() }
+  }, { frescoPorMs: 12 * 3600_000, maximoObsoletoMs: 14 * 86_400_000, esperaAposFalhaMs: 30 * 60_000 })
 }

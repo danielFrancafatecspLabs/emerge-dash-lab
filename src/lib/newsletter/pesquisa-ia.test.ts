@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import type { Edicao, Noticia } from './edicao'
+import { TOPICOS_ESPECIAIS } from './topicos'
 import {
-  PESQUISADORES, citaPesquisador, compartilhamentosDe, consultaDosPesquisadores, ehAutor, fotoDaWikipedia, lerArxiv, montarPainel,
+  AREAS, PESQUISADORES, citaPesquisador, compartilhamentosDe, consultaDosPesquisadores, ehAutor, fotoDaWikipedia, lerArxiv, montarPainel,
   normalizarNome, papersDoHuggingFace, papersPorPesquisador, type DadosDePesquisa, type Paper,
 } from './pesquisa-ia'
 
@@ -54,12 +55,36 @@ describe('Pesquisa em IA: nomes', () => {
     expect(citaPesquisador(pq('lecun'), 'Yann LeCun deixa a Meta e funda startup')).toBe(true)
     expect(citaPesquisador(pq('ng'), 'A DeepLearning.AI, de Andrew Ng, lança curso')).toBe(true)
     expect(citaPesquisador(pq('ng'), 'Ng é a sigla de gás natural')).toBe(false)
-    expect(citaPesquisador(pq('dean'), 'James Dean ganha nova biografia')).toBe(false)
+    expect(citaPesquisador(pq('kurzweil'), 'Kurzweil prevê a singularidade para 2045')).toBe(true)
+  })
+
+  it('nome comum só conta na notícia com o contexto certo', () => {
+    expect(citaPesquisador(pq('baker'), 'David Baker, Nobel de Química, desenha proteínas com IA')).toBe(true)
+    expect(citaPesquisador(pq('baker'), 'David Baker é eleito vereador')).toBe(false)
+    expect(citaPesquisador(pq('fzhang'), 'Feng Zhang apresenta nova ferramenta CRISPR')).toBe(true)
+    expect(citaPesquisador(pq('lisasu'), 'Lisa Su apresenta novos chips da AMD')).toBe(true)
   })
 
   it('consulta todos os nomes de uma vez no arXiv', () => {
     const q = consultaDosPesquisadores()
     for (const p of PESQUISADORES) for (const n of p.nomesNoArxiv) expect(q).toContain(`au:"${n}"`)
+  })
+})
+
+describe('Fronteira: áreas', () => {
+  it('cobre a IA e todos os tópicos especiais, com gente em cada área e ids únicos', () => {
+    for (const t of TOPICOS_ESPECIAIS.filter(t => t.id !== 'ia-agentes')) expect(AREAS.some(a => a.id === t.id)).toBe(true)
+    for (const a of AREAS) expect(PESQUISADORES.some(p => p.area === a.id)).toBe(true)
+    expect(new Set(PESQUISADORES.map(p => p.id)).size).toBe(PESQUISADORES.length)
+    expect(PESQUISADORES.length).toBeGreaterThanOrEqual(25)
+  })
+
+  it('quem não publica no arXiv fica fora da consulta e nomes muito comuns não entram nela', () => {
+    const q = consultaDosPesquisadores()
+    expect(q).not.toContain('Lisa Su')
+    expect(q).not.toContain('Feng Zhang')
+    expect(q).not.toContain('David Baker')
+    expect(ehAutor(pq('fzhang'), 'Feng Zhang')).toBe(false)
   })
 })
 
