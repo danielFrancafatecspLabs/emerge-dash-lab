@@ -22,6 +22,13 @@ const AREAS: { titulo: string; texto: string; href: string; icone: LucideIcon }[
 
 const CRIADORES: { nome: string; papel: string; texto: string; temas: string[]; cor: string }[] = [
   {
+    nome: 'Daniel Frauches',
+    papel: 'Coordenação e governança',
+    texto: 'Coordenador responsável pela governança do beOn Labs, pelos processos de experimentação e pelo Future Thinking.',
+    temas: ['Governança', 'Processos de experimentação', 'Future Thinking'],
+    cor: 'from-amber-500 to-amber-800',
+  },
+  {
     nome: 'Daniel França Leite',
     papel: 'Experimentação, trilhas e indicadores',
     texto: 'Responsável pelo processo de experimentação, pelas trilhas e pelos indicadores do beOn Labs. Também é desenvolvedor full stack da plataforma.',
@@ -48,6 +55,13 @@ const CRIADORES: { nome: string; papel: string; texto: string; temas: string[]; 
     texto: 'Responsável pelo Future Thinking: sinais, tendências e reportes.',
     temas: ['Future Thinking', 'Sinais', 'Tendências', 'Reportes'],
     cor: 'from-teal-600 to-teal-900',
+  },
+  {
+    nome: 'Nayara Ribeiro',
+    papel: 'UX design',
+    texto: 'UX designer responsável por toda a UX da plataforma e pela aferição dos conteúdos disponíveis.',
+    temas: ['UX', 'Design', 'Aferição de conteúdo'],
+    cor: 'from-rose-500 to-rose-800',
   },
 ]
 
