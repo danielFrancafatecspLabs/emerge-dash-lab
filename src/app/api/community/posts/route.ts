@@ -3,6 +3,7 @@ import { getSessionUser } from '@/lib/auth/request'
 import { randomUUID } from 'crypto'
 import { loadPosts, savePosts } from '@/lib/community/posts-store'
 import { validatePostInput, type CommunityPost } from '@/lib/community/model'
+import { talvezSincronizarNoticiasRadar } from '@/lib/community/noticias-radar'
 import { talvezSincronizarSinaisOsint } from '@/lib/community/sinais-osint'
 import { isKnownTopic } from '@/lib/community/topics'
 import { badRequest, loadNormalizedPosts, unauthorized } from '@/lib/community/server'
@@ -13,6 +14,8 @@ export async function GET(request: NextRequest) {
   if (!await getSessionUser(request)) return unauthorized()
   // Sinais novos do Radar OSINT entram no fórum como publicações da automação "Sinais FT - beOn Labs".
   talvezSincronizarSinaisOsint()
+  // Notícias do beOn Radar viram discussões da automação "beOn Radar - Newsletter" (em segundo plano: o feed não espera).
+  talvezSincronizarNoticiasRadar()
   const posts = loadNormalizedPosts()
   posts.sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt))
   return NextResponse.json(posts)

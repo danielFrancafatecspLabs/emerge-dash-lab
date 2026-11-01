@@ -5,6 +5,7 @@ import { SECOES, type Edicao, type Noticia, type Secao } from '@/lib/newsletter/
 import { tempoRelativo } from '@/components/comunidade/format'
 import { cx, focusRing } from '@/components/ui'
 import { IDENTIDADE, IconeDaSecao, ImagemDaNoticia, MetaDaNoticia, SeloDaSecao } from './identidade'
+import { Repercussao } from './CardNoticia'
 
 /**
  * Capa da edição: a manchete em tela larga, com a pauta do dia ao lado ("Hoje no Radar", que leva a cada seção) e o
@@ -43,7 +44,7 @@ export function Capa({ edicao, manchete, porSecao, onBriefing, onAbrirManchete, 
             </div>
             <h1 className="mt-4 max-w-3xl text-[30px] font-extrabold leading-[1.04] tracking-tight sm:text-5xl lg:text-[56px]">{manchete.titulo}</h1>
             {manchete.resumo && <p className="mt-4 line-clamp-3 max-w-2xl text-base leading-relaxed text-white/80 sm:text-lg">{manchete.resumo}</p>}
-            <div className="mt-4"><MetaDaNoticia n={manchete} claro /></div>
+            <div className="mt-4 flex flex-wrap items-center gap-3"><MetaDaNoticia n={manchete} claro /><Repercussao n={manchete} claro /></div>
             <div className="mt-6 flex flex-wrap gap-3">
               <button type="button" onClick={onBriefing}
                 className={cx('inline-flex h-12 items-center gap-2.5 rounded-full bg-white pl-2 pr-5 text-sm font-bold text-beon-ink transition-transform hover:-translate-y-0.5', focusRing)}>

@@ -4,7 +4,7 @@
 // a repetem em todo lugar (selo, imagem da notícia, metadados), para a página inteira falar a mesma língua visual.
 
 import { useState } from 'react'
-import { Flame, Globe2, LineChart, Atom, type LucideIcon } from 'lucide-react'
+import { Flame, Globe2, LineChart, Atom, Rocket, type LucideIcon } from 'lucide-react'
 import { SECOES, idiomaDe, type Noticia, type Secao } from '@/lib/newsletter/edicao'
 import { tempoRelativo } from '@/components/comunidade/format'
 import { CoverArt, type CoverPattern } from '@/components/comunidade/visuals'
@@ -16,12 +16,13 @@ export interface IdentidadeDaSecao {
   suave: string
   icone: LucideIcon
   porQue: string
-  tone: 'red' | 'sky' | 'amber' | 'teal'
+  tone: 'red' | 'sky' | 'amber' | 'teal' | 'ink'
   pattern: CoverPattern
 }
 
 const BASE: Record<Secao, Omit<IdentidadeDaSecao, 'nome'>> = {
   emergentes: { cor: '#D31809', suave: '#FDF1F0', icone: Atom, tone: 'red', pattern: 'constelacao', porQue: 'O que pode virar produto, serviço ou ameaça nos próximos anos.' },
+  vale: { cor: '#3F6212', suave: '#F2F7E9', icone: Rocket, tone: 'ink', pattern: 'rede', porQue: 'O que as big techs e as startups estão lançando e onde o capital de risco está apostando.' },
   mercado: { cor: '#2F6FB3', suave: '#EEF4FB', icone: LineChart, tone: 'sky', pattern: 'dados', porQue: 'Para onde o dinheiro está indo: quem cresce, quem capta, quem vale mais.' },
   bolhas: { cor: '#b45309', suave: '#FEF6E7', icone: Flame, tone: 'amber', pattern: 'orbita', porQue: 'Sinais de euforia ou de excesso que pedem cautela antes de apostar.' },
   impactos: { cor: '#0f766e', suave: '#EAF6F4', icone: Globe2, tone: 'teal', pattern: 'ondas', porQue: 'O efeito da tecnologia no trabalho, nas regras, na energia e na sociedade.' },

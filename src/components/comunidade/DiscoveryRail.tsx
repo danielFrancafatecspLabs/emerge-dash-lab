@@ -78,17 +78,96 @@ function PersonRow({ m, detalhe, action }: { m: MemberPublic; detalhe: string; a
   )
 }
 
+const primeiroNome = (nome: string) => nome.split(' ')[0]
+const subtitulo = (m: MemberPublic) => m.especialidade || m.cargo || m.laboratorio || m.area
+
+/**
+ * Quem está por aqui: quem está ativo agora em destaque (fotos com anel verde), depois quem passou nas últimas 24 horas.
+ * Se ninguém passou no dia, mostra quem passou na semana, para o painel nunca ficar vazio à toa.
+ */
+function QuemEstaPorAqui({ lista, eu, carregando }: { lista: MemberPublic[]; eu?: string; carregando: boolean }) {
+  const { agora, recentes, janela } = useMemo(() => {
+    const outros = lista.filter(m => m.username !== eu && m.ultimoAcesso)
+      .sort((a, b) => Date.parse(b.ultimoAcesso!) - Date.parse(a.ultimoAcesso!))
+    const agora = outros.filter(m => m.ativoAgora)
+    const dia = outros.filter(m => !m.ativoAgora && Date.parse(m.ultimoAcesso!) > Date.now() - 86_400_000)
+    if (agora.length || dia.length) return { agora, recentes: dia.slice(0, 5), janela: 'hoje' as const }
+    return { agora, recentes: outros.filter(m => Date.parse(m.ultimoAcesso!) > Date.now() - 7 * 86_400_000).slice(0, 5), janela: 'semana' as const }
+  }, [lista, eu])
+
+  return (
+    <section className="overflow-hidden rounded-3xl border border-beon-line bg-white" aria-labelledby="t-quem">
+      <header className="flex items-center justify-between gap-2 px-4 pb-3 pt-4">
+        <h2 id="t-quem" className="flex items-center gap-2 text-[15px] font-bold text-beon-ink">
+          <span className="relative flex h-2.5 w-2.5" aria-hidden>
+            {agora.length > 0 && <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-60" />}
+            <span className={cx('relative inline-flex h-2.5 w-2.5 rounded-full', agora.length ? 'bg-emerald-500' : 'bg-beon-line')} />
+          </span>
+          Quem está por aqui
+        </h2>
+        <span className="text-xs font-medium text-beon-muted">
+          {agora.length ? `${agora.length} online` : janela === 'hoje' ? 'hoje' : 'nesta semana'}
+        </span>
+      </header>
+
+      {carregando ? (
+        <div className="flex gap-3 px-4 pb-4">{[0, 1, 2, 3].map(i => <Skeleton key={i} className="h-14 w-14 rounded-full" />)}</div>
+      ) : !agora.length && !recentes.length ? (
+        <div className="px-4 pb-5 text-center">
+          <div className="mx-auto flex w-fit -space-x-2" aria-hidden>
+            {['#FDE2DF', '#E0F2EF', '#E6EEF8'].map(c => <span key={c} className="h-10 w-10 rounded-full border-2 border-white" style={{ background: c }} />)}
+          </div>
+          <p className="mt-3 text-sm text-beon-body">Ninguém passou por aqui nos últimos dias.</p>
+          <Link href="/comunidade/pessoas" className={cx('mt-3 inline-flex h-9 items-center rounded-full bg-beon-ink px-4 text-[13px] font-semibold text-white', focusRing)}>
+            Conhecer as pessoas
+          </Link>
+        </div>
+      ) : (
+        <>
+          {agora.length > 0 && (
+            <ul className="flex gap-3 overflow-x-auto px-4 pb-4 [scrollbar-width:none]">
+              {agora.slice(0, 8).map(m => (
+                <li key={m.username} className="shrink-0">
+                  <Link href={`/comunidade/pessoas/${encodeURIComponent(m.username)}`} title={`${m.nome}${subtitulo(m) ? ` · ${subtitulo(m)}` : ''}`}
+                    className={cx('group flex w-14 flex-col items-center gap-1.5 rounded-2xl', focusRing)}>
+                    <span className="rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 p-[2.5px] transition-transform group-hover:scale-105">
+                      <span className="block rounded-full bg-white p-[2px]"><Avatar nome={m.nome} src={m.avatar} size={46} /></span>
+                    </span>
+                    <span className="w-full truncate text-center text-[11px] font-medium text-beon-body">{primeiroNome(m.nome)}</span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+          {recentes.length > 0 && (
+            <div className="border-t border-beon-line bg-beon-soft/40 px-2 py-2">
+              <p className="px-2 pb-1 pt-1 text-[11px] font-bold uppercase tracking-[0.1em] text-beon-muted">{janela === 'hoje' ? 'Passaram hoje' : 'Passaram nesta semana'}</p>
+              <ul>
+                {recentes.map(m => (
+                  <li key={m.username} className="group flex items-center gap-3 rounded-2xl px-2 py-2 hover:bg-white">
+                    <Link href={`/comunidade/pessoas/${encodeURIComponent(m.username)}`} className={cx('flex min-w-0 flex-1 items-center gap-3 rounded-xl', focusRing)}>
+                      <Avatar nome={m.nome} src={m.avatar} size={36} />
+                      <span className="min-w-0">
+                        <span className="block truncate text-sm font-semibold text-beon-ink">{m.nome}</span>
+                        <span className="block truncate text-xs text-beon-muted">{subtitulo(m) || 'Comunidade beOn Labs'}</span>
+                      </span>
+                    </Link>
+                    <span className="shrink-0 text-[11px] tabular-nums text-beon-muted group-hover:hidden">{tempoRelativo(m.ultimoAcesso!)}</span>
+                    <span className="hidden group-hover:block group-focus-within:block"><MessageLink username={m.username} nome={m.nome} /></span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </>
+      )}
+    </section>
+  )
+}
+
 export function DiscoveryRail() {
   const { me, members, posts } = useCommunity()
-  const lista = members.data ?? []
-
-  const ativos = useMemo(() => {
-    const dia = Date.now() - 86_400_000
-    return lista
-      .filter(m => m.username !== me?.username && m.ultimoAcesso && Date.parse(m.ultimoAcesso) > dia)
-      .sort((a, b) => Date.parse(b.ultimoAcesso!) - Date.parse(a.ultimoAcesso!))
-      .slice(0, 5)
-  }, [lista, me?.username])
+  const lista = useMemo(() => members.data ?? [], [members.data])
 
   const sugestoes = useMemo(() => (me ? sugerirPessoas(lista, {
     username: me.username,
@@ -106,22 +185,7 @@ export function DiscoveryRail() {
 
   return (
     <div className="space-y-8 pr-2">
-      <section>
-        <SectionTitle>Ativos recentemente</SectionTitle>
-        {members.loading && !members.data ? (
-          <div className="space-y-3">{[0, 1, 2].map(i => <Skeleton key={i} className="h-9 w-full" />)}</div>
-        ) : ativos.length === 0 ? (
-          <p className="text-sm text-beon-muted">Ninguém mais passou por aqui nas últimas 24 horas.</p>
-        ) : (
-          <ul className="space-y-3">
-            {ativos.map(m => (
-              <PersonRow key={m.username} m={m}
-                detalhe={m.ativoAgora ? 'Ativo agora' : `Visto ${tempoRelativo(m.ultimoAcesso!)}`}
-                action={<MessageLink username={m.username} nome={m.nome} />} />
-            ))}
-          </ul>
-        )}
-      </section>
+      <QuemEstaPorAqui lista={lista} eu={me?.username} carregando={members.loading && !members.data} />
 
       <section>
         <SectionTitle action={<Link href="/comunidade/pessoas" className="text-xs font-medium text-beon-muted hover:text-beon-ink">Ver todas</Link>}>

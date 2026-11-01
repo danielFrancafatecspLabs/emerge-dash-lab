@@ -1,20 +1,23 @@
 'use client'
 
-import { Suspense, useMemo, useState } from 'react'
+import { Fragment, Suspense, useMemo, useState } from 'react'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { BookOpen, FlaskConical, HelpCircle, Inbox, Radar, Search, X, Check, Plus } from 'lucide-react'
-import { FEED_FILTER_LABEL, filterFeed, matchesSearch, type FeedFilter, type PostKind } from '@/lib/community/model'
+import { FEED_FILTER_LABEL, filterFeed, intercalarAutomacoes, matchesSearch, type FeedFilter, type PostKind } from '@/lib/community/model'
 import { COMMUNITY_TOPICS, isKnownTopic } from '@/lib/community/topics'
 import { useCommunity } from '@/components/comunidade/CommunityProvider'
 import { PageColumns } from '@/components/comunidade/Page'
 import { DiscoveryRail } from '@/components/comunidade/DiscoveryRail'
 import { PostItem, PostSkeleton } from '@/components/comunidade/PostItem'
 import { StoriesRail } from '@/components/comunidade/Stories'
+import { Panorama } from '@/components/comunidade/panorama/Panorama'
 import { Avatar, Button, EmptyState, ErrorState, cx, focusRing, inputClass } from '@/components/ui'
 import { topicIcon } from '@/components/comunidade/visuals'
 
 const FILTROS = Object.keys(FEED_FILTER_LABEL) as FeedFilter[]
 const PAGE = 15
+/** O panorama (mundo, pesquisa, experimentos, OSINT) entra depois das primeiras discussões da comunidade. */
+const PANORAMA_DEPOIS_DE = 4
 
 const ATALHOS: { kind: PostKind; label: string; icon: typeof HelpCircle }[] = [
   { kind: 'pergunta', label: 'Pergunta', icon: HelpCircle },
@@ -55,8 +58,13 @@ function Feed() {
       topicosSeguidos: me.profile.topicosSeguidos,
       pessoasSeguidas: me.profile.pessoasSeguidas,
     })
-    return { ...r, posts: r.posts.filter(p => matchesSearch(p, busca)) }
+    // No "Para você", as discussões das pessoas ficam em cima; as automações entram intercaladas.
+    const ordenados = filtro === 'para-voce' ? intercalarAutomacoes(r.posts) : r.posts
+    return { ...r, posts: ordenados.filter(p => matchesSearch(p, busca)) }
   }, [me, posts.data, filtro, busca, topicoValido])
+
+  // Panorama só na home "pura": feed Para você, sem tópico nem busca.
+  const comPanorama = filtro === 'para-voce' && !topicoValido && !busca
 
   const escolher = (f: FeedFilter) => { setFiltro(f); setLimite(PAGE) }
   const limparTopico = () => router.push(pathname)
@@ -148,12 +156,13 @@ function Feed() {
           busca ? (
             <EmptyState icon={Search} title="Nada encontrado">Nenhuma publicação corresponde a “{busca}”.</EmptyState>
           ) : (
-            <EmptyState icon={Inbox} title={VAZIO[filtro][0]}
+            <><EmptyState icon={Inbox} title={VAZIO[filtro][0]}
               action={filtro === 'seguindo'
                 ? <Button variant="secondary" onClick={() => router.push('/comunidade/pessoas')}>Descobrir pessoas</Button>
                 : <Button variant="primary" onClick={() => openComposer({ kind: filtro === 'pesquisas' ? 'pesquisa' : filtro === 'experimentos' ? 'experimento' : filtro === 'sem-resposta' ? 'pergunta' : 'discussao' })}>Criar publicação</Button>}>
               {VAZIO[filtro][1]}
             </EmptyState>
+            {comPanorama && <Panorama />}</>
           )
         ) : (
           <>
@@ -162,8 +171,11 @@ function Feed() {
                 Ainda não há publicações dos seus interesses — mostrando as mais recentes.
               </p>
             )}
-            {resultado.posts.slice(0, limite).map(p => (
-              <PostItem key={p.id} post={p} onTopic={t => router.push(`${pathname}?topico=${t}`)} />
+            {resultado.posts.slice(0, limite).map((p, i) => (
+              <Fragment key={p.id}>
+                <PostItem post={p} onTopic={t => router.push(`${pathname}?topico=${t}`)} />
+                {comPanorama && i === Math.min(PANORAMA_DEPOIS_DE, resultado.posts.length) - 1 && <Panorama />}
+              </Fragment>
             ))}
             {resultado.posts.length > limite && (
               <div className="flex justify-center py-6">

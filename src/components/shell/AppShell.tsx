@@ -14,6 +14,7 @@ import { topicLabel } from '@/lib/community/topics'
 import { useCommunity } from '@/components/comunidade/CommunityProvider'
 import { Composer } from '@/components/comunidade/Composer'
 import { NotificationsDialog, NotificationPrefsDialog } from '@/components/comunidade/Notifications'
+import { EntradaDoRadar } from '@/components/newsletter/Alertas'
 import { Onboarding } from '@/components/comunidade/Onboarding'
 import { Toaster } from '@/components/comunidade/Toaster'
 import { topicIcon } from '@/components/comunidade/visuals'
@@ -184,6 +185,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     <>
       <Composer />
       <NotificationsDialog open={notifOpen} onClose={() => setNotifOpen(false)} />
+      <EntradaDoRadar />
       <NotificationPrefsDialog open={prefsOpen} onClose={() => setPrefsOpen(false)} />
       <Onboarding />
       <Toaster />
