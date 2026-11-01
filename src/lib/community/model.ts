@@ -1,4 +1,5 @@
 import { isHttpUrl } from '@/lib/validation/url'
+import { automacaoDe, ehAutomacaoDoRadar } from './automacao'
 
 // Modelo de dados e regras puras da Comunidade beOn Labs (feed, fórum, pesquisas e Future Thinking).
 // Tudo o que é publicado na Comunidade é um CommunityPost; o `kind` diferencia discussões,
@@ -193,6 +194,21 @@ export function filterFeed(posts: CommunityPost[], filter: FeedFilter, ctx: Feed
   }
 }
 
+/**
+ * Publicações das automações (notícias do Radar, sinais do OSINT) intercaladas com as das pessoas: no máximo uma a cada
+ * `cada` publicações de pessoas, para as discussões da comunidade ficarem em cima. Sobrando, vão para o fim, na ordem.
+ */
+export function intercalarAutomacoes<T extends Pick<CommunityPost, 'authorUsername'>>(posts: T[], cada = 3): T[] {
+  const pessoas = posts.filter(p => !automacaoDe(p.authorUsername))
+  const automacoes = posts.filter(p => automacaoDe(p.authorUsername))
+  const out: T[] = []
+  pessoas.forEach((p, i) => {
+    out.push(p)
+    if ((i + 1) % cada === 0 && automacoes.length) out.push(automacoes.shift()!)
+  })
+  return [...out, ...automacoes]
+}
+
 export function matchesSearch(post: CommunityPost, query: string): boolean {
   const q = query.trim().toLowerCase()
   if (!q) return true
@@ -220,7 +236,7 @@ export function trendingTopics(posts: CommunityPost[], now = Date.now(), dias = 
 
 // ── Notificações ────────────────────────────────────────────────────────────────────────────
 
-export type NotificationType = 'comentario' | 'resposta'
+export type NotificationType = 'comentario' | 'resposta' | 'noticia'
 
 export interface CommunityNotification {
   id: string
@@ -237,9 +253,14 @@ export interface NotificationPrefs {
   comentarios: boolean
   respostas: boolean
   mensagens: boolean
+  /** Novas discussões do beOn Radar (as notícias mais relevantes de cada dia). */
+  noticias: boolean
 }
 
-export const DEFAULT_NOTIFICATION_PREFS: NotificationPrefs = { comentarios: true, respostas: true, mensagens: true }
+export const DEFAULT_NOTIFICATION_PREFS: NotificationPrefs = { comentarios: true, respostas: true, mensagens: true, noticias: true }
+
+/** Quantas notícias do Radar por dia viram notificação (as mais relevantes) e por quantos dias. */
+export const NOTICIAS_NOTIFICADAS = { porDia: 4, dias: 3 } as const
 
 export function postTitle(post: Pick<CommunityPost, 'title' | 'content'>): string {
   if (post.title) return post.title
@@ -247,15 +268,35 @@ export function postTitle(post: Pick<CommunityPost, 'title' | 'content'>): strin
   return firstLine.length > 80 ? `${firstLine.slice(0, 77)}…` : firstLine
 }
 
-/** Comentários nas minhas publicações e respostas aos meus comentários, feitos por outras pessoas. */
+/**
+ * Comentários nas minhas publicações e respostas aos meus comentários, feitos por outras pessoas, e as notícias mais
+ * relevantes de cada dia do beOn Radar (as discussões da automação; a mais relevante de cada rodada é a mais recente).
+ */
 export function deriveNotifications(
   posts: CommunityPost[],
   username: string,
   vistasEm: string | null,
   prefs: NotificationPrefs = DEFAULT_NOTIFICATION_PREFS,
+  now = Date.now(),
 ): CommunityNotification[] {
   const visto = vistasEm ? Date.parse(vistasEm) : 0
   const out: CommunityNotification[] = []
+  if (prefs.noticias !== false) {
+    const porDia = new Map<string, number>()
+    const radar = posts
+      .filter(p => ehAutomacaoDoRadar(p.authorUsername) && now - Date.parse(p.createdAt) <= NOTICIAS_NOTIFICADAS.dias * 86_400_000)
+      .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt))
+    for (const p of radar) {
+      const dia = p.createdAt.slice(0, 10)
+      const n = porDia.get(dia) ?? 0
+      if (n >= NOTICIAS_NOTIFICADAS.porDia) continue
+      porDia.set(dia, n + 1)
+      out.push({
+        id: `noticia:${p.id}`, tipo: 'noticia', postId: p.id, postTitulo: postTitle(p), ator: p.authorUsername, atorNome: p.authorName,
+        createdAt: p.createdAt, lida: Date.parse(p.createdAt) <= visto,
+      })
+    }
+  }
   for (const post of posts) {
     const meusComentarios = new Set(post.comments.filter(c => c.authorUsername === username).map(c => c.id))
     for (const c of post.comments) {

@@ -94,7 +94,7 @@ const SPONSOR_ALIASES: Record<string, string> = {
   'Patricia Mofato':  'Patrícia Mofato',
 }
 
-function normalizeSponsor(raw: string): string {
+export function normalizeSponsor(raw: string): string {
   const trimmed = raw.trim()
   return SPONSOR_ALIASES[trimmed] ?? trimmed
 }

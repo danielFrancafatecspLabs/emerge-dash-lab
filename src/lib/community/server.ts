@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { loadUsers } from '@/lib/auth/users'
 import { loadPresence } from '@/lib/community/presence'
 import { loadPosts } from '@/lib/community/posts-store'
+import { automacaoDe } from '@/lib/community/automacao'
 import { normalizePost, type CommunityPost } from '@/lib/community/model'
 import { loadProfiles, emptyProfile } from '@/lib/community/profile'
 
@@ -60,5 +61,10 @@ export function memberDirectory(posts: CommunityPost[] = loadNormalizedPosts(), 
 
 export function loadNormalizedPosts(): CommunityPost[] {
   const users = loadUsers()
-  return loadPosts().map(p => normalizePost(p, users))
+  // As automações usam sempre o avatar atual da conta (publicações antigas guardaram o anterior).
+  return loadPosts().map(p => {
+    const post = normalizePost(p, users)
+    const conta = automacaoDe(post.authorUsername)
+    return conta ? { ...post, authorAvatar: conta.avatar } : post
+  })
 }

@@ -116,7 +116,7 @@ export function applyProfilePatch(profile: CommunityProfile, patch: ProfilePatch
   if (patch.notificacoes && typeof patch.notificacoes === 'object') {
     const prefs = patch.notificacoes as Record<string, unknown>
     next.notificacoes = { ...next.notificacoes }
-    for (const key of ['comentarios', 'respostas', 'mensagens'] as const) {
+    for (const key of ['comentarios', 'respostas', 'mensagens', 'noticias'] as const) {
       if (typeof prefs[key] === 'boolean') next.notificacoes[key] = prefs[key] as boolean
     }
   }
