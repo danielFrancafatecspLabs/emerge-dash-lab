@@ -78,8 +78,10 @@ export function NavegacaoDeSecoes({ grupos, ativa, onIrPara }: { grupos: Grupo[]
 }
 
 /** Uma seção: identidade e "por que acompanhar", notícias num trilho horizontal (ou em grade, em "ver todas"). */
-export function TrilhoDaSecao({ grupo, lidas, ehNova, onAbrir }: {
+export function TrilhoDaSecao({ grupo, lidas, ehNova, onAbrir, discussoes }: {
   grupo: Grupo
+  /** Discussão de cada notícia no fórum, pelo id da notícia. */
+  discussoes?: Map<string, { id: string; comentarios: number }>
   lidas: Set<string>
   ehNova: (publicadoEm: string | null) => boolean
   onAbrir: (id: string) => void
@@ -131,13 +133,13 @@ export function TrilhoDaSecao({ grupo, lidas, ehNova, onAbrir }: {
 
       {grade ? (
         <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {grupo.itens.map(n => <CardNoticia key={n.id} n={n} lida={lidas.has(n.id)} nova={ehNova(n.publicadoEm)} onAbrir={() => onAbrir(n.id)} />)}
+          {grupo.itens.map(n => <CardNoticia key={n.id} n={n} lida={lidas.has(n.id)} nova={ehNova(n.publicadoEm)} onAbrir={() => onAbrir(n.id)} discussao={discussoes?.get(n.id)} />)}
         </div>
       ) : (
         <div ref={trilho} className="-mx-4 mt-5 flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-px-4 px-4 pb-3 [scrollbar-width:thin] sm:-mx-6 sm:scroll-px-6 sm:px-6">
           {grupo.itens.map((n, i) => (
             <div key={n.id} className={cx('shrink-0 snap-start', i === 0 ? 'w-[86%] sm:w-[440px]' : 'w-[78%] sm:w-[320px]')}>
-              <CardNoticia n={n} destaque={i === 0} lida={lidas.has(n.id)} nova={ehNova(n.publicadoEm)} onAbrir={() => onAbrir(n.id)} />
+              <CardNoticia n={n} destaque={i === 0} lida={lidas.has(n.id)} nova={ehNova(n.publicadoEm)} onAbrir={() => onAbrir(n.id)} discussao={discussoes?.get(n.id)} />
             </div>
           ))}
           <div className="w-1 shrink-0" aria-hidden />

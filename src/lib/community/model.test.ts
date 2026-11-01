@@ -91,7 +91,7 @@ describe('deriveNotifications', () => {
   })
 
   it('respeita as preferências de notificação', () => {
-    expect(deriveNotifications([minha, outra], 'eu', null, { comentarios: false, respostas: true, mensagens: true })
+    expect(deriveNotifications([minha, outra], 'eu', null, { comentarios: false, respostas: true, mensagens: true, noticias: true })
       .map(i => i.tipo)).toEqual(['resposta'])
   })
 })

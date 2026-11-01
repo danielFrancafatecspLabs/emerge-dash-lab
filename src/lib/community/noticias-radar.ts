@@ -81,6 +81,7 @@ const TEMAS: Tema[] = [
 
 const PERGUNTA_DA_SECAO: Record<Secao, string> = {
   emergentes: 'Isso é sinal de algo grande ou ainda é cedo demais? Em quanto tempo você vê essa tecnologia chegando ao nosso dia a dia?',
+  vale: 'O Vale está apostando no lugar certo? Se isso pegar, o que muda para uma operadora como a Claro e para os nossos clientes?',
   mercado: 'O mercado está precificando certo? Se esse movimento se confirmar, quem ganha e quem perde no nosso setor?',
   bolhas: 'Bolha ou fundamento? Se a correção vier, que apostas de tecnologia sobrevivem?',
   impactos: 'Quem paga a conta desse impacto? Que implicação isso traz para clientes, times e regulação no Brasil?',
@@ -88,6 +89,7 @@ const PERGUNTA_DA_SECAO: Record<Secao, string> = {
 
 const ABERTURA_DA_SECAO: Record<Secao, string> = {
   emergentes: 'Tecnologia emergente no Radar de hoje:',
+  vale: 'Direto do Vale do Silício no Radar de hoje:',
   mercado: 'Movimento de mercado no Radar de hoje:',
   bolhas: 'Alerta de bolha no Radar de hoje:',
   impactos: 'Impacto na sociedade no Radar de hoje:',
@@ -220,7 +222,12 @@ export function talvezSincronizarNoticiasRadar(agora = Date.now()) {
   G.__beonNoticiasRadarRodando = true
   import('@/lib/newsletter/cache')
     .then(({ edicaoDoDia }) => edicaoDoDia())
-    .then(edicao => sincronizarNoticiasRadar(edicao.noticias))
+    .then(async edicao => {
+      // A edição servida do cache (ex.: depois de reiniciar o servidor) também entra no Histórico, uma vez só.
+      const { registrarEdicao } = await import('@/lib/newsletter/historico')
+      try { registrarEdicao(edicao) } catch (err) { console.warn('[noticias-radar] histórico não gravado:', String(err)) }
+      return sincronizarNoticiasRadar(edicao.noticias)
+    })
     .then(n => { if (n) console.log(`[noticias-radar] ${n} notícias viraram discussões no fórum`) })
     .catch(err => console.warn('[noticias-radar] sem edição para levar ao fórum agora:', String(err)))
     .finally(() => { G.__beonNoticiasRadarRodando = false })
