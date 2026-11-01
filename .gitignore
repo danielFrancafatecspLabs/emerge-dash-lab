@@ -34,6 +34,7 @@ data/open-source.json
 data/newsletter-historico.json
 data/push.json
 data/vapid.json
+data/experimentos-links.json
 
 # Saídas de scripts
 public/comunidade/*

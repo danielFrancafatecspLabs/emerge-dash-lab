@@ -197,7 +197,7 @@ function Experimentos() {
       descricao={itens.length
         ? `${itens.length} ${itens.length === 1 ? 'iniciativa com experimento' : 'iniciativas com experimentos'} em andamento ou em validação${diretorias ? `, de ${diretorias} ${diretorias === 1 ? 'diretoria' : 'diretorias'}` : ''}.`
         : 'As iniciativas com experimentos em andamento ou em validação, e a diretoria de cada uma.'}
-      acao={<Link href="/comunidade/trilha" className={botaoDaArea}><FlaskConical className="h-4 w-4" aria-hidden />Conhecer a Trilha de Experimentação<ArrowRight className="h-4 w-4" aria-hidden /></Link>}>
+      acao={<Link href="/comunidade/experimentos-ativos" className={botaoDaArea}><FlaskConical className="h-4 w-4" aria-hidden />Ver os experimentos ativos<ArrowRight className="h-4 w-4" aria-hidden /></Link>}>
       {!data && !erro ? (
         <Skeleton className="h-64 rounded-3xl" />
       ) : erro ? (
@@ -208,10 +208,12 @@ function Experimentos() {
         <div className="overflow-hidden rounded-3xl border border-beon-line">
           <ol className="divide-y divide-beon-line">
             {lista.map((e, i) => (
-              <li key={e.chave} className="flex items-center gap-3.5 px-4 py-3.5">
+              <li key={e.chave}>
+                <Link href={`/comunidade/experimentos-ativos${e.experimentos[0] ? `?exp=${encodeURIComponent(e.experimentos[0])}` : ''}`}
+                  className={cx('group flex items-center gap-3.5 px-4 py-3.5 transition-colors hover:bg-beon-soft/60', focusRing)}>
                 <span className="w-6 shrink-0 text-right text-sm font-bold tabular-nums text-beon-muted">{String(i + 1).padStart(2, '0')}</span>
                 <div className="min-w-0 flex-1">
-                  <p className="text-[15px] font-semibold leading-snug text-beon-ink">{e.iniciativa}</p>
+                  <p className="text-[15px] font-semibold leading-snug text-beon-ink group-hover:text-beon-red">{e.iniciativa}</p>
                   <p className="mt-0.5 inline-flex items-center gap-1.5 text-[13px] text-beon-muted">
                     <Building2 className="h-3.5 w-3.5 shrink-0" aria-hidden />{e.diretoria ?? 'Diretoria não informada'}
                   </p>
@@ -221,6 +223,7 @@ function Experimentos() {
                     e.fase === 'Em andamento' ? 'bg-emerald-50 text-emerald-800' : 'bg-amber-50 text-amber-800')}>{e.fase}</span>
                   {e.ciclos > 1 && <span className="text-[11px] text-beon-muted">{e.ciclos} ciclos</span>}
                 </span>
+                </Link>
               </li>
             ))}
           </ol>
