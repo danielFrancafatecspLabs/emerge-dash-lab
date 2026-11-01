@@ -89,3 +89,9 @@ body.modo-apresentacao .app-header {
   0%, 100% { transform: translateY(0); opacity: 0.3; }
   50% { transform: translateY(-12px); opacity: 0.8; }
 }
+
+/* ── Faixa de cotações do beOn Radar (a lista vem duplicada: andar metade fecha o laço) ── */
+@keyframes faixa {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}

@@ -12,6 +12,7 @@ import { ehAutomacaoDeSinais, ehAutomacaoDoRadar } from '@/lib/community/automac
 import type { CommunityPost } from '@/lib/community/model'
 import type { Noticia } from '@/lib/newsletter/edicao'
 import { IDENTIDADE, ImagemDaNoticia, MetaDaNoticia, SeloDaSecao } from '@/components/newsletter/identidade'
+import { FaixaDaBolsa, useBolsa } from '@/components/newsletter/Bolsa'
 import { Skeleton, cx, focusRing } from '@/components/ui'
 import { useCommunity } from '../CommunityProvider'
 import { tempoRelativo } from '../format'
@@ -68,6 +69,7 @@ function LinkDaDiscussao({ post }: { post: CommunityPost | undefined }) {
 
 function Mundo({ posts }: { posts: CommunityPost[] }) {
   const { data: edicao, erro } = useEdicaoDoRadar()
+  const bolsa = useBolsa()
   const discussoes = useMemo(() => new Map(posts.filter(p => ehAutomacaoDoRadar(p.authorUsername)).map(p => [p.id, p])), [posts])
   const noticias = edicao?.noticias ?? []
   const manchete = noticias.find(n => n.imagem) ?? noticias[0]
@@ -78,7 +80,7 @@ function Mundo({ posts }: { posts: CommunityPost[] }) {
   return (
     <Bloco id="mundo" icone={Globe2} eyebrow={edicao ? `beOn Radar · Edição nº ${edicao.numero}` : 'beOn Radar'}
       titulo="O que está acontecendo no mundo"
-      descricao="As notícias de hoje sobre tecnologias emergentes, mercado, bolhas e impactos. Cada uma abre uma discussão aqui no fórum."
+      descricao="As notícias de hoje sobre tecnologias emergentes, Vale do Silício, mercado, bolhas e impactos, com as bolsas de tecnologia ao vivo. Cada notícia abre uma discussão aqui no fórum."
       acao={<Link href="/comunidade/newsletter" className={botaoDaArea}><Newspaper className="h-4 w-4" aria-hidden />Ler a newsletter completa<ArrowRight className="h-4 w-4" aria-hidden /></Link>}>
       {!edicao && !erro ? (
         <div className="space-y-3"><Skeleton className="aspect-[16/9] rounded-3xl" /><Skeleton className="h-16 rounded-2xl" /></div>
@@ -86,6 +88,7 @@ function Mundo({ posts }: { posts: CommunityPost[] }) {
         <Indisponivel>A edição de hoje ainda não saiu: as fontes de notícias não responderam. As últimas discussões do Radar continuam no feed.</Indisponivel>
       ) : (
         <div className="space-y-4">
+          <FaixaDaBolsa painel={bolsa.painel} erro={bolsa.erro} />
           <article className="overflow-hidden rounded-3xl border border-beon-line bg-white">
             <a href={manchete.link} target="_blank" rel="noopener noreferrer" className={cx('group relative block aspect-[16/9] overflow-hidden bg-beon-ink', focusRing)}>
               <ImagemDaNoticia n={manchete} className="transition-transform duration-500 group-hover:scale-[1.03]" />
