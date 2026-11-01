@@ -17,6 +17,7 @@ import { FaixaDaBolsa, ReguaDoMercado, useBolsa } from '@/components/newsletter/
 import { Briefing } from '@/components/newsletter/Briefing'
 import { Capa } from '@/components/newsletter/Capa'
 import { NavegacaoDeSecoes, TermometroDoDia, TrilhoDaSecao } from '@/components/newsletter/Secoes'
+import { TopicosEspeciais } from '@/components/newsletter/Topicos'
 import { useLeituraDoRadar } from '@/components/newsletter/useLeituraDoRadar'
 import { Button, Skeleton, cx, focusRing } from '@/components/ui'
 
@@ -122,7 +123,11 @@ export default function NewsletterPage() {
         <TermometroDoDia grupos={grupos} novas={novas} onIrPara={irPara} />
       </div>
 
-      <div className="mt-6">
+      <div className="mt-12">
+        <TopicosEspeciais noticias={edicao.noticias} lidas={lidas} ehNova={ehNova} onAbrir={marcarLida} discussoes={discussoes} />
+      </div>
+
+      <div className="mt-10">
         <NavegacaoDeSecoes grupos={grupos} ativa={ativa} onIrPara={irPara} />
       </div>
 

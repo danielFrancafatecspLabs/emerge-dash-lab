@@ -1,4 +1,5 @@
 import { imagemDaPagina, lerFeed, type ItemDeFeed } from './rss'
+import { TERMOS_DOS_TOPICOS, TOPICOS_ESPECIAIS, topicosDe } from './topicos'
 
 // Newsletter diária: varre feeds públicos de tecnologia e mercado (dos grandes jornais às consultorias), fica só com
 // tecnologias emergentes, Vale do Silício, mercado e bolsa, bolhas e impactos, e monta a edição (manchete, resumo e
@@ -92,6 +93,10 @@ export const FONTES_PADRAO: Fonte[] = [
   { nome: 'Olhar Digital', url: 'https://olhardigital.com.br/feed/' },
   { nome: 'Canaltech', url: 'https://canaltech.com.br/rss/' },
   { nome: 'TecMundo', url: 'https://rss.tecmundo.com.br/feed' },
+  // ── Tópicos especiais: uma busca dedicada por tópico (e idioma), para nenhum tópico ficar vazio ──
+  ...TOPICOS_ESPECIAIS.flatMap(t => t.buscas.map(b => ({
+    nome: `Tópico ${t.nome}${b.lingua === 'pt' ? ' (PT)' : ''} (via Google Notícias)`, url: gnews(b.q, b.lingua),
+  }))),
 ]
 
 export function fontesConfiguradas(env = process.env.NEWSLETTER_FEEDS): Fonte[] {
@@ -111,8 +116,10 @@ const TERMOS: Record<Secao, string[]> = {
     'augmented reality', 'realidade aumentada', 'virtual reality', 'mixed reality', 'xr ', 'blockchain', 'drone', 'autonomous', 'autonomo',
     'self-driving', 'brain-computer', 'neural', 'data center', 'datacenter', 'edge computing', 'machine learning', 'aprendizado de maquina',
     // Telecom (o setor da Claro)
-    'open ran', 'espectro', 'spectrum', 'conectividade', 'telecomunica', 'internet das coisas', ' iot ', 'rede movel', 'redes moveis',
+    'open ran', 'leilao de espectro', 'espectro de radiofrequencia', 'spectrum auction', 'conectividade', 'telecomunica', 'internet das coisas', ' iot ', 'rede movel', 'redes moveis',
     'fibra optica', 'ftth', 'direct-to-device', 'direct to cell',
+    // Termos dos tópicos especiais de tecnologia (carros autônomos, quântica, robótica, espaço…)
+    ...TERMOS_DOS_TOPICOS,
   ],
   // Quem lança e quem investe no Vale. Os verbos de lançamento só pesam junto de um ator do Vale (a seção pede 2 termos).
   vale: [
@@ -184,6 +191,8 @@ export interface Noticia {
   outrasFontes?: string[]
   /** A matéria tem cara de sinal de futuro (primeira vez, protótipo, piloto, pesquisa nova…). */
   possivelSinal?: boolean
+  /** Tópicos especiais que a notícia toca (ver topicos.ts). */
+  topicos?: string[]
 }
 
 export interface Edicao {
@@ -225,6 +234,9 @@ export function ehPossivelSinal(titulo: string, resumo: string): boolean {
  * Seleciona e ordena: recentes (até 3 dias), sem duplicatas, seções equilibradas. A mesma história em fontes
  * diferentes vira uma notícia só, que guarda as outras fontes (repercussão) e sobe na ordem; com imagem também sobe.
  */
+/** Mínimo de notícias de cada tópico especial na edição (se houver candidatas). */
+export const MINIMO_POR_TOPICO = 4
+
 export function montarNoticias(porFonte: { fonte: Fonte; itens: ItemDeFeed[] }[], agora = new Date(), limite = 48): Noticia[] {
   const vistos = new Set<string>()
   const candidatas: (Noticia & { peso: number; palavras: Set<string> })[] = []
@@ -243,7 +255,7 @@ export function montarNoticias(porFonte: { fonte: Fonte; itens: ItemDeFeed[] }[]
       candidatas.push({
         id: chave.replace(/ /g, '-').slice(0, 80), titulo: it.titulo, link: it.link, fonte: fonte.nome,
         publicadoEm: it.publicadoEm, resumo: it.resumo, imagem: it.imagem, secao, outrasFontes: [],
-        possivelSinal: ehPossivelSinal(it.titulo, it.resumo),
+        possivelSinal: ehPossivelSinal(it.titulo, it.resumo), topicos: topicosDe(it.titulo, it.resumo),
         peso: relevancia * 2 + (it.imagem ? 3 : 0) - horas / 8, palavras: palavrasDaHistoria(it.titulo),
       })
     }
@@ -268,6 +280,17 @@ export function montarNoticias(porFonte: { fonte: Fonte; itens: ItemDeFeed[] }[]
     if (k >= 12 || aceitas.length >= limite) continue
     porSecao.set(c.secao, k + 1)
     aceitas.push(c)
+  }
+  // Tópicos especiais: completa cada um até o mínimo com as melhores candidatas que ficaram de fora (fora do limite da
+  // seção e da edição), sempre sem repetir história.
+  for (const t of TOPICOS_ESPECIAIS) {
+    let tem = aceitas.filter(a => a.topicos?.includes(t.id)).length
+    for (const c of candidatas) {
+      if (tem >= MINIMO_POR_TOPICO) break
+      if (!c.topicos?.includes(t.id) || aceitas.includes(c) || aceitas.some(a => mesmaHistoria(a.palavras, c.palavras))) continue
+      aceitas.push(c)
+      tem++
+    }
   }
   return aceitas.map(({ peso: _peso, palavras: _palavras, ...n }) => n)
 }
