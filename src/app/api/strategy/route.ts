@@ -14,14 +14,7 @@ export async function GET() {
       metasAgregadas: data.metasAgregadas,
     })
   } catch (err) {
-    console.error('[strategy API] usando dados de exemplo — Jira indisponível:', err)
-    return NextResponse.json({
-      beneficioTotal: 0,
-      metasAgregadas: {
-        EBITDA: { count: 0, valor: 0 },
-        NPS: { count: 0, valor: 0 },
-        Receita: { count: 0, valor: 0 },
-      },
-    })
+    console.error('[strategy API] Jira indisponível:', err)
+    return NextResponse.json({ error: 'jira-indisponivel', detalhe: String(err) }, { status: 503 })
   }
 }

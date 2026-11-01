@@ -1,5 +1,6 @@
 'use client'
 
+import { JiraIndisponivel } from '@/components/jira/JiraIndisponivel'
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { Download, Maximize2, Presentation } from 'lucide-react'
 import type { SemanalData, SemanalSecaoId } from '@/lib/semanal'
@@ -85,7 +86,7 @@ export default function SemanalDeck() {
     key: s.key, label: s.label, node: s.render({ irPara: navApresentacao, beneficio: () => setVerBeneficio(true) }),
   })), [slides, navApresentacao])
 
-  if (error) return <p className="text-sm" style={{ color: RED }}>Erro ao carregar dados: {error}</p>
+  if (error) return <div className="flex justify-center p-6 sm:pt-12"><JiraIndisponivel detalhe={error} /></div>
   if (!data) return <p className="text-sm text-gray-400">Carregando dados do Jira…</p>
 
   const geradoEmLabel = new Date(data.geradoEm).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })

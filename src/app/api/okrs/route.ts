@@ -1,8 +1,11 @@
 import type { ChangelogEntry } from '@/lib/jira'
-import { IDEACAO_BOARD_ID, EXPERIMENTACAO_BOARD_ID } from '@/lib/jira'
+import { dashboardRawAtualizadoEm, fetchDashboardRaw } from '@/lib/jira'
+
+// OKRs calculados sobre a leitura diária do Jira (fetchDashboardRaw): Epics, Iniciativas e o changelog das
+// Iniciativas já vêm de lá. Esta rota não chama o Jira por conta própria.
 
 export const dynamic = 'force-dynamic'
-export const revalidate = 300
+export const maxDuration = 60
 
 // ============================================================
 // Tipos
@@ -42,16 +45,6 @@ interface JiraIssueLight {
 // ============================================================
 
 const MS_POR_DIA = 1000 * 60 * 60 * 24
-const BASE = process.env.JIRA_BASE_URL!
-
-function getHeaders(): HeadersInit {
-  const email = process.env.JIRA_EMAIL
-  const token = process.env.JIRA_API_TOKEN
-  if (!email || !token) throw new Error('JIRA_EMAIL e JIRA_API_TOKEN são obrigatórios')
-  const credentials = Buffer.from(`${email}:${token}`).toString('base64')
-  return { Authorization: `Basic ${credentials}`, Accept: 'application/json' }
-}
-
 function diasEntre(a: string, b: string): number {
   const da = new Date(a).getTime()
   const db = new Date(b).getTime()
@@ -76,64 +69,6 @@ function fmtMM(v: number): string {
   if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(0)} MM`
   if (v >= 1_000) return `${(v / 1_000).toFixed(0)} mil`
   return String(v)
-}
-
-// ============================================================
-// Fetch otimizado — busca apenas o necessário
-// ============================================================
-
-async function fetchBoardIssues(boardId: number, fields: string): Promise<JiraIssueLight[]> {
-  const all: JiraIssueLight[] = []
-  const maxResults = 50
-  let startAt = 0
-  let total = Infinity
-
-  while (startAt < total) {
-    const url = `${BASE}/rest/agile/1.0/board/${boardId}/issue?maxResults=${maxResults}&startAt=${startAt}&fields=${fields}`
-    const res = await fetch(url, { headers: getHeaders(), next: { revalidate: 300 } })
-    if (!res.ok) throw new Error(`Jira API erro ${res.status} — board ${boardId}`)
-    const data = await res.json()
-    total = data.total ?? 0
-    const issues: JiraIssueLight[] = data.issues ?? []
-    all.push(...issues)
-    startAt += issues.length
-    if (issues.length === 0) break
-  }
-  return all
-}
-
-async function fetchChangelogsBatch(keys: string[]): Promise<Record<string, ChangelogEntry[]>> {
-  const result: Record<string, ChangelogEntry[]> = {}
-  const BATCH = 10
-
-  for (let i = 0; i < keys.length; i += BATCH) {
-    const batch = keys.slice(i, i + BATCH)
-    const results = await Promise.allSettled(
-      batch.map(async key => {
-        const all: ChangelogEntry[] = []
-        let startAt = 0
-        let total = Infinity
-        while (startAt < total) {
-          const url = `${BASE}/rest/api/3/issue/${key}/changelog?maxResults=100&startAt=${startAt}`
-          const res = await fetch(url, { headers: getHeaders(), next: { revalidate: 300 } })
-          if (!res.ok) break
-          const data = await res.json()
-          total = data.total ?? 0
-          const values: ChangelogEntry[] = data.values ?? []
-          all.push(...values)
-          startAt += values.length
-          if (values.length === 0) break
-        }
-        return { key, changelog: all }
-      })
-    )
-    for (const r of results) {
-      if (r.status === 'fulfilled') {
-        result[r.value.key] = r.value.changelog
-      }
-    }
-  }
-  return result
 }
 
 // ============================================================
@@ -231,18 +166,10 @@ function calcPctCasosIA(epics: JiraIssueLight[]): { pct: number; countIA: number
 
 export async function GET(): Promise<Response> {
   try {
-    // Buscar apenas os campos necessários em paralelo
-    const EPIC_FIELDS = 'status,summary,customfield_30216,customfield_11987'
-    const INI_FIELDS = 'status,created'
-
-    const [epics, iniciativas] = await Promise.all([
-      fetchBoardIssues(EXPERIMENTACAO_BOARD_ID, EPIC_FIELDS),
-      fetchBoardIssues(IDEACAO_BOARD_ID, INI_FIELDS),
-    ])
-
-    // Buscar changelogs apenas das iniciativas (para tempo médio ideação→piloto)
-    const iniKeys = iniciativas.map(i => i.key)
-    const iniciativaChangelogs = await fetchChangelogsBatch(iniKeys)
+    const raw = await fetchDashboardRaw()
+    const epics = raw.epics as unknown as JiraIssueLight[]
+    const iniciativas = raw.iniciativas as unknown as JiraIssueLight[]
+    const iniciativaChangelogs: Record<string, ChangelogEntry[]> = raw.iniciativaChangelogs
 
     // Calcular KRs
     const tempoPiloto = calcTempoMedioIdeacaoPiloto(iniciativaChangelogs, iniciativas)
@@ -276,12 +203,9 @@ export async function GET(): Promise<Response> {
       },
     ]
 
-    return Response.json(
-      { objetivos, atualizadoEm: new Date().toISOString() } satisfies OkrResponse,
-      { headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=60' } }
-    )
+    return Response.json({ objetivos, atualizadoEm: dashboardRawAtualizadoEm()?.toISOString() ?? new Date().toISOString() } satisfies OkrResponse)
   } catch (e) {
     console.error('Erro ao gerar OKRs:', e)
-    return Response.json({ error: String(e) }, { status: 500 })
+    return Response.json({ error: 'jira-indisponivel', detalhe: String(e) }, { status: 503 })
   }
 }
