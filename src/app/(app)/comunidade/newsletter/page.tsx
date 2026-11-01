@@ -134,8 +134,10 @@ export default function NewsletterPage() {
         <div>
           <p className="font-semibold text-beon-ink">Como esta edição é feita</p>
           <p className="mt-1 leading-relaxed">
-            Todo dia, o Radar varre {edicao.fontes.length} fontes públicas, de grandes jornais (The New York Times, BBC, Financial Times)
-            a consultorias como o Gartner ({fontesOk} responderam nesta edição), e fica só com notícias das últimas 72 horas sobre
+            Todo dia, o Radar varre {edicao.fontes.length} fontes abertas e de reputação reconhecida ({fontesOk} responderam nesta edição):
+            agências públicas como a Agência Brasil, grandes jornais do Brasil e do mundo (Folha, Estadão, Valor, The New York Times, BBC),
+            ciência (Nature, Pesquisa FAPESP, Jornal da USP), telecom (Teletime, TeleSíntese, Anatel) e consultorias como o Gartner. Fica só
+            com notícias das últimas 72 horas sobre
             tecnologias emergentes, Vale do Silício, mercado, bolhas e impactos. Quando vários veículos dão a mesma história, ela vira uma
             notícia só, com a repercussão indicada. “Possível sinal” marca matérias com cara de sinal de futuro (primeira vez, protótipo,
             piloto, pesquisa nova). As manchetes levam ao site de origem; a beOn Labs não edita o conteúdo. EN indica notícia em inglês.
