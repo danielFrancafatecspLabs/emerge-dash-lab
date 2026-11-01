@@ -107,7 +107,7 @@ describe('Stories sempre no ar e feed', () => {
     const stories = montarStories({
       editoriais: [], posts: [radar, sinal, pessoa('ana', '2026-10-31T10:00:00Z')],
       edicao: { numero: 1, data: '2026-10-31', geradoEm: AGORA.toISOString(), fontes: [], noticias: [noticia('r1', { titulo: 'EU passes AI regulation' }), noticia('r2')] },
-      vault, experimentos: [{ chave: 'GL-1', iniciativa: 'Livia', diretoria: 'Diretoria Digital', fase: 'Em andamento', ciclos: 1, atualizadoEm: null }],
+      vault, experimentos: [{ chave: 'GL-1', iniciativa: 'Livia', diretoria: 'Diretoria Digital', fase: 'Em andamento', ciclos: 1, atualizadoEm: null, experimentos: ['GL-9'] }],
       now: AGORA.getTime(),
     })
     expect(stories.map(s => s.id)).toEqual([
@@ -124,7 +124,7 @@ describe('Stories sempre no ar e feed', () => {
     expect(radarStories(null, [])).toEqual([])
     expect(pesquisaStory(vault)).toMatchObject({ titulo: 'Agentes autônomos', href: '/comunidade/pesquisas?doc=Pesquisas%2FIA%2FAgentes%2FAgentes.md' })
     expect(pesquisaStory(null)).toBeNull()
-    const varios = Array.from({ length: 7 }, (_, i) => ({ chave: `GL-${i}`, iniciativa: `Ini ${i}`, diretoria: i % 2 ? 'DTI' : null, fase: 'Em andamento' as const, ciclos: 1, atualizadoEm: null }))
+    const varios = Array.from({ length: 7 }, (_, i) => ({ chave: `GL-${i}`, iniciativa: `Ini ${i}`, diretoria: i % 2 ? 'DTI' : null, fase: 'Em andamento' as const, ciclos: 1, atualizadoEm: null, experimentos: [] }))
     const exp = experimentosStory(varios)!
     expect(exp.titulo).toBe('7 iniciativas em experimentação agora')
     expect(exp.texto.split('\n')).toEqual(['• Ini 0', '• Ini 1 (DTI)', '• Ini 2', '• Ini 3 (DTI)', '• Ini 4', '…e mais 2.'])

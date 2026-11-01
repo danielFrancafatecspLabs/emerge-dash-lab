@@ -11,6 +11,7 @@ import * as notifications from './notifications/route'
 import * as messages from './messages/route'
 import * as thread from './messages/[username]/route'
 import * as me from './me/route'
+import * as linksDoExperimento from './experimentos-ativos/[chave]/links/route'
 
 let dir = ''
 const ENV = ['USERS_FILE_PATH', 'POSTS_FILE_PATH', 'COMMUNITY_PROFILES_PATH', 'COMMUNITY_MESSAGES_PATH', 'CHAT_PRESENCE_PATH']
@@ -77,5 +78,22 @@ describe('rotas da Comunidade', () => {
     const conversa = await (await thread.GET(await req('bia', '/messages/ana'), { params: { username: 'ana' } })).json()
     expect(conversa.mensagens.map((m: { text: string }) => m.text)).toEqual(['Oi, Bia!'])
     expect((await (await messages.GET(await req('bia', '/messages'))).json()).naoLidas).toBe(0)
+  })
+})
+
+describe('links da ficha e do relatório dos experimentos', () => {
+  it('só admins editam; a comunidade recebe 403', async () => {
+    process.env.EXPERIMENTOS_LINKS_PATH = join(dir, 'links.json')
+    try {
+      const params = { params: { chave: 'GL-510' } }
+      expect((await linksDoExperimento.PUT(await req('ana', '/experimentos-ativos/GL-510/links', 'PUT', { ficha: 'https://a.com/f' }), params)).status).toBe(403)
+      const ok = await linksDoExperimento.PUT(await req('admin', '/experimentos-ativos/GL-510/links', 'PUT', { ficha: 'https://a.com/f' }), params)
+      expect(ok.status).toBe(200)
+      expect(await ok.json()).toMatchObject({ ficha: 'https://a.com/f', atualizadoPor: 'Admin' })
+      expect((await linksDoExperimento.PUT(await req('admin', '/x', 'PUT', { ficha: 'ftp://a' }), params)).status).toBe(400)
+      expect((await linksDoExperimento.PUT(await req('admin', '/x', 'PUT', {}), { params: { chave: '../x' } })).status).toBe(400)
+    } finally {
+      delete process.env.EXPERIMENTOS_LINKS_PATH
+    }
   })
 })

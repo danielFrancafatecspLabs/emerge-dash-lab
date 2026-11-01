@@ -15,6 +15,8 @@ export interface ExperimentoAtivo {
   /** Quantos Experimentos/Ciclos da Iniciativa estão ativos. */
   ciclos: number
   atualizadoEm: string | null
+  /** Chaves dos Experimentos (Epics) ativos desta Iniciativa, o mais recente primeiro. */
+  experimentos: string[]
 }
 
 const sem = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim()
@@ -53,13 +55,104 @@ export function experimentosAtivos(epics: JiraIssue[], iniciativas: JiraIssue[] 
     const atualizadoEm = e.fields.updated ?? null
     const atual = porIniciativa.get(chave)
     if (!atual) {
-      porIniciativa.set(chave, { chave, iniciativa: nome, diretoria, fase, ciclos: 1, atualizadoEm })
+      porIniciativa.set(chave, { chave, iniciativa: nome, diretoria, fase, ciclos: 1, atualizadoEm, experimentos: [e.key] })
       continue
     }
     atual.ciclos++
+    if (atualizadoEm && (!atual.atualizadoEm || atualizadoEm > atual.atualizadoEm)) atual.experimentos.unshift(e.key)
+    else atual.experimentos.push(e.key)
     if (fase === 'Em andamento') atual.fase = 'Em andamento'
     atual.diretoria ??= diretoria
     if (atualizadoEm && (!atual.atualizadoEm || atualizadoEm > atual.atualizadoEm)) atual.atualizadoEm = atualizadoEm
   }
   return [...porIniciativa.values()].sort((a, b) => (b.atualizadoEm ?? '').localeCompare(a.atualizadoEm ?? '') || a.iniciativa.localeCompare(b.iniciativa))
+}
+
+// ── Aba "Experimentos ativos" da Comunidade ──────────────────────────────────────────────────────────────────
+// Um card por Experimento (Epic) ativo, com o que a Comunidade pode ver: nome, Iniciativa, descrição, fase, sponsor e
+// diretoria. Custos, benefícios e o restante do portfólio ficam de fora. A ficha e o relatório são links que os admins
+// cadastram (ver experimentos-links.ts).
+
+export interface LinksDoExperimento { ficha?: string; relatorio?: string; atualizadoPor?: string; atualizadoEm?: string }
+
+export interface ExperimentoDetalhado {
+  chave: string
+  nome: string
+  iniciativa: string | null
+  iniciativaChave: string | null
+  descricao: string | null
+  fase: FaseDoExperimento
+  sponsor: string | null
+  diretoria: string | null
+  criadoEm: string | null
+  atualizadoEm: string | null
+  links: LinksDoExperimento
+}
+
+interface NoAdf { type?: string; text?: string; content?: NoAdf[] }
+
+function textoDoAdf(no: NoAdf | NoAdf[] | undefined): string {
+  if (!no) return ''
+  if (Array.isArray(no)) return no.map(textoDoAdf).join('')
+  if (no.type === 'text') return no.text ?? ''
+  if (no.type === 'hardBreak') return '\n'
+  const filhos = textoDoAdf(no.content)
+  if (no.type === 'listItem') return `• ${filhos.trim()}\n`
+  if (no.type === 'paragraph' || no.type === 'heading') return `${filhos}\n\n`
+  return filhos
+}
+
+/** Texto legível da descrição do Jira (wiki markup ou ADF), sem marcação, imagens nem blocos de código. */
+export function textoDaDescricao(valor: unknown, limite = 3000): string | null {
+  let t = ''
+  if (typeof valor === 'string') {
+    t = valor
+      .replace(/\{(code|noformat)[^}]*\}[\s\S]*?\{\1\}/g, '')
+      .replace(/\{color[^}]*\}|\{panel[^}]*\}|\{quote\}/g, '')
+      .replace(/!\S[^!\n]*!/g, '')
+      .replace(/\[([^|\]]+)\|[^\]]+\]/g, '$1')
+      .replace(/\[(https?:[^\]]+)\]/g, '$1')
+      .replace(/^h[1-6]\.\s*/gm, '')
+      .replace(/^\s*[*#-]+\s+/gm, '• ')
+      .replace(/\|\|?/g, ' ')
+      .replace(/(^|\s)[*_+]([^*_+\n]+)[*_+](?=\s|$|[.,;:!?])/g, '$1$2')
+      .replace(/\{\{([^}]+)\}\}/g, '$1')
+  } else if (valor && typeof valor === 'object') {
+    t = textoDoAdf(valor as NoAdf)
+  }
+  t = t.replace(/\r/g, '').replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').replace(/[ \t]{2,}/g, ' ').trim()
+  if (!t) return null
+  return t.length > limite ? `${t.slice(0, limite - 1).trimEnd()}…` : t
+}
+
+export function experimentosDetalhados(
+  epics: JiraIssue[],
+  iniciativas: JiraIssue[] = [],
+  links: Record<string, LinksDoExperimento> = {},
+  normalizarSponsor: (s: string) => string = s => s.trim(),
+): ExperimentoDetalhado[] {
+  const iniPorChave = new Map(iniciativas.map(i => [i.key, i]))
+  return epics
+    .map(e => {
+      const fase = faseDoExperimento(e.fields.status)
+      if (!fase) return null
+      const pai = e.fields.parent
+      const ini = pai ? iniPorChave.get(pai.key) : undefined
+      const sponsor = texto(e.fields.customfield_30394) ?? texto(ini?.fields.customfield_30394)
+      return {
+        chave: e.key,
+        nome: (e.fields.summary ?? e.key).trim(),
+        iniciativa: (ini?.fields.summary ?? pai?.fields?.summary ?? '').trim() || null,
+        iniciativaChave: pai?.key ?? null,
+        descricao: textoDaDescricao(e.fields.description) ?? textoDaDescricao(ini?.fields.description),
+        fase,
+        sponsor: sponsor ? normalizarSponsor(sponsor) : null,
+        diretoria: texto(e.fields.customfield_21499) ?? texto(ini?.fields.customfield_21499),
+        criadoEm: e.fields.created ?? null,
+        atualizadoEm: e.fields.updated ?? null,
+        links: links[e.key] ?? {},
+      } satisfies ExperimentoDetalhado
+    })
+    .filter((x): x is ExperimentoDetalhado => !!x)
+    .sort((a, b) => (b.atualizadoEm ?? '').localeCompare(a.atualizadoEm ?? '') || a.nome.localeCompare(b.nome))
 }

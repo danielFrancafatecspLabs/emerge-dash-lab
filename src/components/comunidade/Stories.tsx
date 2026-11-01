@@ -154,8 +154,8 @@ export function experimentosStory(itens: ExperimentoAtivo[] | null, atualizadoEm
   return {
     id: `experimentos:${itens.map(e => e.chave).join(',')}`, origem: 'panorama', selo: 'Experimentos', categoria: 'Experimentando agora',
     titulo: itens.length === 1 ? '1 iniciativa em experimentação agora' : `${itens.length} iniciativas em experimentação agora`,
-    texto: `${lista}${resto}`, pattern: 'rede', tone: 'red', href: '/comunidade/trilha', externo: false,
-    acao: 'Conhecer a Trilha de Experimentação', quando: atualizadoEm ?? new Date().toISOString(),
+    texto: `${lista}${resto}`, pattern: 'rede', tone: 'red', href: '/comunidade/experimentos-ativos', externo: false,
+    acao: 'Ver os experimentos ativos', quando: atualizadoEm ?? new Date().toISOString(),
   }
 }
 
