@@ -43,17 +43,23 @@ ADMIN_PASSWORD='uma-senha-forte-de-12+' node scripts/create_admin.js nome.sobren
 
 Todas as variáveis de ambiente estão descritas em [.env.example](.env.example).
 
-### Cache dos dados do Jira
+### Cache dos dados do Jira: uma leitura por dia
 
-Todas as visões leem o Jira por `fetchDashboardRaw` (`src/lib/jira.ts`), que guarda o resultado em memória e em
-`.cache/jira-dashboard.json` (`src/lib/cache-dados.ts`):
+Tudo o que vem do Jira (painéis, Semanal, OKRs, Priorização, a aba Experimentos ativos e a home da Comunidade) passa
+por `fetchDashboardRaw` (`src/lib/jira.ts`), que guarda o resultado em memória e em `.cache/jira-dashboard.json`
+(`src/lib/cache-dados.ts`). A regra (`POLITICA_DO_JIRA`):
 
-- Por 5 minutos (`JIRA_CACHE_TTL_SECONDS`), nenhuma página chama o Jira.
-- Depois disso, a página abre na hora com a última versão e o Jira é consultado em segundo plano. Changelog e último
-  comentário só são buscados para issues novas ou com `updated` diferente; as demais são reaproveitadas.
-- Pedidos simultâneos dividem uma única consulta. Se o Jira falhar, a última versão continua valendo.
-- O arquivo em disco sobrevive a reinícios; acima de 24 h (`JIRA_CACHE_MAX_STALE_SECONDS`) a página espera os dados novos.
-- "Atualizar dados" (`POST /api/clear-cache`) faz o próximo carregamento buscar no Jira, também de forma incremental.
+- O Jira é lido **uma vez por dia** (horário de Brasília): ~30 leituras por mês. A primeira pessoa que entra no dia
+  dispara a leitura (no login, sem esperar por ela); todo mundo depois usa a mesma leitura guardada.
+- Quem chega antes de a leitura do dia terminar vê na hora os dados de ontem.
+- Cada página com dados do Jira mostra quando eles foram lidos ("Jira lido hoje às 08:12").
+- A leitura é incremental: changelog e último comentário só das issues novas ou alteradas.
+- Se o Jira falhar, a última leitura continua valendo (por até 30 dias) e só se tenta de novo depois de 2 horas.
+- Sem nenhuma leitura guardada e com o Jira fora do ar, as telas mostram "Desculpe, não conseguimos acessar o Jira" e
+  quem procurar (`src/lib/jira-contatos.ts`). Não há mais dados de exemplo no lugar dos reais.
+- "Ler o Jira agora" (`POST /api/clear-cache`, só admins) força uma leitura extra fora da regra diária.
+- Exceção: o diagnóstico de bloqueios do Admin (`/api/admin/diagnostico-bloqueios`) consulta o Jira na hora, quando um
+  admin o abre.
 
 ## Estrutura
 

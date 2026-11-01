@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { fetchDashboardRaw } from '@/lib/jira'
 import { buildDashboardData } from '@/lib/mappers'
-import { buildWeeklyData, SAMPLE_WEEKLY_DATA } from '@/lib/weekly'
+import { buildWeeklyData } from '@/lib/weekly'
 
 export const dynamic = 'force-dynamic'
 
@@ -12,7 +12,7 @@ export async function GET() {
     const weekly = buildWeeklyData(data, raw.epicChangelogs, raw.board2735Config)
     return NextResponse.json(weekly)
   } catch (err) {
-    console.error('[weekly API] usando dados de exemplo — Jira indisponível:', err)
-    return NextResponse.json(SAMPLE_WEEKLY_DATA)
+    console.error('[weekly API] Jira indisponível:', err)
+    return NextResponse.json({ error: 'jira-indisponivel', detalhe: String(err) }, { status: 503 })
   }
 }

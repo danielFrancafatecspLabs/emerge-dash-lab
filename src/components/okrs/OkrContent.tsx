@@ -1,7 +1,8 @@
 'use client'
 
+import { JiraIndisponivel } from '@/components/jira/JiraIndisponivel'
 import { useState, useEffect } from 'react'
-import { Flag, TrendingDown, TrendingUp, Brain, DollarSign, Loader2, AlertTriangle } from 'lucide-react'
+import { Flag, TrendingDown, TrendingUp, Brain, DollarSign, Loader2 } from 'lucide-react'
 
 interface KR {
   label: string
@@ -96,12 +97,8 @@ export default function OkrContent() {
   // Erro
   if (error || !data) {
     return (
-      <div className="flex-1 flex items-center justify-center">
-        <div className="flex flex-col items-center gap-3 text-gray-400">
-          <AlertTriangle size={32} className="text-yellow-500" />
-          <p className="text-sm">Erro ao carregar OKRs</p>
-          <p className="text-xs text-gray-400">{error}</p>
-        </div>
+      <div className="flex flex-1 items-start justify-center p-6 sm:pt-16">
+        <JiraIndisponivel detalhe={error} />
       </div>
     )
   }

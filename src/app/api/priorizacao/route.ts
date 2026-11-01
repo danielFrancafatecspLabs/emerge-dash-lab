@@ -1,36 +1,10 @@
 import { NextResponse } from 'next/server'
 import { JiraIssue } from '@/lib/types'
-import { anexarCamposDeBloqueio, camposParaBloqueio, EXPERIMENTACAO_BOARD_ID, resolverCamposDinamicos } from '@/lib/jira'
+import { dashboardRawAtualizadoEm, fetchDashboardRaw } from '@/lib/jira'
 import { sinaisDeBloqueio } from '@/lib/bloqueio'
 
-const BASE_URL = process.env.JIRA_BASE_URL
-const EMAIL = process.env.JIRA_EMAIL
-const TOKEN = process.env.JIRA_API_TOKEN
-
-function getHeaders(): HeadersInit {
-  if (!EMAIL || !TOKEN) throw new Error('JIRA_EMAIL e JIRA_API_TOKEN são obrigatórios')
-  const credentials = Buffer.from(`${EMAIL}:${TOKEN}`).toString('base64')
-  return {
-    Authorization: `Basic ${credentials}`,
-    Accept: 'application/json',
-  }
-}
-
-const FIELDS = [
-  'summary', 'status', 'issuetype', 'parent', 'priority', 'created',
-  'customfield_30216',  // Benefício Quantitativo (R$) (was customfield_13242)
-  'customfield_30222',  // Benefício Qualitativo (was customfield_13243)
-  'customfield_30358',  // Complexidade (was customfield_11664)
-  'customfield_30394',  // Sponsor (was customfield_11662)
-  'customfield_30340',  // BO (was customfield_11663)
-  'customfield_30357',  // Time Responsável (Lab) — campo da iniciativa (pai) e do próprio épico (was customfield_16911 / customfield_11665)
-  'customfield_31438',  // Lab Responsável (option select, NOVO)
-  'customfield_11987',  // Domínio (was customfield_16400)
-  'customfield_30021',  // Domínio (option select) — NOVO
-  'customfield_30445',  // Segmento (was customfield_11378)
-  'customfield_30110',  // Portfólio (was customfield_15919)
-  'customfield_13406',  // Motivo de Bloqueio
-].join(',')
+// Priorização: os Epics do board de Experimentação vêm da leitura diária do Jira (fetchDashboardRaw), que já traz
+// todos os campos usados aqui; esta rota não chama o Jira por conta própria.
 
 export interface ExperimentoPriorizacao {
   key: string
@@ -96,43 +70,17 @@ function mapToPriorizacao(issue: JiraIssue): ExperimentoPriorizacao {
 }
 
 export const dynamic = 'force-dynamic'
-export const maxDuration = 30
+export const maxDuration = 60
 
 export async function GET() {
   try {
-    if (!BASE_URL) throw new Error('JIRA_BASE_URL é obrigatório')
-
-    const campos = await resolverCamposDinamicos()
-    const fields = [...new Set([...FIELDS.split(','), ...camposParaBloqueio(campos)])].join(',')
-
-    // Buscar todos os Epics do board 2735
-    let allIssues: JiraIssue[] = []
-    const maxResults = 50
-    let startAt = 0
-    let total = Infinity
-
-    while (startAt < total) {
-      const url = `${BASE_URL}/rest/agile/1.0/board/${EXPERIMENTACAO_BOARD_ID}/issue?maxResults=${maxResults}&startAt=${startAt}&fields=${fields}`
-      const res = await fetch(url, { headers: getHeaders(), next: { revalidate: 300 } })
-      if (!res.ok) throw new Error(`Jira API erro ${res.status}`)
-      const data = await res.json()
-      total = data.total ?? 0
-      const issues: JiraIssue[] = data.issues ?? []
-      allIssues.push(...issues)
-      startAt += issues.length
-      if (issues.length === 0) break
-    }
-
-    allIssues = anexarCamposDeBloqueio(allIssues, campos)
-
-    // Filtrar apenas Epics nos status relevantes
-    const experimentos = allIssues
+    const { epics } = await fetchDashboardRaw()
+    const experimentos = (epics as JiraIssue[])
       .filter(i => STATUS_PRIORIZACAO.has(i.fields.status.id))
       .map(mapToPriorizacao)
-
-    return NextResponse.json({ experimentos, total: experimentos.length })
+    return NextResponse.json({ experimentos, total: experimentos.length, lidoDoJiraEm: dashboardRawAtualizadoEm()?.toISOString() ?? null })
   } catch (err) {
     console.error('[priorizacao API]', err)
-    return NextResponse.json({ error: String(err) }, { status: 500 })
+    return NextResponse.json({ error: 'jira-indisponivel', detalhe: String(err) }, { status: 503 })
   }
 }
