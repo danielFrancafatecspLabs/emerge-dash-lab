@@ -22,43 +22,76 @@ const gnews = (q: string, lingua: 'en' | 'pt' = 'en') => lingua === 'pt'
   : `https://news.google.com/rss/search?q=${encodeURIComponent(q)}&hl=en-US&gl=US&ceid=US:en`
 
 /**
- * Feeds padrão (podem ser trocados por NEWSLETTER_FEEDS="Nome|https://…,Outro|https://…"). Quem não publica RSS próprio
- * (Gartner, Reuters, consultorias) entra pela busca do Google Notícias, e o nome diz isso.
+ * Feeds padrão (podem ser trocados por NEWSLETTER_FEEDS="Nome|https://…,Outro|https://…"). Só fontes de reputação
+ * editorial reconhecida: agências públicas, grandes jornais, imprensa científica e universitária, imprensa
+ * especializada em tecnologia e telecom, e consultorias. Quem não publica RSS aberto (Gartner, Reuters, AP, Estadão,
+ * O Globo, Valor…) entra pela busca do Google Notícias restrita ao site, e o nome diz isso. Uma fonte que falha não
+ * derruba as demais; o rodapé da edição mostra quais responderam.
  */
 export const FONTES_PADRAO: Fonte[] = [
-  // Grandes jornais e redes
+  // ── Internacionais: agências, jornais e redes de referência ──
   { nome: 'The New York Times', url: 'https://rss.nytimes.com/services/xml/rss/nyt/Technology.xml' },
   { nome: 'BBC Tecnologia', url: 'https://feeds.bbci.co.uk/news/technology/rss.xml' },
-  { nome: 'BBC News Brasil', url: 'https://feeds.bbci.co.uk/portuguese/rss.xml' },
   { nome: 'The Guardian', url: 'https://www.theguardian.com/technology/rss' },
   { nome: 'Financial Times', url: 'https://www.ft.com/technology?format=rss' },
   { nome: 'The Wall Street Journal', url: 'https://feeds.a.dj.com/rss/RSSWSJD.xml' },
   { nome: 'Bloomberg Tecnologia', url: 'https://feeds.bloomberg.com/technology/news.rss' },
+  { nome: 'The Economist', url: 'https://www.economist.com/science-and-technology/rss.xml' },
   { nome: 'Reuters (via Google Notícias)', url: gnews('site:reuters.com technology') },
-  // Consultorias e análise
+  { nome: 'Associated Press (via Google Notícias)', url: gnews('site:apnews.com technology') },
+  // ── Consultorias e análise ──
   { nome: 'Gartner (via Google Notícias)', url: gnews('Gartner (forecast OR survey OR predicts OR "hype cycle")') },
   { nome: 'Consultorias (via Google Notícias)', url: gnews('(McKinsey OR Forrester OR IDC OR Deloitte) technology report') },
-  // Tecnologia e ciência
+  // ── Ciência e tecnologia (internacional) ──
+  { nome: 'Nature', url: 'https://www.nature.com/nature.rss' },
   { nome: 'MIT Technology Review', url: 'https://www.technologyreview.com/feed/' },
   { nome: 'IEEE Spectrum', url: 'https://spectrum.ieee.org/feeds/feed.rss' },
   { nome: 'Wired', url: 'https://www.wired.com/feed/rss' },
   { nome: 'The Verge', url: 'https://www.theverge.com/rss/index.xml' },
   { nome: 'Ars Technica', url: 'https://feeds.arstechnica.com/arstechnica/technology-lab' },
   { nome: 'Rest of World', url: 'https://restofworld.org/feed/latest' },
-  // Vale do Silício e startups
+  // ── Vale do Silício e startups ──
   { nome: 'TechCrunch', url: 'https://techcrunch.com/feed/' },
   { nome: 'VentureBeat', url: 'https://venturebeat.com/feed/' },
   { nome: 'Google Notícias: Vale do Silício', url: gnews('"Silicon Valley" OR "Y Combinator" OR startup funding round') },
-  // Mercado e bolsa
+  // ── Mercado e bolsa ──
   { nome: 'CNBC Tecnologia', url: 'https://www.cnbc.com/id/19854910/device/rss/rss.html' },
   { nome: 'MarketWatch', url: 'https://feeds.content.dowjones.io/public/rss/mw_topstories' },
   { nome: 'Google Notícias: bolha de IA', url: gnews('"AI bubble" OR "tech stocks"') },
-  { nome: 'InfoMoney', url: 'https://www.infomoney.com.br/feed/' },
-  // Brasil
-  { nome: 'Google Notícias: tecnologias emergentes', url: gnews('inteligência artificial OR computação quântica OR big techs ações', 'pt') },
+
+  // ── Brasil: agências públicas e imprensa pública ──
+  { nome: 'Agência Brasil (via Google Notícias)', url: gnews('site:agenciabrasil.ebc.com.br (tecnologia OR "inteligência artificial" OR ciência OR telecomunicações)', 'pt') },
+  { nome: 'Agência FAPESP (via Google Notícias)', url: gnews('site:agencia.fapesp.br', 'pt') },
+  { nome: 'BBC News Brasil', url: 'https://feeds.bbci.co.uk/portuguese/rss.xml' },
+  { nome: 'DW Brasil (via Google Notícias)', url: gnews('site:dw.com/pt-br (tecnologia OR ciência OR "inteligência artificial")', 'pt') },
+  // ── Brasil: grandes jornais ──
   { nome: 'Folha Tec', url: 'https://feeds.folha.uol.com.br/tec/rss091.xml' },
   { nome: 'g1 Tecnologia', url: 'https://g1.globo.com/rss/g1/tecnologia/' },
+  { nome: 'Estadão (via Google Notícias)', url: gnews('site:estadao.com.br (tecnologia OR "inteligência artificial" OR startups OR "big techs")', 'pt') },
+  { nome: 'O Globo (via Google Notícias)', url: gnews('site:oglobo.globo.com (tecnologia OR "inteligência artificial" OR startups)', 'pt') },
+  { nome: 'Valor Econômico (via Google Notícias)', url: gnews('site:valor.globo.com (tecnologia OR "inteligência artificial" OR startups OR "big techs" OR telecom)', 'pt') },
+  { nome: 'CNN Brasil Tecnologia', url: 'https://www.cnnbrasil.com.br/tecnologia/feed/' },
+  // ── Brasil: negócios, mercado e startups ──
+  { nome: 'InfoMoney', url: 'https://www.infomoney.com.br/feed/' },
+  { nome: 'Exame', url: 'https://exame.com/feed/' },
+  { nome: 'NeoFeed', url: 'https://neofeed.com.br/feed/' },
+  { nome: 'Brazil Journal', url: 'https://braziljournal.com/feed/' },
+  { nome: 'Startups.com.br', url: 'https://startups.com.br/feed/' },
+  // ── Brasil: ciência e universidades ──
+  { nome: 'Revista Pesquisa FAPESP', url: 'https://revistapesquisa.fapesp.br/feed/' },
+  { nome: 'Jornal da USP', url: 'https://jornal.usp.br/feed/' },
+  { nome: 'MIT Technology Review Brasil', url: 'https://mittechreview.com.br/feed/' },
+  // ── Brasil: telecom (o setor da Claro) ──
+  { nome: 'Teletime', url: 'https://teletime.com.br/feed/' },
+  { nome: 'TeleSíntese', url: 'https://telesintese.com.br/feed/' },
+  { nome: 'Mobile Time', url: 'https://www.mobiletime.com.br/feed/' },
+  { nome: 'Anatel (via Google Notícias)', url: gnews('site:gov.br/anatel', 'pt') },
+  // ── Brasil: tecnologia ──
+  { nome: 'Google Notícias: tecnologias emergentes', url: gnews('inteligência artificial OR computação quântica OR big techs ações', 'pt') },
   { nome: 'Tecnoblog', url: 'https://tecnoblog.net/feed/' },
+  { nome: 'Olhar Digital', url: 'https://olhardigital.com.br/feed/' },
+  { nome: 'Canaltech', url: 'https://canaltech.com.br/rss/' },
+  { nome: 'TecMundo', url: 'https://rss.tecmundo.com.br/feed' },
 ]
 
 export function fontesConfiguradas(env = process.env.NEWSLETTER_FEEDS): Fonte[] {
@@ -77,6 +110,9 @@ const TERMOS: Record<Secao, string[]> = {
     '6g', '5g', 'satellite', 'satelite', 'starlink', 'spacex', 'fusion', 'fusao nuclear', 'biotech', 'biotecnologia', 'crispr', 'genetic', 'genetica',
     'augmented reality', 'realidade aumentada', 'virtual reality', 'mixed reality', 'xr ', 'blockchain', 'drone', 'autonomous', 'autonomo',
     'self-driving', 'brain-computer', 'neural', 'data center', 'datacenter', 'edge computing', 'machine learning', 'aprendizado de maquina',
+    // Telecom (o setor da Claro)
+    'open ran', 'espectro', 'spectrum', 'conectividade', 'telecomunica', 'internet das coisas', ' iot ', 'rede movel', 'redes moveis',
+    'fibra optica', 'ftth', 'direct-to-device', 'direct to cell',
   ],
   // Quem lança e quem investe no Vale. Os verbos de lançamento só pesam junto de um ator do Vale (a seção pede 2 termos).
   vale: [
