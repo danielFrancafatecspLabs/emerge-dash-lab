@@ -3,7 +3,7 @@ import os from 'os'
 import path from 'path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { _limparMemoria } from '@/lib/cache-dados'
-import { fotoGuardada, lerFontes } from './pesquisa-ia-fontes'
+import { fotoGuardada, lerFontes, papersDaArea } from './pesquisa-ia-fontes'
 
 let dir: string
 let chamadas: string[]
@@ -14,7 +14,11 @@ const BYTES = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 1, 2, 3])
 function fonteFalsa({ tipoDaFoto = 'image/jpeg', wikiFora = false } = {}) {
   return vi.fn(async (url: string) => {
     chamadas.push(url)
-    if (url.includes('/api/query')) return new Response('<feed></feed>', { status: 200 })
+    if (url.includes('/api/query')) {
+      return new Response(url.includes('quant-ph')
+        ? '<feed><entry><id>http://arxiv.org/abs/2511.00042v1</id><title>Logical qubits</title><author><name>A</name></author><published>2026-10-30T00:00:00Z</published></entry></feed>'
+        : '<feed></feed>')
+    }
     if (url.includes('/api/daily_papers')) {
       return new Response(JSON.stringify([{ paper: { id: '2510.00001', title: 'Paper', authors: [{ name: 'Geoffrey Hinton' }], upvotes: 9 } }]))
     }
@@ -32,6 +36,7 @@ function fonteFalsa({ tipoDaFoto = 'image/jpeg', wikiFora = false } = {}) {
 beforeEach(() => {
   dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pesquisa-ia-'))
   process.env.JIRA_CACHE_DIR = dir
+  process.env.RADAR_ARXIV_INTERVALO_MS = '0'
   chamadas = []
   _limparMemoria()
 })
@@ -81,5 +86,19 @@ describe('Pesquisa em IA: foto servida pelo app', () => {
     expect(await fotoGuardada('hinton')).toBeNull()
     expect(await fotoGuardada('../../etc/passwd')).toBeNull()
     expect(await fotoGuardada('lecun')).toBeNull()
+  })
+})
+
+describe('Fronteira: papers de cada área', () => {
+  it('lê o arXiv da área uma vez e guarda; IA e Futuros não consultam o arXiv por aqui', async () => {
+    vi.stubGlobal('fetch', fonteFalsa())
+    const r = await papersDaArea('quantica')
+    expect(r.papers.map(p => p.id)).toEqual(['2511.00042'])
+    expect(chamadas.some(u => decodeURIComponent(u).includes('cat:quant-ph'))).toBe(true)
+    const antes = chamadas.length
+    await papersDaArea('quantica')
+    expect(chamadas.length).toBe(antes)
+    expect((await papersDaArea('futuros')).papers).toEqual([])
+    expect(chamadas.length).toBe(antes)
   })
 })

@@ -2,7 +2,7 @@
 
 // beOn Radar: a newsletter diária de tecnologias emergentes, mercado e bolsa, bolhas e impactos, montada a partir de
 // fontes públicas. Capa com a manchete e a pauta do dia, briefing em tela cheia, termômetro da edição e as seções em
-// trilhos, os tópicos especiais e a Pesquisa em IA (pesquisadores e papers). Cada notícia leva ao site de origem.
+// trilhos, os tópicos especiais e a Fronteira da tecnologia (pessoas e papers por área). Cada notícia leva ao site de origem.
 // As peças visuais estão em src/components/newsletter.
 
 import Link from 'next/link'
