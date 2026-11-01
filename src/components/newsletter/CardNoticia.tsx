@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { ArrowUpRight, Check, Lightbulb, MessageCircle } from 'lucide-react'
 import type { Noticia } from '@/lib/newsletter/edicao'
+import { TOPICOS_ESPECIAIS } from '@/lib/newsletter/topicos'
 import { useCommunity } from '@/components/comunidade/CommunityProvider'
 import { cx, focusRing } from '@/components/ui'
 import { ImagemDaNoticia, MetaDaNoticia, SeloDaSecao } from './identidade'
@@ -67,6 +68,15 @@ export function CardNoticia({ n, lida, nova, onAbrir, destaque, discussao }: {
           <h3 className={cx('font-bold leading-snug tracking-tight text-beon-ink group-hover:text-beon-red', destaque ? 'text-xl' : 'text-[16px]')}>{n.titulo}</h3>
           {n.resumo && <p className={cx('mt-2 text-sm leading-relaxed text-beon-body', destaque ? 'line-clamp-4' : 'line-clamp-3')}>{n.resumo}</p>}
           <div className="mt-auto space-y-2 pt-4">
+            {!!n.topicos?.length && (
+              <span className="flex flex-wrap gap-1.5">
+                {n.topicos.slice(0, 2).map(t => (
+                  <span key={t} className="rounded-full border border-beon-line px-2 py-0.5 text-[10px] font-semibold text-beon-body">
+                    #{TOPICOS_ESPECIAIS.find(x => x.id === t)?.nome ?? t}
+                  </span>
+                ))}
+              </span>
+            )}
             <Repercussao n={n} />
             <div className="flex items-center justify-between gap-3">
               <MetaDaNoticia n={n} />

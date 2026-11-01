@@ -37,6 +37,7 @@ describe('newsletter', () => {
     expect(classificar('Nvidia stock hits record as AI chip demand explodes', 'hyperscalers raised capex guidance; market cap tops $5 trillion')).toBe('mercado')
     expect(classificar('Receita de bolo de cenoura', '')).toBeNull()
     expect(classificar('Ibovespa fecha em alta com bancos', 'ações de bancos sobem')).toBeNull()
+    expect(classificar('Anatel prepara leilão de espectro para Open RAN', 'teste de conectividade em redes móveis')).toBe('emergentes')
   })
 
   it('monta a edição: recentes, sem duplicatas, só do tema', () => {
@@ -56,7 +57,12 @@ describe('newsletter', () => {
 
   it('fontes configuráveis e número da edição', () => {
     expect(fontesConfiguradas('A|https://a.com/rss, B|https://b.com/feed,lixo')).toEqual([{ nome: 'A', url: 'https://a.com/rss' }, { nome: 'B', url: 'https://b.com/feed' }])
-    expect(fontesConfiguradas(undefined).length).toBeGreaterThan(5)
+    const padrao = fontesConfiguradas(undefined)
+    expect(padrao.length).toBeGreaterThanOrEqual(50)
+    expect(new Set(padrao.map(f => f.nome)).size).toBe(padrao.length)
+    expect(new Set(padrao.map(f => f.url)).size).toBe(padrao.length)
+    expect(padrao.every(f => f.url.startsWith('https://'))).toBe(true)
+    expect(padrao.map(f => f.nome)).toEqual(expect.arrayContaining(['Agência Brasil (via Google Notícias)', 'Valor Econômico (via Google Notícias)', 'Teletime', 'Revista Pesquisa FAPESP']))
     expect(numeroDaEdicao(new Date('2026-10-31T10:00:00Z'))).toBe(1)
     expect(numeroDaEdicao(new Date('2026-11-02T10:00:00Z'))).toBe(3)
   })
