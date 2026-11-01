@@ -66,5 +66,8 @@ export async function POST(request: Request) {
   response.cookies.set('auth_session', await createAuthSession(user, secret), cookieOpts)
   response.cookies.set('username', user.username, cookieOpts)
   response.cookies.set('user_role', user.role, cookieOpts)
+  // Leitura do dia do Jira: se ainda não aconteceu hoje, quem entra primeiro dispara (sem esperar por ela); quem vier
+  // depois usa a mesma leitura guardada. Ver POLITICA_DO_JIRA em lib/jira.ts.
+  import('@/lib/jira').then(m => m.fetchDashboardRaw()).catch(err => console.warn('[jira] leitura do dia não concluída:', String(err)))
   return response
 }

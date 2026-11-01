@@ -8,8 +8,9 @@ import { Maximize2, Minimize2, RotateCcw } from 'lucide-react'
 import { useCommunity } from '@/components/comunidade/CommunityProvider'
 import { cx, focusRing } from '@/components/ui'
 import { useHideChrome } from './AppChrome'
+import { LeituraDoJira } from '@/components/jira/LeituraDoJira'
 
-/** Limpa o cache do Jira no servidor e recarrega a página (só admin e executivo podem). */
+/** Lê o Jira agora, fora da leitura diária (só admins), e recarrega a página. */
 function RefreshButton() {
   const [loading, setLoading] = useState(false)
   async function refresh() {
@@ -26,11 +27,11 @@ function RefreshButton() {
       type="button"
       onClick={refresh}
       disabled={loading}
-      title="Limpar o cache e buscar os dados do Jira de novo"
+      title="Ler o Jira agora, fora da leitura diária (conta como uma leitura a mais)"
       className={cx('flex h-9 items-center gap-2 rounded-full border border-beon-line bg-white px-3 text-sm font-medium text-beon-ink hover:bg-beon-soft disabled:opacity-60', focusRing)}
     >
       <RotateCcw className={cx('h-4 w-4 text-beon-muted', loading && 'animate-spin')} aria-hidden />
-      <span className="hidden md:inline">{loading ? 'Atualizando…' : 'Atualizar dados'}</span>
+      <span className="hidden md:inline">{loading ? 'Lendo o Jira…' : 'Ler o Jira agora'}</span>
     </button>
   )
 }
@@ -79,7 +80,7 @@ export interface PortalPageProps {
   description?: string
   /** Controles da página (filtros, exportar…), à direita da barra. */
   actions?: ReactNode
-  /** Mostra "Atualizar dados" (limpa o cache do Jira) para admin e executivo. */
+  /** Página com dados do Jira: mostra quando foram lidos e, para admins, "Ler o Jira agora". */
   refreshable?: boolean
   /**
    * Página com a altura da tela (deck, chat): a página cuida da própria rolagem dentro de um
@@ -100,7 +101,7 @@ export function PortalPage({ title, description, actions, refreshable, fit, chro
 
   if (!chrome) return <div className="min-h-dvh bg-beon-soft">{children}</div>
 
-  const podeAtualizar = refreshable && (me?.role === 'admin' || me?.role === 'executivo')
+  const podeAtualizar = refreshable && me?.role === 'admin'
 
   return (
     <div className={cx(
@@ -118,6 +119,7 @@ export function PortalPage({ title, description, actions, refreshable, fit, chro
           <h1 className="truncate text-[17px] font-semibold leading-tight tracking-tight text-beon-ink">{title}</h1>
           {description && <p className="hidden truncate text-xs text-beon-muted sm:block">{description}</p>}
         </div>
+        {refreshable && <LeituraDoJira className="hidden sm:inline-flex" />}
         {(actions || podeAtualizar || maximizable) && (
           <div className="flex shrink-0 items-center gap-2">
             {actions}
