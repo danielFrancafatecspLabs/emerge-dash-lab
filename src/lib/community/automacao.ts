@@ -18,7 +18,7 @@ export const AUTOMACAO_SINAIS = {
   username: 'sinais-ft',
   nome: 'Sinais FT - beOn Labs',
   lab: 'Automação OSINT',
-  avatar: '/jira/logobeonlabs.png',
+  avatar: '/jira/sinais-ft.svg',
   href: '/osint',
   rotuloDoLink: 'Abrir o Radar OSINT',
 } as const satisfies ContaDeAutomacao
@@ -29,7 +29,7 @@ export const AUTOMACAO_RADAR = {
   username: 'beon-radar',
   nome: 'beOn Radar - Newsletter',
   lab: 'Automação Newsletter',
-  avatar: '/jira/logobeonlabs.png',
+  avatar: '/jira/beon-radar.svg',
   href: '/comunidade/newsletter',
   rotuloDoLink: 'Abrir o beOn Radar',
 } as const satisfies ContaDeAutomacao

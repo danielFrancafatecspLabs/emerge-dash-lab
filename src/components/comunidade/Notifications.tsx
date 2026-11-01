@@ -4,6 +4,8 @@ import Link from 'next/link'
 import { useCallback, useEffect, useState } from 'react'
 import { Bell, MessageCircle } from 'lucide-react'
 import type { CommunityNotification, NotificationPrefs } from '@/lib/community/model'
+import { AUTOMACAO_RADAR } from '@/lib/community/automacao'
+import { BotaoAlertas } from '@/components/newsletter/Alertas'
 import { api, errorMessage } from './api'
 import { useCommunity } from './CommunityProvider'
 import { tempoRelativo } from './format'
@@ -63,7 +65,7 @@ export function NotificationsDialog({ open, onClose }: { open: boolean; onClose:
               onClick={onClose}
               className={cx('flex gap-3 rounded-xl px-3 py-3 hover:bg-beon-soft', !n.lida && 'bg-beon-soft/60', focusRing)}
             >
-              <Avatar nome={n.atorNome} src={n.tipo === 'noticia' ? '/jira/logobeonlabs.png' : member(n.ator)?.avatar} size={36} />
+              <Avatar nome={n.atorNome} src={n.tipo === 'noticia' ? AUTOMACAO_RADAR.avatar : member(n.ator)?.avatar} size={36} />
               <span className="min-w-0 flex-1 text-sm leading-snug text-beon-body">
                 <strong className="font-semibold text-beon-ink">{n.tipo === 'noticia' ? 'beOn Radar' : n.atorNome}</strong>{' '}
                 {n.tipo === 'noticia' ? 'trouxe uma notícia para discutir:' : n.tipo === 'resposta' ? 'respondeu seu comentário em' : 'comentou em'}{' '}
@@ -83,7 +85,7 @@ const PREF_LABEL: Record<keyof NotificationPrefs, [string, string]> = {
   comentarios: ['Comentários nas minhas publicações', 'Avise quando alguém comentar o que publiquei.'],
   respostas: ['Respostas aos meus comentários', 'Avise quando alguém responder diretamente a mim.'],
   mensagens: ['Mensagens diretas', 'Mostre o contador de mensagens não lidas.'],
-  noticias: ['Notícias do beOn Radar', 'Avise das notícias mais relevantes do dia (até 4), cada uma com a discussão no fórum.'],
+  noticias: ['Notícias do beOn Radar', 'As notícias mais relevantes do dia nesta lista e uma por entrada como push (ou cartão no app).'],
 }
 
 export function NotificationPrefsDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
@@ -114,6 +116,13 @@ export function NotificationPrefsDialog({ open, onClose }: { open: boolean; onCl
               </span>
             </label>
           ))}
+          <div className="mt-2 rounded-2xl border border-beon-line p-4">
+            <p className="text-sm font-medium text-beon-ink">Push do beOn Radar neste navegador</p>
+            <p className="mb-3 mt-0.5 text-xs leading-relaxed text-beon-muted">
+              Uma notícia por vez, quando você entra (no máximo uma a cada 6 horas), com foto, fonte e a provocação da discussão.
+            </p>
+            <BotaoAlertas compacto />
+          </div>
           <div className="flex justify-end gap-2 pt-4">
             <Button variant="ghost" onClick={onClose}>Cancelar</Button>
             <Button variant="primary" loading={saving} onClick={save}>Salvar</Button>
