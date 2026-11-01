@@ -1,7 +1,7 @@
 import https from 'https'
 import { JiraIssue, JiraBoardConfiguration } from './types'
 import { CAMPOS_BLOQUEIO_PADRAO, ehCampoDeBloqueio, textoDoValor } from './bloqueio'
-import { comCache, invalidarCache, salvoEm } from './cache-dados'
+import { comCache, invalidarCache, salvoEm, situacaoDoCache } from './cache-dados'
 
 // Board IDs (use env vars if present, otherwise fall back to the correct defaults)
 export const IDEACAO_BOARD_ID = Number(process.env.JIRA_BOARD_IDEACAO_ID ?? 2734)
@@ -237,25 +237,42 @@ export interface DashboardRaw {
 }
 
 const CHAVE_CACHE_DASHBOARD = 'jira-dashboard'
-const segundos = (v: string | undefined, padrao: number) => (Number(v) > 0 ? Number(v) : padrao) * 1000
+
+const FUSO = 'America/Sao_Paulo'
+const diaEm = (t: number) => new Intl.DateTimeFormat('en-CA', { timeZone: FUSO, year: 'numeric', month: '2-digit', day: '2-digit' }).format(t)
+
+/** O valor foi lido do Jira hoje (no horário de Brasília). */
+export const lidoHoje = (salvoEm: number, agora = Date.now()) => diaEm(salvoEm) === diaEm(agora)
 
 /**
- * Dados brutos do Jira usados por todas as visões (Estratégia, Portfólio, Comparativo, Semanal…), com cache no
- * servidor: dentro de JIRA_CACHE_TTL_SECONDS (padrão 5 min) não há nenhuma chamada ao Jira; depois disso a página abre
- * com a última versão e o Jira é consultado em segundo plano, buscando changelog e comentário só das issues que mudaram.
+ * Política de leitura do Jira: UMA vez por dia. Os dados ficam guardados (memória e disco) e valem o dia inteiro; no
+ * primeiro acesso de um novo dia, quem chega vê na hora os dados de ontem enquanto o Jira é lido em segundo plano, e a
+ * partir daí todo mundo recebe os de hoje. Se o Jira falhar, a última leitura continua valendo (por até 30 dias) e só
+ * se tenta de novo depois de 2 horas, para não insistir num Jira fora do ar. Ao todo, ~30 leituras por mês.
+ */
+export const POLITICA_DO_JIRA = {
+  fresco: (salvoEm: number, agora: number) => lidoHoje(salvoEm, agora),
+  maximoObsoletoMs: 30 * 86_400_000,
+  esperaAposFalhaMs: 2 * 3600_000,
+} as const
+
+/**
+ * Dados brutos do Jira usados por todas as visões (Estratégia, Portfólio, Comparativo, Semanal, OKRs, Priorização, a
+ * Comunidade…), lidos uma vez por dia (ver POLITICA_DO_JIRA). A leitura é incremental: changelog e comentário só das
+ * issues que mudaram desde a leitura anterior.
  */
 export function fetchDashboardRaw(): Promise<DashboardRaw> {
-  return comCache(CHAVE_CACHE_DASHBOARD, buscarDashboardRaw, {
-    frescoPorMs: segundos(process.env.JIRA_CACHE_TTL_SECONDS, 300),
-    maximoObsoletoMs: segundos(process.env.JIRA_CACHE_MAX_STALE_SECONDS, 24 * 60 * 60),
-  })
+  return comCache(CHAVE_CACHE_DASHBOARD, buscarDashboardRaw, POLITICA_DO_JIRA)
 }
 
-/** "Atualizar dados": o próximo pedido busca no Jira (de forma incremental) em vez de servir o cache. */
+/** "Atualizar do Jira agora" (admins): o próximo pedido lê o Jira, mesmo que a leitura de hoje já tenha acontecido. */
 export const invalidarDashboardRaw = () => invalidarCache(CHAVE_CACHE_DASHBOARD)
 
 /** Quando os dados em cache foram lidos do Jira. */
 export const dashboardRawAtualizadoEm = () => salvoEm(CHAVE_CACHE_DASHBOARD)
+
+/** Situação da leitura do Jira: quando foi lida, se está lendo agora e se a última tentativa falhou. */
+export const situacaoDoJira = () => situacaoDoCache(CHAVE_CACHE_DASHBOARD)
 
 /** Executa `tarefa` para cada item com no máximo `limite` em paralelo (sem esperar o mais lento de cada lote). */
 async function emParalelo<T>(itens: T[], limite: number, tarefa: (item: T) => Promise<void>) {

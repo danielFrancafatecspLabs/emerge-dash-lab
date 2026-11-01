@@ -13,6 +13,8 @@ import type { CommunityPost } from '@/lib/community/model'
 import type { Noticia } from '@/lib/newsletter/edicao'
 import { IDENTIDADE, ImagemDaNoticia, MetaDaNoticia, SeloDaSecao } from '@/components/newsletter/identidade'
 import { FaixaDaBolsa, useBolsa } from '@/components/newsletter/Bolsa'
+import { JiraIndisponivel } from '@/components/jira/JiraIndisponivel'
+import { LeituraDoJira } from '@/components/jira/LeituraDoJira'
 import { Skeleton, cx, focusRing } from '@/components/ui'
 import { useCommunity } from '../CommunityProvider'
 import { tempoRelativo } from '../format'
@@ -201,7 +203,7 @@ function Experimentos() {
       {!data && !erro ? (
         <Skeleton className="h-64 rounded-3xl" />
       ) : erro ? (
-        <Indisponivel>Não foi possível ler os experimentos do Jira agora. Tente de novo mais tarde.</Indisponivel>
+        <JiraIndisponivel compacto />
       ) : !itens.length ? (
         <Indisponivel>Nenhum experimento em andamento no momento.</Indisponivel>
       ) : (
@@ -228,7 +230,7 @@ function Experimentos() {
             ))}
           </ol>
           <div className="flex flex-wrap items-center justify-between gap-2 border-t border-beon-line bg-beon-soft/60 px-4 py-3">
-            <span className="text-xs text-beon-muted">{data?.atualizadoEm ? `Jira lido ${tempoRelativo(data.atualizadoEm)}` : 'Dados do Jira'}</span>
+            <LeituraDoJira />
             {itens.length > VISIVEIS && (
               <button type="button" onClick={() => setTodos(t => !t)} aria-expanded={todos}
                 className={cx('inline-flex items-center gap-1 rounded-full px-2 py-1 text-[13px] font-semibold text-beon-ink hover:bg-white', focusRing)}>

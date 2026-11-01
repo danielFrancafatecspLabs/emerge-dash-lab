@@ -6,18 +6,23 @@
 
 import { Suspense, useCallback, useEffect, useMemo, useState } from 'react'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
-import { ArrowRight, FileText, FlaskConical, RefreshCw, Search, X } from 'lucide-react'
+import { ArrowRight, FileText, Mail, Search, SearchX, X } from 'lucide-react'
 import type { ExperimentoDetalhado, FaseDoExperimento, LinksDoExperimento } from '@/lib/community/experimentos-ativos'
 import { api, errorMessage } from '@/components/comunidade/api'
-import { tempoRelativo } from '@/components/comunidade/format'
 import { CardDoExperimento, DetalheDoExperimento, FASE } from '@/components/comunidade/experimentos/Experimento'
-import { Button, Skeleton, cx, focusRing } from '@/components/ui'
+import { JiraIndisponivel } from '@/components/jira/JiraIndisponivel'
+import { LeituraDoJira } from '@/components/jira/LeituraDoJira'
+import { CONTATOS_DO_JIRA } from '@/lib/jira-contatos'
+import { Skeleton, cx, focusRing } from '@/components/ui'
 
 interface Resposta { itens: ExperimentoDetalhado[]; atualizadoEm: string | null; podeEditarLinks: boolean }
 
+/** Quem procurar quando um experimento não aparece na lista. */
+const RESPONSAVEL = CONTATOS_DO_JIRA[0]
+
 const sem = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
 
-function Topo({ dados }: { dados: Resposta | null }) {
+function Topo({ dados, falhou }: { dados: Resposta | null; falhou?: boolean }) {
   const itens = dados?.itens ?? []
   const andamento = itens.filter(e => e.fase === 'Em andamento').length
   const validacao = itens.length - andamento
@@ -33,7 +38,7 @@ function Topo({ dados }: { dados: Resposta | null }) {
         <div>
           <p className="inline-flex items-center gap-2 rounded-full bg-beon-tint px-3 py-1 text-[12px] font-bold uppercase tracking-[0.12em] text-beon-red">
             <span className="relative flex h-2 w-2" aria-hidden><span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-beon-red opacity-60" /><span className="relative inline-flex h-2 w-2 rounded-full bg-beon-red" /></span>
-            Ao vivo do Jira{dados?.atualizadoEm ? ` · lido ${tempoRelativo(dados.atualizadoEm)}` : ''}
+            Direto do Jira
           </p>
           <h1 className="mt-4 text-[38px] font-extrabold leading-[1.02] tracking-tight text-beon-ink sm:text-[56px]">
             Experimentos<br />ativos<span className="text-beon-red">.</span>
@@ -42,9 +47,10 @@ function Topo({ dados }: { dados: Resposta | null }) {
             O que o beOn Labs está testando agora: a ideia, quem patrocina, em que fase está e, quando já publicados, a ficha e o relatório
             de cada experimento.
           </p>
+          <LeituraDoJira className="mt-4" />
         </div>
 
-        <div className="rounded-[26px] border border-beon-line bg-white/80 p-5 shadow-sm backdrop-blur sm:p-6">
+        {!falhou && <div className="rounded-[26px] border border-beon-line bg-white/80 p-5 shadow-sm backdrop-blur sm:p-6">
           {!dados ? <Skeleton className="h-48 rounded-2xl" /> : (
             <>
               <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
@@ -69,7 +75,7 @@ function Topo({ dados }: { dados: Resposta | null }) {
               </dl>
             </>
           )}
-        </div>
+        </div>}
       </div>
     </section>
   )
@@ -120,7 +126,7 @@ function Pagina() {
 
   return (
     <div className="mx-auto max-w-[1240px] px-4 pb-16 pt-6 sm:px-6">
-      <Topo dados={dados} />
+      <Topo dados={dados} falhou={!!erro && !dados} />
 
       {/* Filtros */}
       <div className="sticky top-14 z-20 -mx-4 mt-6 border-b border-beon-line bg-white/90 px-4 py-3 backdrop-blur-md sm:-mx-6 sm:px-6 md:top-0">
@@ -157,11 +163,7 @@ function Pagina() {
 
       <div className="mt-6" aria-live="polite">
         {erro && !dados ? (
-          <div className="flex flex-col items-center rounded-[28px] border border-beon-line px-6 py-16 text-center">
-            <FlaskConical className="h-8 w-8 text-beon-red" aria-hidden />
-            <p className="mt-3 text-beon-body">{erro}</p>
-            <Button className="mt-4" icon={RefreshCw} onClick={carregar}>Tentar novamente</Button>
-          </div>
+          <div className="py-6"><JiraIndisponivel /></div>
         ) : !dados ? (
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">{[0, 1, 2, 3, 4, 5].map(i => <Skeleton key={i} className="h-[380px] rounded-[26px]" />)}</div>
         ) : !dados.itens.length ? (
@@ -190,7 +192,29 @@ function Pagina() {
         )}
       </div>
 
-      <section className="mt-12 grid gap-4 rounded-[28px] bg-beon-soft p-6 sm:grid-cols-[auto_1fr] sm:items-center sm:p-8">
+      {/* Quem não achou o próprio experimento sabe a quem recorrer. */}
+      <section aria-labelledby="t-nao-encontrou" className="relative mt-12 overflow-hidden rounded-[32px] border border-beon-red/20 bg-beon-tint px-6 py-9 sm:px-12 sm:py-12">
+        <div className="pointer-events-none absolute -right-16 -top-20 h-64 w-64 rounded-full bg-white/60 blur-2xl" aria-hidden />
+        <div className="relative grid gap-6 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
+          <div className="flex gap-5">
+            <span className="hidden h-16 w-16 shrink-0 items-center justify-center rounded-3xl bg-white text-beon-red shadow-sm sm:flex"><SearchX className="h-8 w-8" aria-hidden /></span>
+            <div>
+              <h2 id="t-nao-encontrou" className="text-[28px] font-extrabold leading-tight tracking-tight text-beon-ink sm:text-[36px]">
+                Não encontrou seu experimento por aqui?
+              </h2>
+              <p className="mt-2 max-w-2xl text-[17px] leading-relaxed text-beon-body sm:text-lg">
+                Por gentileza, entre em contato com <strong className="font-bold text-beon-ink">{RESPONSAVEL.nome}</strong>.
+              </p>
+            </div>
+          </div>
+          <a href={`mailto:${RESPONSAVEL.email}?subject=${encodeURIComponent('Meu experimento não aparece em Experimentos ativos')}`}
+            className={cx('inline-flex h-14 items-center justify-center gap-2.5 rounded-full bg-beon-red px-7 text-[16px] font-bold text-white shadow-lg shadow-beon-red/20 transition-transform hover:-translate-y-0.5 hover:bg-beon-redhi', focusRing)}>
+            <Mail className="h-5 w-5" aria-hidden />{RESPONSAVEL.email}
+          </a>
+        </div>
+      </section>
+
+      <section className="mt-6 grid gap-4 rounded-[28px] bg-beon-soft p-6 sm:grid-cols-[auto_1fr] sm:items-center sm:p-8">
         <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-beon-red shadow-sm"><FileText className="h-6 w-6" aria-hidden /></span>
         <div>
           <p className="font-bold text-beon-ink">De onde vêm esses dados</p>

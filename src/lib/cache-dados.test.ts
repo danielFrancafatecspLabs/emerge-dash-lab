@@ -76,3 +76,45 @@ describe('comCache', () => {
     expect(await comCache('k', async () => ({ v: 2 }), OPCOES)).toEqual({ v: 2 })
   })
 })
+
+describe('leitura do Jira uma vez por dia', () => {
+  it('vale o dia inteiro no horário de Brasília; no primeiro acesso do dia seguinte, serve o de ontem e lê de novo', async () => {
+    const { POLITICA_DO_JIRA, lidoHoje } = await import('./jira')
+    // 2026-10-24 às 12:00Z = 09:00 em Brasília
+    expect(lidoHoje(Date.parse('2026-10-24T03:30:00Z'), Date.parse('2026-10-24T23:00:00Z'))).toBe(true) // 00:30 e 20:00 em SP
+    expect(lidoHoje(Date.parse('2026-10-24T02:30:00Z'), Date.parse('2026-10-24T12:00:00Z'))).toBe(false) // 23:30 do dia 23 em SP
+    let leitura = 0
+    const carregar = vi.fn(async () => ({ leitura: ++leitura }))
+    expect(await comCache('jira', carregar, POLITICA_DO_JIRA)).toEqual({ leitura: 1 })
+    avancar(11 * 3600_000) // 20:00 em SP, mesmo dia
+    for (let i = 0; i < 50; i++) await comCache('jira', carregar, POLITICA_DO_JIRA)
+    expect(carregar).toHaveBeenCalledTimes(1)
+    avancar(5 * 3600_000) // 01:00 do dia seguinte em SP
+    expect(await comCache('jira', carregar, POLITICA_DO_JIRA)).toEqual({ leitura: 1 }) // quem chega primeiro não espera
+    await aguardarSegundoPlano()
+    expect(await comCache('jira', carregar, POLITICA_DO_JIRA)).toEqual({ leitura: 2 })
+    expect(carregar).toHaveBeenCalledTimes(2)
+  })
+
+  it('com o Jira fora do ar: sem leitura guardada dá erro e espera 2 h para tentar de novo; com leitura guardada, ela continua valendo', async () => {
+    const { POLITICA_DO_JIRA } = await import('./jira')
+    const { FonteIndisponivel, situacaoDoCache } = await import('./cache-dados')
+    const quebrado = vi.fn(async () => { throw new Error('Jira 503') })
+    await expect(comCache('vazio', quebrado, POLITICA_DO_JIRA)).rejects.toThrow('Jira 503')
+    await expect(comCache('vazio', quebrado, POLITICA_DO_JIRA)).rejects.toBeInstanceOf(FonteIndisponivel)
+    expect(quebrado).toHaveBeenCalledTimes(1)
+    expect(situacaoDoCache('vazio')).toMatchObject({ salvoEm: null, atualizando: false, falhouEm: expect.any(String) })
+    avancar(2 * 3600_000 + 1)
+    await expect(comCache('vazio', quebrado, POLITICA_DO_JIRA)).rejects.toThrow('Jira 503')
+    expect(quebrado).toHaveBeenCalledTimes(2)
+
+    await comCache('cheio', async () => ({ ok: 1 }), POLITICA_DO_JIRA)
+    avancar(24 * 3600_000)
+    expect(await comCache('cheio', quebrado, POLITICA_DO_JIRA)).toEqual({ ok: 1 })
+    await aguardarSegundoPlano()
+    const chamadas = quebrado.mock.calls.length
+    for (let i = 0; i < 20; i++) expect(await comCache('cheio', quebrado, POLITICA_DO_JIRA)).toEqual({ ok: 1 })
+    expect(quebrado).toHaveBeenCalledTimes(chamadas) // não insiste enquanto espera
+    expect(situacaoDoCache('cheio')).toMatchObject({ salvoEm: '2026-10-24T14:00:00.001Z', falhouEm: expect.any(String) })
+  })
+})

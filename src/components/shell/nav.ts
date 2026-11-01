@@ -3,7 +3,7 @@
 // quem decide o acesso é a política em lib/auth/access-policy.
 
 import {
-  Activity, BarChart2, Beaker, BookOpen, Bookmark, Bot, CalendarCheck, Compass, GitFork, FileText, FlaskConical, GitCompareArrows, Home, Images, Library,
+  Activity, BarChart2, Beaker, BookOpen, Bookmark, Bot, CalendarCheck, Compass, GitFork, FileText, FlaskConical, GitCompareArrows, Home, Images, Info, Library,
   Lightbulb, MessageCircle, Newspaper, Radar, Route, Target, UserCog, Users, Wallet, type LucideIcon,
 } from 'lucide-react'
 import type { AuthSessionRole } from '@/lib/auth/session'
@@ -43,6 +43,7 @@ export const COMMUNITY_EXTRAS: NavItem[] = [
   { label: 'Experimentos ativos', href: '/comunidade/experimentos-ativos', icon: Beaker },
   { label: 'Newsletter', href: '/comunidade/newsletter', icon: Newspaper },
   { label: 'World Open Source', href: '/comunidade/open-source', icon: GitFork },
+  { label: 'Sobre', href: '/comunidade/sobre', icon: Info },
 ]
 
 /** Atalhos pessoais da Comunidade (Notificações é um botão à parte, que abre o painel). */

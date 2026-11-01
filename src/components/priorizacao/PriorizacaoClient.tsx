@@ -1,5 +1,6 @@
 'use client'
 
+import { JiraIndisponivel } from '@/components/jira/JiraIndisponivel'
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { AlertTriangle, ChevronDown, ChevronUp, List, Presentation, Target } from 'lucide-react'
 import { PortalPage } from '@/components/shell/PortalPage'
@@ -240,11 +241,8 @@ export default function PriorizacaoClient() {
 
   if (erro) {
     return (
-      <div className="flex min-h-dvh items-center justify-center" style={{ background: '#f0f0f0' }}>
-        <div className="bg-white rounded-lg p-8 shadow text-center max-w-lg">
-          <p className="text-2xl font-bold mb-2" style={{ color: '#CC0000' }}>Erro ao carregar</p>
-          <p className="text-gray-600 text-sm">{erro}</p>
-        </div>
+      <div className="flex min-h-dvh items-start justify-center bg-white p-6 sm:pt-16">
+        <JiraIndisponivel detalhe={erro} />
       </div>
     )
   }

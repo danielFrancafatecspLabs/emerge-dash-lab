@@ -1,5 +1,6 @@
 'use client'
 
+import { JiraIndisponivel } from '@/components/jira/JiraIndisponivel'
 import { useEffect, useMemo, useState } from 'react'
 import { Presentation } from 'lucide-react'
 import type { WeeklyData } from '@/lib/weekly'
@@ -23,7 +24,7 @@ export default function AcompanhamentoSemanal() {
 
   useEffect(() => {
     fetch('/jira/api/weekly', { credentials: 'include' })
-      .then(r => r.json())
+      .then(r => r.json().then(j => { if (!r.ok) throw new Error(j?.detalhe ?? `HTTP ${r.status}`); return j }))
       .then(json => setData(json))
       .catch(err => setError(err.message))
   }, [])
@@ -56,7 +57,7 @@ export default function AcompanhamentoSemanal() {
   }, [data, bloqueiosData])
 
   if (error) {
-    return <p className="text-sm" style={{ color: RED }}>Erro ao carregar o acompanhamento da semana: {error}</p>
+    return <div className="flex justify-center p-6 sm:pt-12"><JiraIndisponivel detalhe={error} /></div>
   }
   if (!data || !bloqueiosData) {
     return <p className="text-sm text-gray-400">Carregando o acompanhamento da semana…</p>
