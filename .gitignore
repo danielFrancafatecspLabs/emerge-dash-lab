@@ -32,6 +32,8 @@ data/avatars/
 # Repositórios publicados no World Open Source
 data/open-source.json
 data/newsletter-historico.json
+data/push.json
+data/vapid.json
 
 # Saídas de scripts
 public/comunidade/*

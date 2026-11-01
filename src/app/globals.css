@@ -95,3 +95,9 @@ body.modo-apresentacao .app-header {
   from { transform: translateX(0); }
   to { transform: translateX(-50%); }
 }
+
+/* Barra de tempo do cartão do beOn Radar (some em 15 s). */
+@keyframes encolher {
+  from { transform: scaleX(1); }
+  to { transform: scaleX(0); }
+}
