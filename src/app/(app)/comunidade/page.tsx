@@ -10,7 +10,7 @@ import { PageColumns } from '@/components/comunidade/Page'
 import { DiscoveryRail } from '@/components/comunidade/DiscoveryRail'
 import { PostItem, PostSkeleton } from '@/components/comunidade/PostItem'
 import { StoriesRail } from '@/components/comunidade/Stories'
-import { Panorama } from '@/components/comunidade/panorama/Panorama'
+import { Panorama, PanoramaDoMundo } from '@/components/comunidade/panorama/Panorama'
 import { Avatar, Button, EmptyState, ErrorState, cx, focusRing, inputClass } from '@/components/ui'
 import { topicIcon } from '@/components/comunidade/visuals'
 
@@ -147,6 +147,8 @@ function Feed() {
       </div>
 
       <div role="tabpanel" aria-busy={posts.loading && !posts.data}>
+        {/* O mundo vem primeiro: as notícias do dia abrem a home, antes das publicações. */}
+        {comPanorama && <PanoramaDoMundo />}
         {posts.error && !posts.data ? (
           <ErrorState message={posts.error} onRetry={reloadPosts} />
         ) : !resultado ? (
