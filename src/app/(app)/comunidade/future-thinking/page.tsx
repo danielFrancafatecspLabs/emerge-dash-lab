@@ -95,7 +95,7 @@ export default function FutureThinkingPage() {
   const filtrados = sinais.filter(p => (!dimensao || p.meta.dimensao === dimensao) && (!horizonte || p.meta.horizonte === horizonte))
 
   return (
-    <div className="mx-auto max-w-[1080px]">
+    <div className="max-w-[1080px]">
       <PageHeader eyebrow="Future Thinking" title="Propor um sinal"
         description="Viu uma mudança concreta (tecnológica, social, econômica, ambiental ou regulatória)? Traga a evidência, o horizonte e o que ela pode significar para a Claro. Os sinais propostos aqui passam por análise e curadoria antes de entrar no Catálogo de Sinais."
         action={<Button variant="primary" icon={Radar} onClick={() => openComposer({ kind: 'sinal' })}>Propor um sinal</Button>} />

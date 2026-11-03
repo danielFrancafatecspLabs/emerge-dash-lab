@@ -206,7 +206,7 @@ export function TrilhaExperimentacao({ etapaInicial }: { etapaInicial: EtapaTril
   }
 
   return (
-    <div className="mx-auto max-w-[1180px] pb-16">
+    <div className="max-w-[1180px] pb-16">
       {/* Cabeçalho */}
       <div className="flex flex-wrap items-end justify-between gap-4 px-4 pb-5 pt-6 sm:px-6 md:pt-8">
         <div className="min-w-0">
