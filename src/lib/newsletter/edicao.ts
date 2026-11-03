@@ -314,6 +314,12 @@ async function buscarTexto(url: string, timeoutMs: number, limiteBytes = 2_000_0
   }
 }
 
+/** A imagem de destaque (og:image ou twitter:image) da página da matéria, ou null. */
+export async function imagemDaMateria(link: string): Promise<string | null> {
+  if (!/^https?:\/\//.test(link)) return null
+  try { return imagemDaPagina(await buscarTexto(link, 6_000, 400_000)) } catch { return null }
+}
+
 /** Varre as fontes e monta a edição do dia. Uma fonte que falha não derruba as demais. */
 export async function gerarEdicao(fontes = fontesConfiguradas(), agora = new Date()): Promise<Edicao> {
   const resultados = await Promise.all(fontes.map(async fonte => {

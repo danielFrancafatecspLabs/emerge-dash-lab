@@ -4,9 +4,9 @@
 // encontros da comunidade e as novidades (as publicações mais recentes, de qualquer tipo).
 
 import Link from 'next/link'
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { CalendarDays, MessageCircle, Plus, Check } from 'lucide-react'
-import { postTitle, trendingTopics } from '@/lib/community/model'
+import { postTitle, trendingTopics, type CommunityPost } from '@/lib/community/model'
 import { topicLabel } from '@/lib/community/topics'
 import type { MemberPublic } from '@/lib/community/server'
 import { useCommunity } from './CommunityProvider'
@@ -165,6 +165,22 @@ function QuemEstaPorAqui({ lista, eu, carregando }: { lista: MemberPublic[]; eu?
   )
 }
 
+/** A imagem da matéria (notícias do Radar) ou o ícone do tipo de publicação. */
+function MiniaturaDaNovidade({ post }: { post: CommunityPost }) {
+  const [falhou, setFalhou] = useState(false)
+  const { icon: Icon, accent } = KIND_STYLE[post.kind]
+  const imagem = post.meta.imagem && /^https?:\/\//.test(post.meta.imagem) && !falhou ? post.meta.imagem : null
+  if (imagem) {
+    // eslint-disable-next-line @next/next/no-img-element -- imagem externa da matéria (domínio variável)
+    return <img src={imagem} alt="" loading="lazy" referrerPolicy="no-referrer" onError={() => setFalhou(true)} className="h-12 w-12 shrink-0 rounded-lg bg-beon-soft object-cover" />
+  }
+  return (
+    <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-beon-soft" aria-hidden>
+      <Icon className="h-5 w-5" style={{ color: accent }} />
+    </span>
+  )
+}
+
 export function DiscoveryRail() {
   const { me, members, posts } = useCommunity()
   const lista = useMemo(() => members.data ?? [], [members.data])
@@ -231,11 +247,10 @@ export function DiscoveryRail() {
           <SectionTitle>Novidades</SectionTitle>
           <ul className="space-y-3">
             {destaques.map(p => {
-              const { icon: Icon, accent } = KIND_STYLE[p.kind]
               return (
                 <li key={p.id}>
-                  <Link href={`/comunidade/post/${p.id}`} className={cx('group -mx-2 flex gap-3 rounded-lg px-2 py-1.5 hover:bg-beon-soft', focusRing)}>
-                    <Icon className="mt-0.5 h-4 w-4 shrink-0" style={{ color: accent }} aria-hidden />
+                  <Link href={`/comunidade/post/${encodeURIComponent(p.id)}`} className={cx('group -mx-2 flex gap-3 rounded-lg px-2 py-1.5 hover:bg-beon-soft', focusRing)}>
+                    <MiniaturaDaNovidade post={p} />
                     <span className="min-w-0">
                       <span className="line-clamp-2 text-sm font-medium leading-snug text-beon-ink group-hover:underline">{postTitle(p)}</span>
                       <span className="text-xs text-beon-muted">{p.authorName} · {tempoRelativo(p.createdAt)}</span>
