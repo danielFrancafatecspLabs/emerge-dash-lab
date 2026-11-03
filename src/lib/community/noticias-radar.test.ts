@@ -9,7 +9,8 @@ import type { ResearchVault } from '@/lib/research-vault'
 import { intercalarAutomacoes, normalizePost } from './model'
 import { loadPosts } from './posts-store'
 import {
-  AUTOMACAO_RADAR, discussaoDaNoticia, noticiasParaDiscutir, provocacaoPorModelo, sincronizarNoticiasRadar, temaDaNoticia,
+  AUTOMACAO_RADAR, buscarImagensQueFaltam, completarImagensDasDiscussoes, discussaoDaNoticia, noticiasParaDiscutir, provocacaoPorModelo,
+  sincronizarNoticiasRadar, temaDaNoticia,
 } from './noticias-radar'
 import { postDeSinal } from './sinais-osint'
 
@@ -57,6 +58,39 @@ describe('beOn Radar - Newsletter no fórum', () => {
     expect(post.content).toContain('Que implicação ou cenário')
     expect(provocacaoDoPost(post.content)).toMatch(/^Agentes assim/)
     expect(discussaoDaNoticia(noticia('x', { link: 'javascript:alert(1)' })).linkUrl).toBe('')
+  })
+
+  it('a discussão leva a imagem da matéria (só endereços web)', () => {
+    expect(discussaoDaNoticia(noticia('i1', { imagem: 'https://cdn.exemplo.org/foto.jpg' })).meta).toEqual({ imagem: 'https://cdn.exemplo.org/foto.jpg' })
+    expect(discussaoDaNoticia(noticia('i2', { imagem: 'data:image/png;base64,AAAA' })).meta).toEqual({})
+    expect(discussaoDaNoticia(noticia('i3', { imagem: 'javascript:alert(1)' })).meta).toEqual({})
+    expect(discussaoDaNoticia(noticia('i4')).meta).toEqual({})
+  })
+
+  it('completa a imagem das discussões antigas pela edição ou pelo Histórico, sem tocar nas outras publicações', async () => {
+    await sincronizarNoticiasRadar([noticia('a1'), noticia('a2'), noticia('a3')], AGORA, semLLM)
+    const n = completarImagensDasDiscussoes(
+      [noticia('a1', { imagem: 'https://cdn.exemplo.org/a1.jpg' }), noticia('a2')],
+      { a2: { imagem: 'https://cdn.exemplo.org/a2.png' }, a3: { imagem: null } },
+    )
+    expect(n).toBe(2)
+    const posts = loadPosts()
+    expect(posts.find(p => p.id === 'radar:a1')?.meta?.imagem).toBe('https://cdn.exemplo.org/a1.jpg')
+    expect(posts.find(p => p.id === 'radar:a2')?.meta?.imagem).toBe('https://cdn.exemplo.org/a2.png')
+    expect(posts.find(p => p.id === 'radar:a3')?.meta?.imagem).toBeUndefined()
+    expect(posts.find(p => p.id === 'p1')?.meta).toBeUndefined()
+    expect(completarImagensDasDiscussoes([noticia('a1', { imagem: 'https://outra.org/x.jpg' })])).toBe(0)
+  })
+
+  it('busca na página da matéria a imagem que faltou, uma vez por link', async () => {
+    const noticias = [noticia('b1'), noticia('b2', { imagem: 'https://cdn.exemplo.org/b2.jpg' }), noticia('b3')]
+    const pedidos: string[] = []
+    const buscar = async (link: string) => { pedidos.push(link); return link.endsWith('b1') ? 'https://cdn.exemplo.org/og-b1.jpg' : null }
+    expect(await buscarImagensQueFaltam(noticias, buscar)).toBe(1)
+    expect(noticias[0].imagem).toBe('https://cdn.exemplo.org/og-b1.jpg')
+    expect(pedidos.sort()).toEqual(['https://exemplo.org/b1', 'https://exemplo.org/b3'])
+    expect(await buscarImagensQueFaltam([noticia('b3')], buscar)).toBe(0)
+    expect(pedidos).toHaveLength(2)
   })
 
   it('abre uma discussão por notícia, uma vez só, limitada por seção', async () => {
