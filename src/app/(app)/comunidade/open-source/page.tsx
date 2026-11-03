@@ -5,8 +5,9 @@
 
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react'
 import {
-  AudioLines, Bot, Boxes, CheckCircle2, Clapperboard, Code2, Database, ExternalLink, GitFork, Globe2, HeartHandshake,
-  HelpCircle, Lock, Pencil, Plus, Rocket, Search, ShieldCheck, Trash2, Unlock, type LucideIcon,
+  AlertTriangle, AudioLines, Ban, Bot, Boxes, CheckCircle2, Clapperboard, Code2, Database, ExternalLink, FileText, FlaskConical,
+  GitCommitHorizontal, GitFork, Globe2, HeartHandshake, HelpCircle, LineChart, Lock, Pencil, Plus, Rocket, Search, ShieldCheck,
+  Smartphone, SquareTerminal, Trash2, Unlock, type LucideIcon,
 } from 'lucide-react'
 import {
   CATEGORIAS_OSS, LICENCAS, familiaDaLicenca, type CategoriaOss, type FamiliaLicenca, type RepoOss,
@@ -18,6 +19,11 @@ import { Button, Chip, Dialog, EmptyState, ErrorState, Skeleton, cx, focusRing, 
 
 const CATEGORIA_VISUAL: Record<CategoriaOss, { icone: LucideIcon; fundo: string; texto: string }> = {
   'IA e agentes': { icone: Bot, fundo: 'from-[#D31809] to-[#8f1006]', texto: 'text-[#D31809]' },
+  'Agentes de código': { icone: SquareTerminal, fundo: 'from-[#9f1239] to-[#4c0519]', texto: 'text-rose-800' },
+  'Documentos e produtividade': { icone: FileText, fundo: 'from-[#0369a1] to-[#0c4a6e]', texto: 'text-sky-800' },
+  'Pesquisa e ciência': { icone: FlaskConical, fundo: 'from-[#047857] to-[#064e3b]', texto: 'text-emerald-800' },
+  'Finanças e trading': { icone: LineChart, fundo: 'from-[#a16207] to-[#713f12]', texto: 'text-yellow-800' },
+  'Mobile e engenharia reversa': { icone: Smartphone, fundo: 'from-[#334155] to-[#0f172a]', texto: 'text-slate-700' },
   'Voz e áudio': { icone: AudioLines, fundo: 'from-[#0f766e] to-[#064e48]', texto: 'text-teal-700' },
   'Vídeo e animação': { icone: Clapperboard, fundo: 'from-[#c2410c] to-[#7c2d12]', texto: 'text-orange-700' },
   'Dados e analytics': { icone: Database, fundo: 'from-[#2F6FB3] to-[#1d4777]', texto: 'text-[#2F6FB3]' },
@@ -34,6 +40,10 @@ const LICENCA_VISUAL: Record<FamiliaLicenca, { rotulo: string; icone: LucideIcon
   copyleft: {
     rotulo: 'Copyleft', icone: Lock, cls: 'border-amber-200 bg-amber-50 text-amber-900',
     explica: 'Pode usar e modificar, mas quem distribui (ou, na AGPL, oferece pela rede) uma versão modificada precisa abrir o código dela sob a mesma licença. Para uso interno costuma ser tranquilo; para levar a produto, consulte o jurídico.',
+  },
+  restrita: {
+    rotulo: 'Uso restrito', icone: Ban, cls: 'border-red-200 bg-red-50 text-red-800',
+    explica: 'Não é uma licença open source comum: uso não comercial, proprietária ou sem licença (todos os direitos reservados). Leia os termos e fale com o jurídico antes de usar na empresa.',
   },
   outra: {
     rotulo: 'Verificar', icone: HelpCircle, cls: 'border-beon-line bg-beon-soft text-beon-body',
@@ -94,9 +104,10 @@ function Abertura({ total, onPublicar }: { total: number; onPublicar: () => void
         </div>
 
         <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-xs text-white/75">
-          {(['permissiva', 'copyleft', 'outra'] as FamiliaLicenca[]).map(f => {
+          {(['permissiva', 'copyleft', 'restrita', 'outra'] as FamiliaLicenca[]).map(f => {
             const v = LICENCA_VISUAL[f]
-            return <span key={f} className="inline-flex items-center gap-1.5" title={v.explica}><v.icone className="h-3.5 w-3.5" aria-hidden /><b className="font-semibold text-white">{v.rotulo}</b> {f === 'permissiva' ? 'MIT, Apache, BSD' : f === 'copyleft' ? 'GPL, AGPL, MPL' : 'leia o LICENSE'}</span>
+            const exemplos: Record<FamiliaLicenca, string> = { permissiva: 'MIT, Apache, BSD', copyleft: 'GPL, AGPL, MPL', restrita: 'não comercial, proprietária', outra: 'leia o LICENSE' }
+            return <span key={f} className="inline-flex items-center gap-1.5" title={v.explica}><v.icone className="h-3.5 w-3.5" aria-hidden /><b className="font-semibold text-white">{v.rotulo}</b> {exemplos[f]}</span>
           })}
         </div>
       </div>
@@ -105,6 +116,13 @@ function Abertura({ total, onPublicar }: { total: number; onPublicar: () => void
 }
 
 // ── Card e detalhe ───────────────────────────────────────────────────────────
+
+/** "2026-07-21" → "jul/2026" (o último commit quando a ficha foi escrita). */
+const mesAno = (data: string) => {
+  const [a, m] = data.split('-')
+  const meses = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez']
+  return a && m ? `${meses[Number(m) - 1] ?? m}/${a}` : data
+}
 
 function Card({ repo, onAbrir }: { repo: RepoOss; onAbrir: () => void }) {
   const v = CATEGORIA_VISUAL[repo.categoria]
@@ -126,8 +144,14 @@ function Card({ repo, onAbrir }: { repo: RepoOss; onAbrir: () => void }) {
           <LicencaChip licenca={repo.licenca} />
           {repo.tags.slice(0, 3).map(t => <span key={t} className="rounded-full bg-beon-soft px-2 py-0.5 text-[11px] text-beon-body">#{t}</span>)}
         </div>
-        <p className="mt-auto pt-4 text-xs text-beon-muted">
-          por {repo.publicadoPor.nome}{repo.editadoPor ? ` · editado por ${repo.editadoPor.nome}` : ''}
+        {repo.atencao && (
+          <p className="mt-3 flex items-start gap-1.5 text-xs font-medium leading-snug text-amber-900">
+            <AlertTriangle className="mt-px h-3.5 w-3.5 shrink-0" aria-hidden /><span className="line-clamp-2">{repo.atencao}</span>
+          </p>
+        )}
+        <p className="mt-auto flex flex-wrap gap-x-2 pt-4 text-xs text-beon-muted">
+          <span>por {repo.publicadoPor.nome}{repo.editadoPor ? ` · editado por ${repo.editadoPor.nome}` : ''}</span>
+          {repo.ultimoCommit && <span className="inline-flex items-center gap-1"><GitCommitHorizontal className="h-3.5 w-3.5" aria-hidden />{mesAno(repo.ultimoCommit)}</span>}
         </p>
       </div>
     </button>
@@ -183,6 +207,13 @@ function Detalhe({ repo, onClose, onEditar, onRemover, podeRemover }: {
           </Secao>
         )}
 
+        {repo.atencao && (
+          <div className="flex gap-2.5 rounded-xl border border-amber-200 bg-amber-50 p-3.5 text-sm leading-relaxed text-amber-900" role="note">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
+            <p><b className="font-semibold">Atenção:</b> {repo.atencao}</p>
+          </div>
+        )}
+
         <Secao titulo="Licença">
           <div className={cx('rounded-xl border p-3.5 text-sm', lic.cls)}>
             <p className="flex items-center gap-1.5 font-semibold"><lic.icone className="h-4 w-4" aria-hidden />{repo.licenca} · {lic.rotulo}</p>
@@ -197,6 +228,7 @@ function Detalhe({ repo, onClose, onEditar, onRemover, podeRemover }: {
         )}
 
         <p className="text-xs text-beon-muted">
+          {repo.ultimoCommit && <>Último commit em {repo.ultimoCommit.split('-').reverse().join('/')} (quando a ficha foi escrita) · </>}
           Publicado por {repo.publicadoPor.nome} {tempoRelativo(repo.publicadoEm)}
           {repo.editadoPor && repo.editadoEm ? ` · editado por ${repo.editadoPor.nome} ${tempoRelativo(repo.editadoEm)}` : ''}
         </p>
@@ -218,11 +250,11 @@ function Detalhe({ repo, onClose, onEditar, onRemover, podeRemover }: {
 
 // ── Publicar / editar ────────────────────────────────────────────────────────
 
-type Form = { url: string; nome: string; resumo: string; usos: string; comoComecar: string; categoria: CategoriaOss; licenca: string; tags: string }
-const VAZIO: Form = { url: '', nome: '', resumo: '', usos: '', comoComecar: '', categoria: 'IA e agentes', licenca: 'MIT', tags: '' }
+type Form = { url: string; nome: string; resumo: string; usos: string; comoComecar: string; categoria: CategoriaOss; licenca: string; tags: string; atencao: string }
+const VAZIO: Form = { url: '', nome: '', resumo: '', usos: '', comoComecar: '', categoria: 'IA e agentes', licenca: 'MIT', tags: '', atencao: '' }
 const doRepo = (r: RepoOss): Form => ({
   url: r.url, nome: r.nome, resumo: r.resumo, usos: r.usos.join('\n'), comoComecar: r.comoComecar.join('\n'),
-  categoria: r.categoria, licenca: r.licenca, tags: r.tags.join(', '),
+  categoria: r.categoria, licenca: r.licenca, tags: r.tags.join(', '), atencao: r.atencao ?? '',
 })
 
 function Formulario({ repo, onClose, onSalvo }: { repo: RepoOss | null; onClose: () => void; onSalvo: (r: RepoOss) => void }) {
@@ -292,6 +324,11 @@ function Formulario({ repo, onClose, onSalvo }: { repo: RepoOss | null; onClose:
             <label htmlFor="oss-tags" className={campo}>Tags</label>
             <input id="oss-tags" className={inputClass} placeholder="llm, local" value={f.tags} onChange={set('tags')} />
           </div>
+        </div>
+        <div>
+          <label htmlFor="oss-atencao" className={campo}>Atenção (opcional)</label>
+          <input id="oss-atencao" maxLength={300} className={inputClass} value={f.atencao} onChange={set('atencao')}
+            placeholder="Ex.: os pesos do modelo têm licença não comercial" />
         </div>
         <div className="flex justify-end gap-2 border-t border-beon-line pt-4">
           <Button onClick={onClose}>Cancelar</Button>
