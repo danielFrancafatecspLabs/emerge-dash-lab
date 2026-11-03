@@ -16,7 +16,7 @@ const AREAS: { titulo: string; texto: string; href: string; icone: LucideIcon }[
   { titulo: 'beOn Radar', texto: 'A newsletter diária de tecnologias emergentes, mercado e Vale do Silício.', href: '/comunidade/newsletter', icone: Newspaper },
   { titulo: 'Acervo de Pesquisas', texto: 'As pesquisas do Lab, com os conceitos e papers por trás de cada uma.', href: '/comunidade/pesquisas', icone: BookOpen },
   { titulo: 'Cientista', texto: 'Um assistente para tirar dúvidas sobre experimentação e o portfólio do Lab.', href: '/comunidade/cientista', icone: FlaskConical },
-  { titulo: 'World Open Source', texto: 'Ferramentas e repositórios abertos que a comunidade recomenda.', href: '/comunidade/open-source', icone: GitFork },
+  { titulo: 'Open Source World', texto: 'Ferramentas e repositórios abertos que a comunidade recomenda.', href: '/comunidade/open-source', icone: GitFork },
   { titulo: 'Fórum da Comunidade', texto: 'Perguntas, descobertas e discussões com quem experimenta na Claro.', href: '/comunidade', icone: MessagesSquare },
 ]
 

@@ -1,6 +1,6 @@
 'use client'
 
-// World Open Source: vitrine de ferramentas e repositórios open source que qualquer pessoa da comunidade pode publicar
+// Open Source World: vitrine de ferramentas e repositórios open source que qualquer pessoa da comunidade pode publicar
 // e editar. Visual escuro com brilho vermelho, mas organizado e enxuto: categorias numa lista lateral, repositórios
 // agrupados por categoria e cards só com o essencial. O resto (usos, comandos, licença) fica na ficha de cada um.
 
@@ -183,7 +183,7 @@ function Abertura({ repos, onPublicar, onLicencas }: { repos: RepoOss[] | null; 
           <span className="ml-1 inline-block h-4 w-2 translate-y-0.5 animate-pulse bg-[#ff5a4a]" aria-hidden />
         </p>
         <h1 className="mt-3 text-4xl font-bold tracking-tight text-white sm:text-5xl">
-          World Open <span className="bg-gradient-to-r from-[#ff5a4a] to-[#ff9a8f] bg-clip-text text-transparent">Source</span>
+          Open Source <span className="bg-gradient-to-r from-[#ff5a4a] to-[#ff9a8f] bg-clip-text text-transparent">World</span>
         </h1>
         <p className="mt-4 text-[15px] leading-relaxed text-zinc-400 sm:text-base">
           Repositórios open source curados pela comunidade: o que fazem, a licença e como começar. Qualquer pessoa pode publicar e editar.
@@ -207,7 +207,7 @@ function Abertura({ repos, onPublicar, onLicencas }: { repos: RepoOss[] | null; 
 
 function GuiaDeLicencas({ onClose }: { onClose: () => void }) {
   return (
-    <ModalDev titulo="Como ler as licenças" subtitulo="Antes de levar um projeto para a Claro" caminho="~/world-open-source/LICENSE.md" onClose={onClose}>
+    <ModalDev titulo="Como ler as licenças" subtitulo="Antes de levar um projeto para a Claro" caminho="~/open-source-world/LICENSE.md" onClose={onClose}>
       <div className="space-y-6">
         <dl className="space-y-4 text-sm leading-relaxed">
           {([
@@ -314,7 +314,7 @@ function Detalhe({ repo, onClose, onEditar, onRemover, podeRemover }: {
   const lic = LICENCA_VISUAL[familiaDaLicenca(repo.licenca)]
   const v = CATEGORIA_VISUAL[repo.categoria]
   return (
-    <ModalDev titulo={repo.nome} subtitulo={repo.url.replace(/^https:\/\//, '')} caminho={`~/world-open-source/${repo.slug}`} onClose={onClose} largo>
+    <ModalDev titulo={repo.nome} subtitulo={repo.url.replace(/^https:\/\//, '')} caminho={`~/open-source-world/${repo.slug}`} onClose={onClose} largo>
       <div className="space-y-7">
         <div>
           <p className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-zinc-400">
@@ -407,7 +407,7 @@ function Formulario({ repo, onClose, onSalvo }: { repo: RepoOss | null; onClose:
   const campo = 'mb-1.5 block text-xs font-medium text-zinc-400'
   return (
     <ModalDev titulo={repo ? `Editar ${repo.nome}` : 'Publicar um repositório'} subtitulo="Explique para quem nunca viu o projeto"
-      caminho={repo ? `~/world-open-source/${repo.slug}/editar` : '~/world-open-source/novo'} onClose={onClose}>
+      caminho={repo ? `~/open-source-world/${repo.slug}/editar` : '~/open-source-world/novo'} onClose={onClose}>
       <form onSubmit={enviar} className="space-y-4">
         <div className="grid gap-4 sm:grid-cols-[1fr_200px]">
           <div>
@@ -468,7 +468,7 @@ function Formulario({ repo, onClose, onSalvo }: { repo: RepoOss | null; onClose:
 
 // ── Página ───────────────────────────────────────────────────────────────────
 
-export default function WorldOpenSourcePage() {
+export default function OpenSourceWorldPage() {
   const { me, toast } = useCommunity()
   const [repos, setRepos] = useState<RepoOss[] | null>(null)
   const [erro, setErro] = useState<string | null>(null)

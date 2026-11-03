@@ -1,6 +1,6 @@
 import { CATALOGO_BEON } from './open-source-catalogo'
 
-// World Open Source: vitrine de ferramentas e repositórios open source da Comunidade. Qualquer pessoa publica e edita;
+// Open Source World: vitrine de ferramentas e repositórios open source da Comunidade. Qualquer pessoa publica e edita;
 // só quem publicou (ou um admin) remove. Modelo e validação sem dependências de servidor (valem na tela e na API).
 
 export const CATEGORIAS_OSS = [
