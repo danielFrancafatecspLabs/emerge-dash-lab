@@ -1,7 +1,7 @@
 'use client'
 
 // Painel auxiliar do feed: quem está ativo, pessoas para conhecer, tópicos em alta,
-// encontros da comunidade e os destaques mais recentes de Pesquisas e Future Thinking.
+// encontros da comunidade e as novidades (as publicações mais recentes, de qualquer tipo).
 
 import Link from 'next/link'
 import { useMemo } from 'react'
@@ -176,12 +176,10 @@ export function DiscoveryRail() {
   }) : []), [lista, me])
 
   const emAlta = useMemo(() => trendingTopics(posts.data ?? []), [posts.data])
-  const destaques = useMemo(() => {
-    const all = posts.data ?? []
-    return (['pesquisa', 'sinal', 'experimento'] as const)
-      .map(kind => all.filter(p => p.kind === kind).sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt))[0])
-      .filter(Boolean)
-  }, [posts.data])
+  // As 5 publicações mais recentes da comunidade, de qualquer tipo (notícias do Radar e sinais incluídos).
+  const destaques = useMemo(() => [...(posts.data ?? [])]
+    .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt))
+    .slice(0, 5), [posts.data])
 
   return (
     <div className="space-y-8 pr-2">

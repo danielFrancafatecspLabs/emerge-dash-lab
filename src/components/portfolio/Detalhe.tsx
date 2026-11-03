@@ -11,6 +11,7 @@ import {
 } from '@/lib/portfolio/filtros'
 import { SITUACAO_LABEL, type ExperimentoItem, type IniciativaItem, type ItemPortfolio } from '@/lib/portfolio/tipos'
 import { COR_SITUACAO, PontoSituacao, SeloBloqueado } from './Comum'
+import { copiarTexto } from '@/components/clipboard'
 
 const norm = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
 
@@ -54,7 +55,7 @@ function CopiarLink() {
     <button
       type="button"
       onClick={async () => {
-        try { await navigator.clipboard.writeText(window.location.href); setOk(true); setTimeout(() => setOk(false), 1800) } catch { /* sem permissão */ }
+        if (await copiarTexto(window.location.href)) { setOk(true); setTimeout(() => setOk(false), 1800) }
       }}
       className={cx('inline-flex items-center gap-1.5 rounded-full px-2 py-1.5 text-sm font-medium text-beon-body hover:bg-beon-soft hover:text-beon-ink', focusRing)}
     >

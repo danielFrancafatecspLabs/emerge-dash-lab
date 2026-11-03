@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { ArrowUpRight, Check, Lightbulb, MessageCircle } from 'lucide-react'
+import { ArrowUpRight, Check, Lightbulb, MessageCircle, MessageSquarePlus } from 'lucide-react'
 import type { Noticia } from '@/lib/newsletter/edicao'
 import { TOPICOS_ESPECIAIS } from '@/lib/newsletter/topicos'
 import { useCommunity } from '@/components/comunidade/CommunityProvider'
@@ -36,9 +36,24 @@ export function BotaoProporSinal({ n, className }: { n: Noticia; className?: str
   )
 }
 
+/** Abre o composer com uma discussão nova sobre a notícia (qualquer pessoa pode começar uma). */
+export function BotaoDiscutir({ n, className }: { n: Noticia; className?: string }) {
+  const { openComposer } = useCommunity()
+  return (
+    <button type="button"
+      onClick={() => openComposer({
+        kind: 'discussao', title: n.titulo.slice(0, 160), linkUrl: n.link,
+        content: `${n.resumo ? `${n.resumo}\n\n` : ''}Fonte: ${n.fonte}. O que vocês acham?`.slice(0, 1500),
+      })}
+      className={cx('inline-flex items-center gap-1 rounded-full text-xs font-semibold text-beon-red hover:underline', focusRing, className)}>
+      <MessageSquarePlus className="h-3.5 w-3.5" aria-hidden />Começar discussão
+    </button>
+  )
+}
+
 /**
  * Card de notícia: abre a matéria na fonte (nova aba) e marca como lida. Lidas ficam esmaecidas; novas ganham selo.
- * Embaixo, as ações: entrar na discussão do fórum e, se a matéria parece um sinal de futuro, propor como sinal.
+ * Embaixo, as ações: entrar na discussão do fórum (ou começar uma) e, se a matéria parece um sinal de futuro, propor como sinal.
  */
 export function CardNoticia({ n, lida, nova, onAbrir, destaque, discussao }: {
   n: Noticia
@@ -87,17 +102,16 @@ export function CardNoticia({ n, lida, nova, onAbrir, destaque, discussao }: {
           </div>
         </div>
       </a>
-      {(discussao || n.possivelSinal) && (
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-beon-line px-4 py-3 sm:px-5">
-          {discussao && (
-            <Link href={`/comunidade/post/${discussao.id}`} className={cx('inline-flex items-center gap-1 rounded-full text-xs font-semibold text-beon-red hover:underline', focusRing)}>
-              <MessageCircle className="h-3.5 w-3.5" aria-hidden />
-              {discussao.comentarios ? `Discussão · ${discussao.comentarios} ${discussao.comentarios === 1 ? 'comentário' : 'comentários'}` : 'Discutir no fórum'}
-            </Link>
-          )}
-          {n.possivelSinal && <BotaoProporSinal n={n} />}
-        </div>
-      )}
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-beon-line px-4 py-3 sm:px-5">
+        {!discussao && <BotaoDiscutir n={n} />}
+        {discussao && (
+          <Link href={`/comunidade/post/${discussao.id}`} className={cx('inline-flex items-center gap-1 rounded-full text-xs font-semibold text-beon-red hover:underline', focusRing)}>
+            <MessageCircle className="h-3.5 w-3.5" aria-hidden />
+            {discussao.comentarios ? `Discussão · ${discussao.comentarios} ${discussao.comentarios === 1 ? 'comentário' : 'comentários'}` : 'Discutir no fórum'}
+          </Link>
+        )}
+        {n.possivelSinal && <BotaoProporSinal n={n} />}
+      </div>
     </article>
   )
 }
