@@ -1,20 +1,33 @@
+import { CATALOGO_BEON } from './open-source-catalogo'
+
 // World Open Source: vitrine de ferramentas e repositórios open source da Comunidade. Qualquer pessoa publica e edita;
 // só quem publicou (ou um admin) remove. Modelo e validação sem dependências de servidor (valem na tela e na API).
 
-export const CATEGORIAS_OSS = ['IA e agentes', 'Voz e áudio', 'Vídeo e animação', 'Dados e analytics', 'Ferramentas de dev', 'Segurança', 'Outros'] as const
+export const CATEGORIAS_OSS = [
+  'IA e agentes', 'Agentes de código', 'Voz e áudio', 'Vídeo e animação', 'Documentos e produtividade', 'Dados e analytics',
+  'Pesquisa e ciência', 'Finanças e trading', 'Ferramentas de dev', 'Mobile e engenharia reversa', 'Segurança', 'Outros',
+] as const
 export type CategoriaOss = typeof CATEGORIAS_OSS[number]
 
 /** Família da licença: define o cuidado para usar e distribuir na empresa. */
-export type FamiliaLicenca = 'permissiva' | 'copyleft' | 'outra'
+export type FamiliaLicenca = 'permissiva' | 'copyleft' | 'restrita' | 'outra'
 
 export const LICENCAS: { id: string; familia: FamiliaLicenca }[] = [
   { id: 'MIT', familia: 'permissiva' },
   { id: 'Apache-2.0', familia: 'permissiva' },
   { id: 'BSD-3-Clause', familia: 'permissiva' },
+  { id: 'BSD-2-Clause', familia: 'permissiva' },
+  { id: 'ISC', familia: 'permissiva' },
+  { id: 'Unlicense', familia: 'permissiva' },
+  { id: 'CC0-1.0', familia: 'permissiva' },
   { id: 'MPL-2.0', familia: 'copyleft' },
   { id: 'LGPL-3.0', familia: 'copyleft' },
+  { id: 'GPL-2.0', familia: 'copyleft' },
   { id: 'GPL-3.0', familia: 'copyleft' },
   { id: 'AGPL-3.0', familia: 'copyleft' },
+  { id: 'CC-BY-NC-4.0', familia: 'restrita' },
+  { id: 'Proprietária', familia: 'restrita' },
+  { id: 'Sem licença', familia: 'restrita' },
   { id: 'Outra / não informada', familia: 'outra' },
 ]
 
@@ -35,13 +48,17 @@ export interface RepoOss {
   categoria: CategoriaOss
   licenca: string
   tags: string[]
+  /** Restrição ou cuidado de uso declarado pelo próprio repositório (licença do modelo, termos de terceiros…). */
+  atencao?: string
+  /** Data (AAAA-MM-DD) do último commit quando a ficha foi escrita. */
+  ultimoCommit?: string
   publicadoPor: { username: string; nome: string }
   publicadoEm: string
   editadoPor?: { username: string; nome: string }
   editadoEm?: string
 }
 
-export type RepoInput = Pick<RepoOss, 'url' | 'nome' | 'resumo' | 'usos' | 'comoComecar' | 'categoria' | 'licenca' | 'tags'>
+export type RepoInput = Pick<RepoOss, 'url' | 'nome' | 'resumo' | 'usos' | 'comoComecar' | 'categoria' | 'licenca' | 'tags'> & { atencao?: string }
 
 const FORJA = /^https:\/\/(github\.com|gitlab\.com|codeberg\.org|bitbucket\.org)\/([\w.-]+)\/([\w.-]+?)(?:\.git)?\/?$/i
 
@@ -69,11 +86,12 @@ export function parseRepoInput(body: unknown): { value: RepoInput } | { error: s
   const categoria = (CATEGORIAS_OSS as readonly string[]).includes(b.categoria as string) ? b.categoria as CategoriaOss : 'Outros'
   const licenca = LICENCAS.some(l => l.id === b.licenca) ? b.licenca as string : 'Outra / não informada'
   const tags = [...new Set(linhas(b.tags, 30, 8).flatMap(t => t.split(',')).map(t => t.trim().toLowerCase()).filter(Boolean))].slice(0, 8)
-  return { value: { url, nome, resumo, usos, comoComecar: linhas(b.comoComecar, 300, 8), categoria, licenca, tags } }
+  const atencao = str(b.atencao, 300)
+  return { value: { url, nome, resumo, usos, comoComecar: linhas(b.comoComecar, 300, 8), categoria, licenca, tags, ...(typeof b.atencao === 'string' ? { atencao } : {}) } }
 }
 
-/** Repositórios com que a vitrine começa (antes de qualquer publicação da comunidade). */
-export const REPOS_INICIAIS: RepoOss[] = [
+/** Primeiros repositórios da vitrine (publicados em 31/10/2026). */
+const PRIMEIROS: RepoOss[] = [
   {
     id: 'voicestudio',
     slug: 'debpalash/VoiceStudio',
@@ -125,4 +143,10 @@ export const REPOS_INICIAIS: RepoOss[] = [
     publicadoPor: { username: 'beon-labs', nome: 'beOn Labs' },
     publicadoEm: '2026-10-31T12:00:00.000Z',
   },
+]
+
+/** Repositórios da beOn Labs na vitrine: os primeiros e o catálogo (open-source-catalogo.ts), sem repetir slug. */
+export const REPOS_INICIAIS: RepoOss[] = [
+  ...PRIMEIROS,
+  ...CATALOGO_BEON.filter(c => !PRIMEIROS.some(p => p.slug.toLowerCase() === c.slug.toLowerCase())),
 ]
