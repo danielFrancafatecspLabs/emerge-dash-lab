@@ -20,6 +20,7 @@ import { useCommunity } from './CommunityProvider'
 import { dataHora, tempoRelativo } from './format'
 import { Avatar, Button, Dialog, Skeleton, cx, focusRing, inputClass } from '@/components/ui'
 import { KindBadge, TopicTag } from './visuals'
+import { copiarTexto } from '@/components/clipboard'
 
 const md: Components = {
   p: ({ children }) => <p className="mb-3 last:mb-0">{children}</p>,
@@ -308,12 +309,8 @@ export function PostItem({ post, detail, onTopic }: { post: CommunityPost; detai
 
   async function share() {
     const url = postUrl(post.id)
-    try {
-      await navigator.clipboard.writeText(url)
-      toast('Link copiado.')
-    } catch {
-      toast(url, 'info')
-    }
+    if (await copiarTexto(url)) toast('Link copiado.')
+    else toast(`Copie o link: ${url}`, 'info')
   }
 
   async function remove() {

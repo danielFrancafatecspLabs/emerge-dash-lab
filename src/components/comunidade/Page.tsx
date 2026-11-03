@@ -3,12 +3,20 @@
 import type { ReactNode } from 'react'
 import { cx } from '@/components/ui'
 
-/** Duas colunas de conteúdo: principal e painel auxiliar (este some abaixo de 1024px). */
+/**
+ * Duas colunas de conteúdo: principal e painel auxiliar (este some abaixo de 1024px). Ocupam a largura toda, junto ao
+ * menu e até a borda direita: o feed cresce com a tela e o painel auxiliar fica encostado à direita, alargando nas
+ * telas grandes.
+ */
 export function PageColumns({ children, aside, wide }: { children: ReactNode; aside?: ReactNode; wide?: boolean }) {
   return (
-    <div className="flex justify-center gap-8 lg:px-6">
-      <div className={cx('w-full min-w-0', wide ? 'max-w-[960px]' : 'max-w-[680px]')}>{children}</div>
-      {aside && <aside className="sticky top-0 hidden h-dvh w-[320px] shrink-0 overflow-y-auto py-6 lg:block" aria-label="Descoberta">{aside}</aside>}
+    <div className="flex gap-8 lg:px-8 2xl:gap-10">
+      <div className={cx('w-full min-w-0 flex-1', wide ? 'max-w-[1280px]' : 'max-w-[1100px]')}>{children}</div>
+      {aside && (
+        <aside className="sticky top-0 ml-auto hidden h-dvh w-[320px] shrink-0 overflow-y-auto py-6 lg:block xl:w-[360px] 2xl:w-[400px] min-[1800px]:w-[440px]" aria-label="Descoberta">
+          {aside}
+        </aside>
+      )}
     </div>
   )
 }

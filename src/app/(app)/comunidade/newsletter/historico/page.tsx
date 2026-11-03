@@ -96,7 +96,7 @@ export default function HistoricoPage() {
   useEffect(() => { carregar(mes) }, [mes, carregar])
 
   return (
-    <div className="mx-auto max-w-[1100px] px-4 pb-16 pt-6 sm:px-6">
+    <div className="max-w-[1100px] px-4 pb-16 pt-6 sm:px-6 lg:px-8">
       <Link href="/comunidade/newsletter" className={cx('inline-flex items-center gap-1.5 rounded-full text-sm font-semibold text-beon-body hover:text-beon-ink', focusRing)}>
         <ArrowLeft className="h-4 w-4" aria-hidden />Voltar para a edição de hoje
       </Link>

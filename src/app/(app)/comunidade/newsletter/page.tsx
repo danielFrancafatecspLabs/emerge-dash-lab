@@ -71,7 +71,7 @@ export default function NewsletterPage() {
 
   if (erro && !edicao) {
     return (
-      <div className="mx-auto max-w-[1240px] px-4 pt-10 sm:px-6">
+      <div className="max-w-[1240px] px-4 pt-10 sm:px-6 lg:px-8">
         <div className="flex flex-col items-center rounded-[28px] border border-beon-line px-6 py-20 text-center">
           <Radio className="h-9 w-9 text-beon-red" aria-hidden />
           <h1 className="mt-4 text-2xl font-extrabold tracking-tight text-beon-ink">beOn Radar<span className="text-beon-red">.</span></h1>
@@ -84,7 +84,7 @@ export default function NewsletterPage() {
 
   if (!edicao) {
     return (
-      <div className="mx-auto max-w-[1240px] space-y-6 px-4 pt-6 sm:px-6" aria-busy="true" aria-label="Montando a edição de hoje">
+      <div className="max-w-[1240px] space-y-6 px-4 pt-6 sm:px-6 lg:px-8" aria-busy="true" aria-label="Montando a edição de hoje">
         <Skeleton className="h-[520px] rounded-[28px]" />
         <Skeleton className="h-36 rounded-3xl" />
         <div className="flex gap-4 overflow-hidden">{[0, 1, 2].map(i => <Skeleton key={i} className="h-80 w-80 shrink-0 rounded-3xl" />)}</div>
@@ -94,7 +94,7 @@ export default function NewsletterPage() {
 
   if (!manchete) {
     return (
-      <div className="mx-auto max-w-[1240px] px-4 pt-10 sm:px-6">
+      <div className="max-w-[1240px] px-4 pt-10 sm:px-6 lg:px-8">
         <p className="rounded-[28px] border border-beon-line px-6 py-20 text-center text-beon-body">
           As fontes responderam, mas nenhuma notícia do tema saiu nas últimas 72 horas. Volte mais tarde.
         </p>
@@ -105,7 +105,7 @@ export default function NewsletterPage() {
   const fontesOk = edicao.fontes.filter(f => f.ok).length
 
   return (
-    <div className="mx-auto max-w-[1240px] px-4 pb-16 pt-6 sm:px-6">
+    <div className="max-w-[1240px] px-4 pb-16 pt-6 sm:px-6 lg:px-8">
       <Abertura edicao={edicao.numero} acoes={<>
         <Link href="/comunidade/newsletter/historico"
           className={cx('inline-flex h-10 items-center gap-2 rounded-full border border-beon-line bg-white px-4 text-sm font-semibold text-beon-ink hover:bg-beon-soft', focusRing)}>

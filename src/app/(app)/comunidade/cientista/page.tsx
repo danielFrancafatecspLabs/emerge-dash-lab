@@ -121,7 +121,7 @@ export default function CientistaPage() {
   const escolhida = jornadas.find(j => j.papel === sel)
 
   return (
-    <div className="mx-auto max-w-[1080px]">
+    <div className="max-w-[1080px]">
       <PageHeader eyebrow="Cientista" title="Toda boa ideia merece um experimento honesto"
         description="O Cientista entende o seu problema a fundo, transforma em uma hipótese que dá para testar e prepara a ficha para o Lab. As decisões são sempre de pessoas." />
 

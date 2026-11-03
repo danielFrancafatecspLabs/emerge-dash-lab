@@ -125,9 +125,10 @@ export function normalizePost(raw: StoredPost, users: UserRef[] = []): Community
 
 export type FeedFilter = 'para-voce' | 'recentes' | 'em-alta' | 'sem-resposta' | 'pesquisas' | 'experimentos' | 'seguindo'
 
+/** Abas do feed, nesta ordem; "Mais recentes" é a aba inicial. */
 export const FEED_FILTER_LABEL: Record<FeedFilter, string> = {
-  'para-voce': 'Para você',
   recentes: 'Mais recentes',
+  'para-voce': 'Para você',
   'em-alta': 'Em alta',
   'sem-resposta': 'Sem resposta',
   pesquisas: 'Pesquisas e descobertas',

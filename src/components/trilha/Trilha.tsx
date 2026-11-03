@@ -14,6 +14,7 @@ import { Button, Dialog, cx, focusRing } from '@/components/ui'
 import type { EtapaTrilha } from '@/lib/community/trilha'
 import { BlocoTrilha, Rico } from './Blocos'
 import { ETAPAS, FASES, GLOSSARIO, type Etapa, type Video } from './conteudo'
+import { copiarTexto } from '@/components/clipboard'
 
 const TOTAL = ETAPAS.length
 
@@ -202,11 +203,12 @@ export function TrilhaExperimentacao({ etapaInicial }: { etapaInicial: EtapaTril
 
   async function copiar() {
     if (!etapa.ferramenta) return
-    try { await navigator.clipboard.writeText(etapa.ferramenta.modelo); toast('Modelo copiado.') } catch { toast('Não foi possível copiar. Selecione o texto e copie manualmente.', 'error') }
+    if (await copiarTexto(etapa.ferramenta.modelo)) toast('Modelo copiado.')
+    else { toast('Não foi possível copiar. Selecione o texto e copie manualmente.', 'error') }
   }
 
   return (
-    <div className="mx-auto max-w-[1180px] pb-16">
+    <div className="max-w-[1180px] pb-16">
       {/* Cabeçalho */}
       <div className="flex flex-wrap items-end justify-between gap-4 px-4 pb-5 pt-6 sm:px-6 md:pt-8">
         <div className="min-w-0">
