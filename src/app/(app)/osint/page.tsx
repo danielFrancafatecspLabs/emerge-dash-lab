@@ -1,5 +1,6 @@
 import { Radar, ExternalLink } from 'lucide-react'
 import { OsintFrame } from '@/components/osint/OsintFrame'
+import { VersaoDoOsint } from '@/components/osint/VersaoDoOsint'
 
 export default function OsintPage() {
   return (
@@ -14,12 +15,13 @@ export default function OsintPage() {
             Mapa estratégico de sinais e inteligência de fontes abertas
           </p>
         </div>
-        <div className="ml-auto">
+        <div className="ml-auto flex min-w-0 items-center gap-3">
+          <VersaoDoOsint />
           <a
             href="https://github.com/Colab-Claro/signals-osint"
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-[10px] font-semibold text-slate-600 transition hover:bg-slate-50"
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-[10px] font-semibold text-slate-600 transition hover:bg-slate-50"
           >
             <ExternalLink className="h-3.5 w-3.5" />
             Abrir no GitHub
