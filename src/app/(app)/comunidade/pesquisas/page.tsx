@@ -332,7 +332,7 @@ export default function PesquisasPage() {
   }, [])
 
   return (
-    <div className="mx-auto max-w-[1180px] pb-12">
+    <div className="max-w-[1180px] pb-12">
       {/* Abertura */}
       <section className="relative mx-4 mt-6 overflow-hidden rounded-3xl border border-beon-line bg-gradient-to-br from-beon-tint via-white to-white px-6 py-8 sm:mx-6 sm:px-10 sm:py-10">
         <div className="pointer-events-none absolute -right-20 -top-24 h-72 w-72 rounded-full bg-beon-red/10 blur-3xl" aria-hidden />

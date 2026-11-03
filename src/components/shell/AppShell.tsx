@@ -279,7 +279,8 @@ export function AppShell({ children }: { children: ReactNode }) {
         </aside>}
 
         <main id="conteudo" className={cx('min-w-0 flex-1', hidden ? '' : naComunidade ? 'pb-24 md:pb-10' : 'pb-16 md:pb-0')}>
-          {naComunidade ? <div className="mx-auto max-w-[1180px]">{children}</div> : children}
+          {/* Conteúdo junto ao menu (sem centralizar): em telas largas, a sobra fica à direita, não entre o menu e o feed. */}
+          {naComunidade ? <div className="max-w-[1440px]">{children}</div> : children}
         </main>
       </div>
 
