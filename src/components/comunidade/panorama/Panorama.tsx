@@ -1,8 +1,9 @@
 'use client'
 
-// Panorama da home da Comunidade, entre as primeiras discussões do feed: o que está acontecendo no mundo (beOn Radar),
-// o que estamos pesquisando (Acervo de Pesquisas), o que estamos experimentando agora (Jira) e o que o Radar OSINT está
-// captando. Cada bloco tem um título que diz exatamente o que mostra e um botão para a área completa.
+// Panorama da home da Comunidade. O que está acontecendo no mundo (beOn Radar) abre a home, antes das publicações; entre
+// as primeiras discussões do feed vêm o que estamos pesquisando (Acervo de Pesquisas), o que estamos experimentando
+// agora (Jira) e o que o Radar OSINT está captando. Cada bloco tem um título que diz exatamente o que mostra e um botão
+// para a área completa.
 
 import Link from 'next/link'
 import { useMemo, useState, type ReactNode } from 'react'
@@ -313,12 +314,22 @@ function Osint({ posts }: { posts: CommunityPost[] }) {
 }
 
 /** Os quatro blocos do panorama, na ordem: mundo, pesquisa, experimentos, OSINT. */
+/** "O que está acontecendo no mundo": abre a home, antes das publicações. */
+export function PanoramaDoMundo() {
+  const { posts } = useCommunity()
+  return (
+    <div aria-label="O que está acontecendo no mundo" role="region" className="border-b-4 border-beon-soft">
+      <Mundo posts={posts.data ?? []} />
+    </div>
+  )
+}
+
+/** O resto do panorama (pesquisas, experimentos e OSINT), entre as primeiras publicações do feed. */
 export function Panorama() {
   const { posts } = useCommunity()
   const lista = posts.data ?? []
   return (
     <div aria-label="Panorama beOn Labs" role="region" className="border-y-4 border-beon-soft">
-      <Mundo posts={lista} />
       <Pesquisas />
       <Experimentos />
       <Osint posts={lista} />
