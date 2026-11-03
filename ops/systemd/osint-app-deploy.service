@@ -7,6 +7,8 @@ Wants=network-online.target
 Type=oneshot
 User=azureuser
 Group=azureuser
+# O systemd não carrega o nvm. Se o Node não estiver em /usr/bin ou /usr/local/bin nem no ~/.nvm, informe a pasta:
+# Environment=OSINT_NODE_BIN_DIR=/home/azureuser/.nvm/versions/node/v22.12.0/bin
 ExecStart=/usr/local/bin/osint-app-deploy
 TimeoutStartSec=15min
 
