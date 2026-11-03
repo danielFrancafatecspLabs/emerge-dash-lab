@@ -42,7 +42,7 @@ export const COMMUNITY_AREAS: NavItem[] = [
 export const COMMUNITY_EXTRAS: NavItem[] = [
   { label: 'Experimentos ativos', href: '/comunidade/experimentos-ativos', icon: Beaker },
   { label: 'Newsletter', href: '/comunidade/newsletter', icon: Newspaper },
-  { label: 'World Open Source', href: '/comunidade/open-source', icon: GitFork },
+  { label: 'Open Source World', href: '/comunidade/open-source', icon: GitFork },
   { label: 'Sobre', href: '/comunidade/sobre', icon: Info },
 ]
 

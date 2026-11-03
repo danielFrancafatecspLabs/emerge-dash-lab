@@ -2,7 +2,7 @@ import { randomUUID } from 'crypto'
 import { jsonStorePath, readJsonStore, writeJsonStore } from '@/lib/storage/json-store'
 import { REPOS_INICIAIS, slugDoRepo, type RepoInput, type RepoOss } from './open-source'
 
-// Repositórios do World Open Source em data/open-source.json. Os do catálogo da beOn Labs (REPOS_INICIAIS) entram
+// Repositórios do Open Source World em data/open-source.json. Os do catálogo da beOn Labs (REPOS_INICIAIS) entram
 // também quando o arquivo já existe: cada um que ainda não estiver lá aparece no fim da vitrine, sem mexer no que a
 // comunidade publicou ou editou. Um repositório do catálogo removido por um admin vai para
 // data/open-source-removidos.json e não volta.
