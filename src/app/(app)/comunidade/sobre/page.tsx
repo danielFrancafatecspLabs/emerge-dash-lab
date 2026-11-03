@@ -71,7 +71,7 @@ const foco = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring
 export default function SobrePage() {
   const contato = CONTATOS_DO_JIRA[0]
   return (
-    <div className="mx-auto max-w-[1180px] px-4 pb-16 pt-6 sm:px-6">
+    <div className="max-w-[1180px] px-4 pb-16 pt-6 sm:px-6 lg:px-8">
       {/* Abertura */}
       <section className="relative overflow-hidden rounded-[32px] border border-beon-line bg-white px-6 py-10 sm:px-12 sm:py-14">
         <div className="pointer-events-none absolute -right-24 -top-24 h-80 w-80 rounded-full bg-beon-tint blur-2xl" aria-hidden />

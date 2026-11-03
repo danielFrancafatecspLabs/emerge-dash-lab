@@ -3,7 +3,7 @@
 import { Fragment, Suspense, useMemo, useState } from 'react'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { BookOpen, FlaskConical, HelpCircle, Inbox, Radar, Search, X, Check, Plus } from 'lucide-react'
-import { FEED_FILTER_LABEL, filterFeed, intercalarAutomacoes, matchesSearch, type FeedFilter, type PostKind } from '@/lib/community/model'
+import { FEED_FILTER_LABEL, filterFeed, matchesSearch, type FeedFilter, type PostKind } from '@/lib/community/model'
 import { COMMUNITY_TOPICS, isKnownTopic } from '@/lib/community/topics'
 import { useCommunity } from '@/components/comunidade/CommunityProvider'
 import { PageColumns } from '@/components/comunidade/Page'
@@ -41,7 +41,7 @@ function Feed() {
   const params = useSearchParams()
   const router = useRouter()
   const pathname = usePathname()
-  const [filtro, setFiltro] = useState<FeedFilter>('para-voce')
+  const [filtro, setFiltro] = useState<FeedFilter>('recentes')
   const [busca, setBusca] = useState('')
   const [buscaAberta, setBuscaAberta] = useState(false)
   const [limite, setLimite] = useState(PAGE)
@@ -58,13 +58,12 @@ function Feed() {
       topicosSeguidos: me.profile.topicosSeguidos,
       pessoasSeguidas: me.profile.pessoasSeguidas,
     })
-    // No "Para você", as discussões das pessoas ficam em cima; as automações entram intercaladas.
-    const ordenados = filtro === 'para-voce' ? intercalarAutomacoes(r.posts) : r.posts
-    return { ...r, posts: ordenados.filter(p => matchesSearch(p, busca)) }
+    // Sempre na ordem de publicação (as mais novas em cima), sem dar prioridade a nenhum tipo de autor.
+    return { ...r, posts: r.posts.filter(p => matchesSearch(p, busca)) }
   }, [me, posts.data, filtro, busca, topicoValido])
 
-  // Panorama só na home "pura": feed Para você, sem tópico nem busca.
-  const comPanorama = filtro === 'para-voce' && !topicoValido && !busca
+  // Panorama só na home "pura": feed Mais recentes, sem tópico nem busca.
+  const comPanorama = filtro === 'recentes' && !topicoValido && !busca
 
   const escolher = (f: FeedFilter) => { setFiltro(f); setLimite(PAGE) }
   const limparTopico = () => router.push(pathname)

@@ -125,7 +125,7 @@ function Pagina() {
     ativo ? 'bg-beon-ink text-white' : 'border border-beon-line bg-white text-beon-body hover:bg-beon-soft')
 
   return (
-    <div className="mx-auto max-w-[1240px] px-4 pb-16 pt-6 sm:px-6">
+    <div className="max-w-[1240px] px-4 pb-16 pt-6 sm:px-6 lg:px-8">
       <Topo dados={dados} falhou={!!erro && !dados} />
 
       {/* Filtros */}

@@ -11,6 +11,7 @@ import { api, errorMessage } from '@/components/comunidade/api'
 import { tempoRelativo } from '@/components/comunidade/format'
 import { CoverArt } from '@/components/comunidade/visuals'
 import { Avatar, cx, focusRing, inputClass } from '@/components/ui'
+import { copiarTexto } from '@/components/clipboard'
 
 export const FASE: Record<FaseDoExperimento, { pill: string; ponto: string; tone: 'red' | 'amber'; explica: string }> = {
   'Em andamento': { pill: 'bg-emerald-50 text-emerald-800 ring-emerald-200', ponto: 'bg-emerald-500', tone: 'red', explica: 'O experimento está rodando: hipótese em teste, com o time construindo e medindo.' },
@@ -185,7 +186,7 @@ export function DetalheDoExperimento({ e, podeEditar, onFechar, onLinks }: {
 
   const atual = ETAPAS.indexOf(e.fase)
   async function copiar() {
-    try { await navigator.clipboard.writeText(window.location.href); setCopiado(true); setTimeout(() => setCopiado(false), 2000) } catch { /* sem área de transferência */ }
+    if (await copiarTexto(window.location.href)) { setCopiado(true); setTimeout(() => setCopiado(false), 2000) }
   }
 
   return createPortal(

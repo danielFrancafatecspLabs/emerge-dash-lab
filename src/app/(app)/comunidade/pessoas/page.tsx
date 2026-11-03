@@ -77,7 +77,7 @@ export default function CientistasPage() {
   }, 3) : []), [lista, me])
 
   return (
-    <div className="mx-auto max-w-[1080px]">
+    <div className="max-w-[1080px]">
       <PageHeader eyebrow="Pessoas" title="Quem constrói conhecimento aqui"
         description="Encontre especialistas, autores de experimentos e pessoas com interesses parecidos com os seus." />
 

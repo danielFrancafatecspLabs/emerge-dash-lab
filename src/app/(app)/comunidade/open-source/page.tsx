@@ -373,7 +373,7 @@ export default function WorldOpenSourcePage() {
   }
 
   return (
-    <div className="mx-auto max-w-[1120px] space-y-6 px-4 pb-12 pt-6 sm:px-6">
+    <div className="max-w-[1120px] space-y-6 px-4 pb-12 pt-6 sm:px-6 lg:px-8">
       <Abertura total={repos?.length ?? 0} onPublicar={() => setForm({ repo: null })} />
 
       <div className="flex flex-wrap items-center gap-3">

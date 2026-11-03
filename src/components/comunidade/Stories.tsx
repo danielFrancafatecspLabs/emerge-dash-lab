@@ -8,7 +8,7 @@
 
 import Link from 'next/link'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { ArrowUpRight, ChevronLeft, ChevronRight, Pause, Play, X } from 'lucide-react'
+import { ArrowUpRight, ChevronLeft, ChevronRight, MessageSquarePlus, Pause, Play, X } from 'lucide-react'
 import { POST_KIND_LABEL, postTitle, type CommunityPost, type PostKind } from '@/lib/community/model'
 import { ehAutomacaoDeSinais, ehAutomacaoDoRadar } from '@/lib/community/automacao'
 import type { ExperimentoAtivo } from '@/lib/community/experimentos-ativos'
@@ -281,6 +281,19 @@ function StoryViewer({ items, start, onSeen, onClose }: { items: StoryItem[]; st
   const [progress, setProgress] = useState(0)
   const closeRef = useRef<HTMLButtonElement>(null)
   const item = items[index]
+  const { openComposer } = useCommunity()
+
+  // Qualquer pessoa pode abrir uma discussão a partir de um story (notícia, pesquisa, sinal, experimento).
+  const discutir = () => {
+    const link = item.href ? (item.externo ? item.href : new URL(`/jira${item.href.startsWith('/') ? '' : '/'}${item.href}`, window.location.origin).href) : ''
+    onClose()
+    openComposer({
+      kind: 'discussao',
+      title: item.titulo.slice(0, 160),
+      linkUrl: link,
+      content: `${item.texto ? `${item.texto}\n\n` : ''}Vi isto em ${item.selo ?? item.categoria}. O que vocês acham?`.slice(0, 1500),
+    })
+  }
 
   const next = useCallback(() => { if (index < items.length - 1) { setIndex(i => i + 1); setProgress(0) } else onClose() }, [index, items.length, onClose])
   const prev = useCallback(() => { setIndex(i => Math.max(0, i - 1)); setProgress(0) }, [])
@@ -351,7 +364,15 @@ function StoryViewer({ items, start, onSeen, onClose }: { items: StoryItem[]; st
         <div className="absolute inset-x-0 bottom-0 space-y-3 p-6 text-white">
           <h2 className="text-2xl font-semibold leading-tight tracking-tight">{item.titulo}</h2>
           {item.texto && <p className="line-clamp-6 whitespace-pre-line text-[15px] leading-relaxed text-white/85">{item.texto}</p>}
-          {cta}
+          <div className="flex flex-wrap items-center gap-2">
+            {cta}
+            {item.origem !== 'comunidade' && (
+              <button type="button" onClick={discutir}
+                className="inline-flex h-10 items-center gap-1.5 rounded-full border border-white/40 bg-white/10 px-4 text-sm font-semibold text-white backdrop-blur-sm hover:bg-white/20">
+                <MessageSquarePlus className="h-4 w-4" aria-hidden />Discutir na comunidade
+              </button>
+            )}
+          </div>
         </div>
 
         <button type="button" onClick={prev} disabled={index === 0} aria-label="Story anterior" className="absolute left-0 top-24 bottom-48 w-1/3 disabled:cursor-default" />

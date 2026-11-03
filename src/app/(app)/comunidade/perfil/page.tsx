@@ -99,7 +99,7 @@ export default function MeuPerfilPage() {
   useEffect(() => { if (inicial && !pronto) { setForm(inicial); setPronto(true) } }, [inicial, pronto])
 
   if (!me || !inicial) {
-    return <div className="mx-auto max-w-[960px] space-y-4 px-4 py-8 sm:px-6"><Skeleton className="h-10 w-60" /><Skeleton className="h-64 rounded-2xl" /><Skeleton className="h-48 rounded-2xl" /></div>
+    return <div className="max-w-[960px] space-y-4 px-4 py-8 sm:px-6 lg:px-8"><Skeleton className="h-10 w-60" /><Skeleton className="h-64 rounded-2xl" /><Skeleton className="h-48 rounded-2xl" /></div>
   }
 
   const mudou = (Object.keys(form) as (keyof typeof form)[]).some(k => String(form[k]) !== String(inicial[k]))
@@ -153,7 +153,7 @@ export default function MeuPerfilPage() {
   }
 
   return (
-    <div className="mx-auto max-w-[1040px] pb-10">
+    <div className="max-w-[1040px] pb-10">
       <PageHeader eyebrow="Comunidade" title="Meu perfil"
         description="Seus dados de acesso e o que a comunidade vê sobre você."
         action={<Link href={`/comunidade/pessoas/${encodeURIComponent(me.username)}`} className={cx('inline-flex h-10 items-center gap-2 rounded-full border border-beon-line bg-white px-4 text-sm font-medium text-beon-ink hover:bg-beon-soft', focusRing)}>

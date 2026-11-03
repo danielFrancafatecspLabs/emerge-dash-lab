@@ -32,7 +32,7 @@ export default function PerfilPage({ params }: { params: { username: string } })
 
   if (members.error && !members.data) return <ErrorState message={members.error} onRetry={reloadMembers} />
   if (members.loading && !members.data) {
-    return <div className="mx-auto max-w-[760px] space-y-4 px-6 py-10" aria-busy><Skeleton className="h-24 w-24 rounded-full" /><Skeleton className="h-6 w-60" /><Skeleton className="h-4 w-96 max-w-full" /></div>
+    return <div className="max-w-[760px] space-y-4 px-6 lg:px-8 py-10" aria-busy><Skeleton className="h-24 w-24 rounded-full" /><Skeleton className="h-6 w-60" /><Skeleton className="h-4 w-96 max-w-full" /></div>
   }
   if (!m) {
     return <EmptyState icon={UserX} title="Perfil não encontrado" action={<Link href="/comunidade/pessoas" className="text-sm font-medium text-beon-red hover:underline">Ver todas as pessoas</Link>}>A pessoa pode ter saído da comunidade.</EmptyState>
@@ -41,7 +41,7 @@ export default function PerfilPage({ params }: { params: { username: string } })
   const interesses = souEu ? (me?.profile.interesses ?? []) : m.interesses
 
   return (
-    <div className="mx-auto max-w-[760px]">
+    <div className="max-w-[760px]">
       <div className="px-2 pt-3 sm:px-4">
         <Link href="/comunidade/pessoas" className={cx('inline-flex items-center gap-2 rounded-full px-3 py-2 text-sm font-medium text-beon-body hover:bg-beon-soft', focusRing)}>
           <ArrowLeft className="h-4 w-4" aria-hidden /> Pessoas

@@ -170,7 +170,7 @@ export default function ExperimentoDetalhePage() {
               <div className="absolute top-0 right-0 w-64 h-64 bg-white rounded-full blur-3xl" />
               <div className="absolute bottom-0 left-10 w-48 h-48 bg-red-300 rounded-full blur-3xl" />
             </div>
-            <div className="relative max-w-4xl mx-auto px-6 py-8">
+            <div className="relative max-w-4xl px-6 lg:px-8 py-8">
               <Link href="/comunidade/experimentos" className="inline-flex items-center gap-1.5 text-red-200/80 hover:text-white text-sm mb-4 transition-colors">
                 <ArrowLeft size={16} /> Voltar para experimentos
               </Link>
@@ -179,7 +179,7 @@ export default function ExperimentoDetalhePage() {
             </div>
           </div>
 
-          <div className="max-w-4xl mx-auto px-6 py-8 space-y-8">
+          <div className="max-w-4xl px-6 lg:px-8 py-8 space-y-8">
             {/* Quick Info Cards */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {[
