@@ -7,6 +7,7 @@ import { Bookmark, Check, Link2, Trash2 } from 'lucide-react'
 import { cx, focusRing, inputClass } from '@/components/ui'
 import { VISOES_PRONTAS, type EstadoPortfolio } from '@/lib/portfolio/filtros'
 import { Popover, botaoBarra } from './Comum'
+import { copiarTexto } from '@/components/clipboard'
 
 export interface VisaoSalva { id: string; nome: string; estado: EstadoPortfolio }
 
@@ -42,11 +43,10 @@ export function Visoes({ estado, onAplicar }: { estado: EstadoPortfolio; onAplic
     setSalvas(nova); gravar(nova)
   }
   async function copiar() {
-    try {
-      await navigator.clipboard.writeText(window.location.href)
+    if (await copiarTexto(window.location.href)) {
       setCopiado(true)
       setTimeout(() => setCopiado(false), 1800)
-    } catch { /* sem permissão de área de transferência */ }
+    }
   }
 
   const item = cx('flex w-full flex-col rounded-xl px-3 py-2 text-left hover:bg-beon-soft', focusRing)
