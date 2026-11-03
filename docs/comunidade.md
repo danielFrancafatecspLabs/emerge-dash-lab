@@ -22,7 +22,7 @@ cai no feed. Para a role `community` é a única área; executivos, financeiro e
 | `/comunidade/future-thinking` | Sinais de futuro, radar por dimensão e horizonte, provocações |
 | `/comunidade/trilha` | Trilha de Experimentação em 8 etapas, com progresso por pessoa |
 | `/comunidade/newsletter` | beOn Radar: newsletter diária de tecnologias emergentes, mercado e bolsa, bolhas e impactos, montada automaticamente a partir de feeds públicos (`NEWSLETTER_FEEDS`), com manchete, resumo em 30 segundos e seções; cada notícia leva ao site de origem. Renovada a cada 6 h em segundo plano; se as fontes falham, vale a edição anterior |
-| `/comunidade/open-source` | World Open Source: o que é open source, como ler as licenças e uma vitrine de repositórios (card + modal com o que é, para que serve, como começar e licença). Qualquer pessoa publica e edita; só quem publicou ou um admin remove |
+| `/comunidade/open-source` | Open Source World: o que é open source, como ler as licenças e uma vitrine de repositórios (card + modal com o que é, para que serve, como começar e licença). Qualquer pessoa publica e edita; só quem publicou ou um admin remove |
 | `/comunidade/mensagens` | Mensagens diretas |
 | `/comunidade/salvos` | Publicações salvas, tópicos acompanhados e pessoas seguidas |
 | `/comunidade/post/[id]` | Publicação com a conversa completa (link compartilhável) |
@@ -39,7 +39,7 @@ Tudo o que é publicado é um `CommunityPost` (`src/lib/community/model.ts`), di
 | `community-messages.json` | `COMMUNITY_MESSAGES_PATH` | Conversas diretas |
 | `chat-presence.json` | `CHAT_PRESENCE_PATH` | Último acesso (base de "ativo agora") |
 | `stories.json` | `STORIES_FILE_PATH` | Stories editoriais (Admin › Stories) |
-| `open-source.json` | `OPEN_SOURCE_FILE_PATH` | Repositórios do World Open Source (sem o arquivo, começa com VoiceStudio e Animate) |
+| `open-source.json` | `OPEN_SOURCE_FILE_PATH` | Repositórios do Open Source World (sem o arquivo, começa com VoiceStudio e Animate) |
 | `avatars/` | `AVATARS_DIR` | Fotos de perfil enviadas em Meu perfil (servidas por `/api/community/avatar/[id]`) |
 
 ## Sinais FT - beOn Labs (automação)

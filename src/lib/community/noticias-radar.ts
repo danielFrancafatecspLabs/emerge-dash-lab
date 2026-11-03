@@ -120,6 +120,9 @@ export function conteudoDaDiscussao(n: Noticia, provocacao: string): string {
 
 export const idDaDiscussao = (noticiaId: string) => `radar:${noticiaId}`
 
+/** Só endereços web de imagem (http ou https, como os que a newsletter já mostra) vão para a publicação. */
+export const imagemValida = (url: string | null | undefined): url is string => !!url && /^https?:\/\/[^\s"'<>]+$/.test(url) && url.length <= 2000
+
 /** Publicação do fórum para uma notícia do Radar. */
 export function discussaoDaNoticia(n: Noticia, provocacao = provocacaoPorModelo(n), criadoEm = new Date()): CommunityPost {
   const topico = n.secao === 'bolhas' ? undefined : temaDaNoticia(n)?.topico
@@ -135,7 +138,7 @@ export function discussaoDaNoticia(n: Noticia, provocacao = provocacaoPorModelo(
     content: conteudoDaDiscussao(n, provocacao).slice(0, 5000),
     linkUrl: /^https?:\/\//.test(n.link) ? n.link : '',
     tags: topico ? [topico] : [],
-    meta: {},
+    meta: imagemValida(n.imagem) ? { imagem: n.imagem } : {},
     createdAt: criadoEm.toISOString(),
     likes: [],
     comments: [],
@@ -209,6 +212,44 @@ export async function sincronizarNoticiasRadar(noticias: Noticia[], agora = new 
   return discussoes.length
 }
 
+/**
+ * Completa a imagem das discussões do Radar que ainda não têm: primeiro com a imagem que a notícia tem na edição,
+ * depois com a do Histórico do mês (que guarda as notícias de edições passadas). Devolve quantas ganharam imagem.
+ */
+export function completarImagensDasDiscussoes(noticias: Pick<Noticia, 'id' | 'imagem'>[], arquivadas: Record<string, { imagem: string | null }> = {}): number {
+  const daEdicao = new Map(noticias.map(n => [idDaDiscussao(n.id), n.imagem]))
+  const posts = loadPosts()
+  let completadas = 0
+  for (const p of posts) {
+    if (!p.id.startsWith('radar:') || (p.meta && imagemValida(p.meta.imagem))) continue
+    const imagem = daEdicao.get(p.id) ?? arquivadas[p.id.slice('radar:'.length)]?.imagem
+    if (!imagemValida(imagem)) continue
+    p.meta = { ...(p.meta ?? {}), imagem }
+    completadas++
+  }
+  if (completadas) savePosts(posts)
+  return completadas
+}
+
+/** Links cuja página já foi consultada atrás da imagem (para não repetir a cada sincronização). */
+const G_IMAGENS = globalThis as typeof globalThis & { __beonImagensTentadas?: Set<string> }
+
+/**
+ * As notícias que vão (ou já foram) para o fórum e chegaram sem imagem no feed: busca a og:image da página da matéria,
+ * uma vez por link. Quem não tiver imagem nem na página fica com a capa ilustrada na tela.
+ */
+export async function buscarImagensQueFaltam(noticias: Noticia[], buscar: (link: string) => Promise<string | null>, limite = 15): Promise<number> {
+  const tentadas = (G_IMAGENS.__beonImagensTentadas ??= new Set())
+  const faltando = noticiasParaDiscutir(noticias).filter(n => !imagemValida(n.imagem) && !tentadas.has(n.link)).slice(0, limite)
+  let achadas = 0
+  await Promise.all(faltando.map(async n => {
+    tentadas.add(n.link)
+    const imagem = await buscar(n.link).catch(() => null)
+    if (imagemValida(imagem)) { n.imagem = imagem; achadas++ }
+  }))
+  return achadas
+}
+
 const INTERVALO_MS = 5 * 60 * 1000
 const G = globalThis as typeof globalThis & { __beonNoticiasRadarEm?: number; __beonNoticiasRadarRodando?: boolean }
 
@@ -224,9 +265,14 @@ export function talvezSincronizarNoticiasRadar(agora = Date.now()) {
     .then(({ edicaoDoDia }) => edicaoDoDia())
     .then(async edicao => {
       // A edição servida do cache (ex.: depois de reiniciar o servidor) também entra no Histórico, uma vez só.
-      const { registrarEdicao } = await import('@/lib/newsletter/historico')
+      // Toda discussão de notícia com a imagem da matéria: a do feed, a da página da matéria ou a do Histórico.
+      const { imagemDaMateria } = await import('@/lib/newsletter/edicao')
+      await buscarImagensQueFaltam(edicao.noticias, imagemDaMateria)
+      const { registrarEdicao, lerArquivo } = await import('@/lib/newsletter/historico')
       try { registrarEdicao(edicao) } catch (err) { console.warn('[noticias-radar] histórico não gravado:', String(err)) }
-      return sincronizarNoticiasRadar(edicao.noticias)
+      const n = await sincronizarNoticiasRadar(edicao.noticias)
+      try { completarImagensDasDiscussoes(edicao.noticias, lerArquivo().noticias) } catch (err) { console.warn('[noticias-radar] imagens não completadas:', String(err)) }
+      return n
     })
     .then(n => { if (n) console.log(`[noticias-radar] ${n} notícias viraram discussões no fórum`) })
     .catch(err => console.warn('[noticias-radar] sem edição para levar ao fórum agora:', String(err)))

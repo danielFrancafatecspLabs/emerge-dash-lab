@@ -10,7 +10,7 @@ const ANA = { username: 'ana', nome: 'Ana' }
 const BRUNO = { username: 'bruno', nome: 'Bruno' }
 const entrada = { url: 'https://github.com/ollama/ollama', resumo: 'Roda modelos de linguagem localmente.', usos: 'Rodar LLMs offline\n- Testar modelos', categoria: 'IA e agentes', licenca: 'MIT', tags: 'llm, local' }
 
-describe('World Open Source', () => {
+describe('Open Source World', () => {
   let dir: string
   beforeEach(() => {
     dir = mkdtempSync(path.join(tmpdir(), 'oss-'))
