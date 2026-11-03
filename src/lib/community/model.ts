@@ -60,6 +60,8 @@ export interface PostMeta {
   horizonte?: Horizonte
   evidencias?: string
   implicacoes?: string
+  /** Imagem da matéria. Só as discussões abertas pelo beOn Radar têm; o formulário de publicação não aceita. */
+  imagem?: string
 }
 
 export interface CommunityComment {

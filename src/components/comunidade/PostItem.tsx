@@ -19,7 +19,7 @@ import { automacaoDe } from '@/lib/community/automacao'
 import { useCommunity } from './CommunityProvider'
 import { dataHora, tempoRelativo } from './format'
 import { Avatar, Button, Dialog, Skeleton, cx, focusRing, inputClass } from '@/components/ui'
-import { KindBadge, TopicTag } from './visuals'
+import { CoverArt, KindBadge, TopicTag } from './visuals'
 import { copiarTexto } from '@/components/clipboard'
 
 const md: Components = {
@@ -50,6 +50,48 @@ function dominio(url: string) {
 
 export function postUrl(id: string) {
   return `${window.location.origin}${BASE_PATH}/comunidade/post/${id}`
+}
+
+// ── Link (com a imagem da matéria nas notícias do Radar) ───────────────────────────────────
+
+/**
+ * O link da publicação. Nas discussões abertas pelo beOn Radar, o cartão traz a imagem da matéria; sem imagem (ou se
+ * ela não carregar), uma capa ilustrada, para toda notícia ter visual. Nas demais publicações, só o domínio.
+ */
+function CartaoDoLink({ post, detail }: { post: CommunityPost; detail?: boolean }) {
+  const [falhou, setFalhou] = useState(false)
+  const ehNoticia = post.id.startsWith('radar:')
+  const imagem = !falhou && post.meta.imagem && /^https?:\/\//.test(post.meta.imagem) ? post.meta.imagem : null
+  const linha = (
+    <span className="flex items-center gap-3 px-3.5 py-2.5 text-sm">
+      <Link2 className="h-4 w-4 shrink-0 text-beon-muted" aria-hidden />
+      <span className="min-w-0 flex-1 truncate font-medium text-beon-ink">{dominio(post.linkUrl)}</span>
+      <ExternalLink className="h-3.5 w-3.5 shrink-0 text-beon-muted" aria-hidden />
+    </span>
+  )
+  if (!ehNoticia) {
+    return (
+      <a href={post.linkUrl} target="_blank" rel="noopener noreferrer"
+        className={cx('mt-3 block rounded-xl border border-beon-line hover:border-beon-muted/40 hover:bg-beon-soft/50', focusRing)}>
+        {linha}
+      </a>
+    )
+  }
+  return (
+    <a href={post.linkUrl} target="_blank" rel="noopener noreferrer" aria-label={`Abrir a matéria em ${dominio(post.linkUrl)}`}
+      className={cx('group/link mt-3 block overflow-hidden rounded-xl border border-beon-line hover:border-beon-muted/40', focusRing)}>
+      <span className={cx('relative block w-full overflow-hidden bg-beon-soft', detail ? 'aspect-[16/9] max-h-[420px]' : 'aspect-[2/1] max-h-[300px]')}>
+        {imagem ? (
+          // eslint-disable-next-line @next/next/no-img-element -- imagem externa da matéria (domínio variável)
+          <img src={imagem} alt="" loading="lazy" referrerPolicy="no-referrer" onError={() => setFalhou(true)}
+            className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover/link:scale-[1.02]" />
+        ) : (
+          <CoverArt seed={post.id} pattern="ondas" tone="ink" className="absolute inset-0 h-full w-full" />
+        )}
+      </span>
+      <span className="block group-hover/link:bg-beon-soft/50">{linha}</span>
+    </a>
+  )
 }
 
 // ── Ações ───────────────────────────────────────────────────────────────────────────────────
@@ -387,14 +429,7 @@ export function PostItem({ post, detail, onTopic }: { post: CommunityPost; detai
             </p>
           )}
 
-          {post.linkUrl && (
-            <a href={post.linkUrl} target="_blank" rel="noopener noreferrer"
-              className={cx('mt-3 flex items-center gap-3 rounded-xl border border-beon-line px-3.5 py-2.5 text-sm hover:border-beon-muted/40 hover:bg-beon-soft/50', focusRing)}>
-              <Link2 className="h-4 w-4 shrink-0 text-beon-muted" aria-hidden />
-              <span className="min-w-0 flex-1 truncate font-medium text-beon-ink">{dominio(post.linkUrl)}</span>
-              <ExternalLink className="h-3.5 w-3.5 shrink-0 text-beon-muted" aria-hidden />
-            </a>
-          )}
+          {post.linkUrl && <CartaoDoLink post={post} detail={detail} />}
 
           {post.tags.length > 0 && (
             <div className="mt-3 flex flex-wrap gap-x-3 gap-y-1">

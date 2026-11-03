@@ -11,15 +11,25 @@ import { DiscoveryRail } from '@/components/comunidade/DiscoveryRail'
 import { PostItem, PostSkeleton } from '@/components/comunidade/PostItem'
 import { EmptyState, ErrorState, cx, focusRing } from '@/components/ui'
 
+/** O id chega codificado na URL: as notícias do Radar e os sinais têm ":" no id (radar:..., que vira radar%3A...). */
+function idDaUrl(bruto: string) {
+  try { return decodeURIComponent(bruto) } catch { return bruto }
+}
+
 export default function PostPage({ params }: { params: { id: string } }) {
   const { posts, upsertPost } = useCommunity()
+  const id = idDaUrl(params.id)
   const [estado, setEstado] = useState<'carregando' | 'ok' | 'nao-encontrado' | string>('carregando')
-  const post = posts.data?.find(p => p.id === params.id)
+  const [carregado, setCarregado] = useState<CommunityPost | null>(null)
+  // A versão do feed (que recebe curtidas e comentários na hora) tem prioridade; a carregada cobre o feed ainda vazio.
+  const post = posts.data?.find(p => p.id === id) ?? (carregado?.id === id ? carregado : undefined)
 
   async function carregar() {
     setEstado('carregando')
     try {
-      upsertPost(await api<CommunityPost>(`/community/posts/${params.id}`))
+      const p = await api<CommunityPost>(`/community/posts/${encodeURIComponent(id)}`)
+      setCarregado(p)
+      upsertPost(p)
       setEstado('ok')
     } catch (err) {
       setEstado(err instanceof ApiError && err.status === 404 ? 'nao-encontrado' : errorMessage(err))
@@ -27,7 +37,7 @@ export default function PostPage({ params }: { params: { id: string } }) {
   }
 
   // Busca a versão mais recente da publicação (comentários incluídos) ao abrir o link.
-  useEffect(() => { carregar() }, [params.id]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { carregar() }, [id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <PageColumns aside={<DiscoveryRail />}>
@@ -36,7 +46,7 @@ export default function PostPage({ params }: { params: { id: string } }) {
           <ArrowLeft className="h-4 w-4" aria-hidden /> Voltar ao feed
         </Link>
       </div>
-      {post ? <PostItem post={post} detail /> : estado === 'carregando' ? <PostSkeleton /> : estado === 'nao-encontrado' ? (
+      {post ? <PostItem post={post} detail /> : estado === 'carregando' || estado === 'ok' ? <PostSkeleton /> : estado === 'nao-encontrado' ? (
         <EmptyState icon={FileX} title="Publicação não encontrada">Ela pode ter sido excluída por quem publicou.</EmptyState>
       ) : <ErrorState message={estado} onRetry={carregar} />}
     </PageColumns>

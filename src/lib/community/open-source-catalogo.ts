@@ -1,6 +1,6 @@
 import type { CategoriaOss, RepoOss } from './open-source'
 
-// Catálogo da beOn Labs no World Open Source: fichas escritas a partir do README e da licença de cada repositório
+// Catálogo da beOn Labs no Open Source World: fichas escritas a partir do README e da licença de cada repositório
 // (lidos em 03/11/2026). "atencao" só traz restrições que o próprio repositório declara ou fatos verificáveis
 // (licença do modelo, projeto parado, uso não oficial de um serviço).
 
