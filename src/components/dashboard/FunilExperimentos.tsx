@@ -11,7 +11,7 @@ import { DashboardData, EpicDetail, Iniciativa } from '@/lib/types'
 import ExperimentoModal from './ExperimentoModal'
 import IniciativaModal from './IniciativaModal'
 import { ehExperimentoConcluido } from '@/lib/concluido'
-import type { ResultadosEstrategia } from '@/lib/estrategia/resultados'
+import { contagensDoFunil, ehCancelado, type ResultadosEstrategia } from '@/lib/estrategia/resultados'
 
 interface Props { data: DashboardData; resultados: ResultadosEstrategia }
 
@@ -41,19 +41,9 @@ export default function FunilExperimentos({ data, resultados }: Props) {
   const [hoveredCamada, setHoveredCamada] = useState<string | null>(null)
 
   // ── Board de Experimentação (2735) — Epics ──
-  const totalExperimentos = data.allEpics.length
-  const emAndamento = data.allEpics.filter(e =>
-    e.status?.id === '3' || e.status?.name === 'Em andamento'
-  ).length
-  const emValidacao = data.allEpics.filter(e =>
-    e.status?.id === '10204' || e.status?.name === 'EM VALIDAÇÃO' || e.status?.name === 'Em validação'
-  ).length
+  // As mesmas contagens que o agente de analytics confere (lib/estrategia/resultados.ts → contagensDoFunil).
+  const { total: totalExperimentos, emValidacao, concluidos, cancelados, emAndamento } = contagensDoFunil(data.allEpics)
   const emAndamentoTotal = emAndamento + emValidacao
-  // Mesma regra do report Semanal e do burnup (lib/concluido.ts)
-  const concluidos = data.allEpics.filter(ehExperimentoConcluido).length
-  const cancelados = data.allEpics.filter(e =>
-    e.status?.id === '10015' || e.status?.name === 'Cancelado'
-  ).length
 
   // ── Hipóteses (iniciativas sem repetir, ver lib/estrategia/resultados.ts) ──
   const h = resultados.hipoteses
@@ -75,9 +65,7 @@ export default function FunilExperimentos({ data, resultados }: Props) {
     )
     // Mesma regra do report Semanal e do burnup (lib/concluido.ts)
     const concluidosList = data.allEpics.filter(ehExperimentoConcluido)
-    const canceladosList = data.allEpics.filter(e =>
-      e.status?.id === '10015' || e.status?.name === 'Cancelado'
-    )
+    const canceladosList = data.allEpics.filter(ehCancelado)
     const emValidacaoList = data.allEpics.filter(e =>
       e.status?.id === '10204' || e.status?.name === 'EM VALIDAÇÃO' || e.status?.name === 'Em validação'
     )
