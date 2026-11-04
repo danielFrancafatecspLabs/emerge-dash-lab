@@ -86,7 +86,7 @@ async function main() {
   console.log(`  NPS:    ${countNps} (${Math.round(countNps / total * 100)}%)`)
   console.log(`  Receita: ${countReceita} (${Math.round(countReceita / total * 100)}%)`)
   console.log(`  Total:  ${total}`)
-  console.log(`\n✅ Cache salvo em .portfolio-cache.json`)
+  console.log(`\n✅ Cache salvo em portfolio-metas.json, na pasta de cache (JIRA_CACHE_DIR ou .cache)`)
 }
 
 main().catch(err => {

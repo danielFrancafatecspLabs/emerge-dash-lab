@@ -256,6 +256,59 @@ function semBeneficioPotencial(e: EpicDetail): boolean {
  * Mapa status.id -> nome REAL da coluna no board 2735 (Experimentação), a
  * partir da configuração live do board (GET /board/2735/configuration).
  */
+// ── Hipóteses: a regra oficial (a do Semanal), compartilhada com a Estratégia e o Portfólio ──────────────
+
+export type EtapaValidada = 'aguardando' | 'piloto' | 'escala'
+
+/** Etapa da Iniciativa que conta como hipótese validada: Aguardando piloto, Em piloto ou Em escala. */
+export function etapaValidada(status: { id: string; name: string } | null | undefined): EtapaValidada | null {
+  if (!status) return null
+  if (status.id === '13045' || status.name === 'Aguardando Piloto') return 'aguardando'
+  if (status.id === '12847' || status.name === 'EM PILOTO' || status.name === 'Em Piloto') return 'piloto'
+  if (status.id === '12848' || ['EM ESCALA', 'Em Escala', 'Em escala', 'FINALIZADO', 'Finalizado'].includes(status.name)) return 'escala'
+  return null
+}
+
+/** Status dos Epics em exploração: as colunas Backlog e Refinamento do board de Experimentação. */
+export function statusIdsDeExploracao(board2735Config?: JiraBoardConfiguration): string[] {
+  const ids: string[] = []
+  for (const [statusId, colNome] of buildColunaPorStatusId(board2735Config)) {
+    if (colNome.includes('BACKLOG') || colNome.includes('REFINAMENTO')) ids.push(statusId)
+  }
+  // Sem a configuração do board (ex.: dados de amostra), os IDs conhecidos do board de Experimentação.
+  return ids.length ? ids : ['10004', '10139']
+}
+
+type ComStatus = { status: { id: string; name: string } }
+const epicEmAndamento = (e: ComStatus) => e.status?.id === '3' || e.status?.name === 'Em andamento'
+  || e.status?.id === '10204' || e.status?.name === 'EM VALIDAÇÃO' || e.status?.name === 'Em validação'
+const epicCanceladoSemanal = (e: ComStatus) => e.status?.id === '10015' || e.status?.name === 'Cancelado' || e.status?.name === 'CANCELADO'
+
+export interface ContagemHipoteses<I extends ComStatus = Iniciativa> {
+  /** Iniciativas em Aguardando piloto, Em piloto ou Em escala. */
+  validadas: I[]
+  porEtapa: Record<EtapaValidada, I[]>
+  /** O restante do total de experimentos: os que terminaram e não avançaram (fecha com as 5 fatias do Semanal). */
+  refutadas: number
+}
+
+/**
+ * Hipóteses validadas e refutadas, exatamente como o Semanal conta:
+ * - validadas: Iniciativas em Aguardando piloto, Em piloto ou Em escala;
+ * - refutadas: total de experimentos − (exploração + andamento + validadas + cancelados).
+ */
+export function contarHipoteses<I extends ComStatus>(iniciativas: I[], epics: ComStatus[], exploracaoIds: string[]): ContagemHipoteses<I> {
+  const porEtapa: Record<EtapaValidada, I[]> = { aguardando: [], piloto: [], escala: [] }
+  for (const i of iniciativas) {
+    const etapa = etapaValidada(i.status)
+    if (etapa) porEtapa[etapa].push(i)
+  }
+  const validadas = [...porEtapa.aguardando, ...porEtapa.piloto, ...porEtapa.escala]
+  const exploracao = new Set(exploracaoIds)
+  const fora = epics.filter(e => exploracao.has(e.status.id)).length + epics.filter(epicEmAndamento).length + epics.filter(epicCanceladoSemanal).length
+  return { validadas, porEtapa, refutadas: Math.max(0, epics.length - fora - validadas.length) }
+}
+
 function buildColunaPorStatusId(boardConfig?: JiraBoardConfiguration): Map<string, string> {
   const map = new Map<string, string>()
   const columns = boardConfig?.columnConfig?.columns
@@ -461,7 +514,7 @@ function contarMotivosCancelamento(
 
 /**
  * Mapeamento acordado com o time BeOn Labs para o slide Weekly (v7). Reusa os
- * MESMOS filtros por id+nome de status já usados em src/app/report/page.tsx
+ * MESMOS filtros por id+nome de status do antigo Report (removido)
  * (funilStages / totalExperimentosIniciados / conversaoPiloto / conversaoEscala)
  * em vez do mapa STATUS_PIPELINE — aquele mapa ficou incompleto/desatualizado
  * em relação aos status reais do board e subcontava "Em andamento".
@@ -519,28 +572,14 @@ export function buildWeeklyData(data: DashboardData, epicChangelogs: Record<stri
   // Descobre esses status IDs a partir da configuração live do board — é
   // a fonte de verdade, mais confiável do que IDs fixos (o Jira reusa o
   // mesmo status ID para colunas diferentes em boards diferentes).
-  const colunaPorStatusId = buildColunaPorStatusId(board2735Config)
-  const backlogStatusIds = new Set<string>()
-  for (const [statusId, colNome] of colunaPorStatusId) {
-    if (colNome.includes('BACKLOG') || colNome.includes('REFINAMENTO')) {
-      backlogStatusIds.add(statusId)
-    }
-  }
-  // Fallback: se o board config não tiver colunas (ex.: dados de amostra),
-  // usa os IDs fixos conhecidos do board de Experimentação.
-  if (backlogStatusIds.size === 0) {
-    backlogStatusIds.add('10004')
-    backlogStatusIds.add('10139')
-  }
+  const backlogStatusIds = new Set(statusIdsDeExploracao(board2735Config))
 
   const backlogEpics = data.allEpics.filter(e => backlogStatusIds.has(e.status.id))
   const backlogCount = backlogEpics.length
 
-  const aguardandoInis = data.iniciativas.filter(i => i.status.id === '13045' || i.status.name === 'Aguardando Piloto')
-  const pilotoInis = data.iniciativas.filter(i => i.status.id === '12847' || i.status.name === 'EM PILOTO' || i.status.name === 'Em Piloto')
-  const escalaInis = data.iniciativas.filter(i =>
-    i.status.id === '12848' || ['EM ESCALA', 'Em Escala', 'Em escala', 'FINALIZADO', 'Finalizado'].includes(i.status.name)
-  )
+  const aguardandoInis = data.iniciativas.filter(i => etapaValidada(i.status) === 'aguardando')
+  const pilotoInis = data.iniciativas.filter(i => etapaValidada(i.status) === 'piloto')
+  const escalaInis = data.iniciativas.filter(i => etapaValidada(i.status) === 'escala')
 
   const emAndamentoEpics = data.allEpics.filter(e => e.status?.id === '3' || e.status?.name === 'Em andamento')
   const emValidacaoEpics = data.allEpics.filter(e => e.status?.id === '10204' || e.status?.name === 'EM VALIDAÇÃO' || e.status?.name === 'Em validação')
@@ -604,7 +643,7 @@ export function buildWeeklyData(data: DashboardData, epicChangelogs: Record<stri
   const aprendizadosSemEscalar = Math.max(0, concluidosCount - (aguardandoInis.length + pilotoInis.length + escalaInis.length))
 
   // Numeradores na mesma lógica da aba Estratégia / Report (ver
-  // src/app/report/page.tsx): iniciativas que já chegaram a Piloto/Escala.
+  // antigo Report): iniciativas que já chegaram a Piloto/Escala.
   // Denominador: SEMPRE o total de experimentos aprovados do slide 1 (total de
   // Epics), não o total bruto de iniciativas do board de Ideação.
   const countEmPiloto = data.iniciativas.filter(i => data.pilotoStatusIds.includes(i.status.id)).length

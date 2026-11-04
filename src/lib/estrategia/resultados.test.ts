@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { DashboardData, EpicDetail, Iniciativa } from '@/lib/types'
+import { buildWeeklyData } from '@/lib/weekly'
+import { buildSemanalData } from '@/lib/semanal'
 import { epicNoPeriodo, filtrarDashboardData, hipoteses, resultadosDaEstrategia } from './resultados'
 
 const CONCLUIDO = { id: '10019', name: 'Concluído' }
@@ -21,7 +23,7 @@ const ini = (key: string, status: { id: string; name: string }, epics: EpicDetai
 const AGUARDANDO = { id: '13045', name: 'Aguardando Piloto' }
 const PILOTO = { id: '12847', name: 'EM PILOTO' }
 const FINALIZADO = { id: '10003', name: 'FINALIZADO' }
-const EXPERIMENTACAO = { id: '12848', name: 'EM EXPERIMENTAÇÃO' }
+const EXPERIMENTACAO = { id: '14460', name: 'Em experimentação' }
 
 beforeEach(() => { vi.useFakeTimers(); vi.setSystemTime(new Date('2026-11-04T12:00:00-03:00')) })
 afterEach(() => { vi.useRealTimers() })
@@ -46,28 +48,38 @@ describe('período pela conclusão do experimento', () => {
   })
 })
 
-describe('hipóteses por iniciativa', () => {
+describe('hipóteses: a mesma conta do Semanal', () => {
+  const BACKLOG = { id: '10004', name: 'BACKLOG' }
   const epics = [
-    epic('GL-10', 'GL-1', { status: CONCLUIDO }), // aguardando piloto
-    epic('GL-11', 'GL-1', { status: CONCLUIDO }), // mesmo pai: conta uma vez
-    epic('GL-12', 'GL-2', { status: CONCLUIDO }), // em piloto
-    epic('GL-13', 'GL-3', { status: CONCLUIDO }), // pai concluído → refutada
-    epic('GL-14', 'GL-4', { status: CONCLUIDO }), // pai em experimentação → sem decisão
-    epic('GL-15', 'GL-5', { status: CONCLUIDO }), // pai cancelado → sem decisão
-    epic('GL-16', 'GL-6'), // não concluído → fora
-    epic('GL-17', null, { status: CONCLUIDO }), // sem pai → sem decisão
+    epic('GL-10', 'GL-1', { status: CONCLUIDO }),
+    epic('GL-11', 'GL-1', { status: CONCLUIDO }),
+    epic('GL-12', 'GL-2', { status: CONCLUIDO }),
+    epic('GL-13', 'GL-3', { status: CONCLUIDO }),
+    epic('GL-14', 'GL-4', { status: CONCLUIDO }),
+    epic('GL-15', 'GL-5', { status: CANCELADO }),
+    epic('GL-16', 'GL-6'),
+    epic('GL-17', null, { status: BACKLOG }),
   ]
   const filhos = (k: string) => epics.filter(e => e.parentKey === k)
   const iniciativas = [
     ini('GL-1', AGUARDANDO, filhos('GL-1')), ini('GL-2', PILOTO, filhos('GL-2')), ini('GL-3', FINALIZADO, filhos('GL-3')),
     ini('GL-4', EXPERIMENTACAO, filhos('GL-4')), ini('GL-5', CANCELADO, filhos('GL-5')), ini('GL-6', PILOTO, filhos('GL-6')),
+    ini('GL-7', AGUARDANDO, []), // aguardando piloto sem experimento concluído: conta, como no Semanal
   ]
-  it('validada: aguardando piloto, piloto ou escala; refutada: concluída; sem repetir a iniciativa', () => {
-    const h = hipoteses(iniciativas, epics)
-    expect(h.validadas.map(i => i.key)).toEqual(['GL-1', 'GL-2'])
-    expect(h.porEtapa['AGUARDANDO PILOTO'].map(i => i.key)).toEqual(['GL-1'])
-    expect(h.refutadas.map(i => i.key)).toEqual(['GL-3'])
-    expect(h.semDecisao.map(e => e.key)).toEqual(['GL-14', 'GL-15', 'GL-17'])
+  const data = { iniciativas, allEpics: epics, pipeline: {}, mercadosSegmento: [], pilotoStatusIds: ['12847'], escalaStatusIds: [] } as unknown as DashboardData
+
+  it('validadas são as iniciativas em aguardando piloto, piloto ou escala, e batem com o Semanal', () => {
+    const h = hipoteses(iniciativas, epics, ['10004', '10139'])
+    expect(h.porEtapa['AGUARDANDO PILOTO'].map(i => i.key)).toEqual(['GL-1', 'GL-7'])
+    expect(h.porEtapa['EM PILOTO'].map(i => i.key)).toEqual(['GL-2', 'GL-6'])
+    expect(h.porEtapa['EM ESCALA'].map(i => i.key)).toEqual(['GL-3'])
+    // 8 experimentos − 1 exploração − 1 andamento − 5 validadas − 1 cancelado = 0
+    expect(h.refutadas).toBe(0)
+
+    const semanal = buildSemanalData(data, buildWeeklyData(data))
+    const fatia = (id: string) => semanal.resumo.fatias.find(f => f.id === id)?.quantidade
+    expect(fatia('validadas')).toBe(h.validadas.length)
+    expect(fatia('refutadas')).toBe(h.refutadas)
   })
 })
 

@@ -75,7 +75,7 @@ function Indicador({ rotulo, valor, detalhe, ativo, onClick, cor, ajuda }: {
         {rotulo}
       </span>
       <span className="mt-0.5 block text-[22px] font-semibold leading-tight tracking-tight tabular-nums text-beon-ink">{valor}</span>
-      <span className="block truncate text-[11.5px] text-beon-muted">{detalhe}</span>
+      <span className="line-clamp-2 block text-[11.5px] leading-snug text-beon-muted">{detalhe}</span>
     </>
   )
   const classe = cx(
@@ -109,8 +109,8 @@ function ComoLer() {
               <li key={s} className="flex items-center gap-2"><span className="h-2 w-2 rounded-full" style={{ background: COR_SITUACAO[s] }} />{SITUACAO_LABEL[s]}</li>
             ))}
           </ul>
-          <p>O <b className="text-beon-ink">benefício</b> da iniciativa é a soma dos experimentos dela, sem os cancelados. Um experimento está <b className="text-beon-ink">bloqueado</b> quando ainda está aberto e tem flag de impedimento, motivo ou tipo de impedimento preenchido, status ou etiqueta de bloqueio, ou um vínculo &quot;bloqueado por&quot; com item aberto. O detalhe mostra o porquê.</p>
-          <p>As <b className="text-beon-ink">hipóteses</b> contam iniciativas, uma vez cada, mesmo com vários ciclos, e só as que têm um experimento <b className="text-beon-ink">concluído</b>. <b className="text-beon-ink">Validada</b>: a iniciativa está em Aguardando piloto, Em piloto ou Em escala. <b className="text-beon-ink">Refutada</b>: a iniciativa está em Concluído. Experimento concluído com a iniciativa ainda em outra coluna (ou sem iniciativa) fica fora das duas contas.</p>
+          <p>O <b className="text-beon-ink">benefício</b> da iniciativa é a soma dos experimentos dela, sem os cancelados. Um experimento está <b className="text-beon-ink">bloqueado</b> quando está em experimentação (em andamento ou em validação) e tem flag de impedimento, motivo ou tipo de impedimento preenchido, status ou etiqueta de bloqueio, ou um vínculo &quot;bloqueado por&quot; com item aberto. O detalhe mostra o porquê.</p>
+          <p>As <b className="text-beon-ink">hipóteses</b> seguem a conta do Semanal. <b className="text-beon-ink">Validadas</b>: iniciativas em Aguardando piloto, Em piloto ou Em escala. <b className="text-beon-ink">Refutadas</b>: o restante do total de experimentos, tirando exploração, andamento, validadas e cancelados. Com filtros, a conta considera só o que está na tela.</p>
           <p><b className="text-beon-ink">Em execução</b> soma as colunas de experimentação e piloto; o percentual é sobre o portfólio sem os cancelados.</p>
           <p>Os filtros valem nas três visões: na de iniciativas, um campo do experimento olha os experimentos de cada iniciativa.</p>
         </div>
@@ -142,7 +142,9 @@ export default function PortfolioExplorer({ dados, estadoInicial, detalheInicial
   const entidade = entidadeDa(estado)
   const base: ItemPortfolio[] = entidade === 'iniciativa' ? dados.iniciativas : dados.experimentos
   const itens = useMemo(() => ordenar(filtrar(base, entidade, estado, ctx), estado.ordem), [base, entidade, estado, ctx])
-  const resumo = useMemo(() => resumir(itens, ctx), [itens, ctx])
+  // Sem filtro nem busca, as hipóteses olham o portfólio inteiro, como o Semanal.
+  const semFiltro = totalDeFiltros(estado) === 0 && !estado.busca.trim()
+  const resumo = useMemo(() => resumir(itens, ctx, semFiltro), [itens, ctx, semFiltro])
   const itemAberto = detalhe ? ctx.iniciativas.get(detalhe) ?? ctx.experimentos.get(detalhe) ?? null : null
 
   // A URL acompanha a visão (para compartilhar o link e voltar ao mesmo ponto).
@@ -282,21 +284,22 @@ export default function PortfolioExplorer({ dados, estadoInicial, detalheInicial
         />
         <Indicador
           rotulo="Hipóteses validadas" cor="#059669"
-          valor={String(resumo.validadas)} detalhe={resumo.validadas === 1 ? 'iniciativa em piloto ou escala' : 'iniciativas em piloto ou escala'}
-          ajuda="Iniciativas (sem repetir) com experimento concluído que seguiram para Aguardando piloto, Em piloto ou Em escala."
+          valor={String(resumo.validadas)}
+          detalhe={`${resumo.porEtapa.aguardando} aguardando · ${resumo.porEtapa.piloto} piloto · ${resumo.porEtapa.escala} escala`}
+          ajuda="Iniciativas em Aguardando piloto, Em piloto ou Em escala: a mesma conta do Semanal."
           ativo={atalhoAtivo('hipotese', ['Validada'])}
           onClick={() => alternarAtalho('hipotese', ['Validada'])}
         />
         <Indicador
           rotulo="Hipóteses refutadas" cor="#A8A29E"
-          valor={String(resumo.refutadas)} detalhe={resumo.refutadas === 1 ? 'iniciativa concluída' : 'iniciativas concluídas'}
-          ajuda="Iniciativas (sem repetir) com experimento concluído que foram para Concluído, sem seguir para piloto nem escala."
-          ativo={atalhoAtivo('hipotese', ['Refutada'])}
-          onClick={() => alternarAtalho('hipotese', ['Refutada'])}
+          valor={String(resumo.refutadas)}
+          detalhe="concluídos que não avançaram"
+          ajuda="A mesma conta do Semanal: total de experimentos menos exploração, andamento, hipóteses validadas e cancelados. Para ver os experimentos concluídos cuja iniciativa não seguiu, filtre Hipótese: Concluído sem avançar."
         />
         <Indicador
           rotulo="Bloqueados" cor="#F59E0B"
-          valor={String(resumo.bloqueados)} detalhe={`${pct(resumo.bloqueados, resumo.ativos)} dos não cancelados`}
+          valor={String(resumo.bloqueados)} detalhe={`${pct(resumo.bloqueados, resumo.emExecucao)} dos em execução`}
+          ajuda={entidade === 'iniciativa' ? 'Iniciativas com experimento bloqueado em experimentação.' : 'Experimentos em andamento ou em validação com bloqueio.'}
           ativo={atalhoAtivo('bloqueio', ['Bloqueado'])}
           onClick={() => alternarAtalho('bloqueio', ['Bloqueado'])}
         />

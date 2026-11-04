@@ -2,6 +2,7 @@ import { epicCancelado, getPipelineStage } from '@/lib/mappers'
 import { getPeriodoIntervalo, isDataNoPeriodo, type PeriodoFiltro } from '@/lib/periodo-filter'
 import { epicBloqueado } from '@/lib/bloqueio'
 import { ehExperimentoConcluido } from '@/lib/concluido'
+import { contarHipoteses } from '@/lib/weekly'
 import type {
   DashboardData, EpicDetail, Iniciativa, MercadoAgregado, MetaCategoria, PipelineCount,
 } from '@/lib/types'
@@ -16,11 +17,9 @@ import type {
  *
  * Benefício potencial: nunca soma experimentos cancelados. O que foi cancelado com benefício aparece à parte.
  *
- * Hipóteses (por iniciativa, sem repetir a que tem vários ciclos), só das iniciativas com experimento concluído no
- * período:
- * - Validada: a iniciativa está em Aguardando piloto, Em piloto ou Em escala.
- * - Refutada: a iniciativa está em Concluído.
- * - O restante (iniciativa ainda em experimentação, cancelada, ou experimento sem iniciativa) fica fora das duas.
+ * Hipóteses: a regra oficial do Semanal (lib/weekly.ts → contarHipoteses), sobre os experimentos e as iniciativas
+ * do período. Validadas: iniciativas em Aguardando piloto, Em piloto ou Em escala. Refutadas: o restante do total
+ * de experimentos (fora exploração, andamento, validadas e cancelados).
  */
 
 /** Experimento cancelado: a mesma regra do resto do app (lib/mappers.ts). */
@@ -44,35 +43,23 @@ export function epicNoPeriodo(e: EpicDetail, periodo: PeriodoFiltro): boolean {
 // ── Hipóteses ─────────────────────────────────────────────────────────────────────────────────
 
 export type EtapaValidada = 'AGUARDANDO PILOTO' | 'EM PILOTO' | 'EM ESCALA'
-const ETAPAS_VALIDADAS: EtapaValidada[] = ['AGUARDANDO PILOTO', 'EM PILOTO', 'EM ESCALA']
 
 export interface Hipoteses {
-  /** Iniciativas com experimento concluído que seguiram para Aguardando piloto, Em piloto ou Em escala. */
+  /** Iniciativas em Aguardando piloto, Em piloto ou Em escala (a mesma regra do Semanal). */
   validadas: Iniciativa[]
   porEtapa: Record<EtapaValidada, Iniciativa[]>
-  /** Iniciativas com experimento concluído que foram para Concluído. */
-  refutadas: Iniciativa[]
-  /** Experimentos concluídos cuja iniciativa ainda não decidiu (outra coluna) ou que não têm iniciativa. */
-  semDecisao: EpicDetail[]
+  /** Experimentos que terminaram e não avançaram: o restante do total, como no Semanal. */
+  refutadas: number
 }
 
-export function hipoteses(iniciativas: Iniciativa[], epics: EpicDetail[]): Hipoteses {
-  const porKey = new Map(iniciativas.map(i => [i.key, i]))
-  const porEtapa: Record<EtapaValidada, Iniciativa[]> = { 'AGUARDANDO PILOTO': [], 'EM PILOTO': [], 'EM ESCALA': [] }
-  const refutadas: Iniciativa[] = []
-  const semDecisao: EpicDetail[] = []
-  const vistas = new Set<string>()
-  for (const e of epics.filter(ehExperimentoConcluido)) {
-    const mae = e.parentKey ? porKey.get(e.parentKey) : undefined
-    const etapa = mae ? getPipelineStage(mae.status) : undefined
-    const decisao = etapa && (ETAPAS_VALIDADAS as string[]).includes(etapa) ? 'validada' : etapa === 'FINALIZADO' ? 'refutada' : null
-    if (!mae || !decisao) { semDecisao.push(e); continue }
-    if (vistas.has(mae.key)) continue
-    vistas.add(mae.key)
-    if (decisao === 'validada') porEtapa[etapa as EtapaValidada].push(mae)
-    else refutadas.push(mae)
+/** Hipóteses do período pela regra oficial do Semanal (lib/weekly.ts → contarHipoteses). */
+export function hipoteses(iniciativas: Iniciativa[], epics: EpicDetail[], exploracaoIds: string[]): Hipoteses {
+  const c = contarHipoteses(iniciativas, epics, exploracaoIds)
+  return {
+    validadas: c.validadas,
+    porEtapa: { 'AGUARDANDO PILOTO': c.porEtapa.aguardando, 'EM PILOTO': c.porEtapa.piloto, 'EM ESCALA': c.porEtapa.escala },
+    refutadas: c.refutadas,
   }
-  return { validadas: ETAPAS_VALIDADAS.flatMap(k => porEtapa[k]), porEtapa, refutadas, semDecisao }
 }
 
 // ── Resultados do período ─────────────────────────────────────────────────────────────────────
@@ -87,14 +74,14 @@ export interface ResultadosEstrategia {
   semMeta: EpicDetail[]
 }
 
-export function resultadosDaEstrategia(data: DashboardData): ResultadosEstrategia {
+export function resultadosDaEstrategia(data: DashboardData, exploracaoIds: string[] = ['10004', '10139']): ResultadosEstrategia {
   const ativos = data.allEpics.filter(e => !ehCancelado(e))
   const canceladosComBeneficio = data.allEpics.filter(e => ehCancelado(e) && beneficioDe(e) > 0)
   return {
     beneficio: beneficioPotencial(data.allEpics),
     comBeneficio: ativos.filter(e => beneficioDe(e) > 0),
     cancelados: { valor: canceladosComBeneficio.reduce((s, e) => s + beneficioDe(e), 0), epics: canceladosComBeneficio },
-    hipoteses: hipoteses(data.iniciativas, data.allEpics),
+    hipoteses: hipoteses(data.iniciativas, data.allEpics, exploracaoIds),
     semMeta: ativos.filter(e => !e.metaCategoria),
   }
 }
