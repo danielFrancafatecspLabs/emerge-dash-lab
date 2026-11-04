@@ -129,7 +129,7 @@ describe('filtros do Portfólio', () => {
     expect(ordenar(DADOS.experimentos, 'prazo')[0].key).toBe('GL-10')
     expect(agrupar(DADOS.experimentos, 'lab', ctx).map(g => [g.valor, g.itens.length])).toEqual([['HITSS', 2], ['Lab Dados', 2]])
     expect(resumir(DADOS.experimentos, ctx)).toEqual({
-      total: 4, ativos: 3, emExecucao: 2, bloqueados: 1, beneficio: 75_000_000, relacionados: 2, concluidos: 0, validadas: 0, refutadas: 0,
+      total: 4, ativos: 3, emExecucao: 2, bloqueados: 1, beneficio: 75_000_000, relacionados: 2, concluidos: 0, validadas: 0, refutadas: 0, semDecisao: 0,
     })
   })
 })
@@ -138,12 +138,15 @@ describe('hipóteses validadas e refutadas', () => {
   const CONCLUIDO = { status: { id: '10019', name: 'Concluído' } }
   const EPICS = [
     epic('GL-10', 'GL-1', CONCLUIDO), // mãe aguardando piloto → validada
+    epic('GL-17', 'GL-1', CONCLUIDO), // segundo ciclo concluído da mesma iniciativa → a iniciativa conta uma vez
     epic('GL-11', 'GL-1'), // em andamento → fora da conta
     epic('GL-12', 'GL-2', CONCLUIDO), // mãe em piloto → validada
     epic('GL-13', 'GL-3', CONCLUIDO), // mãe em escala → validada
-    epic('GL-14', 'GL-4', CONCLUIDO), // mãe em experimentação → refutada
+    epic('GL-14', 'GL-4', CONCLUIDO), // mãe ainda em experimentação → sem decisão
     epic('GL-15', 'GL-5', { status: { id: '10015', name: 'CANCELADO' } }), // cancelado → fora da conta
-    epic('GL-16', null, CONCLUIDO), // sem iniciativa-mãe → refutada
+    epic('GL-16', null, CONCLUIDO), // sem iniciativa-mãe → sem decisão
+    epic('GL-18', 'GL-7', CONCLUIDO), // mãe em Concluído → refutada
+    epic('GL-19', 'GL-8', CONCLUIDO), // mãe cancelada → sem decisão
   ]
   const filhos = (k: string) => EPICS.filter(e => e.parentKey === k)
   const dados = montarPortfolio(
@@ -155,13 +158,15 @@ describe('hipóteses validadas e refutadas', () => {
         ini('GL-4', filhos('GL-4'), { status: { id: '14460', name: 'EM EXPERIMENTAÇÃO' } }),
         ini('GL-5', filhos('GL-5'), { status: { id: '10015', name: 'CANCELADO' } }),
         ini('GL-6', []),
+        ini('GL-7', filhos('GL-7'), { status: { id: '10003', name: 'FINALIZADO' } }),
+        ini('GL-8', filhos('GL-8'), { status: { id: '10015', name: 'CANCELADO' } }),
       ],
       allEpics: EPICS,
     } as unknown as DashboardData,
     {
       iniciativa: config('P&D - Ideação', [
         ['BACKLOG', ['10004']], ['EM EXPERIMENTAÇÃO', ['14460']], ['AGUARDANDO PILOTO', ['14468']], ['EM PILOTO', ['14459']],
-        ['EM ESCALA', ['13562']], ['CANCELADO', ['10015']],
+        ['EM ESCALA', ['13562']], ['CONCLUÍDO', ['10003']], ['CANCELADO', ['10015']],
       ]),
       experimento: config('P&D - Experimentação', [['Em andamento', ['3']]]),
     },
@@ -169,27 +174,45 @@ describe('hipóteses validadas e refutadas', () => {
   )
   const c = criarContexto(dados)
 
-  it('só conta experimentos concluídos: validada com a mãe em aguardando piloto, piloto ou escala; refutada nos demais', () => {
+  it('conta iniciativas sem repetir: validada em aguardando piloto, piloto ou escala; refutada em Concluído', () => {
     const r = resumir(dados.experimentos, c)
-    expect([r.concluidos, r.validadas, r.refutadas]).toEqual([5, 3, 2])
+    expect([r.concluidos, r.validadas, r.refutadas, r.semDecisao]).toEqual([8, 3, 1, 3])
     expect(filtrar(dados.experimentos, 'experimento', estado({ filtros: { hipotese: ['Validada'] } }), c).map(e => e.key))
-      .toEqual(['GL-10', 'GL-12', 'GL-13'])
+      .toEqual(['GL-10', 'GL-17', 'GL-12', 'GL-13'])
+    expect(filtrar(dados.experimentos, 'experimento', estado({ filtros: { hipotese: ['Refutada'] } }), c).map(e => e.key)).toEqual(['GL-18'])
     expect(facetas(dados.experimentos, 'experimento', estado({}), c, 'hipotese')).toEqual([
-      { valor: 'Validada', n: 3 }, { valor: 'Refutada', n: 2 }, { valor: 'Experimento não concluído', n: 2 },
+      { valor: 'Validada', n: 4 }, { valor: 'Refutada', n: 1 }, { valor: 'Concluído, sem decisão', n: 3 }, { valor: 'Experimento não concluído', n: 2 },
     ])
   })
 
-  it('na visão de iniciativas, conta os experimentos concluídos das iniciativas mostradas', () => {
+  it('refutada nunca pega iniciativa em experimentação nem cancelada', () => {
+    const refutadas = filtrar(dados.iniciativas, 'iniciativa', estado({ filtros: { hipotese: ['Refutada'] } }), c).map(i => i.key)
+    expect(refutadas).toEqual(['GL-7'])
+  })
+
+  it('na visão de iniciativas, conta as iniciativas mostradas', () => {
     const r = resumir(dados.iniciativas, c)
-    expect([r.concluidos, r.validadas, r.refutadas]).toEqual([4, 3, 1])
+    expect([r.validadas, r.refutadas, r.semDecisao]).toEqual([3, 1, 2])
     expect(facetas(dados.iniciativas, 'iniciativa', estado({}), c, 'hipotese')).toEqual([
-      { valor: 'Validada', n: 3 }, { valor: 'Refutada', n: 1 }, { valor: 'Sem experimento concluído', n: 2 },
+      { valor: 'Validada', n: 3 }, { valor: 'Refutada', n: 1 }, { valor: 'Concluído, sem decisão', n: 2 }, { valor: 'Sem experimento concluído', n: 2 },
     ])
   })
 
   it('em execução não inclui escala, e o percentual ignora os cancelados', () => {
     const r = resumir(dados.iniciativas, c)
-    expect([r.total, r.ativos, r.emExecucao]).toEqual([6, 5, 3])
+    expect([r.total, r.ativos, r.emExecucao]).toEqual([8, 6, 3])
+  })
+})
+
+describe('benefício potencial no portfólio', () => {
+  it('não soma experimentos cancelados, nem na iniciativa nem no indicador', () => {
+    const vivo = epic('GL-40', 'GL-9', { beneficioQuantitativo: 10_000_000 })
+    const cancelado = epic('GL-41', 'GL-9', { status: { id: '10015', name: 'CANCELADO' }, beneficioQuantitativo: 250_000_000 })
+    const d = montarPortfolio({ iniciativas: [ini('GL-9', [vivo, cancelado])], allEpics: [vivo, cancelado] } as unknown as DashboardData, {}, null)
+    const c = criarContexto(d)
+    expect(d.iniciativas[0].beneficio).toBe(10_000_000)
+    expect(resumir(d.iniciativas, c).beneficio).toBe(10_000_000)
+    expect(resumir(d.experimentos, c).beneficio).toBe(10_000_000)
   })
 })
 

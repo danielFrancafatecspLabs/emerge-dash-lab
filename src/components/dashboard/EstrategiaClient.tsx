@@ -12,216 +12,21 @@ import BurnupChart from '@/components/monitoramento/BurnupChart'
 import LeadTimeJornada from '@/components/dashboard/LeadTimeJornada'
 import FunilExperimentos from '@/components/dashboard/FunilExperimentos'
 import GraficoComInsight from '@/components/dashboard/GraficoComInsight'
-import { PeriodoFiltro, isDataNoPeriodo } from '@/lib/periodo-filter'
-import { DashboardData, Iniciativa, EpicDetail, PipelineCount, MercadoAgregado, MetaCategoria, MonitoramentoData, InsightExecutivo } from '@/lib/types'
-import { getPipelineStage, buildMonitoramentoData } from '@/lib/mappers'
-import { epicBloqueado } from '@/lib/bloqueio'
-
-/**
- * Recalcula o DashboardData completo filtrando apenas iniciativas e epics
- * criados dentro do período selecionado.
- */
-function filtrarDashboardData(data: DashboardData, periodo: PeriodoFiltro): DashboardData {
-  if (periodo.tipo === 'tudo') return data
-
-  // ── Filtra iniciativas e seus epics ──
-  const iniciativasFiltradas: Iniciativa[] = data.iniciativas
-    .filter(ini => isDataNoPeriodo(ini.criadoEm, periodo))
-    .map(ini => {
-      const epicsFiltrados: EpicDetail[] = ini.epics.filter(epic =>
-        isDataNoPeriodo(epic.criadoEm, periodo)
-      )
-      return {
-        ...ini,
-        epics: epicsFiltrados,
-        beneficioQuantitativoTotal: epicsFiltrados.reduce((s, e) => s + (e.beneficioQuantitativo ?? 0), 0),
-        dominios: Array.from(new Set(epicsFiltrados.map(e => e.dominio).filter(Boolean) as string[])),
-        sponsors: Array.from(new Set(epicsFiltrados.map(e => e.sponsor).filter(Boolean) as string[])),
-        segmentos: Array.from(new Set(epicsFiltrados.map(e => e.segmento).filter(Boolean) as string[])),
-      }
-    })
-
-  // ── Filtra todos os epics ──
-  const allEpicsFiltrados: EpicDetail[] = data.allEpics.filter(epic =>
-    isDataNoPeriodo(epic.criadoEm, periodo)
-  )
-
-  // ── Pipeline counts (pelas iniciativas filtradas) ──
-  const pipeline: PipelineCount = {
-    BACKLOG: 0, 'EM REFINAMENTO': 0, 'PRONTO PARA EXECUÇÃO': 0,
-    'EM EXPERIMENTAÇÃO': 0, 'AGUARDANDO PILOTO': 0, 'EM PILOTO': 0,
-    'EM ESCALA': 0, FINALIZADO: 0, CANCELADO: 0,
-  }
-
-  // Usa getPipelineStage do mappers.ts (funciona com status de Iniciativa E de Epic)
-  for (const ini of iniciativasFiltradas) {
-    const stage = getPipelineStage(ini.status) ?? 'BACKLOG'
-    pipeline[stage]++
-  }
-
-  // ── Benefícios ──
-  const epicsComBeneficio = allEpicsFiltrados.filter(e => (e.beneficioQuantitativo ?? 0) > 0)
-  const beneficioTotal = epicsComBeneficio.reduce((s, e) => s + (e.beneficioQuantitativo ?? 0), 0)
-  const beneficioMedio = epicsComBeneficio.length ? beneficioTotal / epicsComBeneficio.length : 0
-
-  // ── Epics ativos ──
-  const epicsAtivos = allEpicsFiltrados.filter(
-    e => e.status.id !== '10015' && e.status.id !== '10019'
-  )
-
-  // ── Top 5 epics ──
-  const top5Epics = [...allEpicsFiltrados]
-    .filter(e => (e.beneficioQuantitativo ?? 0) > 0)
-    .sort((a, b) => (b.beneficioQuantitativo ?? 0) - (a.beneficioQuantitativo ?? 0))
-    .slice(0, 5)
-
-  // ── Top sponsors ──
-  const sponsorCount = new Map<string, number>()
-  for (const e of allEpicsFiltrados) {
-    if (e.sponsor) sponsorCount.set(e.sponsor, (sponsorCount.get(e.sponsor) ?? 0) + 1)
-  }
-  const topSponsors = Array.from(sponsorCount.entries())
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 5)
-    .map(([nome, count]) => ({ nome, count }))
-
-  // ── Status distribuição (donut) ──
-  const DONUT_COLORS: Record<string, string> = {
-    'EM ESCALA': '#22c55e', 'EM PILOTO': '#16a34a', 'AGUARDANDO PILOTO': '#84cc16',
-    'FINALIZADO': '#6b7280', 'EM EXPERIMENTAÇÃO': '#ea580c', 'PRONTO PARA EXECUÇÃO': '#d4d4d4',
-    'EM REFINAMENTO': '#a8a29e', 'BACKLOG': '#9ca3af', 'CANCELADO': '#ef4444',
-  }
-  const STATUS_DONUT_ORDER: (keyof PipelineCount)[] = [
-    'EM ESCALA', 'EM PILOTO', 'AGUARDANDO PILOTO', 'FINALIZADO',
-    'EM EXPERIMENTAÇÃO', 'PRONTO PARA EXECUÇÃO', 'EM REFINAMENTO', 'BACKLOG', 'CANCELADO',
-  ]
-  const STATUS_DISPLAY_NAME: Partial<Record<keyof PipelineCount, string>> = {
-    'CANCELADO': 'DESCONTINUADO', 'FINALIZADO': 'CONCLUÍDO',
-  }
-  // ── Status distribuição (donut) — baseado nos Epics do board 2735 ──
-  const statusDistribuicao = STATUS_DONUT_ORDER
-    .map(key => ({
-      name: STATUS_DISPLAY_NAME[key] ?? key,
-      value: allEpicsFiltrados.filter(e => getPipelineStage(e.status) === key).length,
-      color: DONUT_COLORS[key] ?? '#888',
-    }))
-    .filter(d => d.value > 0)
-
-  // ── Mercados (por meta categoria) ──
-  const mercadoMap = new Map<string, EpicDetail[]>()
-  for (const e of allEpicsFiltrados) {
-    const cat = e.metaCategoria ?? 'Não classificado'
-    if (!mercadoMap.has(cat)) mercadoMap.set(cat, [])
-    mercadoMap.get(cat)!.push(e)
-  }
-  const mercados: MercadoAgregado[] = Array.from(mercadoMap.entries()).map(([nome, epics]) => {
-    const domCount = new Map<string, number>()
-    for (const e of epics) {
-      if (e.dominio) domCount.set(e.dominio, (domCount.get(e.dominio) ?? 0) + 1)
-    }
-    const total = epics.length
-    const dominios = Array.from(domCount.entries())
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 4)
-      .map(([n, count]) => ({ nome: n, count, pct: Math.round((count / total) * 100) }))
-    return {
-      nome,
-      qtdExperimentos: epics.length,
-      valorPotencial: epics.reduce((s, e) => s + (e.beneficioQuantitativo ?? 0), 0),
-      dominios,
-      epics,
-      alertas: {
-        bloqueadosIA: epics.filter(epicBloqueado).length,
-        aguardandoDelivery: epics.filter(e => e.status.id === '10067').length,
-        semSponsor: epics.filter(e => !e.sponsor).length,
-      },
-    }
-  }).sort((a, b) => b.qtdExperimentos - a.qtdExperimentos)
-
-  // ── Mercados por segmento ──
-  const mercadosSegmento = (data.mercadosSegmento ?? []).map(ms => {
-    const epicsFiltrados = ms.epics.filter(e => isDataNoPeriodo(e.criadoEm, periodo))
-    const domCount = new Map<string, number>()
-    for (const e of epicsFiltrados) {
-      if (e.dominio) domCount.set(e.dominio, (domCount.get(e.dominio) ?? 0) + 1)
-    }
-    const total = epicsFiltrados.length
-    const dominios = Array.from(domCount.entries())
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 4)
-      .map(([n, count]) => ({ nome: n, count, pct: total ? Math.round((count / total) * 100) : 0 }))
-    return {
-      ...ms,
-      epics: epicsFiltrados,
-      qtdExperimentos: epicsFiltrados.length,
-      valorPotencial: epicsFiltrados.reduce((s, e) => s + (e.beneficioQuantitativo ?? 0), 0),
-      dominios,
-      alertas: {
-        bloqueadosIA: epicsFiltrados.filter(epicBloqueado).length,
-        aguardandoDelivery: epicsFiltrados.filter(e => e.status.id === '10067').length,
-        semSponsor: epicsFiltrados.filter(e => !e.sponsor).length,
-      },
-    }
-  })
-
-  // ── Metas agregadas (baseado em Epics, não iniciativas) ──
-  const metasAgregadas: Record<MetaCategoria, { count: number; valor: number }> = {
-    EBITDA: { count: 0, valor: 0 },
-    NPS: { count: 0, valor: 0 },
-    Receita: { count: 0, valor: 0 },
-  }
-  const epicsPorMeta: Record<MetaCategoria, EpicDetail[]> = {
-    EBITDA: [], NPS: [], Receita: [],
-  }
-  for (const epic of allEpicsFiltrados) {
-    const meta = epic.metaCategoria as MetaCategoria | null
-    if (!meta) continue
-    epicsPorMeta[meta].push(epic)
-    metasAgregadas[meta].count++
-  }
-  // Valor: benefício total da iniciativa-mãe (uma vez por meta)
-  for (const ini of iniciativasFiltradas) {
-    for (const meta of Object.keys(epicsPorMeta) as MetaCategoria[]) {
-      const temEpicNaMeta = ini.epics.some(e => e.metaCategoria === meta)
-      if (temEpicNaMeta) {
-        metasAgregadas[meta].valor += ini.beneficioQuantitativoTotal
-      }
-    }
-  }
-
-  // ── Contagens específicas ──
-  const iniciativasAguardandoPiloto = iniciativasFiltradas.filter(i => i.status.id === '13045').length
-  const iniciativasEmPiloto = iniciativasFiltradas.filter(i => i.status.id === '12847').length
-
-  return {
-    ...data,
-    iniciativas: iniciativasFiltradas,
-    allEpics: allEpicsFiltrados,
-    totalEpicsAtivos: epicsAtivos.length,
-    beneficioTotal,
-    beneficioMedio,
-    pipeline,
-    iniciativasAguardandoPiloto,
-    iniciativasEmPiloto,
-    mercados,
-    mercadosSegmento,
-    top5Epics,
-    topSponsors,
-    statusDistribuicao,
-    metasAgregadas,
-    epicsPorMeta,
-  }
-}
+import { PeriodoFiltro } from '@/lib/periodo-filter'
+import { DashboardData, MonitoramentoData, InsightExecutivo } from '@/lib/types'
+import { buildMonitoramentoData } from '@/lib/mappers'
+import { ehCancelado, filtrarDashboardData, resultadosDaEstrategia } from '@/lib/estrategia/resultados'
 
 // ── Componente principal ──
 
 interface EstrategiaClientProps {
   data: DashboardData
   monitoramento: MonitoramentoData
-  beneficioValidadoTotal: number
+  /** Benefício já validado pelo Financeiro, por Epic (controle em /beneficios). */
+  beneficioValidadoPorEpic: Record<string, number>
 }
 
-export default function EstrategiaClient({ data, monitoramento, beneficioValidadoTotal }: EstrategiaClientProps) {
+export default function EstrategiaClient({ data, beneficioValidadoPorEpic }: EstrategiaClientProps) {
   const [periodoFiltro, setPeriodoFiltro] = useState<PeriodoFiltro>({ tipo: 'ultimos12' })
   const [modoSlide, setModoSlide] = useState(() =>
     typeof document !== 'undefined' && document.body.classList.contains('modo-apresentacao')
@@ -244,6 +49,14 @@ export default function EstrategiaClient({ data, monitoramento, beneficioValidad
   const dadosFiltrados = useMemo(
     () => filtrarDashboardData(data, periodoFiltro),
     [data, periodoFiltro]
+  )
+
+  // Benefício, cancelados e hipóteses do período (regras em lib/estrategia/resultados.ts).
+  const resultados = useMemo(() => resultadosDaEstrategia(dadosFiltrados), [dadosFiltrados])
+  // Validado pelo Financeiro: só os experimentos do período que não foram cancelados.
+  const beneficioValidadoTotal = useMemo(
+    () => dadosFiltrados.allEpics.reduce((s, e) => s + (ehCancelado(e) ? 0 : beneficioValidadoPorEpic[e.key] ?? 0), 0),
+    [dadosFiltrados, beneficioValidadoPorEpic],
   )
 
   const monitoramentoFiltrado = useMemo(
@@ -269,10 +82,11 @@ export default function EstrategiaClient({ data, monitoramento, beneficioValidad
             totalIniciativas: dadosFiltrados.iniciativas.length,
             totalExperimentos: dadosFiltrados.allEpics.length,
             concluidos: dadosFiltrados.allEpics.filter(e => e.status?.id === '10019').length,
-            emPilotoEscala: dadosFiltrados.pipeline['EM PILOTO'] + dadosFiltrados.pipeline['EM ESCALA'],
-            emEscala: dadosFiltrados.pipeline['EM ESCALA'],
+            hipotesesValidadas: resultados.hipoteses.validadas.length,
+            hipotesesRefutadas: resultados.hipoteses.refutadas.length,
             metasAgregadas: dadosFiltrados.metasAgregadas,
-            beneficioTotal: dadosFiltrados.beneficioTotal,
+            beneficioPotencialSemCancelados: resultados.beneficio,
+            beneficioDosCancelados: resultados.cancelados.valor,
           },
         },
         {
@@ -291,12 +105,15 @@ export default function EstrategiaClient({ data, monitoramento, beneficioValidad
         {
           id: 'funil',
           titulo: 'Funil de Experimentos',
-          descricao: 'Taxa de conversão do funil: Total → Concluídos → Pilotos → Escala.',
+          descricao: 'Funil: experimentos → concluídos → hipóteses validadas (iniciativas em aguardando piloto, piloto ou escala) e refutadas (iniciativas concluídas).',
           dados: {
-            total: dadosFiltrados.allEpics.filter(e => e.status?.id !== '10015').length,
+            total: dadosFiltrados.allEpics.filter(e => !ehCancelado(e)).length,
             concluidos: dadosFiltrados.allEpics.filter(e => e.status?.id === '10019').length,
-            emPilotoEscala: dadosFiltrados.pipeline['EM PILOTO'] + dadosFiltrados.pipeline['EM ESCALA'],
-            emEscala: dadosFiltrados.pipeline['EM ESCALA'],
+            validadas: resultados.hipoteses.validadas.length,
+            refutadas: resultados.hipoteses.refutadas.length,
+            aguardandoPiloto: resultados.hipoteses.porEtapa['AGUARDANDO PILOTO'].length,
+            emPiloto: resultados.hipoteses.porEtapa['EM PILOTO'].length,
+            emEscala: resultados.hipoteses.porEtapa['EM ESCALA'].length,
           },
         },
         {
@@ -361,7 +178,7 @@ export default function EstrategiaClient({ data, monitoramento, beneficioValidad
     } finally {
       setInsightsLoading(false)
     }
-  }, [dadosFiltrados, monitoramentoFiltrado])
+  }, [dadosFiltrados, monitoramentoFiltrado, resultados])
 
   useEffect(() => {
     fetchInsights()
@@ -460,7 +277,7 @@ export default function EstrategiaClient({ data, monitoramento, beneficioValidad
                 loading={insightsLoading}
                 ocultarInsight
               >
-                <ResumoExecutivo data={dadosFiltrados} beneficioValidadoTotal={beneficioValidadoTotal} />
+                <ResumoExecutivo data={dadosFiltrados} resultados={resultados} beneficioValidadoTotal={beneficioValidadoTotal} />
               </GraficoComInsight>
 
               <GraficoComInsight
@@ -506,7 +323,7 @@ export default function EstrategiaClient({ data, monitoramento, beneficioValidad
                 loading={insightsLoading}
                 ocultarInsight
               >
-                <FunilExperimentos data={dadosFiltrados} />
+                <FunilExperimentos data={dadosFiltrados} resultados={resultados} />
               </GraficoComInsight>
 
               <GraficoComInsight
@@ -528,7 +345,7 @@ export default function EstrategiaClient({ data, monitoramento, beneficioValidad
                 loading={insightsLoading}
                 ocultarInsight
               >
-                <MapaDiretorias epics={dadosFiltrados.allEpics} />
+                <MapaDiretorias epics={dadosFiltrados.allEpics.filter(e => !ehCancelado(e))} />
               </GraficoComInsight>
             </div>
           </section>

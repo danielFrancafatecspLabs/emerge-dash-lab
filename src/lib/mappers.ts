@@ -170,6 +170,17 @@ function mapEpicToDetail(epic: JiraIssue, changelog?: ChangelogEntry[]): EpicDet
     }
   }
 
+  // Data do cancelamento: a última vez que o status foi para Cancelado (o filtro de período da Estratégia usa).
+  let canceladoEm: string | null = null
+  for (const entry of changelog ?? []) {
+    for (const item of entry.items) {
+      if (item.field !== 'status') continue
+      const toId = (item as typeof item & { to?: string }).to ?? ''
+      const nome = (item.toString ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase()
+      if ((toId === '10015' || nome.includes('CANCEL')) && (!canceladoEm || Date.parse(entry.created) > Date.parse(canceladoEm))) canceladoEm = entry.created
+    }
+  }
+
   return {
     key: epic.key,
     nome: f.summary,
@@ -201,6 +212,7 @@ function mapEpicToDetail(epic: JiraIssue, changelog?: ChangelogEntry[]): EpicDet
     duedate: f.duedate ?? null,
     criadoEm: f.created ?? null,
     concluidoEm,
+    canceladoEm,
     anexos: f.attachment?.map(a => ({
       filename: a.filename,
       url: `${process.env.JIRA_BASE_URL}/secure/attachment/${a.id}/${encodeURIComponent(a.filename)}`,
@@ -236,6 +248,9 @@ const STATUS_NAME_PIPELINE: Record<string, keyof PipelineCount> = {
   'EM REFINAMENTO': 'EM REFINAMENTO',
   'PRONTO PARA EXECUÇÃO': 'PRONTO PARA EXECUÇÃO',
 }
+
+/** Experimento cancelado (fica fora do benefício potencial). */
+export const epicCancelado = (e: Pick<EpicDetail, 'status'>) => e.status?.id === '10015' || getPipelineStage(e.status) === 'CANCELADO'
 
 export function getPipelineStage(status: JiraStatus): keyof PipelineCount | undefined {
   const normalized = status.name.trim().toUpperCase()
@@ -433,8 +448,8 @@ export function buildDashboardData(
     return (b.beneficioQuantitativo ?? 0) - (a.beneficioQuantitativo ?? 0)
   })
 
-  // Benefício vem dos Epics (customfield_30216 preenchido no board 2735)
-  const epicsComBeneficio = allEpicDetails.filter(e => (e.beneficioQuantitativo ?? 0) > 0)
+  // Benefício vem dos Epics (customfield_30216 preenchido no board 2735); o potencial nunca soma os cancelados.
+  const epicsComBeneficio = allEpicDetails.filter(e => (e.beneficioQuantitativo ?? 0) > 0 && !epicCancelado(e))
   const beneficioTotal = epicsComBeneficio.reduce((s, e) => s + (e.beneficioQuantitativo ?? 0), 0)
   const beneficioMedio = epicsComBeneficio.length ? beneficioTotal / epicsComBeneficio.length : 0
 
@@ -1629,7 +1644,7 @@ export function buildMonitoramentoData(data: DashboardData, periodo: PeriodoFilt
   const pipelineAtivo = data.totalEpicsAtivos
 
   const custoTotal = epicsNoPeriodo.reduce((s, e) => s + (e.custoEstimado ?? 0), 0)
-  const beneficioNoPeriodo = epicsNoPeriodo.reduce((s, e) => s + (e.beneficioQuantitativo ?? 0), 0)
+  const beneficioNoPeriodo = epicsNoPeriodo.reduce((s, e) => s + (epicCancelado(e) ? 0 : e.beneficioQuantitativo ?? 0), 0)
   const roi = custoTotal > 0 ? beneficioNoPeriodo / custoTotal : null
 
   // ── Burnup: acumulado mês a mês dos concluídos. O último ponto é o total de concluídos até o fim do período, o
