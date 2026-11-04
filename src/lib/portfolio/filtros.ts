@@ -3,6 +3,7 @@ import {
   type ColunaBoard, type Entidade, type ExperimentoItem, type IniciativaItem, type ItemPortfolio, type PortfolioDados, type Situacao,
 } from './tipos'
 import { categoriaDoSinal } from '../bloqueio'
+import { contarHipoteses, etapaValidada } from '../weekly'
 
 /**
  * Motor da aba Portfólio (puro, roda na tela): os campos filtráveis dos dois boards, a busca, as facetas
@@ -122,42 +123,43 @@ export function pendenciasDe(item: ItemPortfolio): string[] {
 }
 
 /**
- * Resultado da hipótese, contado por INICIATIVA (sem repetir a iniciativa que tem vários experimentos). Só entram
- * iniciativas com pelo menos um experimento concluído:
- * - Validada: a iniciativa está em Aguardando piloto, Em piloto ou Em escala no board de Ideação.
- * - Refutada: a iniciativa está em Concluído (encerrou sem seguir para piloto nem escala).
- * - Sem decisão: o experimento terminou, mas a iniciativa segue em outra coluna (experimentação, cancelada…) ou o
- *   experimento não tem iniciativa-mãe. Não entra em nenhuma das duas contas.
+ * Hipóteses: a regra oficial do Semanal (lib/weekly.ts → contarHipoteses), para os números baterem com ele.
+ * - Validada: a iniciativa está em Aguardando piloto, Em piloto ou Em escala.
+ * - Refutadas (indicador): o restante do total de experimentos, fora exploração, andamento, validadas e cancelados.
+ *   É uma conta, não uma lista; no filtro, o mais próximo é "Concluído sem avançar" (experimento concluído cuja
+ *   iniciativa não seguiu para piloto nem escala).
  */
-export const HIPOTESES = ['Validada', 'Refutada'] as const
-export const SEM_DECISAO = 'Concluído, sem decisão'
+export const HIPOTESES = ['Validada', 'Concluído sem avançar'] as const
 export const NAO_CONCLUIDO = 'Experimento não concluído'
 export const SEM_CONCLUIDO = 'Sem experimento concluído'
 
-export type Hipotese = (typeof HIPOTESES)[number] | typeof SEM_DECISAO
+export type Hipotese = (typeof HIPOTESES)[number]
 
-export function iniciativaValidada(i: IniciativaItem, ctx: Contexto): boolean {
-  const n = norm(nomeDaColuna(i.coluna, ctx))
-  return n.includes('piloto') || n.includes('escala')
+const comStatus = <T extends ItemPortfolio>(x: T) => ({ item: x, status: { id: x.statusId, name: x.status } })
+
+export function iniciativaValidada(i: IniciativaItem): boolean {
+  return etapaValidada({ id: i.statusId, name: i.status }) !== null
 }
 
-/** A decisão que a coluna da iniciativa registra (sem olhar os experimentos). */
-function decisaoPelaColuna(i: IniciativaItem, ctx: Contexto): Hipotese {
-  if (iniciativaValidada(i, ctx)) return HIPOTESES[0]
-  if (i.situacao === 'concluido') return HIPOTESES[1]
-  return SEM_DECISAO
-}
-
-/** Hipótese da iniciativa: só existe quando ela tem um experimento concluído. */
+/** Hipótese da iniciativa: validada pela coluna; sem avançar quando concluiu experimento e não seguiu. */
 export function hipoteseDaIniciativa(i: IniciativaItem, ctx: Contexto): Hipotese | typeof SEM_CONCLUIDO {
-  return filhosDe(i, ctx).some(e => e.situacao === 'concluido') ? decisaoPelaColuna(i, ctx) : SEM_CONCLUIDO
+  if (iniciativaValidada(i)) return HIPOTESES[0]
+  return filhosDe(i, ctx).some(e => e.situacao === 'concluido') ? HIPOTESES[1] : SEM_CONCLUIDO
 }
 
-/** Hipótese do experimento concluído: a da iniciativa-mãe. */
+/** Hipótese do experimento concluído: validada quando a iniciativa-mãe seguiu para piloto ou escala. */
 export function hipoteseDe(e: ExperimentoItem, ctx: Contexto): Hipotese | typeof NAO_CONCLUIDO {
   if (e.situacao !== 'concluido') return NAO_CONCLUIDO
   const mae = maeDe(e, ctx)
-  return mae ? decisaoPelaColuna(mae, ctx) : SEM_DECISAO
+  return mae && iniciativaValidada(mae) ? HIPOTESES[0] : HIPOTESES[1]
+}
+
+/** Status dos experimentos em exploração: as colunas Backlog e Refinamento do board de Experimentação. */
+function exploracaoIds(ctx: Contexto): string[] {
+  const ids = [...ctx.colunas.values()]
+    .filter(c => c.id.startsWith('experimento-') && /BACKLOG|REFINAMENTO/.test(c.nome.normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase()))
+    .flatMap(c => c.statusIds)
+  return ids.length ? ids : ['10004', '10139']
 }
 
 // ── Campos ────────────────────────────────────────────────────────────────────────────────────
@@ -224,7 +226,7 @@ export const CAMPOS: CampoFiltro[] = [
   { id: 'colunaExp', label: 'Coluna do experimento', grupo: 'Board', viaExperimentos: true, experimento: colunaExp, iniciativa: dosFilhos(colunaExp) },
   { id: 'statusExp', label: 'Status do experimento', grupo: 'Board', viaExperimentos: true, experimento: statusExp, iniciativa: dosFilhos(statusExp) },
   {
-    id: 'hipotese', label: 'Hipótese', grupo: 'Board', ordem: [...HIPOTESES, SEM_DECISAO, NAO_CONCLUIDO, SEM_CONCLUIDO],
+    id: 'hipotese', label: 'Hipótese', grupo: 'Board', ordem: [...HIPOTESES, NAO_CONCLUIDO, SEM_CONCLUIDO],
     experimento: (e, ctx) => [hipoteseDe(e, ctx)],
     iniciativa: (i, ctx) => [hipoteseDaIniciativa(i, ctx)],
   },
@@ -482,51 +484,52 @@ export interface Resumo {
   relacionados: number
   /** Experimentos concluídos: os mostrados, ou os das Iniciativas mostradas. */
   concluidos: number
-  /** Iniciativas (sem repetir) com experimento concluído e hipótese validada: em Aguardando piloto, Em piloto ou Em escala. */
+  /** Iniciativas em Aguardando piloto, Em piloto ou Em escala (a regra do Semanal). */
   validadas: number
-  /** Iniciativas (sem repetir) com experimento concluído e hipótese refutada: em Concluído. */
+  porEtapa: { aguardando: number; piloto: number; escala: number }
+  /** O restante do total de experimentos, como no Semanal (fora exploração, andamento, validadas e cancelados). */
   refutadas: number
-  /** Experimentos concluídos cuja iniciativa ainda não decidiu (segue em outra coluna) ou que não têm iniciativa. */
-  semDecisao: number
 }
 
-export function resumir(itens: ItemPortfolio[], ctx: Contexto): Resumo {
+/**
+ * Indicadores da tela. `completo` indica que nenhum filtro ou busca está ativo: aí as hipóteses consideram o
+ * portfólio inteiro (inclusive iniciativas sem experimento e experimentos sem iniciativa), igual ao Semanal.
+ */
+export function resumir(itens: ItemPortfolio[], ctx: Contexto, completo = false): Resumo {
   const relacionados = new Set<string>()
   const experimentos = new Map<string, ExperimentoItem>()
+  const iniciativas = new Map<string, IniciativaItem>()
   for (const i of itens) {
     if (i.tipo === 'iniciativa') {
       i.experimentos.forEach(k => relacionados.add(k))
+      iniciativas.set(i.key, i)
       filhosDe(i, ctx).forEach(e => experimentos.set(e.key, e))
     } else {
       if (i.iniciativaKey) relacionados.add(i.iniciativaKey)
       experimentos.set(i.key, i)
+      const mae = maeDe(i, ctx)
+      if (mae) iniciativas.set(mae.key, mae)
     }
   }
-  // Hipóteses por iniciativa: cada iniciativa conta uma vez, por mais experimentos concluídos que tenha.
-  const validadas = new Set<string>()
-  const refutadas = new Set<string>()
-  let concluidos = 0
-  let semDecisao = 0
-  for (const e of experimentos.values()) {
-    const h = hipoteseDe(e, ctx)
-    if (h === NAO_CONCLUIDO) continue
-    concluidos++
-    if (h === HIPOTESES[0]) validadas.add(e.iniciativaKey!)
-    else if (h === HIPOTESES[1]) refutadas.add(e.iniciativaKey!)
-    else semDecisao++
+  if (completo) {
+    ctx.iniciativas.forEach(i => iniciativas.set(i.key, i))
+    ctx.experimentos.forEach(e => experimentos.set(e.key, e))
   }
+  const h = contarHipoteses([...iniciativas.values()].map(comStatus), [...experimentos.values()].map(comStatus), exploracaoIds(ctx))
   return {
     total: itens.length,
     ativos: itens.filter(i => i.situacao !== 'cancelado').length,
     emExecucao: itens.filter(i => i.situacao === 'em-execucao').length,
     bloqueados: itens.filter(i => i.bloqueado).length,
     // Benefício potencial: sem os cancelados (a iniciativa já soma só os experimentos não cancelados).
-    beneficio: itens.reduce((s, i) => s + (i.situacao === 'cancelado' ? 0 : i.beneficio ?? 0), 0),
+    // O que sai é o experimento cancelado (a iniciativa já soma só os não cancelados); iniciativa cancelada sem
+    // experimento, que só tem o benefício próprio, também sai.
+    beneficio: itens.reduce((s, i) => s + (i.situacao === 'cancelado' && (i.tipo === 'experimento' || !i.experimentos.length) ? 0 : i.beneficio ?? 0), 0),
     relacionados: relacionados.size,
-    concluidos,
-    validadas: validadas.size,
-    refutadas: refutadas.size,
-    semDecisao,
+    concluidos: [...experimentos.values()].filter(e => e.situacao === 'concluido').length,
+    validadas: h.validadas.length,
+    porEtapa: { aguardando: h.porEtapa.aguardando.length, piloto: h.porEtapa.piloto.length, escala: h.porEtapa.escala.length },
+    refutadas: h.refutadas,
   }
 }
 

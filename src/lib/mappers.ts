@@ -266,7 +266,7 @@ export function getPipelineStage(status: JiraStatus): keyof PipelineCount | unde
   if (normalized.includes('AGUARDANDO')) return 'AGUARDANDO PILOTO'
   if (normalized.includes('EXPERIMENTA') || normalized.includes('ANDAMENTO') || normalized.includes('VALIDAÇÃO') || normalized.includes('VALIDACAO')) return 'EM EXPERIMENTAÇÃO'
   if (normalized.includes('CONCLUÍ') || normalized.includes('CONCLUI') || normalized === 'DONE') return 'FINALIZADO'
-  if (normalized.includes('CANCEL') || normalized.includes('CANCELLED')) return 'CANCELADO'
+  if (normalized.includes('CANCEL') || normalized.includes('DESCONTINU')) return 'CANCELADO'
   if (normalized.includes('BACKLOG')) return 'BACKLOG'
   if (normalized.includes('REFINAMENTO')) return 'EM REFINAMENTO'
   if (normalized.includes('PRONTO')) return 'PRONTO PARA EXECUÇÃO'

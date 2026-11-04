@@ -110,6 +110,9 @@ export default function LeadTimeJornadaComponent({
     ? leadTimeMensal[leadTimeMensal.length - 1].dias - leadTimeMensal[leadTimeMensal.length - 2].dias
     : 0
 
+  // Peso de cada fase na barra: os dias, com piso de 14% do total para o rótulo caber.
+  const larguraDaFase = (dias: number) => Math.max(dias, (totalDias || 1) * 0.14)
+
   return (
     <div className="flex flex-col min-w-0 overflow-hidden gap-3 h-full">
 
@@ -118,14 +121,13 @@ export default function LeadTimeJornadaComponent({
         {/* Blocos da timeline */}
         <div className="flex rounded-full overflow-hidden" style={{ height: 22 }}>
           {(fasesVisiveis.length > 0 ? fasesVisiveis : [{ fase: 'Exploração', dias: 0, pct: 0, cor: '#6366F1' }, { fase: 'Experimentação', dias: experimentacaoDias, pct: 100, cor: '#F59E0B', destaque: true }]).map((fase, i, arr) => {
-            const widthPct = totalDias > 0 ? (fase.dias / totalDias) * 100 : 0
             return (
               <div
                 key={fase.fase}
                 className="flex items-center justify-center relative"
                 style={{
-                  width: `${widthPct}%`,
-                  minWidth: widthPct < 5 ? `${widthPct}%` : undefined,
+                  // Largura proporcional aos dias, com um mínimo para os dias de toda fase aparecerem (ex.: Exploração curta).
+                  flex: `${larguraDaFase(fase.dias)} 1 0%`,
                   background: fase.destaque
                     ? `linear-gradient(135deg, #F59E0B 0%, #F97316 100%)`
                     : fase.cor,
@@ -133,11 +135,9 @@ export default function LeadTimeJornadaComponent({
                 }}
                 title={`${fase.fase}: ${fase.dias}d (${fase.pct}%)`}
               >
-                {widthPct >= 12 && (
-                  <span className="font-semibold truncate px-1 text-white" style={{ fontSize: 10 }}>
-                    {fase.dias}d
-                  </span>
-                )}
+                <span className="font-semibold truncate px-1 text-white" style={{ fontSize: 10 }}>
+                  {fase.dias}d
+                </span>
               </div>
             )
           })}
@@ -146,12 +146,11 @@ export default function LeadTimeJornadaComponent({
         {/* Labels abaixo dos blocos */}
         <div className="flex mt-1">
           {(fasesVisiveis.length > 0 ? fasesVisiveis : [{ fase: 'Exploração', dias: 0, pct: 0, cor: '#6366F1' }, { fase: 'Experimentação', dias: experimentacaoDias, pct: 100, cor: '#F59E0B', destaque: true }]).map((fase) => {
-            const widthPct = totalDias > 0 ? (fase.dias / totalDias) * 100 : 0
             return (
               <div
                 key={fase.fase}
-                className="flex flex-col items-center"
-                style={{ width: `${widthPct}%`, minWidth: widthPct < 10 ? 'auto' : undefined }}
+                className="flex min-w-0 flex-col items-center"
+                style={{ flex: `${larguraDaFase(fase.dias)} 1 0%` }}
               >
                 <span className="font-semibold truncate text-gray-500" style={{ fontSize: 9 }}>
                   {fase.fase}

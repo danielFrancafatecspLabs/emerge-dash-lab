@@ -6,7 +6,7 @@ import {
 } from 'lucide-react'
 import type { GovernancaData, GovernancaDot } from '@/lib/governanca'
 import type { EpicDetail } from '@/lib/types'
-import { SlideDownloadButtons } from '@/components/report/slideExport'
+import { SlideDownloadButtons } from '@/components/weekly/slideExport'
 import ExperimentoModal from '@/components/dashboard/ExperimentoModal'
 import EpicModal from '@/components/dashboard/EpicModal'
 import { CLARO_RED, CLARO_LIGHT, CLARO_LIGHTER, RAMP } from './palette'

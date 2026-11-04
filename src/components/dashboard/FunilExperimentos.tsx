@@ -22,8 +22,8 @@ const CAMADA_META: Record<string, { icon: React.ReactNode; desc: string }> = {
   'Concluídos':              { icon: <CheckCircle2 size={11} />, desc: 'Experimentos finalizados' },
   'Cancelados':              { icon: <Ban size={11} />, desc: 'Experimentos cancelados' },
   'Em Validação':            { icon: <FileSearch size={11} />, desc: 'Experimentos em validação de resultados' },
-  'Hipóteses validadas':     { icon: <CheckCircle2 size={11} />, desc: 'Iniciativas com experimento concluído que seguiram para piloto ou escala' },
-  'Hipóteses refutadas':     { icon: <AlertCircle size={11} />, desc: 'Iniciativas com experimento concluído que foram para Concluído' },
+  'Hipóteses validadas':     { icon: <CheckCircle2 size={11} />, desc: 'Iniciativas em aguardando piloto, piloto ou escala' },
+  'Hipóteses refutadas':     { icon: <AlertCircle size={11} />, desc: 'Experimentos que terminaram e não avançaram' },
   'Em Piloto':               { icon: <Target size={11} />, desc: 'Iniciativas validadas em piloto' },
   'Aguardando Piloto':       { icon: <Clock size={11} />, desc: 'Iniciativas prontas para iniciar piloto' },
   'Pilotos Executados':      { icon: <Target size={11} />, desc: 'Iniciativas em fase de piloto' },
@@ -58,13 +58,13 @@ export default function FunilExperimentos({ data, resultados }: Props) {
   // ── Hipóteses (iniciativas sem repetir, ver lib/estrategia/resultados.ts) ──
   const h = resultados.hipoteses
   const validadas = h.validadas.length
-  const refutadas = h.refutadas.length
+  const refutadas = h.refutadas
   const decididas = validadas + refutadas
   const aguardandoPiloto = h.porEtapa['AGUARDANDO PILOTO'].length
   const emPiloto = h.porEtapa['EM PILOTO'].length
   const emEscala = h.porEtapa['EM ESCALA'].length
   const iniciativasPorCamada: Record<string, Iniciativa[]> = {
-    validadas: h.validadas, refutadas: h.refutadas,
+    validadas: h.validadas,
     aguardando: h.porEtapa['AGUARDANDO PILOTO'], piloto: h.porEtapa['EM PILOTO'], escala: h.porEtapa['EM ESCALA'],
   }
 
@@ -120,7 +120,7 @@ export default function FunilExperimentos({ data, resultados }: Props) {
     { id: 'validacao',    label: 'Em Validação',          valor: emValidacao,       pct: pct(emValidacao), cor: RED_300, grad: 'from-red-300 to-red-400', chave: 'emValidacaoList', isIniciativa: false, epicFilter: 'emValidacaoList' },
     { id: 'concluidos',   label: 'Concluídos',            valor: concluidos,        pct: pct(concluidos), cor: RED_400, grad: 'from-red-400 to-red-500', chave: 'concluidosList', isIniciativa: false, epicFilter: 'concluidosList' },
     { id: 'validadas',    label: 'Hipóteses validadas',   valor: validadas,         pct: pctDe(validadas, decididas), cor: RED_700, grad: 'from-red-700 to-red-800', chave: 'validadas', isIniciativa: true, epicFilter: null },
-    { id: 'refutadas',    label: 'Hipóteses refutadas',   valor: refutadas,         pct: pctDe(refutadas, decididas), cor: RED_200, grad: 'from-red-200 to-red-300', chave: 'refutadas', isIniciativa: true, epicFilter: null },
+    { id: 'refutadas',    label: 'Hipóteses refutadas',   valor: refutadas,         pct: pctDe(refutadas, decididas), cor: RED_200, grad: 'from-red-200 to-red-300', chave: null, isIniciativa: false, epicFilter: null },
     { id: 'escala',       label: 'Em Escala',             valor: emEscala,          pct: pctDe(emEscala, validadas), cor: RED_800, grad: 'from-red-800 to-red-900', chave: 'escala', isIniciativa: true, epicFilter: null },
   ]
 

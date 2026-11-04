@@ -12,8 +12,9 @@ import Link from 'next/link'
 import IniciativaModal from './IniciativaModal'
 import EpicModal from './EpicModal'
 import type { ResultadosEstrategia } from '@/lib/estrategia/resultados'
+import type { EstadoDaClassificacao } from '@/lib/portfolio-classifier'
 
-interface Props { data: DashboardData; resultados: ResultadosEstrategia; beneficioValidadoTotal: number }
+interface Props { data: DashboardData; resultados: ResultadosEstrategia; beneficioValidadoTotal: number; classificacao?: EstadoDaClassificacao }
 
 const META_ICONS: Record<string, LucideIcon> = {
   EBITDA:  TrendingUp,
@@ -27,7 +28,7 @@ const META_STYLE: Record<string, { bar: string; dot: string; from: string; via: 
   NPS:     { bar: 'bg-gradient-to-r from-red-500 to-red-300', dot: 'bg-red-500', from: 'from-red-500/10', via: 'via-red-300/5', label: 'text-red-600' },
 }
 
-export default function ResumoExecutivo({ data, resultados, beneficioValidadoTotal }: Props) {
+export default function ResumoExecutivo({ data, resultados, beneficioValidadoTotal, classificacao }: Props) {
   const [modal, setModal] = useState<{ title: string; items: Iniciativa[] } | null>(null)
   const [metasModal, setMetasModal] = useState<{ title: string; epics: EpicDetail[] } | null>(null)
   const [epicModal, setEpicModal] = useState<{ title: string; epics: EpicDetail[] } | null>(null)
@@ -246,6 +247,15 @@ export default function ResumoExecutivo({ data, resultados, beneficioValidadoTot
             >
               {resultados.semMeta.length} {resultados.semMeta.length === 1 ? 'experimento ainda sem meta' : 'experimentos ainda sem meta'} (classificação pendente)
             </button>
+          )}
+          {resultados.semMeta.length > 0 && classificacao && (
+            <p className="rounded-md bg-amber-50 px-2 py-1 text-[8px] leading-snug text-amber-800">
+              {!classificacao.iaConfigurada
+                ? 'A IA de classificação não está configurada no servidor (LLM_API_KEY e LLM_API_BASE).'
+                : classificacao.erro
+                  ? `A IA não classificou: ${classificacao.erro}${classificacao.proximaTentativaEm ? ` · nova tentativa às ${new Date(classificacao.proximaTentativaEm).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}` : ''}`
+                  : 'A classificação roda na próxima leitura do Jira.'}
+            </p>
           )}
         </div>
       </div>

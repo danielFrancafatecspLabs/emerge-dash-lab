@@ -3,7 +3,7 @@
 import { useRef } from 'react'
 import { Users, Building2, AlertTriangle } from 'lucide-react'
 import type { WeeklyData, WeeklyRanking } from '@/lib/weekly'
-import { SlideDownloadButtons } from '@/components/report/slideExport'
+import { SlideDownloadButtons } from '@/components/weekly/slideExport'
 
 const RED = '#8B0000'
 const PINK_BG = '#FCEAEA'
