@@ -71,10 +71,8 @@ export function getPeriodoIntervalo(filtro: PeriodoFiltro): { inicio: Date; fim:
 
   switch (filtro.tipo) {
     case 'ultimos12': {
-      const inicio = new Date(hoje)
-      inicio.setMonth(inicio.getMonth() - 12)
-      inicio.setDate(1)
-      inicio.setHours(0, 0, 0, 0)
+      // O mês atual e os 11 anteriores: os mesmos 12 meses do gráfico de Crescimento (lib/mappers.ts).
+      const inicio = new Date(hoje.getFullYear(), hoje.getMonth() - 11, 1, 0, 0, 0, 0)
       return { inicio, fim: hoje }
     }
     case 'semestre': {

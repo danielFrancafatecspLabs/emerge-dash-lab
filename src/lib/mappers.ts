@@ -1552,6 +1552,8 @@ function dataEstaNoPeriodo(dataStr: string | null | undefined, periodo: PeriodoF
     return d >= inicio && d <= fim
   }
 
+  if (periodo.tipo === 'ano') return d.getFullYear() === periodo.ano
+
   return true
 }
 
@@ -1594,6 +1596,12 @@ function getMesesDoPeriodo(periodo: PeriodoFiltro): { mes: string; ano: number; 
     for (let m = inicio; m <= fim; m++) {
       resultado.push({ mes: MESES_ABREV[m], ano: periodo.ano, mesIdx: m })
     }
+    return resultado
+  }
+
+  // Ano cheio ("Todo 2025", "Todo 2026"): os doze meses do ano.
+  if (periodo.tipo === 'ano') {
+    for (let m = 0; m <= 11; m++) resultado.push({ mes: MESES_ABREV[m], ano: periodo.ano, mesIdx: m })
     return resultado
   }
 

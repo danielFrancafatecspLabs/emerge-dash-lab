@@ -33,14 +33,14 @@ const epics = [
 const cfgIni = config([['BACKLOG', ['10004']], ['EM EXPERIMENTAÇÃO', ['14460']], ['AGUARDANDO PILOTO', ['14468']], ['EM PILOTO', ['14459']], ['EM ESCALA', ['13562']], ['CANCELADO', ['10015']]])
 const cfgExp = config([['BACKLOG', ['10004']], ['Em andamento', ['3']], ['EM VALIDAÇÃO', ['10204']], ['Concluído', ['10019']], ['CANCELADO', ['10015']]])
 
-function entrada(): EntradaConsistencia {
-  const data = buildDashboardData(iniciativas, epics, {}, {}, cfgIni, {}, {})
-  const dataSemanal = buildDashboardData(iniciativas, epics, {}, {}, cfgIni)
+function entrada(inis = iniciativas): EntradaConsistencia {
+  const data = buildDashboardData(inis, epics, {}, {}, cfgIni, {}, {})
+  const dataSemanal = buildDashboardData(inis, epics, {}, {}, cfgIni)
   const weekly = buildWeeklyData(dataSemanal, {}, cfgExp)
   return {
     data, dataSemanal, weekly, semanal: buildSemanalData(dataSemanal, weekly, {}),
     portfolio: montarPortfolio(data, { iniciativa: cfgIni, experimento: cfgExp }, null),
-    exploracaoIds: statusIdsDeExploracao(cfgExp), agora: new Date('2026-11-04T12:00:00Z'),
+    exploracaoIds: statusIdsDeExploracao(cfgExp), board2734Config: cfgIni, board2735Config: cfgExp, agora: new Date('2026-11-04T12:00:00Z'),
   }
 }
 
@@ -60,6 +60,22 @@ describe('agente de analytics', () => {
     const r = verificarConsistencia(e)
     expect(r.divergencias).toBeGreaterThan(0)
     expect(r.verificacoes.find(x => x.id === 'total')).toMatchObject({ ok: false, diferenca: 1 })
+  })
+
+  it('confere a regra do app contra a coluna real no Jira e acha o status que a regra não reconhece', () => {
+    // No Jira, a iniciativa está na coluna AGUARDANDO PILOTO, mas o status vem escrito em maiúsculas.
+    const variante = [...iniciativas, ini('GL-7', { id: '14468', name: 'AGUARDANDO PILOTO' })]
+    const r = verificarConsistencia(entrada(variante))
+    expect(r.verificacoes.find(v => v.id === 'coluna-aguardando')).toMatchObject({
+      ok: false, valores: { 'Semanal (regra por status)': 2, 'Operacional (estágio)': 3, 'Coluna no Jira': 3 },
+    })
+    expect(r.alertas.map(a => a.titulo)).toContain(
+      'Status AGUARDANDO PILOTO (id 14468), na coluna "AGUARDANDO PILOTO": a regra do app conta como não validada, a coluna indica aguardando')
+  })
+
+  it('confere o período: o funil e o Crescimento contam os mesmos concluídos', () => {
+    const r = verificarConsistencia(entrada())
+    expect(r.verificacoes.filter(v => v.id.startsWith('periodo-')).every(v => v.ok)).toBe(true)
   })
 
   it('traz os alertas de qualidade dos dados que explicam números estranhos', () => {

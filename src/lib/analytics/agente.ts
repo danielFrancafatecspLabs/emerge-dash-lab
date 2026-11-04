@@ -36,6 +36,8 @@ export async function rodarAgenteAnalitico(): Promise<RelatorioConsistencia> {
     semanal: buildSemanalData(dataSemanal, weekly, raw.epicChangelogs),
     portfolio: montarPortfolio(data, { iniciativa: raw.board2734Config, experimento: raw.board2735Config }, null),
     exploracaoIds: statusIdsDeExploracao(raw.board2735Config),
+    board2734Config: raw.board2734Config,
+    board2735Config: raw.board2735Config,
   })
 
   for (const v of relatorio.verificacoes.filter(x => !x.ok)) {

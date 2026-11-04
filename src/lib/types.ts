@@ -323,6 +323,7 @@ export interface MonitoramentoData {
 export type PeriodoFiltro =
   | { tipo: 'ultimos12' }
   | { tipo: 'semestre'; ano: number; semestre: 1 | 2 }
+  | { tipo: 'ano'; ano: number }
   | { tipo: 'tudo' }
 
 // ── Tipos para os Slides do Report ──
