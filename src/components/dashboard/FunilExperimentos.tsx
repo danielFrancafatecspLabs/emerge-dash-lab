@@ -8,12 +8,12 @@ import {
   AlertCircle, Layers, BarChart3, Sparkles
 } from 'lucide-react'
 import { DashboardData, EpicDetail, Iniciativa } from '@/lib/types'
-import { getPipelineStage } from '@/lib/mappers'
 import ExperimentoModal from './ExperimentoModal'
 import IniciativaModal from './IniciativaModal'
 import { ehExperimentoConcluido } from '@/lib/concluido'
+import type { ResultadosEstrategia } from '@/lib/estrategia/resultados'
 
-interface Props { data: DashboardData }
+interface Props { data: DashboardData; resultados: ResultadosEstrategia }
 
 // ── Ícones e metadados visuais para cada camada ──
 const CAMADA_META: Record<string, { icon: React.ReactNode; desc: string }> = {
@@ -22,6 +22,9 @@ const CAMADA_META: Record<string, { icon: React.ReactNode; desc: string }> = {
   'Concluídos':              { icon: <CheckCircle2 size={11} />, desc: 'Experimentos finalizados' },
   'Cancelados':              { icon: <Ban size={11} />, desc: 'Experimentos cancelados' },
   'Em Validação':            { icon: <FileSearch size={11} />, desc: 'Experimentos em validação de resultados' },
+  'Hipóteses validadas':     { icon: <CheckCircle2 size={11} />, desc: 'Iniciativas com experimento concluído que seguiram para piloto ou escala' },
+  'Hipóteses refutadas':     { icon: <AlertCircle size={11} />, desc: 'Iniciativas com experimento concluído que foram para Concluído' },
+  'Em Piloto':               { icon: <Target size={11} />, desc: 'Iniciativas validadas em piloto' },
   'Aguardando Piloto':       { icon: <Clock size={11} />, desc: 'Iniciativas prontas para iniciar piloto' },
   'Pilotos Executados':      { icon: <Target size={11} />, desc: 'Iniciativas em fase de piloto' },
   'Pilotos':                 { icon: <Target size={11} />, desc: 'Iniciativas em fase de piloto' },
@@ -29,7 +32,7 @@ const CAMADA_META: Record<string, { icon: React.ReactNode; desc: string }> = {
   'Escala':                  { icon: <Rocket size={11} />, desc: 'Iniciativas implementadas em escala' },
 }
 
-export default function FunilExperimentos({ data }: Props) {
+export default function FunilExperimentos({ data, resultados }: Props) {
   const [visaoSimplificada, setVisaoSimplificada] = useState(true)
   const [modalEpics, setModalEpics] = useState<EpicDetail[] | null>(null)
   const [modalIniciativas, setModalIniciativas] = useState<Iniciativa[] | null>(null)
@@ -52,26 +55,18 @@ export default function FunilExperimentos({ data }: Props) {
     e.status?.id === '10015' || e.status?.name === 'Cancelado'
   ).length
 
-  // ── Board de Iniciativas (2734) — Pipeline ──
-  const aguardandoPiloto = data.pipeline['AGUARDANDO PILOTO']
-  const emPiloto = data.pipeline['EM PILOTO']
-  const emEscala = data.pipeline['EM ESCALA']
-
-  // ── Iniciativas agrupadas por estágio do pipeline ──
-  const iniciativasPorPipeline = useMemo(() => {
-    const map: Record<string, Iniciativa[]> = {
-      'EM PILOTO': [],
-      'EM ESCALA': [],
-      'AGUARDANDO PILOTO': [],
-    }
-    for (const ini of data.iniciativas) {
-      const stage = getPipelineStage(ini.status)
-      if (stage && stage in map) {
-        map[stage].push(ini)
-      }
-    }
-    return map
-  }, [data.iniciativas])
+  // ── Hipóteses (iniciativas sem repetir, ver lib/estrategia/resultados.ts) ──
+  const h = resultados.hipoteses
+  const validadas = h.validadas.length
+  const refutadas = h.refutadas.length
+  const decididas = validadas + refutadas
+  const aguardandoPiloto = h.porEtapa['AGUARDANDO PILOTO'].length
+  const emPiloto = h.porEtapa['EM PILOTO'].length
+  const emEscala = h.porEtapa['EM ESCALA'].length
+  const iniciativasPorCamada: Record<string, Iniciativa[]> = {
+    validadas: h.validadas, refutadas: h.refutadas,
+    aguardando: h.porEtapa['AGUARDANDO PILOTO'], piloto: h.porEtapa['EM PILOTO'], escala: h.porEtapa['EM ESCALA'],
+  }
 
   // ── Epics filtrados por status (para camadas clicáveis de Epic) ──
   const epicsPorStatus = useMemo(() => {
@@ -90,8 +85,9 @@ export default function FunilExperimentos({ data }: Props) {
     return { emAndamentoList, emAndamentoCompletoList, concluidosList, canceladosList, emValidacaoList }
   }, [data.allEpics])
 
-  // ── % sobre o total de experimentos ──
-  const pct = (v: number) => totalExperimentos > 0 ? Math.round((v / totalExperimentos) * 100) : 0
+  // ── Percentuais: experimentos sobre o total; hipóteses sobre as decididas; etapas sobre as validadas ──
+  const pctDe = (v: number, base: number) => base > 0 ? Math.round((v / base) * 100) : 0
+  const pct = (v: number) => pctDe(v, totalExperimentos)
 
   // ── Definição das camadas ──
   // ── Paleta de vermelhos ──
@@ -111,9 +107,10 @@ export default function FunilExperimentos({ data }: Props) {
     { id: 'total',        label: 'Total de Experimentos', valor: totalExperimentos, pct: 100, cor: RED_600, grad: 'from-red-600 to-red-700', chave: null as string | null, isIniciativa: false, epicFilter: null as string | null },
     { id: 'andamento',    label: 'Em Andamento',          valor: emAndamentoTotal,  pct: pct(emAndamentoTotal), cor: RED_500, grad: 'from-red-500 to-red-600', chave: 'emAndamentoCompletoList', isIniciativa: false, epicFilter: 'emAndamentoCompletoList' },
     { id: 'concluidos',   label: 'Concluídos',            valor: concluidos,        pct: pct(concluidos), cor: RED_400, grad: 'from-red-400 to-red-500', chave: 'concluidosList', isIniciativa: false, epicFilter: 'concluidosList' },
-    { id: 'aguardando',   label: 'Aguardando Piloto',     valor: aguardandoPiloto,  pct: pct(aguardandoPiloto), cor: RED_300, grad: 'from-red-300 to-red-400', chave: 'AGUARDANDO PILOTO', isIniciativa: true, epicFilter: null },
-    { id: 'pilotos',      label: 'Pilotos Executados',    valor: emPiloto + emEscala, pct: pct(emPiloto + emEscala), cor: RED_700, grad: 'from-red-700 to-red-800', chave: 'EM PILOTO', isIniciativa: true, epicFilter: null },
-    { id: 'escala',       label: 'Em Escala',             valor: emEscala,          pct: pct(emEscala), cor: RED_800, grad: 'from-red-800 to-red-900', chave: 'EM ESCALA', isIniciativa: true, epicFilter: null },
+    { id: 'validadas',    label: 'Hipóteses validadas',   valor: validadas,         pct: pctDe(validadas, decididas), cor: RED_700, grad: 'from-red-700 to-red-800', chave: 'validadas', isIniciativa: true, epicFilter: null },
+    { id: 'aguardando',   label: 'Aguardando Piloto',     valor: aguardandoPiloto,  pct: pctDe(aguardandoPiloto, validadas), cor: RED_300, grad: 'from-red-300 to-red-400', chave: 'aguardando', isIniciativa: true, epicFilter: null },
+    { id: 'piloto',       label: 'Em Piloto',             valor: emPiloto,          pct: pctDe(emPiloto, validadas), cor: RED_700, grad: 'from-red-700 to-red-800', chave: 'piloto', isIniciativa: true, epicFilter: null },
+    { id: 'escala',       label: 'Em Escala',             valor: emEscala,          pct: pctDe(emEscala, validadas), cor: RED_800, grad: 'from-red-800 to-red-900', chave: 'escala', isIniciativa: true, epicFilter: null },
   ]
 
   const camadasDetalhadas = [
@@ -122,8 +119,9 @@ export default function FunilExperimentos({ data }: Props) {
     { id: 'andamento',    label: 'Em Andamento',          valor: emAndamentoTotal,  pct: pct(emAndamentoTotal), cor: RED_500, grad: 'from-red-500 to-red-600', chave: 'emAndamentoCompletoList', isIniciativa: false, epicFilter: 'emAndamentoCompletoList' },
     { id: 'validacao',    label: 'Em Validação',          valor: emValidacao,       pct: pct(emValidacao), cor: RED_300, grad: 'from-red-300 to-red-400', chave: 'emValidacaoList', isIniciativa: false, epicFilter: 'emValidacaoList' },
     { id: 'concluidos',   label: 'Concluídos',            valor: concluidos,        pct: pct(concluidos), cor: RED_400, grad: 'from-red-400 to-red-500', chave: 'concluidosList', isIniciativa: false, epicFilter: 'concluidosList' },
-    { id: 'pilotos',      label: 'Pilotos',               valor: emPiloto,          pct: pct(emPiloto), cor: RED_700, grad: 'from-red-700 to-red-800', chave: 'EM PILOTO', isIniciativa: true, epicFilter: null },
-    { id: 'escala',       label: 'Escala',                valor: emEscala,          pct: pct(emEscala), cor: RED_800, grad: 'from-red-800 to-red-900', chave: 'EM ESCALA', isIniciativa: true, epicFilter: null },
+    { id: 'validadas',    label: 'Hipóteses validadas',   valor: validadas,         pct: pctDe(validadas, decididas), cor: RED_700, grad: 'from-red-700 to-red-800', chave: 'validadas', isIniciativa: true, epicFilter: null },
+    { id: 'refutadas',    label: 'Hipóteses refutadas',   valor: refutadas,         pct: pctDe(refutadas, decididas), cor: RED_200, grad: 'from-red-200 to-red-300', chave: 'refutadas', isIniciativa: true, epicFilter: null },
+    { id: 'escala',       label: 'Em Escala',             valor: emEscala,          pct: pctDe(emEscala, validadas), cor: RED_800, grad: 'from-red-800 to-red-900', chave: 'escala', isIniciativa: true, epicFilter: null },
   ]
 
   const camadas = visaoSimplificada ? camadasSimplificadas : camadasDetalhadas
@@ -131,7 +129,7 @@ export default function FunilExperimentos({ data }: Props) {
 
   function abrirModal(camada: typeof camadas[number]) {
     if (camada.isIniciativa && camada.chave) {
-      const iniciativas = iniciativasPorPipeline[camada.chave]
+      const iniciativas = iniciativasPorCamada[camada.chave]
       if (!iniciativas || iniciativas.length === 0) return
       setModalTitulo(camada.label)
       setModalIniciativas(iniciativas)
@@ -145,7 +143,7 @@ export default function FunilExperimentos({ data }: Props) {
 
   function temDetalhes(camada: typeof camadas[number]): boolean {
     if (camada.isIniciativa && camada.chave) {
-      return (iniciativasPorPipeline[camada.chave]?.length ?? 0) > 0
+      return (iniciativasPorCamada[camada.chave]?.length ?? 0) > 0
     }
     if (camada.epicFilter) {
       return (epicsPorStatus[camada.epicFilter as keyof typeof epicsPorStatus]?.length ?? 0) > 0
@@ -290,22 +288,18 @@ export default function FunilExperimentos({ data }: Props) {
               Taxa de Conversão
             </p>
           </div>
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-1.5 bg-red-50/80 px-2 py-1 rounded-md">
-              <span className="w-2 h-2 rounded-full" style={{ background: RED_400 }} />
-              <span className="text-[10px] text-gray-500 font-medium">Concluídos</span>
-              <span className="text-xs font-bold text-gray-800">{pct(concluidos)}%</span>
-            </div>
-            <div className="flex items-center gap-1.5 bg-red-50/80 px-2 py-1 rounded-md">
-              <span className="w-2 h-2 rounded-full" style={{ background: RED_700 }} />
-              <span className="text-[10px] text-gray-500 font-medium">Piloto</span>
-              <span className="text-xs font-bold text-gray-800">{pct(emPiloto + emEscala)}%</span>
-            </div>
-            <div className="flex items-center gap-1.5 bg-red-50/80 px-2 py-1 rounded-md">
-              <span className="w-2 h-2 rounded-full" style={{ background: RED_800 }} />
-              <span className="text-[10px] text-gray-500 font-medium">Escala</span>
-              <span className="text-xs font-bold text-gray-800">{pct(emEscala)}%</span>
-            </div>
+          <div className="flex flex-wrap items-center gap-2">
+            {([
+              ['Concluídos', `${pct(concluidos)}%`, RED_400, 'dos experimentos do período'],
+              ['Validadas', `${pctDe(validadas, decididas)}%`, RED_700, `de ${decididas} hipóteses decididas`],
+              ['Em escala', `${pctDe(emEscala, validadas)}%`, RED_800, 'das validadas'],
+            ] as const).map(([rotulo, valor, cor, base]) => (
+              <div key={rotulo} className="flex items-center gap-1.5 bg-red-50/80 px-2 py-1 rounded-md" title={`${rotulo}: ${valor} ${base}`}>
+                <span className="w-2 h-2 rounded-full" style={{ background: cor }} />
+                <span className="text-[10px] text-gray-500 font-medium">{rotulo}</span>
+                <span className="text-xs font-bold text-gray-800">{valor}</span>
+              </div>
+            ))}
           </div>
         </div>
       )}
@@ -313,7 +307,7 @@ export default function FunilExperimentos({ data }: Props) {
       {/* ── Footer info ── */}
       <div className="flex items-center justify-between mt-0.5">
         <p className="text-[7px] text-gray-300">
-          % em relação ao total de experimentos no período
+          Experimentos: % do total · hipóteses (iniciativas): % das decididas · etapas: % das validadas
         </p>
         <p className="text-[7px] text-gray-300 flex items-center gap-1">
           <MousePointer2 size={7} />

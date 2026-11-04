@@ -12,55 +12,50 @@ export interface EpicClassifyInput {
   dominio?: string | null
 }
 
+/**
+ * O cache guarda só classificações que a IA de fato devolveu. A versão 1 (um objeto chave → meta) gravava "Receita"
+ * para todo experimento quando a IA estava fora do ar, e esse erro ficava para sempre: a versão 1 é descartada e os
+ * experimentos são classificados de novo.
+ */
+const VERSAO_DO_CACHE = 2
+interface CacheV2 { versao: typeof VERSAO_DO_CACHE; metas: Record<string, MetaCategoria> }
+
 function loadCache(): Record<string, MetaCategoria> {
   try {
-    if (fs.existsSync(CACHE_FILE))
-      return JSON.parse(fs.readFileSync(CACHE_FILE, 'utf-8'))
+    if (fs.existsSync(CACHE_FILE)) {
+      const c = JSON.parse(fs.readFileSync(CACHE_FILE, 'utf-8')) as Partial<CacheV2>
+      if (c?.versao === VERSAO_DO_CACHE && c.metas && typeof c.metas === 'object') {
+        return Object.fromEntries(Object.entries(c.metas).filter(([, m]) => VALID_METAS.includes(m)))
+      }
+    }
   } catch {}
   return {}
 }
 
 function saveCache(cache: Record<string, MetaCategoria>): void {
   try {
-    fs.writeFileSync(CACHE_FILE, JSON.stringify(cache, null, 2), 'utf-8')
+    const conteudo: CacheV2 = { versao: VERSAO_DO_CACHE, metas: cache }
+    fs.writeFileSync(CACHE_FILE, JSON.stringify(conteudo, null, 2), 'utf-8')
   } catch (e) {
     console.error('[portfolio-classifier] Falha ao salvar cache:', e)
   }
 }
 
-async function classifyOne(
-  client: ReturnType<typeof getLiteLLMClient>,
-  epic: EpicClassifyInput
-): Promise<MetaCategoria> {
-  const dominioCtx = epic.dominio ? ` (Domínio: ${epic.dominio})` : ''
-  const res = await client.chat.completions.create({
-    model: DEPLOYMENT_LLM,
-    messages: [
-      {
-        role: 'system',
-        content: `Você é um classificador de experimentos de inovação da Claro Brasil.
-Classifique o experimento em UMA das metas estratégicas com base no nome e domínio informados:
-- EBITDA: eficiência operacional, redução de custo, automação, margem, produtividade, infraestrutura
-- Receita: crescimento de vendas, novos produtos, faturamento, upsell, aquisição de clientes
-- NPS: experiência do cliente, satisfação, atendimento, jornada, retenção, qualidade percebida
-Responda SOMENTE com uma palavra: EBITDA, NPS ou Receita.`,
-      },
-      {
-        role: 'user',
-        content: `Experimento: "${epic.summary}"${dominioCtx}`,
-      },
-    ],
-    max_tokens: 10,
-    temperature: 0,
-  })
-  const raw = res.choices[0]?.message?.content?.trim() ?? ''
-  return VALID_METAS.find(m => raw.toUpperCase().includes(m.toUpperCase())) ?? 'Receita'
+const ESPERA_APOS_FALHA_MS = 30 * 60 * 1000
+const LOTE = 60
+const G = globalThis as typeof globalThis & { __beonMetasEsperarAte: number }
+G.__beonMetasEsperarAte ??= 0
+
+/** A meta que a IA respondeu, ou null quando a resposta não é uma das três. */
+export function metaDaResposta(raw: unknown): MetaCategoria | null {
+  const t = String(raw ?? '').trim().toUpperCase()
+  return VALID_METAS.find(m => t.includes(m.toUpperCase())) ?? null
 }
 
 /**
  * Classifica múltiplos epics em uma ÚNICA chamada de LLM (batch).
  * O prompt envia todos os experimentos de uma vez e pede um JSON de resposta.
- * Muito mais rápido que chamar classifyOne N vezes (~5s vs ~10min para 200 epics).
+ * Muito mais rápido que classificar um a um (~5s vs ~10min para 200 epics).
  */
 async function classifyBatch(
   client: ReturnType<typeof getLiteLLMClient>,
@@ -110,15 +105,12 @@ Responda APENAS JSON: {"CHAVE": "CATEGORIA", ...}. Sem markdown.`,
     }
   }
 
-  // Valida e normaliza cada classificação
+  // Valida cada classificação; o que vier inválido fica sem classificação (e é tentado de novo na próxima leitura).
   const resultado: Record<string, MetaCategoria> = {}
   for (const epic of epics) {
-    const rawMeta = (parsed[epic.key] ?? '').toString().trim().toUpperCase()
-    const valida = VALID_METAS.find(m => rawMeta.includes(m.toUpperCase()))
-    resultado[epic.key] = valida ?? 'Receita'
-    if (!valida) {
-      console.warn(`[portfolio-classifier] Classificação inválida para ${epic.key}: "${parsed[epic.key]}", fallback "Receita"`)
-    }
+    const valida = metaDaResposta(parsed[epic.key])
+    if (valida) resultado[epic.key] = valida
+    else console.warn(`[portfolio-classifier] Classificação inválida para ${epic.key}: "${parsed[epic.key]}", fica sem classificação`)
   }
   return resultado
 }
@@ -142,36 +134,28 @@ export async function classifyPortfolios(
   try {
     client = getLiteLLMClient()
   } catch (e) {
-    console.error('[portfolio-classifier] LLM indisponível, usando fallback "Receita":', e)
-    for (const epic of novos) cache[epic.key] = 'Receita'
-    saveCache(cache)
+    // Sem IA, os experimentos novos ficam sem classificação (nunca num chute): aparecem como "sem classificação".
+    console.error('[portfolio-classifier] LLM indisponível; experimentos novos ficam sem classificação:', e)
     return cache
   }
 
-  // Tenta classificação em batch (única chamada LLM para todos)
+  // Uma chamada em lote para todos. Se a IA falhar, espera um pouco antes de tentar de novo (a página não fica
+  // lenta a cada leitura enquanto ela estiver fora do ar).
+  if (Date.now() < G.__beonMetasEsperarAte) return cache
   try {
-    const batchResult = await classifyBatch(client, novos)
-    for (const epic of novos) {
-      cache[epic.key] = batchResult[epic.key] ?? 'Receita'
+    // Lotes de até 60: a resposta em JSON de 200 experimentos passaria do limite de tokens e viria cortada.
+    let classificados = 0
+    for (let i = 0; i < novos.length; i += LOTE) {
+      const lote = await classifyBatch(client, novos.slice(i, i + LOTE))
+      Object.assign(cache, lote)
+      classificados += Object.keys(lote).length
     }
-    console.log(`[portfolio-classifier] Batch concluído: ${Object.keys(batchResult).length} classificado(s)`)
+    console.log(`[portfolio-classifier] ${classificados} de ${novos.length} experimento(s) classificado(s)`)
     saveCache(cache)
-    return cache
   } catch (e) {
-    console.warn('[portfolio-classifier] Batch falhou, caindo para classificação individual:', e)
+    saveCache(cache)
+    G.__beonMetasEsperarAte = Date.now() + ESPERA_APOS_FALHA_MS
+    console.warn('[portfolio-classifier] IA indisponível; experimentos novos ficam sem classificação por enquanto:', e)
   }
-
-  // Fallback: classificação individual sequencial
-  for (const epic of novos) {
-    try {
-      cache[epic.key] = await classifyOne(client, epic)
-      console.log(`  "${epic.summary}" → ${cache[epic.key]}`)
-    } catch (e) {
-      console.error(`[portfolio-classifier] Erro em "${epic.key}":`, e)
-      cache[epic.key] = 'Receita'
-    }
-  }
-
-  saveCache(cache)
   return cache
 }

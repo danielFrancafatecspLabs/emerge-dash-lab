@@ -109,8 +109,8 @@ function ComoLer() {
               <li key={s} className="flex items-center gap-2"><span className="h-2 w-2 rounded-full" style={{ background: COR_SITUACAO[s] }} />{SITUACAO_LABEL[s]}</li>
             ))}
           </ul>
-          <p>O <b className="text-beon-ink">benefício</b> da iniciativa é a soma dos experimentos dela. Um experimento está <b className="text-beon-ink">bloqueado</b> quando ainda está aberto e tem flag de impedimento, motivo ou tipo de impedimento preenchido, status ou etiqueta de bloqueio, ou um vínculo &quot;bloqueado por&quot; com item aberto. O detalhe mostra o porquê.</p>
-          <p>As hipóteses contam só os experimentos <b className="text-beon-ink">concluídos</b>. <b className="text-beon-ink">Validada</b>: a iniciativa-mãe está em Aguardando piloto, Em piloto ou Em escala. <b className="text-beon-ink">Refutada</b>: a iniciativa-mãe não está em nenhuma dessas colunas (ou o experimento não tem iniciativa).</p>
+          <p>O <b className="text-beon-ink">benefício</b> da iniciativa é a soma dos experimentos dela, sem os cancelados. Um experimento está <b className="text-beon-ink">bloqueado</b> quando ainda está aberto e tem flag de impedimento, motivo ou tipo de impedimento preenchido, status ou etiqueta de bloqueio, ou um vínculo &quot;bloqueado por&quot; com item aberto. O detalhe mostra o porquê.</p>
+          <p>As <b className="text-beon-ink">hipóteses</b> contam iniciativas, uma vez cada, mesmo com vários ciclos, e só as que têm um experimento <b className="text-beon-ink">concluído</b>. <b className="text-beon-ink">Validada</b>: a iniciativa está em Aguardando piloto, Em piloto ou Em escala. <b className="text-beon-ink">Refutada</b>: a iniciativa está em Concluído. Experimento concluído com a iniciativa ainda em outra coluna (ou sem iniciativa) fica fora das duas contas.</p>
           <p><b className="text-beon-ink">Em execução</b> soma as colunas de experimentação e piloto; o percentual é sobre o portfólio sem os cancelados.</p>
           <p>Os filtros valem nas três visões: na de iniciativas, um campo do experimento olha os experimentos de cada iniciativa.</p>
         </div>
@@ -271,7 +271,7 @@ export default function PortfolioExplorer({ dados, estadoInicial, detalheInicial
         <Indicador
           rotulo="Benefício potencial"
           valor={formatarValor(resumo.beneficio)}
-          detalhe={entidade === 'iniciativa' ? 'soma dos experimentos vinculados' : 'soma dos experimentos na tela'}
+          detalhe={entidade === 'iniciativa' ? 'experimentos vinculados, sem cancelados' : 'experimentos na tela, sem cancelados'}
         />
         <Indicador
           rotulo="Em execução" cor={COR_SITUACAO['em-execucao']}
@@ -282,15 +282,15 @@ export default function PortfolioExplorer({ dados, estadoInicial, detalheInicial
         />
         <Indicador
           rotulo="Hipóteses validadas" cor="#059669"
-          valor={String(resumo.validadas)} detalhe={`${pct(resumo.validadas, resumo.concluidos)} de ${resumo.concluidos} concluídos`}
-          ajuda="Experimentos concluídos com a iniciativa-mãe em Aguardando piloto, Em piloto ou Em escala."
+          valor={String(resumo.validadas)} detalhe={resumo.validadas === 1 ? 'iniciativa em piloto ou escala' : 'iniciativas em piloto ou escala'}
+          ajuda="Iniciativas (sem repetir) com experimento concluído que seguiram para Aguardando piloto, Em piloto ou Em escala."
           ativo={atalhoAtivo('hipotese', ['Validada'])}
           onClick={() => alternarAtalho('hipotese', ['Validada'])}
         />
         <Indicador
           rotulo="Hipóteses refutadas" cor="#A8A29E"
-          valor={String(resumo.refutadas)} detalhe={`${pct(resumo.refutadas, resumo.concluidos)} de ${resumo.concluidos} concluídos`}
-          ajuda="Experimentos concluídos cuja iniciativa-mãe não está em Aguardando piloto, Em piloto nem Em escala."
+          valor={String(resumo.refutadas)} detalhe={resumo.refutadas === 1 ? 'iniciativa concluída' : 'iniciativas concluídas'}
+          ajuda="Iniciativas (sem repetir) com experimento concluído que foram para Concluído, sem seguir para piloto nem escala."
           ativo={atalhoAtivo('hipotese', ['Refutada'])}
           onClick={() => alternarAtalho('hipotese', ['Refutada'])}
         />
