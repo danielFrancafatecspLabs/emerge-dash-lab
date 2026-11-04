@@ -42,14 +42,14 @@ export default async function PortfolioPage() {
     return <PortalDataError title="Estratégia" error={error} />
   }
 
-  // Benefício já validado pelo Financeiro (controle em /beneficios) — cruza os
-  // Epics do board de Experimentação com os registros de validação persistidos.
+  // Benefício já validado pelo Financeiro (controle em /beneficios), por Epic: a tela soma só os do período e
+  // deixa de fora os cancelados.
   const validacoes = loadValidacoes()
-  const beneficioValidadoTotal = data.allEpics.reduce((sum, e) => {
+  const beneficioValidadoPorEpic: Record<string, number> = {}
+  for (const e of data.allEpics) {
     const v = validacoes[e.key]
-    if (v?.statusValidacao !== 'validado') return sum
-    return sum + (v.beneficioValidado ?? e.beneficioQuantitativo ?? 0)
-  }, 0)
+    if (v?.statusValidacao === 'validado') beneficioValidadoPorEpic[e.key] = v.beneficioValidado ?? e.beneficioQuantitativo ?? 0
+  }
 
-  return <EstrategiaClient data={data} monitoramento={monitoramento} beneficioValidadoTotal={beneficioValidadoTotal} />
+  return <EstrategiaClient data={data} monitoramento={monitoramento} beneficioValidadoPorEpic={beneficioValidadoPorEpic} />
 }
