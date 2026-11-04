@@ -62,6 +62,30 @@ export function hipoteses(iniciativas: Iniciativa[], epics: EpicDetail[], explor
   }
 }
 
+// ── Funil (as contagens que a tela mostra) ────────────────────────────────────────────────────
+
+const emAndamento = (e: EpicDetail) => e.status?.id === '3' || e.status?.name === 'Em andamento'
+const emValidacao = (e: EpicDetail) => e.status?.id === '10204' || e.status?.name === 'EM VALIDAÇÃO' || e.status?.name === 'Em validação'
+
+export interface ContagensDoFunil {
+  total: number
+  emAndamento: number
+  emValidacao: number
+  concluidos: number
+  cancelados: number
+}
+
+/** As contagens de experimentos do Funil de Experimentos (a tela e o agente de analytics usam esta mesma função). */
+export function contagensDoFunil(epics: EpicDetail[]): ContagensDoFunil {
+  return {
+    total: epics.length,
+    emAndamento: epics.filter(emAndamento).length,
+    emValidacao: epics.filter(emValidacao).length,
+    concluidos: epics.filter(ehExperimentoConcluido).length,
+    cancelados: epics.filter(ehCancelado).length,
+  }
+}
+
 // ── Resultados do período ─────────────────────────────────────────────────────────────────────
 
 export interface ResultadosEstrategia {

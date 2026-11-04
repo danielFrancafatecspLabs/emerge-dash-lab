@@ -8,6 +8,7 @@ import { Maximize2, Minimize2, RotateCcw } from 'lucide-react'
 import { useCommunity } from '@/components/comunidade/CommunityProvider'
 import { cx, focusRing } from '@/components/ui'
 import { useHideChrome } from './AppChrome'
+import { SeloDeConsistencia } from './SeloDeConsistencia'
 import { LeituraDoJira } from '@/components/jira/LeituraDoJira'
 
 /** Lê o Jira agora, fora da leitura diária (só admins), e recarrega a página. */
@@ -132,6 +133,7 @@ export function PortalPage({ title, description, actions, refreshable, fit, chro
           {description && <p className="hidden truncate text-xs text-beon-muted sm:block">{description}</p>}
         </div>
         {refreshable && <LeituraDoJira className="hidden sm:inline-flex" />}
+        {refreshable && <SeloDeConsistencia className="hidden sm:inline-flex" />}
         {(actions || podeAtualizar || maximizable) && (
           <div className="flex shrink-0 items-center gap-2">
             {actions}

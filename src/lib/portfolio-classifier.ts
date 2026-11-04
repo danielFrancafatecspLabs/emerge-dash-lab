@@ -70,6 +70,11 @@ const LOTE = 60
 const G = globalThis as typeof globalThis & { __beonMetasEsperarAte: number; __beonMetasErro?: string | null; __beonMetasTentativaEm?: string | null }
 G.__beonMetasEsperarAte ??= 0
 
+/** As metas já classificadas (sem chamar a IA): para quem só precisa ler, como o agente de analytics. */
+export function metasJaClassificadas(): Record<string, MetaCategoria> {
+  return loadCache()
+}
+
 /** A meta que a IA respondeu, ou null quando a resposta não é uma das três. */
 export function metaDaResposta(raw: unknown): MetaCategoria | null {
   const t = String(raw ?? '').trim().toUpperCase()
