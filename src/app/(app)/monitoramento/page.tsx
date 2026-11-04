@@ -33,6 +33,7 @@ function parsePeriodo(raw: string | undefined): PeriodoFiltroType {
 function periodoLabel(p: PeriodoFiltroType): string {
   if (p.tipo === 'ultimos12') return 'Últimos 12 meses'
   if (p.tipo === 'tudo') return 'Todo o período'
+  if (p.tipo === 'ano') return `Todo ${p.ano}`
   return `${p.semestre}º Semestre ${p.ano}`
 }
 

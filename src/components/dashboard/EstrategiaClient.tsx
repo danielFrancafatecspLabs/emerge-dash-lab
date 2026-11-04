@@ -72,7 +72,7 @@ export default function EstrategiaClient({ data, beneficioValidadoPorEpic, explo
 
   const monitoramentoFiltrado = useMemo(
     // O burnup usa todos os Epics (data.allEpics): concluídos não podem sumir por terem sido criados antes do período.
-    () => buildMonitoramentoData(dadosFiltrados, periodoFiltro as any, data.allEpics),
+    () => buildMonitoramentoData(dadosFiltrados, periodoFiltro, data.allEpics),
     [dadosFiltrados, periodoFiltro, data.allEpics]
   )
 
