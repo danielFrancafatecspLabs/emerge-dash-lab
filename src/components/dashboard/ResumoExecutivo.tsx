@@ -5,14 +5,15 @@ import { DashboardData, Iniciativa, EpicDetail } from '@/lib/types'
 import { formatBRL, getPipelineStage, META_LABELS } from '@/lib/mappers'
 import {
   TrendingUp, DollarSign, Heart, Wallet, List,
-  Beaker, BarChart3, ExternalLink, ArrowUpRight
+  Beaker, BarChart3, ExternalLink, ArrowUpRight, Ban
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import Link from 'next/link'
 import IniciativaModal from './IniciativaModal'
 import EpicModal from './EpicModal'
+import type { ResultadosEstrategia } from '@/lib/estrategia/resultados'
 
-interface Props { data: DashboardData; beneficioValidadoTotal: number }
+interface Props { data: DashboardData; resultados: ResultadosEstrategia; beneficioValidadoTotal: number }
 
 const META_ICONS: Record<string, LucideIcon> = {
   EBITDA:  TrendingUp,
@@ -26,11 +27,11 @@ const META_STYLE: Record<string, { bar: string; dot: string; from: string; via: 
   NPS:     { bar: 'bg-gradient-to-r from-red-500 to-red-300', dot: 'bg-red-500', from: 'from-red-500/10', via: 'via-red-300/5', label: 'text-red-600' },
 }
 
-export default function ResumoExecutivo({ data, beneficioValidadoTotal }: Props) {
+export default function ResumoExecutivo({ data, resultados, beneficioValidadoTotal }: Props) {
   const [modal, setModal] = useState<{ title: string; items: Iniciativa[] } | null>(null)
   const [metasModal, setMetasModal] = useState<{ title: string; epics: EpicDetail[] } | null>(null)
   const [epicModal, setEpicModal] = useState<{ title: string; epics: EpicDetail[] } | null>(null)
-  const pctValidado = data.beneficioTotal > 0 ? Math.round((beneficioValidadoTotal / data.beneficioTotal) * 100) : 0
+  const pctValidado = resultados.beneficio > 0 ? Math.round((beneficioValidadoTotal / resultados.beneficio) * 100) : 0
 
   const metasKeys = ['EBITDA', 'Receita', 'NPS'] as const
   const metasAgregadas = data.metasAgregadas
@@ -67,7 +68,7 @@ export default function ResumoExecutivo({ data, beneficioValidadoTotal }: Props)
             </div>
             <div className="flex items-center gap-1.5">
               <button
-                onClick={e => { e.stopPropagation(); setEpicModal({ title: 'Experimentos que contribuem para o Benefício Potencial', epics: data.allEpics.filter(e => (e.beneficioQuantitativo ?? 0) > 0) }) }}
+                onClick={e => { e.stopPropagation(); setEpicModal({ title: 'Experimentos que contribuem para o Benefício Potencial (sem cancelados)', epics: resultados.comBeneficio }) }}
                 className="flex items-center gap-1 px-2 py-1 rounded-md text-[9px] font-semibold text-red-700 bg-red-50 border border-red-200 hover:bg-red-100 hover:border-red-300 transition-all flex-shrink-0"
                 title="Ver experimentos que contribuem para o benefício potencial"
               >
@@ -88,9 +89,9 @@ export default function ResumoExecutivo({ data, beneficioValidadoTotal }: Props)
           <div className="mt-2 relative z-10">
             <p
               className="text-xl font-black text-gray-900 tracking-tight leading-none"
-              title="Os números de benefícios exibidos consideram as estimativas fornecidas pelos usuários na etapa de cadastro do experimento."
+              title="Estimativas informadas no cadastro dos experimentos do período, sem os cancelados."
             >
-              {formatBRL(data.beneficioTotal)}
+              {formatBRL(resultados.beneficio)}
             </p>
             <Link
               href="/beneficios"
@@ -107,6 +108,22 @@ export default function ResumoExecutivo({ data, beneficioValidadoTotal }: Props)
               <ExternalLink size={8} className="text-gray-300 group-hover/link:text-red-500 transition-colors" />
             </Link>
           </div>
+
+          {/* Cancelados: fora da conta, mas à vista */}
+          {resultados.cancelados.epics.length > 0 && (
+            <button
+              type="button"
+              onClick={e => { e.stopPropagation(); setEpicModal({ title: 'Experimentos cancelados com benefício potencial (fora da conta)', epics: resultados.cancelados.epics }) }}
+              className="relative z-10 mt-1.5 flex items-center gap-1 text-left text-[9px] text-gray-400 hover:text-gray-600"
+              title="Benefício potencial dos experimentos cancelados no período. Não entra no total acima."
+            >
+              <Ban size={9} className="flex-shrink-0" />
+              <span>
+                Fora da conta: <strong className="font-bold text-gray-600">{formatBRL(resultados.cancelados.valor)}</strong> em{' '}
+                {resultados.cancelados.epics.length} {resultados.cancelados.epics.length === 1 ? 'experimento cancelado' : 'experimentos cancelados'}
+              </span>
+            </button>
+          )}
 
           {/* Barra de progresso validação */}
           <div className="mt-2.5 relative z-10">
@@ -137,12 +154,12 @@ export default function ResumoExecutivo({ data, beneficioValidadoTotal }: Props)
                     Experimentos com benefício potencial
                   </p>
                   <p className="text-lg font-black text-gray-900 tracking-tight leading-none mt-0.5">
-                    {data.allEpics.filter(e => (e.beneficioQuantitativo ?? 0) > 0 && e.status?.id !== '10015').length}
+                    {resultados.comBeneficio.length}
                   </p>
                 </div>
               </div>
               <button
-                onClick={e => { e.stopPropagation(); setEpicModal({ title: 'Experimentos com Benefício Potencial Identificado', epics: data.allEpics.filter(e => (e.beneficioQuantitativo ?? 0) > 0 && e.status?.id !== '10015') }) }}
+                onClick={e => { e.stopPropagation(); setEpicModal({ title: 'Experimentos com Benefício Potencial Identificado', epics: resultados.comBeneficio }) }}
                 className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[9px] font-semibold text-red-700 bg-red-50 border border-red-200 hover:bg-red-100 hover:border-red-300 transition-all flex-shrink-0"
               >
                 <List size={10} /> Listar
@@ -220,6 +237,16 @@ export default function ResumoExecutivo({ data, beneficioValidadoTotal }: Props)
               </div>
             )
           })}
+          {resultados.semMeta.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setEpicModal({ title: 'Experimentos ainda sem meta estratégica', epics: resultados.semMeta })}
+              className="text-left text-[8px] text-gray-400 hover:text-gray-600"
+              title="A classificação em meta estratégica é feita por IA; quem ainda não foi classificado não entra em nenhuma meta."
+            >
+              {resultados.semMeta.length} {resultados.semMeta.length === 1 ? 'experimento ainda sem meta' : 'experimentos ainda sem meta'} (classificação pendente)
+            </button>
+          )}
         </div>
       </div>
 

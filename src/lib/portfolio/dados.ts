@@ -141,7 +141,8 @@ function experimentoItem(e: EpicDetail, colunaDe: (s: JiraStatus) => string): Ex
 function iniciativaItem(ini: Iniciativa, filhos: ExperimentoItem[], colunaDe: (s: JiraStatus) => string): IniciativaItem {
   const primeiro = <T,>(f: (e: ExperimentoItem) => T | null) => filhos.map(f).find(v => v != null) ?? null
   const prazos = filhos.filter(e => e.prazo && !encerrado(e.situacao)).map(e => e.prazo!).sort()
-  const somaFilhos = filhos.reduce((s, e) => s + (e.beneficio ?? 0), 0)
+  // Benefício potencial nunca soma experimentos cancelados.
+  const somaFilhos = filhos.reduce((s, e) => s + (e.situacao === 'cancelado' ? 0 : e.beneficio ?? 0), 0)
   return {
     tipo: 'iniciativa',
     key: ini.key,
@@ -153,8 +154,9 @@ function iniciativaItem(ini: Iniciativa, filhos: ExperimentoItem[], colunaDe: (s
     sponsor: ini.sponsor ?? primeiro(e => e.sponsor),
     dominio: ini.dominio ?? primeiro(e => e.dominio),
     impacto: ini.metaCategoria,
-    // Regra do domínio: o benefício dos Experimentos soma na Iniciativa; sem Experimentos, vale o da própria.
-    beneficio: somaFilhos || ini.beneficioQuantitativo || null,
+    // Regra do domínio: o benefício dos Experimentos (sem os cancelados) soma na Iniciativa; sem Experimentos, vale o
+    // da própria.
+    beneficio: filhos.length ? somaFilhos || null : ini.beneficioQuantitativo || null,
     criadoEm: ini.criadoEm,
     prazo: prazos[0] ?? null,
     descricao: textoLimpo(ini.descricao),

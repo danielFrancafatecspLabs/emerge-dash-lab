@@ -116,6 +116,8 @@ export interface EpicDetail {
   duedate?: string | null
   criadoEm?: string | null
   concluidoEm?: string | null
+  /** Última vez que o status foi para Cancelado (pelo histórico). */
+  canceladoEm?: string | null
   anexos?: { filename: string; url: string }[] | null
 }
 
