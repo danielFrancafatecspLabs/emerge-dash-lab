@@ -117,3 +117,32 @@ describe('benefício potencial', () => {
     expect(resultadosDaEstrategia(d).cancelados.valor).toBe(0)
   })
 })
+
+describe('cancelado pelo nome do status (o Jira reaproveita ids entre boards)', () => {
+  // Como no Jira real: "Cancelado" chegando com o id de outra etapa (Concluído, Em andamento).
+  const CANCELADO_COM_ID_DE_CONCLUIDO = { id: '10019', name: 'Cancelado' }
+  const CANCELADO_COM_ID_DE_ANDAMENTO = { id: '3', name: 'CANCELADO' }
+  const epics = [
+    epic('GL-30', 'GL-9', { beneficioQuantitativo: 10_000_000 }),
+    epic('GL-31', 'GL-9', { status: CANCELADO_COM_ID_DE_CONCLUIDO, beneficioQuantitativo: 20_000_000 }),
+    epic('GL-32', 'GL-9', { status: CANCELADO_COM_ID_DE_ANDAMENTO, beneficioQuantitativo: 30_000_000 }),
+    epic('GL-33', 'GL-9', { status: { id: '10019', name: 'Concluído' }, beneficioQuantitativo: 1_000_000 }),
+  ]
+  const data = { iniciativas: [ini('GL-9', AGUARDANDO, epics)], allEpics: epics, mercadosSegmento: [] } as unknown as DashboardData
+
+  it('fica fora do benefício potencial, da lista e das hipóteses, e entra nos cancelados', () => {
+    const r = resultadosDaEstrategia(filtrarDashboardData(data, { tipo: 'tudo' }))
+    expect(r.beneficio).toBe(11_000_000)
+    expect(r.comBeneficio.map(e => e.key)).toEqual(['GL-30', 'GL-33'])
+    expect(r.cancelados.valor).toBe(50_000_000)
+    expect(r.hipoteses.validadas.map(e => e.key)).toEqual(['GL-33'])
+  })
+
+  it('getPipelineStage e epicCancelado leem o nome antes do id', async () => {
+    const { epicCancelado, getPipelineStage } = await import('@/lib/mappers')
+    expect(getPipelineStage(CANCELADO_COM_ID_DE_CONCLUIDO)).toBe('CANCELADO')
+    expect(getPipelineStage({ id: '999', name: 'Descontinuado' })).toBe('CANCELADO')
+    expect(epicCancelado({ status: CANCELADO_COM_ID_DE_ANDAMENTO })).toBe(true)
+    expect(epicCancelado({ status: { id: '10019', name: 'Concluído' } })).toBe(false)
+  })
+})

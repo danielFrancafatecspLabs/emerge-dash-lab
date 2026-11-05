@@ -24,7 +24,7 @@ import {
 } from './types'
 import type { ChangelogEntry } from './jira'
 import { epicBloqueado, sinaisDeBloqueio } from './bloqueio'
-import { ehExperimentoConcluido } from './concluido'
+import { ehExperimentoConcluido, nomeDeCancelado } from './concluido'
 import type { MetaCategoria } from './portfolio-classifier'
 // Simplified type for board configuration (shape varies by API); keep as any to avoid strict coupling here
 type JiraBoardConfiguration = any
@@ -250,11 +250,19 @@ const STATUS_NAME_PIPELINE: Record<string, keyof PipelineCount> = {
   'PRONTO PARA EXECUÇÃO': 'PRONTO PARA EXECUÇÃO',
 }
 
-/** Experimento cancelado (fica fora do benefício potencial). */
-export const epicCancelado = (e: Pick<EpicDetail, 'status'>) => e.status?.id === '10015' || getPipelineStage(e.status) === 'CANCELADO'
+export { nomeDeCancelado }
+
+/**
+ * Experimento cancelado (fica fora do benefício potencial). Vale o NOME do status: o Jira reaproveita ids entre
+ * boards, então um "Cancelado" pode vir com um id que o mapa associa a outra etapa.
+ */
+export const epicCancelado = (e: Pick<EpicDetail, 'status'>) => e.status?.id === '10015' || nomeDeCancelado(e.status?.name)
 
 export function getPipelineStage(status: JiraStatus): keyof PipelineCount | undefined {
   const normalized = status.name.trim().toUpperCase()
+  // Cancelado pelo nome vem antes do id: o Jira reaproveita ids entre boards, e um status chamado "Cancelado" com um
+  // id de outra etapa entrava como essa etapa (e o benefício dele ia para o total).
+  if (nomeDeCancelado(status.name)) return 'CANCELADO'
   // Primeiro tenta pelo ID (mais preciso)
   const byId = STATUS_PIPELINE[status.id]
   if (byId) return byId
@@ -435,7 +443,7 @@ export function buildDashboardData(
 
   // 4. Métricas de Epics ativos
   const epicsAtivos = epicsRaw.filter(e =>
-    e.fields.status.id !== '10015' && e.fields.status.id !== '10019'
+    e.fields.status.id !== '10015' && e.fields.status.id !== '10019' && !nomeDeCancelado(e.fields.status.name)
   )
   const allEpicDetails = Array.from(epicDetailMap.values())
 
@@ -1326,7 +1334,7 @@ function calculateBlockedTime(
   const diasPorEpic: number[] = []
 
   for (const epic of epicsRaw) {
-    if (STATUS_FINAIS.has(epic.fields.status.id)) continue
+    if (STATUS_FINAIS.has(epic.fields.status.id) || nomeDeCancelado(epic.fields.status.name)) continue
 
     const periodos = getPeriodosBloqueio(epic.key, epicChangelogs)
     if (periodos.length === 0) continue

@@ -1,5 +1,6 @@
 import { DashboardData, EpicDetail, Iniciativa, JiraStatus } from './types'
 import { epicBloqueado } from './bloqueio'
+import { nomeDeCancelado } from './concluido'
 
 type JiraBoardConfiguration = any
 
@@ -79,11 +80,11 @@ function statusIs(status: JiraStatus | undefined, ids: string[], names: string[]
 }
 
 function columnForFallback(status: JiraStatus | undefined): 'pre-analise' | 'prospeccao' | 'em-andamento' | 'concluido' | 'cancelado' | null {
+  if (status && (status.id === '10015' || nomeDeCancelado(status.name))) return 'cancelado'
   if (statusIs(status, ['10004'], ['BACKLOG'])) return 'pre-analise'
   if (statusIs(status, ['10139'], ['Em refinamento', 'EM REFINAMENTO'])) return 'prospeccao'
   if (statusIs(status, ['3'], ['Em andamento'])) return 'em-andamento'
   if (statusIs(status, ['10204'], ['EM VALIDAÇÃO', 'Em validação'])) return 'em-andamento'
-  if (statusIs(status, ['10015'], ['Cancelado', 'CANCELADO'])) return 'cancelado'
   if (statusIs(status, ['10019'], [])) return 'concluido'
   return null
 }
@@ -195,7 +196,7 @@ export function buildGovernancaData(data: DashboardData, board2735Config?: JiraB
     // Cancela Epics cujo status individual é de cancelado — mesmo que a
     // coluna do board 2735 tenha "BACKLOG" no nome (ex.: coluna que agrupa
     // backlog + cancelados), o Epic não deve aparecer como "Pré-análise".
-    if (status && statusIs(status, ['10015'], ['Cancelado', 'CANCELADO'])) return null
+    if (status && (status.id === '10015' || nomeDeCancelado(status.name))) return null
 
     if (efetivo === 'pre-analise') return 'pre-analise'
     if (efetivo === 'prospeccao') return 'prospeccao'

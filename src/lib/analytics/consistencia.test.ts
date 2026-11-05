@@ -89,4 +89,21 @@ describe('agente de analytics', () => {
     expect(alerta('etapa-sem-concluido')).toMatchObject({ quantidade: 1, exemplos: ['GL-6'] })
     expect(alerta('cancelados-com-beneficio')).toMatchObject({ quantidade: 1, exemplos: ['GL-16'] })
   })
+
+  it('não deixa cancelado entrar no benefício, mesmo com o id de outra etapa', () => {
+    const extra = [...epics, epic('GL-19', 'GL-4', { id: '3', name: 'Cancelado' }, 90_000_000)]
+    const data = buildDashboardData(iniciativas, extra, {}, {}, cfgIni, {}, {})
+    const dataSemanal = buildDashboardData(iniciativas, extra, {}, {}, cfgIni)
+    const weekly = buildWeeklyData(dataSemanal, {}, cfgExp)
+    const r = verificarConsistencia({
+      ...entrada(), data, dataSemanal, weekly, semanal: buildSemanalData(dataSemanal, weekly, {}),
+      portfolio: montarPortfolio(data, { iniciativa: cfgIni, experimento: cfgExp }, null),
+    })
+    const v = (id: string) => r.verificacoes.find(x => x.id === id)!
+    expect(v('beneficio-pelo-nome')).toMatchObject({ ok: true, valores: { 'Estratégia (Tudo)': 33_000_000 } })
+    expect(v('lista-beneficio-sem-cancelado')).toMatchObject({ ok: true })
+    expect(v('beneficio').ok).toBe(true)
+    expect(v('cancelados').valores).toMatchObject({ Semanal: 2, 'Estratégia (Tudo)': 2, Portfólio: 2 })
+  })
 })
+

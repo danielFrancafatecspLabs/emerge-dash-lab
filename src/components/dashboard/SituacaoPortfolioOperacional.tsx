@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts'
 import { DashboardData, EpicDetail, PipelineCount } from '@/lib/types'
-import { getPipelineStage } from '@/lib/mappers'
+import { epicCancelado, getPipelineStage } from '@/lib/mappers'
 import EpicModal from './EpicModal'
 
 interface Props { data: DashboardData }
@@ -22,17 +22,13 @@ const DONUT_ORDER = ['CONCLUÍDO', 'EM ANDAMENTO', 'EM REFINAMENTO', 'BACKLOG', 
 function buildDonutData(data: DashboardData) {
   const epics = data.allEpics
 
-  const concluido = epics.filter(e => e.status?.id === '10019').length
-  const descontinuado = epics.filter(e => e.status?.id === '10015').length
-  const emRefinamento = epics.filter(e => e.status?.id === '10139').length
-  const backlog = epics.filter(e => e.status?.id === '10004').length
+  const fatia = (name: string) => getEpicsForDonutSlice(data, name).length
+  const concluido = fatia('CONCLUÍDO')
+  const descontinuado = fatia('DESCONTINUADO')
+  const emRefinamento = fatia('EM REFINAMENTO')
+  const backlog = fatia('BACKLOG')
   // Em andamento: tudo que não é concluído, cancelado, backlog, refinamento
-  const emAndamento = epics.filter(e =>
-    e.status?.id !== '10019' &&
-    e.status?.id !== '10015' &&
-    e.status?.id !== '10139' &&
-    e.status?.id !== '10004'
-  ).length
+  const emAndamento = fatia('EM ANDAMENTO')
 
   return DONUT_ORDER.map(name => ({
     name,
@@ -46,15 +42,15 @@ function buildDonutData(data: DashboardData) {
 }
 
 function getEpicsForDonutSlice(data: DashboardData, name: string): EpicDetail[] {
-  const epics = data.allEpics
+  // Cancelado vem primeiro e pelo nome também: um "Cancelado" com id de outra etapa não entra em outra fatia.
+  const epics = data.allEpics.filter(e => !epicCancelado(e))
   switch (name) {
     case 'CONCLUÍDO':      return epics.filter(e => e.status?.id === '10019')
-    case 'DESCONTINUADO':  return epics.filter(e => e.status?.id === '10015')
+    case 'DESCONTINUADO':  return data.allEpics.filter(epicCancelado)
     case 'EM REFINAMENTO': return epics.filter(e => e.status?.id === '10139')
     case 'BACKLOG':        return epics.filter(e => e.status?.id === '10004')
     case 'EM ANDAMENTO':   return epics.filter(e =>
-      e.status?.id !== '10019' && e.status?.id !== '10015' &&
-      e.status?.id !== '10139' && e.status?.id !== '10004'
+      e.status?.id !== '10019' && e.status?.id !== '10139' && e.status?.id !== '10004'
     )
     default: return []
   }
