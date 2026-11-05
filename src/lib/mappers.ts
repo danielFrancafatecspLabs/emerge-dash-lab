@@ -1,3 +1,4 @@
+import { ESTAGIO_DA_ETAPA, etapaValidada } from './hipoteses'
 import {
   JiraIssue,
   JiraStatus,
@@ -412,6 +413,9 @@ export function buildDashboardData(
     'EM ESCALA': 0, FINALIZADO: 0, CANCELADO: 0,
   }
   for (const ini of iniciativas) {
+    // Aguardando piloto, piloto e escala (Finalizado incluído): a regra oficial, igual em todas as telas.
+    const etapa = etapaValidada(ini.status)
+    if (etapa) { pipelineActual[ESTAGIO_DA_ETAPA[etapa]]++; continue }
     // Tenta primeiro pelo boardConfig (mais preciso)
     const colNome = getColunaPeloStatus(ini.status)
     if (colNome) {

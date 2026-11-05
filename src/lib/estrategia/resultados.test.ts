@@ -48,7 +48,7 @@ describe('período pela conclusão do experimento', () => {
   })
 })
 
-describe('hipóteses: a mesma conta do Semanal', () => {
+describe('hipóteses: sempre em épicos, a mesma conta do Semanal', () => {
   const BACKLOG = { id: '10004', name: 'BACKLOG' }
   const epics = [
     epic('GL-10', 'GL-1', { status: CONCLUIDO }),
@@ -68,18 +68,20 @@ describe('hipóteses: a mesma conta do Semanal', () => {
   ]
   const data = { iniciativas, allEpics: epics, pipeline: {}, mercadosSegmento: [], pilotoStatusIds: ['12847'], escalaStatusIds: [] } as unknown as DashboardData
 
-  it('validadas são as iniciativas em aguardando piloto, piloto ou escala, e batem com o Semanal', () => {
-    const h = hipoteses(iniciativas, epics, ['10004', '10139'])
+  it('hipóteses em épicos: concluído com a iniciativa em aguardando piloto, piloto ou escala (Finalizado incluso)', () => {
+    const h = hipoteses(iniciativas, epics)
+    expect(h.validadas.map(e => e.key)).toEqual(['GL-10', 'GL-11', 'GL-12', 'GL-13'])
+    expect(h.refutadas.map(e => e.key)).toEqual(['GL-14'])
+    // As etapas contam iniciativas, como as seções do Semanal.
     expect(h.porEtapa['AGUARDANDO PILOTO'].map(i => i.key)).toEqual(['GL-1', 'GL-7'])
     expect(h.porEtapa['EM PILOTO'].map(i => i.key)).toEqual(['GL-2', 'GL-6'])
     expect(h.porEtapa['EM ESCALA'].map(i => i.key)).toEqual(['GL-3'])
-    // 8 experimentos − 1 exploração − 1 andamento − 5 validadas − 1 cancelado = 0
-    expect(h.refutadas).toBe(0)
 
     const semanal = buildSemanalData(data, buildWeeklyData(data))
     const fatia = (id: string) => semanal.resumo.fatias.find(f => f.id === id)?.quantidade
-    expect(fatia('validadas')).toBe(h.validadas.length)
-    expect(fatia('refutadas')).toBe(h.refutadas)
+    expect(fatia('validadas')).toBe(4)
+    expect(fatia('refutadas')).toBe(1)
+    expect(semanal.resumo.fatias.reduce((s, f) => s + f.quantidade, 0)).toBe(epics.length)
   })
 })
 

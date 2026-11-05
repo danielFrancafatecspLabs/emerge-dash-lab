@@ -50,7 +50,9 @@ describe('agente de analytics', () => {
     const falhas = r.verificacoes.filter(v => !v.ok).map(v => `${v.titulo}: ${JSON.stringify(v.valores)}`)
     expect(falhas).toEqual([])
     const v = (id: string) => r.verificacoes.find(x => x.id === id)!.valores
-    expect(v('validadas')).toEqual({ Semanal: 4, 'Estratégia (Tudo)': 4, Portfólio: 4 })
+    // Validadas em épicos: GL-10 e GL-11 (aguardando), GL-12 (piloto), GL-13 (escala); GL-18 (iniciativa em experimentação) é refutada.
+    expect(v('validadas')).toEqual({ Semanal: 4, 'Estratégia (Tudo)': 4, Portfólio: 4, 'Comparativo / benefício do Semanal': 4 })
+    expect(v('refutadas')).toEqual({ Semanal: 1, 'Estratégia (Tudo)': 1, Portfólio: 1, 'Comparativo / benefício do Semanal': 1 })
     expect(v('beneficio')).toEqual({ 'Estratégia (Tudo)': 33_000_000, 'Portfólio (experimentos)': 33_000_000 })
   })
 
@@ -63,14 +65,16 @@ describe('agente de analytics', () => {
   })
 
   it('confere a regra do app contra a coluna real no Jira e acha o status que a regra não reconhece', () => {
-    // No Jira, a iniciativa está na coluna AGUARDANDO PILOTO, mas o status vem escrito em maiúsculas.
-    const variante = [...iniciativas, ini('GL-7', { id: '14468', name: 'AGUARDANDO PILOTO' })]
-    const r = verificarConsistencia(entrada(variante))
+    // Um status novo, com nome diferente, colocado na coluna AGUARDANDO PILOTO do board de Ideação.
+    const cfg = config([['BACKLOG', ['10004']], ['EM EXPERIMENTAÇÃO', ['14460']], ['AGUARDANDO PILOTO', ['14468', '99999']], ['EM PILOTO', ['14459']], ['EM ESCALA', ['13562']], ['CANCELADO', ['10015']]])
+    const variante = [...iniciativas, ini('GL-7', { id: '99999', name: 'Aguardando validação do piloto' })]
+    const e = entrada(variante)
+    const r = verificarConsistencia({ ...e, board2734Config: cfg })
     expect(r.verificacoes.find(v => v.id === 'coluna-aguardando')).toMatchObject({
-      ok: false, valores: { 'Semanal (regra por status)': 2, 'Operacional (estágio)': 3, 'Coluna no Jira': 3 },
+      ok: false, valores: { 'Semanal (regra por status)': 2, 'Operacional (estágio)': 2, 'Coluna no Jira': 3 },
     })
     expect(r.alertas.map(a => a.titulo)).toContain(
-      'Status AGUARDANDO PILOTO (id 14468), na coluna "AGUARDANDO PILOTO": a regra do app conta como não validada, a coluna indica aguardando')
+      'Status Aguardando validação do piloto (id 99999), na coluna "AGUARDANDO PILOTO": a regra do app conta como não validada, a coluna indica aguardando')
   })
 
   it('confere o período: o funil e o Crescimento contam os mesmos concluídos', () => {
@@ -82,7 +86,7 @@ describe('agente de analytics', () => {
     const r = verificarConsistencia(entrada())
     const alerta = (id: string) => r.alertas.find(a => a.id === id)
     expect(alerta('sem-iniciativa')).toMatchObject({ quantidade: 1, exemplos: ['GL-17'] })
-    expect(alerta('validadas-sem-concluido')).toMatchObject({ quantidade: 1, exemplos: ['GL-6'] })
+    expect(alerta('etapa-sem-concluido')).toMatchObject({ quantidade: 1, exemplos: ['GL-6'] })
     expect(alerta('cancelados-com-beneficio')).toMatchObject({ quantidade: 1, exemplos: ['GL-16'] })
   })
 })

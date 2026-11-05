@@ -3,6 +3,7 @@ import type { ChangelogEntry } from './jira'
 import { formatBeneficioMM, limparDescricao } from './report-utils'
 import { ehExperimentoConcluido } from './concluido'
 import { buildGovernancaData, SAMPLE_GOVERNANCA_DATA, type GovernancaData } from './governanca'
+import { etapaValidada } from './hipoteses'
 
 const EPICOS_CANCELADOS_CSV = `Chave;Título;Descrição;Business Owner (BO);Sponsor;Iniciativa Pai;Data Cancelamento;Último Comentário;Link Jira
 GL-817;Agente para Treinamento Comercial;Capacitar a força de vendas através de simulações conversacionais de atendimento e contorno de objeções guiadas por IA.;Ronaldo Domingues;Leandro Bueno;GL-809;26/09/2026 00:30;Direcionado para Dados & IA avaliar solução. Área de negócio optou por não seguir realizar experimentação no dia 25/09.;https://clarobr.atlassian.net/browse/GL-817
@@ -256,18 +257,9 @@ function semBeneficioPotencial(e: EpicDetail): boolean {
  * Mapa status.id -> nome REAL da coluna no board 2735 (Experimentação), a
  * partir da configuração live do board (GET /board/2735/configuration).
  */
-// ── Hipóteses: a regra oficial (a do Semanal), compartilhada com a Estratégia e o Portfólio ──────────────
+// ── Hipóteses: a regra oficial está em lib/hipoteses.ts (compartilhada por todas as telas) ──────────────────
 
-export type EtapaValidada = 'aguardando' | 'piloto' | 'escala'
-
-/** Etapa da Iniciativa que conta como hipótese validada: Aguardando piloto, Em piloto ou Em escala. */
-export function etapaValidada(status: { id: string; name: string } | null | undefined): EtapaValidada | null {
-  if (!status) return null
-  if (status.id === '13045' || status.name === 'Aguardando Piloto') return 'aguardando'
-  if (status.id === '12847' || status.name === 'EM PILOTO' || status.name === 'Em Piloto') return 'piloto'
-  if (status.id === '12848' || ['EM ESCALA', 'Em Escala', 'Em escala', 'FINALIZADO', 'Finalizado'].includes(status.name)) return 'escala'
-  return null
-}
+export { etapaValidada, type EtapaValidada } from './hipoteses'
 
 /** Status dos Epics em exploração: as colunas Backlog e Refinamento do board de Experimentação. */
 export function statusIdsDeExploracao(board2735Config?: JiraBoardConfiguration): string[] {
@@ -277,36 +269,6 @@ export function statusIdsDeExploracao(board2735Config?: JiraBoardConfiguration):
   }
   // Sem a configuração do board (ex.: dados de amostra), os IDs conhecidos do board de Experimentação.
   return ids.length ? ids : ['10004', '10139']
-}
-
-type ComStatus = { status: { id: string; name: string } }
-const epicEmAndamento = (e: ComStatus) => e.status?.id === '3' || e.status?.name === 'Em andamento'
-  || e.status?.id === '10204' || e.status?.name === 'EM VALIDAÇÃO' || e.status?.name === 'Em validação'
-const epicCanceladoSemanal = (e: ComStatus) => e.status?.id === '10015' || e.status?.name === 'Cancelado' || e.status?.name === 'CANCELADO'
-
-export interface ContagemHipoteses<I extends ComStatus = Iniciativa> {
-  /** Iniciativas em Aguardando piloto, Em piloto ou Em escala. */
-  validadas: I[]
-  porEtapa: Record<EtapaValidada, I[]>
-  /** O restante do total de experimentos: os que terminaram e não avançaram (fecha com as 5 fatias do Semanal). */
-  refutadas: number
-}
-
-/**
- * Hipóteses validadas e refutadas, exatamente como o Semanal conta:
- * - validadas: Iniciativas em Aguardando piloto, Em piloto ou Em escala;
- * - refutadas: total de experimentos − (exploração + andamento + validadas + cancelados).
- */
-export function contarHipoteses<I extends ComStatus>(iniciativas: I[], epics: ComStatus[], exploracaoIds: string[]): ContagemHipoteses<I> {
-  const porEtapa: Record<EtapaValidada, I[]> = { aguardando: [], piloto: [], escala: [] }
-  for (const i of iniciativas) {
-    const etapa = etapaValidada(i.status)
-    if (etapa) porEtapa[etapa].push(i)
-  }
-  const validadas = [...porEtapa.aguardando, ...porEtapa.piloto, ...porEtapa.escala]
-  const exploracao = new Set(exploracaoIds)
-  const fora = epics.filter(e => exploracao.has(e.status.id)).length + epics.filter(epicEmAndamento).length + epics.filter(epicCanceladoSemanal).length
-  return { validadas, porEtapa, refutadas: Math.max(0, epics.length - fora - validadas.length) }
 }
 
 function buildColunaPorStatusId(boardConfig?: JiraBoardConfiguration): Map<string, string> {

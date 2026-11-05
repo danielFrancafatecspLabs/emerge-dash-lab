@@ -110,7 +110,7 @@ function ComoLer() {
             ))}
           </ul>
           <p>O <b className="text-beon-ink">benefício</b> da iniciativa é a soma dos experimentos dela, sem os cancelados. Um experimento está <b className="text-beon-ink">bloqueado</b> quando está em experimentação (em andamento ou em validação) e tem flag de impedimento, motivo ou tipo de impedimento preenchido, status ou etiqueta de bloqueio, ou um vínculo &quot;bloqueado por&quot; com item aberto. O detalhe mostra o porquê.</p>
-          <p>As <b className="text-beon-ink">hipóteses</b> seguem a conta do Semanal. <b className="text-beon-ink">Validadas</b>: iniciativas em Aguardando piloto, Em piloto ou Em escala. <b className="text-beon-ink">Refutadas</b>: o restante do total de experimentos, tirando exploração, andamento, validadas e cancelados. Com filtros, a conta considera só o que está na tela.</p>
+          <p>As <b className="text-beon-ink">hipóteses</b> contam experimentos concluídos. <b className="text-beon-ink">Validada</b>: a iniciativa está em Aguardando piloto, Em piloto ou Em escala (Finalizado conta como Em escala). <b className="text-beon-ink">Refutada</b>: a iniciativa está fora dessas colunas. As etapas (aguardando, piloto, escala) contam iniciativas, como no Semanal.</p>
           <p><b className="text-beon-ink">Em execução</b> soma as colunas de experimentação e piloto; o percentual é sobre o portfólio sem os cancelados.</p>
           <p>Os filtros valem nas três visões: na de iniciativas, um campo do experimento olha os experimentos de cada iniciativa.</p>
         </div>
@@ -177,6 +177,12 @@ export default function PortfolioExplorer({ dados, estadoInicial, detalheInicial
       return { ...e, filtros }
     })
   }
+  // As hipóteses contam experimentos: na visão de iniciativas, o atalho leva para a de experimentos já filtrada.
+  function filtrarHipotese(valor: string) {
+    alternarAtalho('hipotese', [valor])
+    if (entidade === 'iniciativa') mudar(estado.visao === 'lista' ? { lista: 'experimento' } : { visao: 'experimentos' })
+  }
+
   const atalhoAtivo = (campo: string, valores: string[]) => {
     const atuais = estado.filtros[campo] ?? []
     return atuais.length === valores.length && valores.every(v => atuais.includes(v))
@@ -285,16 +291,18 @@ export default function PortfolioExplorer({ dados, estadoInicial, detalheInicial
         <Indicador
           rotulo="Hipóteses validadas" cor="#059669"
           valor={String(resumo.validadas)}
-          detalhe={`${resumo.porEtapa.aguardando} aguardando · ${resumo.porEtapa.piloto} piloto · ${resumo.porEtapa.escala} escala`}
-          ajuda="Iniciativas em Aguardando piloto, Em piloto ou Em escala: a mesma conta do Semanal."
+          detalhe={`${pct(resumo.validadas, resumo.concluidos)} dos ${resumo.concluidos} concluídos · iniciativas: ${resumo.porEtapa.aguardando} aguardando, ${resumo.porEtapa.piloto} piloto, ${resumo.porEtapa.escala} escala`}
+          ajuda="Experimentos concluídos com a iniciativa em Aguardando piloto, Em piloto ou Em escala (Finalizado conta como Em escala)."
           ativo={atalhoAtivo('hipotese', ['Validada'])}
-          onClick={() => alternarAtalho('hipotese', ['Validada'])}
+          onClick={() => filtrarHipotese('Validada')}
         />
         <Indicador
           rotulo="Hipóteses refutadas" cor="#A8A29E"
           valor={String(resumo.refutadas)}
-          detalhe="concluídos que não avançaram"
-          ajuda="A mesma conta do Semanal: total de experimentos menos exploração, andamento, hipóteses validadas e cancelados. Para ver os experimentos concluídos cuja iniciativa não seguiu, filtre Hipótese: Concluído sem avançar."
+          detalhe={`${pct(resumo.refutadas, resumo.concluidos)} dos ${resumo.concluidos} concluídos`}
+          ajuda="Experimentos concluídos com a iniciativa fora de Aguardando piloto, Em piloto e Em escala."
+          ativo={atalhoAtivo('hipotese', ['Refutada'])}
+          onClick={() => filtrarHipotese('Refutada')}
         />
         <Indicador
           rotulo="Bloqueados" cor="#F59E0B"

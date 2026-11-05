@@ -25,13 +25,11 @@ interface EstrategiaClientProps {
   monitoramento: MonitoramentoData
   /** Benefício já validado pelo Financeiro, por Epic (controle em /beneficios). */
   beneficioValidadoPorEpic: Record<string, number>
-  /** Status dos Epics em exploração (colunas Backlog e Refinamento do board de Experimentação), como no Semanal. */
-  exploracaoIds: string[]
   /** Situação da classificação das metas pela IA (por que há experimentos sem meta). */
   classificacao: EstadoDaClassificacao
 }
 
-export default function EstrategiaClient({ data, beneficioValidadoPorEpic, exploracaoIds, classificacao }: EstrategiaClientProps) {
+export default function EstrategiaClient({ data, beneficioValidadoPorEpic, classificacao }: EstrategiaClientProps) {
   const [periodoFiltro, setPeriodoFiltro] = useState<PeriodoFiltro>({ tipo: 'ultimos12' })
   const [modoSlide, setModoSlide] = useState(() =>
     typeof document !== 'undefined' && document.body.classList.contains('modo-apresentacao')
@@ -57,7 +55,7 @@ export default function EstrategiaClient({ data, beneficioValidadoPorEpic, explo
   )
 
   // Benefício, cancelados e hipóteses do período (regras em lib/estrategia/resultados.ts).
-  const resultados = useMemo(() => resultadosDaEstrategia(dadosFiltrados, exploracaoIds), [dadosFiltrados, exploracaoIds])
+  const resultados = useMemo(() => resultadosDaEstrategia(dadosFiltrados), [dadosFiltrados])
   // Validado pelo Financeiro: só os experimentos do período que não foram cancelados.
   const beneficioValidadoTotal = useMemo(
     () => dadosFiltrados.allEpics.reduce((s, e) => s + (ehCancelado(e) ? 0 : beneficioValidadoPorEpic[e.key] ?? 0), 0),
@@ -94,7 +92,7 @@ export default function EstrategiaClient({ data, beneficioValidadoPorEpic, explo
             totalExperimentos: dadosFiltrados.allEpics.length,
             concluidos: dadosFiltrados.allEpics.filter(e => e.status?.id === '10019').length,
             hipotesesValidadas: resultados.hipoteses.validadas.length,
-            hipotesesRefutadas: resultados.hipoteses.refutadas,
+            hipotesesRefutadas: resultados.hipoteses.refutadas.length,
             metasAgregadas: dadosFiltrados.metasAgregadas,
             beneficioPotencialSemCancelados: resultados.beneficio,
             beneficioDosCancelados: resultados.cancelados.valor,
@@ -121,7 +119,7 @@ export default function EstrategiaClient({ data, beneficioValidadoPorEpic, explo
             total: dadosFiltrados.allEpics.filter(e => !ehCancelado(e)).length,
             concluidos: dadosFiltrados.allEpics.filter(e => e.status?.id === '10019').length,
             validadas: resultados.hipoteses.validadas.length,
-            refutadas: resultados.hipoteses.refutadas,
+            refutadas: resultados.hipoteses.refutadas.length,
             aguardandoPiloto: resultados.hipoteses.porEtapa['AGUARDANDO PILOTO'].length,
             emPiloto: resultados.hipoteses.porEtapa['EM PILOTO'].length,
             emEscala: resultados.hipoteses.porEtapa['EM ESCALA'].length,

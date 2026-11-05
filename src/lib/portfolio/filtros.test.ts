@@ -129,8 +129,9 @@ describe('filtros do Portfólio', () => {
     expect(ordenar(DADOS.experimentos, 'prazo')[0].key).toBe('GL-10')
     expect(agrupar(DADOS.experimentos, 'lab', ctx).map(g => [g.valor, g.itens.length])).toEqual([['HITSS', 2], ['Lab Dados', 2]])
     expect(resumir(DADOS.experimentos, ctx)).toEqual({
-      total: 4, ativos: 3, emExecucao: 2, bloqueados: 1, beneficio: 75_000_000, relacionados: 2, concluidos: 0, validadas: 1,
-      porEtapa: { aguardando: 0, piloto: 0, escala: 1 }, refutadas: 0,
+      total: 4, ativos: 3, emExecucao: 2, bloqueados: 1, beneficio: 75_000_000, relacionados: 2, concluidos: 0, validadas: 0,
+      // GL-1 está em EM EXPERIMENTAÇÃO (id 12848): não é etapa validada.
+      refutadas: 0, porEtapa: { aguardando: 0, piloto: 0, escala: 0 },
     })
   })
 })
@@ -175,21 +176,21 @@ describe('hipóteses validadas e refutadas', () => {
   )
   const c = criarContexto(dados)
 
-  it('validadas: iniciativas em aguardando piloto, piloto ou escala (como no Semanal)', () => {
-    const r = resumir(dados.iniciativas, c, true)
-    // GL-1 aguardando, GL-2 piloto, GL-3 escala (status "Finalizado"), GL-7 FINALIZADO também conta como escala no Semanal.
-    expect([r.validadas, r.porEtapa]).toEqual([4, { aguardando: 1, piloto: 1, escala: 2 }])
-    // 10 experimentos − 0 exploração − 1 andamento − 4 validadas − 1 cancelado = 4
-    expect(r.refutadas).toBe(4)
-    expect(filtrar(dados.iniciativas, 'iniciativa', estado({ filtros: { hipotese: ['Validada'] } }), c).map(i => i.key))
-      .toEqual(['GL-1', 'GL-2', 'GL-3', 'GL-7'])
+  it('hipóteses em experimentos: concluído com a iniciativa em aguardando piloto, piloto ou escala (Finalizado incluso)', () => {
+    const r = resumir(dados.experimentos, c, true)
+    // Validadas: GL-10 e GL-17 (aguardando), GL-12 (piloto), GL-13 (escala), GL-18 (FINALIZADO = escala).
+    expect([r.concluidos, r.validadas, r.refutadas]).toEqual([8, 5, 3])
+    // As etapas contam iniciativas, como no Semanal.
+    expect(r.porEtapa).toEqual({ aguardando: 1, piloto: 1, escala: 2 })
+    expect(filtrar(dados.experimentos, 'experimento', estado({ filtros: { hipotese: ['Validada'] } }), c).map(e => e.key))
+      .toEqual(['GL-10', 'GL-17', 'GL-12', 'GL-13', 'GL-18'])
   })
 
-  it('no filtro, o experimento concluído cuja iniciativa não seguiu fica como "Concluído sem avançar"', () => {
-    expect(filtrar(dados.experimentos, 'experimento', estado({ filtros: { hipotese: ['Concluído sem avançar'] } }), c).map(e => e.key))
+  it('refutada: concluído com a iniciativa fora de piloto e escala (experimentação, cancelada ou sem iniciativa)', () => {
+    expect(filtrar(dados.experimentos, 'experimento', estado({ filtros: { hipotese: ['Refutada'] } }), c).map(e => e.key))
       .toEqual(['GL-14', 'GL-16', 'GL-19'])
     expect(facetas(dados.iniciativas, 'iniciativa', estado({}), c, 'hipotese')).toEqual([
-      { valor: 'Validada', n: 4 }, { valor: 'Concluído sem avançar', n: 2 }, { valor: 'Sem experimento concluído', n: 2 },
+      { valor: 'Validada', n: 4 }, { valor: 'Refutada', n: 2 }, { valor: 'Sem experimento concluído', n: 2 },
     ])
   })
 
