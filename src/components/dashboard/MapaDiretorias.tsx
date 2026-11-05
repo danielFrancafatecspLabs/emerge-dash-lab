@@ -22,17 +22,19 @@ interface DominioAgregado {
 
 interface Props {
   epics: EpicDetail[]
+  /** Domínio usado quando o experimento não tem o dele (ex.: o da iniciativa-mãe). A contagem é sempre por experimento. */
+  dominioReserva?: (e: EpicDetail) => string | null | undefined
 }
 
 const LIMITE_VISIVEL = 10 // mostra até o 10º item (Comercial), esconde o resto
 
-export default function MapaDiretorias({ epics }: Props) {
+export default function MapaDiretorias({ epics, dominioReserva }: Props) {
   const [expandido, setExpandido] = useState(false)
 
   const { linhas, maxExp, totalInvestido, totalExperimentos } = useMemo(() => {
     const map = new Map<string, DominioAgregado>()
     for (const e of epics) {
-      const nome = e.dominio || 'Sem domínio'
+      const nome = e.dominio?.trim() || dominioReserva?.(e)?.trim() || 'Sem domínio'
       if (!map.has(nome)) {
         map.set(nome, { nome, qtdExperimentos: 0, valorPotencial: 0 })
       }
@@ -51,7 +53,7 @@ export default function MapaDiretorias({ epics }: Props) {
     const totalExp = sorted.reduce((s, d) => s + d.qtdExperimentos, 0)
 
     return { linhas: sorted, maxExp: maxE, totalInvestido: totalInv, totalExperimentos: totalExp }
-  }, [epics])
+  }, [epics, dominioReserva])
 
   if (!epics || epics.length === 0) {
     return (

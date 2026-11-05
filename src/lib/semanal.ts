@@ -2,6 +2,7 @@ import type { ChangelogEntry } from './jira'
 import type { DashboardData, EpicDetail, Iniciativa } from './types'
 import type { EpicConsiderado, WeeklyData } from './weekly'
 import { limparDescricao } from './report-utils'
+import { contarHipoteses } from './hipoteses'
 import { entradaDeEpic, entradaDeIniciativa, montarGovernanca, type EntradaGov, type SemanalGovernanca } from './semanal-governanca'
 
 /**
@@ -15,11 +16,11 @@ import { entradaDeEpic, entradaDeIniciativa, montarGovernanca, type EntradaGov, 
  * Mapeamento das 5 fatias do total de experimentos (slide "beOn Labs"):
  * - Em Exploração: Epics em Backlog/Refinamento do board de Experimentação.
  * - Em andamento: Epics em andamento + em validação.
- * - Hipóteses validadas: Iniciativas que seguiram para Aguardando Piloto,
- *   Em Piloto ou Em Escala (o experimento terminou e avançou).
+ * - Hipóteses validadas: Epics concluídos com a Iniciativa em Aguardando piloto,
+ *   Em piloto ou Em escala (lib/hipoteses.ts).
+ * - Hipóteses refutadas: os demais Epics concluídos.
  * - Cancelados: Epics cancelados.
- * - Hipóteses refutadas: o restante do total (experimentos concluídos que
- *   não avançaram) — assim as 5 fatias sempre somam o total.
+ * - Em Exploração: o restante (backlog, refinamento, pronto) — as 5 fatias somam o total.
  */
 
 export type SemanalSecaoId = 'escala' | 'aguardando' | 'piloto' | 'andamento' | 'backlog'
@@ -302,9 +303,14 @@ export function buildSemanalData(data: DashboardData, weekly: WeeklyData, epicCh
   const escala = ordenarRows(iniRows('escala'))
   const cancelados = stage('cancelados')?.quantidade ?? 0
 
+  // Hipóteses sempre em épicos (lib/hipoteses.ts): concluídos com a iniciativa em aguardando piloto, piloto ou escala
+  // são validadas; os demais concluídos, refutadas.
   const total = weekly.experimentosAprovados
-  const validadas = aguardando.length + piloto.length + escala.length
-  const refutadas = Math.max(0, total - (backlog.length + andamento.length + validadas + cancelados))
+  const statusDaIniciativa = new Map(data.iniciativas.map(i => [i.key, i.status]))
+  const hipoteses = contarHipoteses(data.allEpics, e => (e.parentKey ? statusDaIniciativa.get(e.parentKey) : null))
+  const validadas = hipoteses.validadas.length
+  const refutadas = hipoteses.refutadas.length
+  const exploracao = Math.max(0, total - andamento.length - validadas - refutadas - cancelados)
 
   // Quadro de Governança: as mesmas fases da Weekly, com Em andamento separado de Em validação.
   const epicsDe = (id: string) => (stage(id)?.experimentos ?? []).map(r => epicByKey.get(r.key)).filter((e): e is EpicDetail => !!e)
@@ -313,7 +319,7 @@ export function buildSemanalData(data: DashboardData, weekly: WeeklyData, epicCh
   const andamentoEpics = epicsDe('andamento')
 
   const resumo = montarResumo({
-    total, backlog, andamento, aguardando, piloto, escala, cancelados, refutadas,
+    total, backlog, andamento, aguardando, piloto, escala, cancelados, validadas, refutadas, exploracao,
     ideiasNaoAvaliadas: weekly.pendenteAnalise.quantidade,
     beneficioTotal: weekly.beneficioConsiderado,
     beneficioDetalhe: { itens: weekly.epicsConsiderados, fora: weekly.foraDaConta },
@@ -348,7 +354,11 @@ interface ResumoInput {
   piloto: SemanalRow[]
   escala: SemanalRow[]
   cancelados: number
+  /** Épicos concluídos com hipótese validada e refutada (lib/hipoteses.ts). */
+  validadas: number
   refutadas: number
+  /** Épicos em exploração na fatia: o que não está em andamento, concluído nem cancelado (as 5 fatias somam o total). */
+  exploracao: number
   ideiasNaoAvaliadas: number
   beneficioTotal: number
   beneficioDetalhe: SemanalBeneficioDetalhe
@@ -359,8 +369,7 @@ interface ResumoInput {
 }
 
 function montarResumo(i: ResumoInput): SemanalResumo {
-  const validadas = i.aguardando.length + i.piloto.length + i.escala.length
-  const qtds = [i.backlog.length, i.andamento.length, validadas, i.refutadas, i.cancelados]
+  const qtds = [i.exploracao, i.andamento.length, i.validadas, i.refutadas, i.cancelados]
   const pcts = percentuaisInteiros(qtds)
   const labels: [SemanalFatia['id'], string][] = [
     ['exploracao', 'Em Exploração'], ['andamento', 'Em andamento'], ['validadas', 'Hipóteses validadas'],
@@ -519,6 +528,7 @@ export const SAMPLE_SEMANAL_DATA: SemanalData = (() => {
   const resumo = montarResumo({
     total: 210, backlog: sec('backlog'), andamento: sec('andamento'), aguardando: sec('aguardando'),
     piloto: sec('piloto'), escala: sec('escala'), cancelados: 88, refutadas: 60, ideiasNaoAvaliadas: 45,
+    validadas: sec('aguardando').length + sec('piloto').length + sec('escala').length, exploracao: sec('backlog').length,
     beneficioTotal: 416_000_000, beneficioDetalhe: { itens: [], fora: { cancelados: 88, refutados: 60 } },
     semBeneficio: ativos.filter(r => !r.beneficio).length, semSponsor: ativos.filter(r => !r.diretor).length, epicsAtivos: ativos.length,
   })

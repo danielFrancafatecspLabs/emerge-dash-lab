@@ -1,10 +1,12 @@
 import fs from 'fs'
 import path from 'path'
 import { getLiteLLMClient, DEPLOYMENT_LLM } from './llm'
+import { diretorioDoCache } from './cache-dados'
 
 export type MetaCategoria = 'EBITDA' | 'NPS' | 'Receita'
 const VALID_METAS: MetaCategoria[] = ['EBITDA', 'NPS', 'Receita']
-const CACHE_FILE = path.resolve(process.cwd(), '.portfolio-cache.json')
+// Na pasta de cache do app (JIRA_CACHE_DIR em produção), que é gravável; a raiz do projeto pode não ser.
+const cacheFile = () => path.join(diretorioDoCache(), 'portfolio-metas.json')
 
 export interface EpicClassifyInput {
   key: string
@@ -22,8 +24,8 @@ interface CacheV2 { versao: typeof VERSAO_DO_CACHE; metas: Record<string, MetaCa
 
 function loadCache(): Record<string, MetaCategoria> {
   try {
-    if (fs.existsSync(CACHE_FILE)) {
-      const c = JSON.parse(fs.readFileSync(CACHE_FILE, 'utf-8')) as Partial<CacheV2>
+    if (fs.existsSync(cacheFile())) {
+      const c = JSON.parse(fs.readFileSync(cacheFile(), 'utf-8')) as Partial<CacheV2>
       if (c?.versao === VERSAO_DO_CACHE && c.metas && typeof c.metas === 'object') {
         return Object.fromEntries(Object.entries(c.metas).filter(([, m]) => VALID_METAS.includes(m)))
       }
@@ -35,16 +37,43 @@ function loadCache(): Record<string, MetaCategoria> {
 function saveCache(cache: Record<string, MetaCategoria>): void {
   try {
     const conteudo: CacheV2 = { versao: VERSAO_DO_CACHE, metas: cache }
-    fs.writeFileSync(CACHE_FILE, JSON.stringify(conteudo, null, 2), 'utf-8')
+    fs.mkdirSync(diretorioDoCache(), { recursive: true })
+    fs.writeFileSync(cacheFile(), JSON.stringify(conteudo, null, 2), 'utf-8')
   } catch (e) {
     console.error('[portfolio-classifier] Falha ao salvar cache:', e)
   }
 }
 
+/** Situação da classificação (para a tela dizer por que há experimentos sem meta). */
+export interface EstadoDaClassificacao {
+  iaConfigurada: boolean
+  /** Motivo curto da última falha, sem endereços nem chaves. */
+  erro: string | null
+  tentativaEm: string | null
+  proximaTentativaEm: string | null
+}
+
+const motivoCurto = (e: unknown) => String(e instanceof Error ? e.message : e)
+  .replace(/https?:\/\/\S+/g, '[endereço]').replace(/(sk|key)-[\w-]+/gi, '[chave]').slice(0, 160)
+
+export function estadoDaClassificacao(): EstadoDaClassificacao {
+  return {
+    iaConfigurada: !!(process.env.LLM_API_KEY && process.env.LLM_API_BASE),
+    erro: G.__beonMetasErro ?? null,
+    tentativaEm: G.__beonMetasTentativaEm ?? null,
+    proximaTentativaEm: G.__beonMetasEsperarAte > Date.now() ? new Date(G.__beonMetasEsperarAte).toISOString() : null,
+  }
+}
+
 const ESPERA_APOS_FALHA_MS = 30 * 60 * 1000
 const LOTE = 60
-const G = globalThis as typeof globalThis & { __beonMetasEsperarAte: number }
+const G = globalThis as typeof globalThis & { __beonMetasEsperarAte: number; __beonMetasErro?: string | null; __beonMetasTentativaEm?: string | null }
 G.__beonMetasEsperarAte ??= 0
+
+/** As metas já classificadas (sem chamar a IA): para quem só precisa ler, como o agente de analytics. */
+export function metasJaClassificadas(): Record<string, MetaCategoria> {
+  return loadCache()
+}
 
 /** A meta que a IA respondeu, ou null quando a resposta não é uma das três. */
 export function metaDaResposta(raw: unknown): MetaCategoria | null {
@@ -117,7 +146,7 @@ Responda APENAS JSON: {"CHAVE": "CATEGORIA", ...}. Sem markdown.`,
 
 /**
  * Classifica epics em EBITDA / NPS / Receita usando summary + domínio.
- * Cache por epic.key em .portfolio-cache.json — só chama a IA para epics novos.
+ * Cache por epic.key em <JIRA_CACHE_DIR>/portfolio-metas.json — só chama a IA para epics novos.
  * Retorna Record<epicKey, MetaCategoria>.
  */
 export async function classifyPortfolios(
@@ -136,12 +165,14 @@ export async function classifyPortfolios(
   } catch (e) {
     // Sem IA, os experimentos novos ficam sem classificação (nunca num chute): aparecem como "sem classificação".
     console.error('[portfolio-classifier] LLM indisponível; experimentos novos ficam sem classificação:', e)
+    G.__beonMetasErro = motivoCurto(e)
     return cache
   }
 
   // Uma chamada em lote para todos. Se a IA falhar, espera um pouco antes de tentar de novo (a página não fica
   // lenta a cada leitura enquanto ela estiver fora do ar).
   if (Date.now() < G.__beonMetasEsperarAte) return cache
+  G.__beonMetasTentativaEm = new Date().toISOString()
   try {
     // Lotes de até 60: a resposta em JSON de 200 experimentos passaria do limite de tokens e viria cortada.
     let classificados = 0
@@ -151,10 +182,12 @@ export async function classifyPortfolios(
       classificados += Object.keys(lote).length
     }
     console.log(`[portfolio-classifier] ${classificados} de ${novos.length} experimento(s) classificado(s)`)
+    G.__beonMetasErro = classificados ? null : 'A IA respondeu, mas sem uma classificação válida (EBITDA, NPS ou Receita).'
     saveCache(cache)
   } catch (e) {
     saveCache(cache)
     G.__beonMetasEsperarAte = Date.now() + ESPERA_APOS_FALHA_MS
+    G.__beonMetasErro = motivoCurto(e)
     console.warn('[portfolio-classifier] IA indisponível; experimentos novos ficam sem classificação por enquanto:', e)
   }
   return cache

@@ -5,7 +5,8 @@ import { Lightbulb, AlertTriangle, Info, Sparkles } from 'lucide-react'
 import type { InsightExecutivo } from '@/lib/types'
 
 interface Props {
-  titulo: string
+  /** Sem título, o card vai direto ao conteúdo (sem cabeçalho). */
+  titulo?: string
   subtitulo?: string
   children: ReactNode
   insight?: InsightExecutivo | null
@@ -29,7 +30,7 @@ export default function GraficoComInsight({ titulo, subtitulo, children, insight
       {/* Card wrapper */}
       <div className="flex flex-col bg-white rounded-xl shadow-sm border border-gray-200/80 overflow-hidden h-full transition-shadow hover:shadow-md">
         {/* Header do card */}
-        <div className="px-3 md:px-4 pt-2.5 pb-2 border-b border-gray-100 flex items-start gap-2">
+        {titulo && <div className="px-3 md:px-4 pt-2.5 pb-2 border-b border-gray-100 flex items-start gap-2">
           {step !== undefined && (
             <span
               className="flex-shrink-0 flex items-center justify-center rounded-full font-bold text-white"
@@ -44,10 +45,10 @@ export default function GraficoComInsight({ titulo, subtitulo, children, insight
               <p className="text-[10px] text-gray-400 mt-0.5 leading-tight">{subtitulo}</p>
             )}
           </div>
-        </div>
+        </div>}
 
         {/* Conteúdo */}
-        <div className="flex-1 px-3 md:px-4 py-2 min-w-0">
+        <div className={`flex-1 px-3 md:px-4 min-w-0 ${titulo ? 'py-2' : 'py-3'}`}>
           {children}
         </div>
 

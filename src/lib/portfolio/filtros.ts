@@ -3,6 +3,7 @@ import {
   type ColunaBoard, type Entidade, type ExperimentoItem, type IniciativaItem, type ItemPortfolio, type PortfolioDados, type Situacao,
 } from './tipos'
 import { categoriaDoSinal } from '../bloqueio'
+import { etapaValidada } from '../hipoteses'
 
 /**
  * Motor da aba Portfólio (puro, roda na tela): os campos filtráveis dos dois boards, a busca, as facetas
@@ -122,42 +123,31 @@ export function pendenciasDe(item: ItemPortfolio): string[] {
 }
 
 /**
- * Resultado da hipótese, contado por INICIATIVA (sem repetir a iniciativa que tem vários experimentos). Só entram
- * iniciativas com pelo menos um experimento concluído:
- * - Validada: a iniciativa está em Aguardando piloto, Em piloto ou Em escala no board de Ideação.
- * - Refutada: a iniciativa está em Concluído (encerrou sem seguir para piloto nem escala).
- * - Sem decisão: o experimento terminou, mas a iniciativa segue em outra coluna (experimentação, cancelada…) ou o
- *   experimento não tem iniciativa-mãe. Não entra em nenhuma das duas contas.
+ * Hipóteses: sempre em experimentos (épicos), a regra oficial de lib/hipoteses.ts.
+ * - Validada: experimento concluído com a iniciativa-mãe em Aguardando piloto, Em piloto ou Em escala.
+ * - Refutada: experimento concluído com a iniciativa-mãe fora dessas colunas (ou sem iniciativa).
  */
 export const HIPOTESES = ['Validada', 'Refutada'] as const
-export const SEM_DECISAO = 'Concluído, sem decisão'
 export const NAO_CONCLUIDO = 'Experimento não concluído'
 export const SEM_CONCLUIDO = 'Sem experimento concluído'
 
-export type Hipotese = (typeof HIPOTESES)[number] | typeof SEM_DECISAO
+export type Hipotese = (typeof HIPOTESES)[number]
 
-export function iniciativaValidada(i: IniciativaItem, ctx: Contexto): boolean {
-  const n = norm(nomeDaColuna(i.coluna, ctx))
-  return n.includes('piloto') || n.includes('escala')
+export function iniciativaValidada(i: IniciativaItem): boolean {
+  return etapaValidada({ id: i.statusId, name: i.status }) !== null
 }
 
-/** A decisão que a coluna da iniciativa registra (sem olhar os experimentos). */
-function decisaoPelaColuna(i: IniciativaItem, ctx: Contexto): Hipotese {
-  if (iniciativaValidada(i, ctx)) return HIPOTESES[0]
-  if (i.situacao === 'concluido') return HIPOTESES[1]
-  return SEM_DECISAO
-}
-
-/** Hipótese da iniciativa: só existe quando ela tem um experimento concluído. */
+/** Na iniciativa: a hipótese dos experimentos concluídos dela (todos têm a mesma mãe, então a mesma hipótese). */
 export function hipoteseDaIniciativa(i: IniciativaItem, ctx: Contexto): Hipotese | typeof SEM_CONCLUIDO {
-  return filhosDe(i, ctx).some(e => e.situacao === 'concluido') ? decisaoPelaColuna(i, ctx) : SEM_CONCLUIDO
+  if (!filhosDe(i, ctx).some(e => e.situacao === 'concluido')) return SEM_CONCLUIDO
+  return iniciativaValidada(i) ? HIPOTESES[0] : HIPOTESES[1]
 }
 
-/** Hipótese do experimento concluído: a da iniciativa-mãe. */
+/** Hipótese do experimento concluído: validada quando a iniciativa-mãe está em piloto ou escala. */
 export function hipoteseDe(e: ExperimentoItem, ctx: Contexto): Hipotese | typeof NAO_CONCLUIDO {
   if (e.situacao !== 'concluido') return NAO_CONCLUIDO
   const mae = maeDe(e, ctx)
-  return mae ? decisaoPelaColuna(mae, ctx) : SEM_DECISAO
+  return mae && iniciativaValidada(mae) ? HIPOTESES[0] : HIPOTESES[1]
 }
 
 // ── Campos ────────────────────────────────────────────────────────────────────────────────────
@@ -224,7 +214,7 @@ export const CAMPOS: CampoFiltro[] = [
   { id: 'colunaExp', label: 'Coluna do experimento', grupo: 'Board', viaExperimentos: true, experimento: colunaExp, iniciativa: dosFilhos(colunaExp) },
   { id: 'statusExp', label: 'Status do experimento', grupo: 'Board', viaExperimentos: true, experimento: statusExp, iniciativa: dosFilhos(statusExp) },
   {
-    id: 'hipotese', label: 'Hipótese', grupo: 'Board', ordem: [...HIPOTESES, SEM_DECISAO, NAO_CONCLUIDO, SEM_CONCLUIDO],
+    id: 'hipotese', label: 'Hipótese', grupo: 'Board', ordem: [...HIPOTESES, NAO_CONCLUIDO, SEM_CONCLUIDO],
     experimento: (e, ctx) => [hipoteseDe(e, ctx)],
     iniciativa: (i, ctx) => [hipoteseDaIniciativa(i, ctx)],
   },
@@ -482,51 +472,58 @@ export interface Resumo {
   relacionados: number
   /** Experimentos concluídos: os mostrados, ou os das Iniciativas mostradas. */
   concluidos: number
-  /** Iniciativas (sem repetir) com experimento concluído e hipótese validada: em Aguardando piloto, Em piloto ou Em escala. */
+  /** Experimentos concluídos com a iniciativa em Aguardando piloto, Em piloto ou Em escala. */
   validadas: number
-  /** Iniciativas (sem repetir) com experimento concluído e hipótese refutada: em Concluído. */
+  /** Experimentos concluídos com a iniciativa fora dessas colunas. */
   refutadas: number
-  /** Experimentos concluídos cuja iniciativa ainda não decidiu (segue em outra coluna) ou que não têm iniciativa. */
-  semDecisao: number
+  /** Iniciativas em cada etapa (como as seções do Semanal). */
+  porEtapa: { aguardando: number; piloto: number; escala: number }
 }
 
-export function resumir(itens: ItemPortfolio[], ctx: Contexto): Resumo {
+/**
+ * Indicadores da tela. `completo` indica que nenhum filtro ou busca está ativo: aí as hipóteses e as etapas
+ * consideram o portfólio inteiro (inclusive iniciativas sem experimento e experimentos sem iniciativa), igual ao Semanal.
+ */
+export function resumir(itens: ItemPortfolio[], ctx: Contexto, completo = false): Resumo {
   const relacionados = new Set<string>()
   const experimentos = new Map<string, ExperimentoItem>()
+  const iniciativas = new Map<string, IniciativaItem>()
   for (const i of itens) {
     if (i.tipo === 'iniciativa') {
       i.experimentos.forEach(k => relacionados.add(k))
+      iniciativas.set(i.key, i)
       filhosDe(i, ctx).forEach(e => experimentos.set(e.key, e))
     } else {
       if (i.iniciativaKey) relacionados.add(i.iniciativaKey)
       experimentos.set(i.key, i)
+      const mae = maeDe(i, ctx)
+      if (mae) iniciativas.set(mae.key, mae)
     }
   }
-  // Hipóteses por iniciativa: cada iniciativa conta uma vez, por mais experimentos concluídos que tenha.
-  const validadas = new Set<string>()
-  const refutadas = new Set<string>()
-  let concluidos = 0
-  let semDecisao = 0
-  for (const e of experimentos.values()) {
-    const h = hipoteseDe(e, ctx)
-    if (h === NAO_CONCLUIDO) continue
-    concluidos++
-    if (h === HIPOTESES[0]) validadas.add(e.iniciativaKey!)
-    else if (h === HIPOTESES[1]) refutadas.add(e.iniciativaKey!)
-    else semDecisao++
+  if (completo) {
+    ctx.iniciativas.forEach(i => iniciativas.set(i.key, i))
+    ctx.experimentos.forEach(e => experimentos.set(e.key, e))
   }
+  const hipoteses = [...experimentos.values()].map(e => hipoteseDe(e, ctx))
+  const etapas = [...iniciativas.values()].map(i => etapaValidada({ id: i.statusId, name: i.status }))
   return {
     total: itens.length,
     ativos: itens.filter(i => i.situacao !== 'cancelado').length,
     emExecucao: itens.filter(i => i.situacao === 'em-execucao').length,
     bloqueados: itens.filter(i => i.bloqueado).length,
     // Benefício potencial: sem os cancelados (a iniciativa já soma só os experimentos não cancelados).
-    beneficio: itens.reduce((s, i) => s + (i.situacao === 'cancelado' ? 0 : i.beneficio ?? 0), 0),
+    // O que sai é o experimento cancelado (a iniciativa já soma só os não cancelados); iniciativa cancelada sem
+    // experimento, que só tem o benefício próprio, também sai.
+    beneficio: itens.reduce((s, i) => s + (i.situacao === 'cancelado' && (i.tipo === 'experimento' || !i.experimentos.length) ? 0 : i.beneficio ?? 0), 0),
     relacionados: relacionados.size,
-    concluidos,
-    validadas: validadas.size,
-    refutadas: refutadas.size,
-    semDecisao,
+    concluidos: [...experimentos.values()].filter(e => e.situacao === 'concluido').length,
+    validadas: hipoteses.filter(h => h === HIPOTESES[0]).length,
+    refutadas: hipoteses.filter(h => h === HIPOTESES[1]).length,
+    porEtapa: {
+      aguardando: etapas.filter(x => x === 'aguardando').length,
+      piloto: etapas.filter(x => x === 'piloto').length,
+      escala: etapas.filter(x => x === 'escala').length,
+    },
   }
 }
 

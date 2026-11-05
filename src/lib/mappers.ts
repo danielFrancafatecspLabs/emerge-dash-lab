@@ -1,3 +1,4 @@
+import { ESTAGIO_DA_ETAPA, etapaValidada } from './hipoteses'
 import {
   JiraIssue,
   JiraStatus,
@@ -266,7 +267,7 @@ export function getPipelineStage(status: JiraStatus): keyof PipelineCount | unde
   if (normalized.includes('AGUARDANDO')) return 'AGUARDANDO PILOTO'
   if (normalized.includes('EXPERIMENTA') || normalized.includes('ANDAMENTO') || normalized.includes('VALIDAÇÃO') || normalized.includes('VALIDACAO')) return 'EM EXPERIMENTAÇÃO'
   if (normalized.includes('CONCLUÍ') || normalized.includes('CONCLUI') || normalized === 'DONE') return 'FINALIZADO'
-  if (normalized.includes('CANCEL') || normalized.includes('CANCELLED')) return 'CANCELADO'
+  if (normalized.includes('CANCEL') || normalized.includes('DESCONTINU')) return 'CANCELADO'
   if (normalized.includes('BACKLOG')) return 'BACKLOG'
   if (normalized.includes('REFINAMENTO')) return 'EM REFINAMENTO'
   if (normalized.includes('PRONTO')) return 'PRONTO PARA EXECUÇÃO'
@@ -412,6 +413,9 @@ export function buildDashboardData(
     'EM ESCALA': 0, FINALIZADO: 0, CANCELADO: 0,
   }
   for (const ini of iniciativas) {
+    // Aguardando piloto, piloto e escala (Finalizado incluído): a regra oficial, igual em todas as telas.
+    const etapa = etapaValidada(ini.status)
+    if (etapa) { pipelineActual[ESTAGIO_DA_ETAPA[etapa]]++; continue }
     // Tenta primeiro pelo boardConfig (mais preciso)
     const colNome = getColunaPeloStatus(ini.status)
     if (colNome) {
@@ -1552,6 +1556,8 @@ function dataEstaNoPeriodo(dataStr: string | null | undefined, periodo: PeriodoF
     return d >= inicio && d <= fim
   }
 
+  if (periodo.tipo === 'ano') return d.getFullYear() === periodo.ano
+
   return true
 }
 
@@ -1594,6 +1600,12 @@ function getMesesDoPeriodo(periodo: PeriodoFiltro): { mes: string; ano: number; 
     for (let m = inicio; m <= fim; m++) {
       resultado.push({ mes: MESES_ABREV[m], ano: periodo.ano, mesIdx: m })
     }
+    return resultado
+  }
+
+  // Ano cheio ("Todo 2025", "Todo 2026"): os doze meses do ano.
+  if (periodo.tipo === 'ano') {
+    for (let m = 0; m <= 11; m++) resultado.push({ mes: MESES_ABREV[m], ano: periodo.ano, mesIdx: m })
     return resultado
   }
 

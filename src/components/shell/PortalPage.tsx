@@ -8,6 +8,7 @@ import { Maximize2, Minimize2, RotateCcw } from 'lucide-react'
 import { useCommunity } from '@/components/comunidade/CommunityProvider'
 import { cx, focusRing } from '@/components/ui'
 import { useHideChrome } from './AppChrome'
+import { SeloDeConsistencia } from './SeloDeConsistencia'
 import { LeituraDoJira } from '@/components/jira/LeituraDoJira'
 
 /** Lê o Jira agora, fora da leitura diária (só admins), e recarrega a página. */
@@ -91,10 +92,22 @@ export interface PortalPageProps {
   chrome?: boolean
   /** Mostra "Maximizar" (padrão): esconde o menu lateral e as barras do app, mantendo a barra da página. */
   maximizable?: boolean
+  /** Aviso fixo logo abaixo da barra (ex.: "Dados em revisão"). */
+  aviso?: ReactNode
   children: ReactNode
 }
 
-export function PortalPage({ title, description, actions, refreshable, fit, chrome = true, maximizable = true, children }: PortalPageProps) {
+/** Faixa de aviso de que os números da página ainda estão sendo revisados. */
+export function AvisoDadosEmRevisao({ children }: { children?: ReactNode }) {
+  return (
+    <div role="status" className="flex items-start gap-2 border-b border-amber-200 bg-amber-50 px-4 py-2 text-[13px] text-amber-900 sm:px-6">
+      <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-amber-500" aria-hidden />
+      <p><b className="font-semibold">Dados em revisão.</b> {children ?? 'Os números desta página estão sendo conferidos e podem mudar.'}</p>
+    </div>
+  )
+}
+
+export function PortalPage({ title, description, actions, refreshable, fit, chrome = true, maximizable = true, aviso, children }: PortalPageProps) {
   const { me } = useCommunity()
   const [maximizado, alternarMaximizado] = useMaximizado(title, maximizable && chrome)
   useHideChrome(!chrome || maximizado)
@@ -120,6 +133,7 @@ export function PortalPage({ title, description, actions, refreshable, fit, chro
           {description && <p className="hidden truncate text-xs text-beon-muted sm:block">{description}</p>}
         </div>
         {refreshable && <LeituraDoJira className="hidden sm:inline-flex" />}
+        {refreshable && <SeloDeConsistencia className="hidden sm:inline-flex" />}
         {(actions || podeAtualizar || maximizable) && (
           <div className="flex shrink-0 items-center gap-2">
             {actions}
@@ -128,6 +142,7 @@ export function PortalPage({ title, description, actions, refreshable, fit, chro
           </div>
         )}
       </div>
+      {aviso}
       <div className={cx('flex min-w-0 flex-1 flex-col', fit && 'min-h-0 overflow-hidden')}>{children}</div>
     </div>
   )

@@ -1,4 +1,5 @@
 import { fetchDashboardRaw } from '@/lib/jira'
+import { talvezRodarAgenteAnalitico } from '@/lib/analytics/agente'
 import { buildDashboardData } from '@/lib/mappers'
 import { classifyPortfolios } from '@/lib/portfolio-classifier'
 import { classifySegmentos } from '@/lib/segmento-classifier'
@@ -31,6 +32,8 @@ export default async function PortfolioPage({ searchParams }: { searchParams: Re
       raw.iniciativas, raw.epics, classification, segmentoClassification, raw.board2734Config, raw.epicChangelogs, raw.iniciativaChangelogs,
     )
     dados = montarPortfolio(data, { iniciativa: raw.board2734Config, experimento: raw.board2735Config }, process.env.JIRA_BASE_URL ?? null)
+    // Agente de analytics: confere em segundo plano se as visões batem entre si (não segura a página).
+    talvezRodarAgenteAnalitico()
   } catch (e) {
     error = String(e)
   }

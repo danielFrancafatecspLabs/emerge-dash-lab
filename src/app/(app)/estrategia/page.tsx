@@ -1,6 +1,7 @@
 import { fetchDashboardRaw } from '@/lib/jira'
+import { talvezRodarAgenteAnalitico } from '@/lib/analytics/agente'
 import { buildDashboardData, buildMonitoramentoData } from '@/lib/mappers'
-import { classifyPortfolios } from '@/lib/portfolio-classifier'
+import { classifyPortfolios, estadoDaClassificacao } from '@/lib/portfolio-classifier'
 import { classifySegmentos } from '@/lib/segmento-classifier'
 import { loadValidacoes } from '@/lib/beneficios'
 import EstrategiaClient from '@/components/dashboard/EstrategiaClient'
@@ -34,6 +35,8 @@ export default async function PortfolioPage() {
     ])
     data = buildDashboardData(raw.iniciativas, raw.epics, classification, segmentoClassification, raw.board2734Config, raw.epicChangelogs, raw.iniciativaChangelogs)
     monitoramento = buildMonitoramentoData(data)
+    // Agente de analytics: confere em segundo plano se as visões batem entre si (não segura a página).
+    talvezRodarAgenteAnalitico()
   } catch (e) {
     error = String(e)
   }
@@ -51,5 +54,5 @@ export default async function PortfolioPage() {
     if (v?.statusValidacao === 'validado') beneficioValidadoPorEpic[e.key] = v.beneficioValidado ?? e.beneficioQuantitativo ?? 0
   }
 
-  return <EstrategiaClient data={data} monitoramento={monitoramento} beneficioValidadoPorEpic={beneficioValidadoPorEpic} />
+  return <EstrategiaClient data={data} monitoramento={monitoramento} beneficioValidadoPorEpic={beneficioValidadoPorEpic} classificacao={estadoDaClassificacao()} />
 }
