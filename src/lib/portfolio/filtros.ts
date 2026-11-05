@@ -3,7 +3,7 @@ import {
   type ColunaBoard, type Entidade, type ExperimentoItem, type IniciativaItem, type ItemPortfolio, type PortfolioDados, type Situacao,
 } from './tipos'
 import { categoriaDoSinal } from '../bloqueio'
-import { contarHipoteses, etapaValidada } from '../weekly'
+import { etapaValidada } from '../hipoteses'
 
 /**
  * Motor da aba Portfólio (puro, roda na tela): os campos filtráveis dos dois boards, a busca, as facetas
@@ -123,43 +123,31 @@ export function pendenciasDe(item: ItemPortfolio): string[] {
 }
 
 /**
- * Hipóteses: a regra oficial do Semanal (lib/weekly.ts → contarHipoteses), para os números baterem com ele.
- * - Validada: a iniciativa está em Aguardando piloto, Em piloto ou Em escala.
- * - Refutadas (indicador): o restante do total de experimentos, fora exploração, andamento, validadas e cancelados.
- *   É uma conta, não uma lista; no filtro, o mais próximo é "Concluído sem avançar" (experimento concluído cuja
- *   iniciativa não seguiu para piloto nem escala).
+ * Hipóteses: sempre em experimentos (épicos), a regra oficial de lib/hipoteses.ts.
+ * - Validada: experimento concluído com a iniciativa-mãe em Aguardando piloto, Em piloto ou Em escala.
+ * - Refutada: experimento concluído com a iniciativa-mãe fora dessas colunas (ou sem iniciativa).
  */
-export const HIPOTESES = ['Validada', 'Concluído sem avançar'] as const
+export const HIPOTESES = ['Validada', 'Refutada'] as const
 export const NAO_CONCLUIDO = 'Experimento não concluído'
 export const SEM_CONCLUIDO = 'Sem experimento concluído'
 
 export type Hipotese = (typeof HIPOTESES)[number]
 
-const comStatus = <T extends ItemPortfolio>(x: T) => ({ item: x, status: { id: x.statusId, name: x.status } })
-
 export function iniciativaValidada(i: IniciativaItem): boolean {
   return etapaValidada({ id: i.statusId, name: i.status }) !== null
 }
 
-/** Hipótese da iniciativa: validada pela coluna; sem avançar quando concluiu experimento e não seguiu. */
+/** Na iniciativa: a hipótese dos experimentos concluídos dela (todos têm a mesma mãe, então a mesma hipótese). */
 export function hipoteseDaIniciativa(i: IniciativaItem, ctx: Contexto): Hipotese | typeof SEM_CONCLUIDO {
-  if (iniciativaValidada(i)) return HIPOTESES[0]
-  return filhosDe(i, ctx).some(e => e.situacao === 'concluido') ? HIPOTESES[1] : SEM_CONCLUIDO
+  if (!filhosDe(i, ctx).some(e => e.situacao === 'concluido')) return SEM_CONCLUIDO
+  return iniciativaValidada(i) ? HIPOTESES[0] : HIPOTESES[1]
 }
 
-/** Hipótese do experimento concluído: validada quando a iniciativa-mãe seguiu para piloto ou escala. */
+/** Hipótese do experimento concluído: validada quando a iniciativa-mãe está em piloto ou escala. */
 export function hipoteseDe(e: ExperimentoItem, ctx: Contexto): Hipotese | typeof NAO_CONCLUIDO {
   if (e.situacao !== 'concluido') return NAO_CONCLUIDO
   const mae = maeDe(e, ctx)
   return mae && iniciativaValidada(mae) ? HIPOTESES[0] : HIPOTESES[1]
-}
-
-/** Status dos experimentos em exploração: as colunas Backlog e Refinamento do board de Experimentação. */
-function exploracaoIds(ctx: Contexto): string[] {
-  const ids = [...ctx.colunas.values()]
-    .filter(c => c.id.startsWith('experimento-') && /BACKLOG|REFINAMENTO/.test(c.nome.normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase()))
-    .flatMap(c => c.statusIds)
-  return ids.length ? ids : ['10004', '10139']
 }
 
 // ── Campos ────────────────────────────────────────────────────────────────────────────────────
@@ -484,16 +472,17 @@ export interface Resumo {
   relacionados: number
   /** Experimentos concluídos: os mostrados, ou os das Iniciativas mostradas. */
   concluidos: number
-  /** Iniciativas em Aguardando piloto, Em piloto ou Em escala (a regra do Semanal). */
+  /** Experimentos concluídos com a iniciativa em Aguardando piloto, Em piloto ou Em escala. */
   validadas: number
-  porEtapa: { aguardando: number; piloto: number; escala: number }
-  /** O restante do total de experimentos, como no Semanal (fora exploração, andamento, validadas e cancelados). */
+  /** Experimentos concluídos com a iniciativa fora dessas colunas. */
   refutadas: number
+  /** Iniciativas em cada etapa (como as seções do Semanal). */
+  porEtapa: { aguardando: number; piloto: number; escala: number }
 }
 
 /**
- * Indicadores da tela. `completo` indica que nenhum filtro ou busca está ativo: aí as hipóteses consideram o
- * portfólio inteiro (inclusive iniciativas sem experimento e experimentos sem iniciativa), igual ao Semanal.
+ * Indicadores da tela. `completo` indica que nenhum filtro ou busca está ativo: aí as hipóteses e as etapas
+ * consideram o portfólio inteiro (inclusive iniciativas sem experimento e experimentos sem iniciativa), igual ao Semanal.
  */
 export function resumir(itens: ItemPortfolio[], ctx: Contexto, completo = false): Resumo {
   const relacionados = new Set<string>()
@@ -515,7 +504,8 @@ export function resumir(itens: ItemPortfolio[], ctx: Contexto, completo = false)
     ctx.iniciativas.forEach(i => iniciativas.set(i.key, i))
     ctx.experimentos.forEach(e => experimentos.set(e.key, e))
   }
-  const h = contarHipoteses([...iniciativas.values()].map(comStatus), [...experimentos.values()].map(comStatus), exploracaoIds(ctx))
+  const hipoteses = [...experimentos.values()].map(e => hipoteseDe(e, ctx))
+  const etapas = [...iniciativas.values()].map(i => etapaValidada({ id: i.statusId, name: i.status }))
   return {
     total: itens.length,
     ativos: itens.filter(i => i.situacao !== 'cancelado').length,
@@ -527,9 +517,13 @@ export function resumir(itens: ItemPortfolio[], ctx: Contexto, completo = false)
     beneficio: itens.reduce((s, i) => s + (i.situacao === 'cancelado' && (i.tipo === 'experimento' || !i.experimentos.length) ? 0 : i.beneficio ?? 0), 0),
     relacionados: relacionados.size,
     concluidos: [...experimentos.values()].filter(e => e.situacao === 'concluido').length,
-    validadas: h.validadas.length,
-    porEtapa: { aguardando: h.porEtapa.aguardando.length, piloto: h.porEtapa.piloto.length, escala: h.porEtapa.escala.length },
-    refutadas: h.refutadas,
+    validadas: hipoteses.filter(h => h === HIPOTESES[0]).length,
+    refutadas: hipoteses.filter(h => h === HIPOTESES[1]).length,
+    porEtapa: {
+      aguardando: etapas.filter(x => x === 'aguardando').length,
+      piloto: etapas.filter(x => x === 'piloto').length,
+      escala: etapas.filter(x => x === 'escala').length,
+    },
   }
 }
 

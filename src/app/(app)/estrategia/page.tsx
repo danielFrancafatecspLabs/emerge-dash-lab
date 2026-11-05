@@ -5,7 +5,6 @@ import { classifyPortfolios, estadoDaClassificacao } from '@/lib/portfolio-class
 import { classifySegmentos } from '@/lib/segmento-classifier'
 import { loadValidacoes } from '@/lib/beneficios'
 import EstrategiaClient from '@/components/dashboard/EstrategiaClient'
-import { statusIdsDeExploracao } from '@/lib/weekly'
 import type { MonitoramentoData } from '@/lib/types'
 import { PortalDataError } from '@/components/shell/PortalDataError'
 
@@ -16,7 +15,6 @@ export const maxDuration = 60 // 60 segundos para acomodar fetch de changelogs
 export default async function PortfolioPage() {
   let data
   let monitoramento
-  let exploracaoIds: string[] = []
   let error: string | null = null
 
   try {
@@ -37,7 +35,6 @@ export default async function PortfolioPage() {
     ])
     data = buildDashboardData(raw.iniciativas, raw.epics, classification, segmentoClassification, raw.board2734Config, raw.epicChangelogs, raw.iniciativaChangelogs)
     monitoramento = buildMonitoramentoData(data)
-    exploracaoIds = statusIdsDeExploracao(raw.board2735Config)
     // Agente de analytics: confere em segundo plano se as visões batem entre si (não segura a página).
     talvezRodarAgenteAnalitico()
   } catch (e) {
@@ -57,5 +54,5 @@ export default async function PortfolioPage() {
     if (v?.statusValidacao === 'validado') beneficioValidadoPorEpic[e.key] = v.beneficioValidado ?? e.beneficioQuantitativo ?? 0
   }
 
-  return <EstrategiaClient data={data} monitoramento={monitoramento} beneficioValidadoPorEpic={beneficioValidadoPorEpic} exploracaoIds={exploracaoIds} classificacao={estadoDaClassificacao()} />
+  return <EstrategiaClient data={data} monitoramento={monitoramento} beneficioValidadoPorEpic={beneficioValidadoPorEpic} classificacao={estadoDaClassificacao()} />
 }

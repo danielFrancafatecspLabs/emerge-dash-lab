@@ -1,5 +1,5 @@
 import { epicBloqueado } from '@/lib/bloqueio'
-import { buildMonitoramentoData, getPipelineStage } from '@/lib/mappers'
+import { buildMonitoramentoData } from '@/lib/mappers'
 import { contagensDoFunil, ehCancelado, filtrarDashboardData, resultadosDaEstrategia } from '@/lib/estrategia/resultados'
 import { ehExperimentoConcluido } from '@/lib/concluido'
 import { criarContexto, resumir } from '@/lib/portfolio/filtros'
@@ -55,7 +55,7 @@ export interface EntradaConsistencia {
   weekly: WeeklyData
   semanal: SemanalData
   portfolio: PortfolioDados
-  exploracaoIds: string[]
+  exploracaoIds?: string[]
   /**
    * Configuração dos boards no Jira: a fonte independente. Cada regra do app (por id ou nome de status) é conferida
    * contra a coluna em que o item realmente está no board.
@@ -78,7 +78,8 @@ function colunas(config?: JiraBoardConfiguration): Map<string, string> {
 function etapaPelaColuna(coluna: string | undefined): 'aguardando' | 'piloto' | 'escala' | null {
   if (!coluna) return null
   if (coluna.includes('AGUARDANDO')) return 'aguardando'
-  if (coluna.includes('ESCALA')) return 'escala'
+  // Finalizado é o status antigo de Em escala: a coluna Concluído/Finalizado do board de Ideação conta como escala.
+  if (coluna.includes('ESCALA') || coluna.includes('FINALIZ') || coluna.includes('CONCLU')) return 'escala'
   if (coluna.includes('PILOTO')) return 'piloto'
   return null
 }
@@ -139,7 +140,7 @@ function inventarioDeStatus(e: EntradaConsistencia, colIni: Map<string, string>,
 export function verificarConsistencia(e: EntradaConsistencia): RelatorioConsistencia {
   // ── Cada visão, com as funções da própria tela ──
   const tudo = filtrarDashboardData(e.data, { tipo: 'tudo' })
-  const est = resultadosDaEstrategia(tudo, e.exploracaoIds)
+  const est = resultadosDaEstrategia(tudo)
   const funil = contagensDoFunil(tudo.allEpics)
   const crescimento = buildMonitoramentoData(tudo, { tipo: 'tudo' }, e.data.allEpics)
   const ctx = criarContexto(e.portfolio)
@@ -153,20 +154,25 @@ export function verificarConsistencia(e: EntradaConsistencia): RelatorioConsiste
     comparar('total', 'Total de experimentos', 'Todos os Epics do board de Experimentação.', {
       Semanal: e.semanal.resumo.totalExperimentos, 'Estratégia (Tudo)': funil.total, Portfólio: e.portfolio.experimentos.length,
     }),
-    comparar('validadas', 'Hipóteses validadas', 'Iniciativas em Aguardando piloto, Em piloto ou Em escala.', {
-      Semanal: fatia('validadas'), 'Estratégia (Tudo)': est.hipoteses.validadas.length, Portfólio: portIni.validadas,
+    comparar('validadas', 'Hipóteses validadas', 'Experimentos concluídos com a iniciativa em Aguardando piloto, Em piloto ou Em escala (lib/hipoteses.ts).', {
+      Semanal: fatia('validadas'), 'Estratégia (Tudo)': est.hipoteses.validadas.length, Portfólio: portExp.validadas,
+      'Comparativo / benefício do Semanal': e.weekly.epicsConsiderados.filter(x => x.grupo === 'validada').length,
     }),
-    comparar('aguardando', 'Aguardando piloto', 'Iniciativas em Aguardando piloto.', {
-      Semanal: etapa('aguardando'), 'Estratégia (Tudo)': est.hipoteses.porEtapa['AGUARDANDO PILOTO'].length, Portfólio: portIni.porEtapa.aguardando,
+    comparar('refutadas', 'Hipóteses refutadas', 'Experimentos concluídos com a iniciativa fora dessas colunas.', {
+      Semanal: fatia('refutadas'), 'Estratégia (Tudo)': est.hipoteses.refutadas.length, Portfólio: portExp.refutadas,
+      'Comparativo / benefício do Semanal': e.weekly.foraDaConta.refutados,
     }),
-    comparar('piloto', 'Em piloto', 'Iniciativas em Em piloto.', {
-      Semanal: etapa('piloto'), 'Estratégia (Tudo)': est.hipoteses.porEtapa['EM PILOTO'].length, Portfólio: portIni.porEtapa.piloto,
+    comparar('aguardando', 'Aguardando piloto (iniciativas)', 'Iniciativas em Aguardando piloto.', {
+      Semanal: etapa('aguardando'), 'Estratégia (Tudo)': est.hipoteses.porEtapa['AGUARDANDO PILOTO'].length,
+      Portfólio: portIni.porEtapa.aguardando, Operacional: e.data.pipeline['AGUARDANDO PILOTO'],
     }),
-    comparar('escala', 'Em escala', 'Iniciativas em Em escala.', {
-      Semanal: etapa('escala'), 'Estratégia (Tudo)': est.hipoteses.porEtapa['EM ESCALA'].length, Portfólio: portIni.porEtapa.escala,
+    comparar('piloto', 'Em piloto (iniciativas)', 'Iniciativas em Em piloto.', {
+      Semanal: etapa('piloto'), 'Estratégia (Tudo)': est.hipoteses.porEtapa['EM PILOTO'].length,
+      Portfólio: portIni.porEtapa.piloto, Operacional: e.data.pipeline['EM PILOTO'],
     }),
-    comparar('refutadas', 'Hipóteses refutadas', 'Total de experimentos − exploração − andamento − validadas − cancelados.', {
-      Semanal: fatia('refutadas'), 'Estratégia (Tudo)': est.hipoteses.refutadas, Portfólio: portIni.refutadas,
+    comparar('escala', 'Em escala (iniciativas)', 'Iniciativas em Em escala (Finalizado conta como Em escala).', {
+      Semanal: etapa('escala'), 'Estratégia (Tudo)': est.hipoteses.porEtapa['EM ESCALA'].length,
+      Portfólio: portIni.porEtapa.escala, Operacional: e.data.pipeline['EM ESCALA'],
     }),
     comparar('andamento', 'Em andamento', 'Epics em Em andamento ou Em validação.', {
       Semanal: fatia('andamento'), 'Estratégia (Tudo)': funil.emAndamento + funil.emValidacao,
@@ -201,7 +207,7 @@ export function verificarConsistencia(e: EntradaConsistencia): RelatorioConsiste
     Portfólio: portExp.bloqueados, 'Regra do app (lib/bloqueio)': e.data.allEpics.filter(x => emExperimentacao(x) && epicBloqueado(x)).length,
   }))
 
-  // As 5 fatias do Semanal precisam somar o total: se não somam, a conta das refutadas foi cortada no zero.
+  // As 5 fatias do Semanal precisam somar o total de experimentos.
   const somaFatias = ['exploracao', 'andamento', 'validadas', 'refutadas', 'cancelados'].reduce((s, id) => s + fatia(id), 0)
   verificacoes.push(comparar('fatias-semanal', 'As 5 fatias do Semanal somam o total', 'Exploração + andamento + validadas + refutadas + cancelados = total de Epics.', {
     'Soma das fatias': somaFatias, 'Total de Epics': e.dataSemanal.allEpics.length,
@@ -212,7 +218,8 @@ export function verificarConsistencia(e: EntradaConsistencia): RelatorioConsiste
   const colExp = colunas(e.board2735Config)
   if (colIni.size) {
     const pelaColuna = (etapa: string) => e.dataSemanal.iniciativas.filter(i => etapaPelaColuna(colIni.get(i.status.id)) === etapa).length
-    const peloPipeline = (stage: string) => e.data.iniciativas.filter(i => getPipelineStage(i.status) === stage).length
+    // O que o Operacional mostra: as contagens do pipeline do DashboardData.
+    const peloPipeline = (stage: 'AGUARDANDO PILOTO' | 'EM PILOTO' | 'EM ESCALA') => e.data.pipeline[stage]
     for (const [etapa, titulo, stage] of [['aguardando', 'Aguardando piloto', 'AGUARDANDO PILOTO'], ['piloto', 'Em piloto', 'EM PILOTO'], ['escala', 'Em escala', 'EM ESCALA']] as const) {
       verificacoes.push(comparar(`coluna-${etapa}`, `${titulo}: regra do app × coluna no Jira`,
         'A regra do Semanal (por id/nome de status) e a do Operacional (por estágio) contra a coluna em que a iniciativa está no board de Ideação.', {
@@ -258,14 +265,17 @@ export function verificarConsistencia(e: EntradaConsistencia): RelatorioConsiste
   const maeInexistente = e.data.allEpics.filter(x => x.parentKey && !chavesIni.has(x.parentKey))
   const dominioDaMae = new Map(e.data.iniciativas.map(i => [i.key, i.dominio || i.dominios[0] || null]))
   const semDominio = e.data.allEpics.filter(x => !ehCancelado(x) && !x.dominio?.trim() && !(x.parentKey && dominioDaMae.get(x.parentKey)))
-  const validadasSemConcluido = est.hipoteses.validadas.filter(i => !i.epics.some(x => x.status?.id === '10019'))
+  const etapaSemConcluido = e.data.iniciativas.filter(i => etapaValidada(i.status) && !i.epics.some(x => x.status?.id === '10019'))
   const bloqueioForaDeExperimentacao = e.data.allEpics.filter(x => !emExperimentacao(x) && epicBloqueado(x))
   const alertas: Alerta[] = [
     { id: 'sem-iniciativa', titulo: 'Experimentos sem iniciativa-mãe', quantidade: semMae.length, exemplos: exemplos(semMae) },
     { id: 'mae-inexistente', titulo: 'Experimentos com iniciativa-mãe fora do board de Ideação', quantidade: maeInexistente.length, exemplos: exemplos(maeInexistente) },
     { id: 'sem-dominio', titulo: 'Experimentos sem domínio (nem no experimento nem na iniciativa)', quantidade: semDominio.length, exemplos: exemplos(semDominio) },
     { id: 'sem-meta', titulo: 'Experimentos sem meta estratégica (classificação da IA pendente)', quantidade: est.semMeta.length, exemplos: exemplos(est.semMeta) },
-    { id: 'validadas-sem-concluido', titulo: 'Hipóteses validadas sem experimento concluído vinculado', quantidade: validadasSemConcluido.length, exemplos: exemplos(validadasSemConcluido) },
+    {
+      id: 'etapa-sem-concluido', titulo: 'Iniciativas em aguardando piloto, piloto ou escala sem experimento concluído (contam nas etapas, não nas hipóteses)',
+      quantidade: etapaSemConcluido.length, exemplos: exemplos(etapaSemConcluido),
+    },
     { id: 'bloqueio-fora', titulo: 'Sinal de bloqueio fora de experimentação (não conta em Bloqueados)', quantidade: bloqueioForaDeExperimentacao.length, exemplos: exemplos(bloqueioForaDeExperimentacao) },
     ...inventarioDeStatus(e, colIni, colExp),
     { id: 'cancelados-com-beneficio', titulo: 'Cancelados com benefício (fora do benefício potencial)', quantidade: est.cancelados.epics.length, exemplos: exemplos(est.cancelados.epics) },
