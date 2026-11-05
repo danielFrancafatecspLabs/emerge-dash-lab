@@ -59,8 +59,9 @@ describe('buildSemanalData', () => {
       epic('GL-1', { status: { id: '10004', name: 'Backlog' }, beneficioQuantitativo: 3_600_000 }),
       epic('GL-2', { beneficioQuantitativo: 16_000_000, prioridade: 'Highest', motivoBloqueio: 'Pendente Status', duedate: '2026-10-30' }),
       epic('GL-3', { status: { id: '10015', name: 'Cancelado' } }),
-      epic('GL-4', { status: { id: '10019', name: 'Concluído' } }),
-      epic('GL-5', { status: { id: '10019', name: 'Concluído' } }),
+      // Hipóteses em épicos: concluídos com a iniciativa em aguardando piloto (GL-10) e em piloto (GL-11) = validadas.
+      epic('GL-4', { status: { id: '10019', name: 'Concluído' }, parentKey: 'GL-10' }),
+      epic('GL-5', { status: { id: '10019', name: 'Concluído' }, parentKey: 'GL-11' }),
     ]
     const inis = [
       iniciativa('GL-10', { beneficioQuantitativo: 2_000_000 }),

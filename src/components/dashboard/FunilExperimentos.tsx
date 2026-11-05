@@ -11,7 +11,7 @@ import { DashboardData, EpicDetail, Iniciativa } from '@/lib/types'
 import ExperimentoModal from './ExperimentoModal'
 import IniciativaModal from './IniciativaModal'
 import { ehExperimentoConcluido } from '@/lib/concluido'
-import type { ResultadosEstrategia } from '@/lib/estrategia/resultados'
+import { contagensDoFunil, ehCancelado, type ResultadosEstrategia } from '@/lib/estrategia/resultados'
 
 interface Props { data: DashboardData; resultados: ResultadosEstrategia }
 
@@ -22,8 +22,8 @@ const CAMADA_META: Record<string, { icon: React.ReactNode; desc: string }> = {
   'Concluídos':              { icon: <CheckCircle2 size={11} />, desc: 'Experimentos finalizados' },
   'Cancelados':              { icon: <Ban size={11} />, desc: 'Experimentos cancelados' },
   'Em Validação':            { icon: <FileSearch size={11} />, desc: 'Experimentos em validação de resultados' },
-  'Hipóteses validadas':     { icon: <CheckCircle2 size={11} />, desc: 'Iniciativas com experimento concluído que seguiram para piloto ou escala' },
-  'Hipóteses refutadas':     { icon: <AlertCircle size={11} />, desc: 'Iniciativas com experimento concluído que foram para Concluído' },
+  'Hipóteses validadas':     { icon: <CheckCircle2 size={11} />, desc: 'Experimentos concluídos com a iniciativa em aguardando piloto, piloto ou escala' },
+  'Hipóteses refutadas':     { icon: <AlertCircle size={11} />, desc: 'Experimentos concluídos com a iniciativa fora de piloto e escala' },
   'Em Piloto':               { icon: <Target size={11} />, desc: 'Iniciativas validadas em piloto' },
   'Aguardando Piloto':       { icon: <Clock size={11} />, desc: 'Iniciativas prontas para iniciar piloto' },
   'Pilotos Executados':      { icon: <Target size={11} />, desc: 'Iniciativas em fase de piloto' },
@@ -41,21 +41,11 @@ export default function FunilExperimentos({ data, resultados }: Props) {
   const [hoveredCamada, setHoveredCamada] = useState<string | null>(null)
 
   // ── Board de Experimentação (2735) — Epics ──
-  const totalExperimentos = data.allEpics.length
-  const emAndamento = data.allEpics.filter(e =>
-    e.status?.id === '3' || e.status?.name === 'Em andamento'
-  ).length
-  const emValidacao = data.allEpics.filter(e =>
-    e.status?.id === '10204' || e.status?.name === 'EM VALIDAÇÃO' || e.status?.name === 'Em validação'
-  ).length
+  // As mesmas contagens que o agente de analytics confere (lib/estrategia/resultados.ts → contagensDoFunil).
+  const { total: totalExperimentos, emValidacao, concluidos, cancelados, emAndamento } = contagensDoFunil(data.allEpics)
   const emAndamentoTotal = emAndamento + emValidacao
-  // Mesma regra do report Semanal e do burnup (lib/concluido.ts)
-  const concluidos = data.allEpics.filter(ehExperimentoConcluido).length
-  const cancelados = data.allEpics.filter(e =>
-    e.status?.id === '10015' || e.status?.name === 'Cancelado'
-  ).length
 
-  // ── Hipóteses (iniciativas sem repetir, ver lib/estrategia/resultados.ts) ──
+  // ── Hipóteses: sempre em épicos (lib/hipoteses.ts). As etapas de piloto e escala contam iniciativas, como no Semanal ──
   const h = resultados.hipoteses
   const validadas = h.validadas.length
   const refutadas = h.refutadas.length
@@ -63,8 +53,8 @@ export default function FunilExperimentos({ data, resultados }: Props) {
   const aguardandoPiloto = h.porEtapa['AGUARDANDO PILOTO'].length
   const emPiloto = h.porEtapa['EM PILOTO'].length
   const emEscala = h.porEtapa['EM ESCALA'].length
+  const naEtapa = aguardandoPiloto + emPiloto + emEscala
   const iniciativasPorCamada: Record<string, Iniciativa[]> = {
-    validadas: h.validadas, refutadas: h.refutadas,
     aguardando: h.porEtapa['AGUARDANDO PILOTO'], piloto: h.porEtapa['EM PILOTO'], escala: h.porEtapa['EM ESCALA'],
   }
 
@@ -75,15 +65,16 @@ export default function FunilExperimentos({ data, resultados }: Props) {
     )
     // Mesma regra do report Semanal e do burnup (lib/concluido.ts)
     const concluidosList = data.allEpics.filter(ehExperimentoConcluido)
-    const canceladosList = data.allEpics.filter(e =>
-      e.status?.id === '10015' || e.status?.name === 'Cancelado'
-    )
+    const canceladosList = data.allEpics.filter(ehCancelado)
     const emValidacaoList = data.allEpics.filter(e =>
       e.status?.id === '10204' || e.status?.name === 'EM VALIDAÇÃO' || e.status?.name === 'Em validação'
     )
     const emAndamentoCompletoList = [...emAndamentoList, ...emValidacaoList]
-    return { emAndamentoList, emAndamentoCompletoList, concluidosList, canceladosList, emValidacaoList }
-  }, [data.allEpics])
+    return {
+      emAndamentoList, emAndamentoCompletoList, concluidosList, canceladosList, emValidacaoList,
+      validadasList: resultados.hipoteses.validadas, refutadasList: resultados.hipoteses.refutadas,
+    }
+  }, [data.allEpics, resultados.hipoteses])
 
   // ── Percentuais: experimentos sobre o total; hipóteses sobre as decididas; etapas sobre as validadas ──
   const pctDe = (v: number, base: number) => base > 0 ? Math.round((v / base) * 100) : 0
@@ -107,10 +98,10 @@ export default function FunilExperimentos({ data, resultados }: Props) {
     { id: 'total',        label: 'Total de Experimentos', valor: totalExperimentos, pct: 100, cor: RED_600, grad: 'from-red-600 to-red-700', chave: null as string | null, isIniciativa: false, epicFilter: null as string | null },
     { id: 'andamento',    label: 'Em Andamento',          valor: emAndamentoTotal,  pct: pct(emAndamentoTotal), cor: RED_500, grad: 'from-red-500 to-red-600', chave: 'emAndamentoCompletoList', isIniciativa: false, epicFilter: 'emAndamentoCompletoList' },
     { id: 'concluidos',   label: 'Concluídos',            valor: concluidos,        pct: pct(concluidos), cor: RED_400, grad: 'from-red-400 to-red-500', chave: 'concluidosList', isIniciativa: false, epicFilter: 'concluidosList' },
-    { id: 'validadas',    label: 'Hipóteses validadas',   valor: validadas,         pct: pctDe(validadas, decididas), cor: RED_700, grad: 'from-red-700 to-red-800', chave: 'validadas', isIniciativa: true, epicFilter: null },
-    { id: 'aguardando',   label: 'Aguardando Piloto',     valor: aguardandoPiloto,  pct: pctDe(aguardandoPiloto, validadas), cor: RED_300, grad: 'from-red-300 to-red-400', chave: 'aguardando', isIniciativa: true, epicFilter: null },
-    { id: 'piloto',       label: 'Em Piloto',             valor: emPiloto,          pct: pctDe(emPiloto, validadas), cor: RED_700, grad: 'from-red-700 to-red-800', chave: 'piloto', isIniciativa: true, epicFilter: null },
-    { id: 'escala',       label: 'Em Escala',             valor: emEscala,          pct: pctDe(emEscala, validadas), cor: RED_800, grad: 'from-red-800 to-red-900', chave: 'escala', isIniciativa: true, epicFilter: null },
+    { id: 'validadas',    label: 'Hipóteses validadas',   valor: validadas,         pct: pctDe(validadas, decididas), cor: RED_700, grad: 'from-red-700 to-red-800', chave: 'validadasList', isIniciativa: false, epicFilter: 'validadasList' },
+    { id: 'aguardando',   label: 'Aguardando Piloto',     valor: aguardandoPiloto,  pct: pctDe(aguardandoPiloto, naEtapa), cor: RED_300, grad: 'from-red-300 to-red-400', chave: 'aguardando', isIniciativa: true, epicFilter: null, nota: 'iniciativas' },
+    { id: 'piloto',       label: 'Em Piloto',             valor: emPiloto,          pct: pctDe(emPiloto, naEtapa), cor: RED_700, grad: 'from-red-700 to-red-800', chave: 'piloto', isIniciativa: true, epicFilter: null, nota: 'iniciativas' },
+    { id: 'escala',       label: 'Em Escala',             valor: emEscala,          pct: pctDe(emEscala, naEtapa), cor: RED_800, grad: 'from-red-800 to-red-900', chave: 'escala', isIniciativa: true, epicFilter: null, nota: 'iniciativas' },
   ]
 
   const camadasDetalhadas = [
@@ -119,9 +110,9 @@ export default function FunilExperimentos({ data, resultados }: Props) {
     { id: 'andamento',    label: 'Em Andamento',          valor: emAndamentoTotal,  pct: pct(emAndamentoTotal), cor: RED_500, grad: 'from-red-500 to-red-600', chave: 'emAndamentoCompletoList', isIniciativa: false, epicFilter: 'emAndamentoCompletoList' },
     { id: 'validacao',    label: 'Em Validação',          valor: emValidacao,       pct: pct(emValidacao), cor: RED_300, grad: 'from-red-300 to-red-400', chave: 'emValidacaoList', isIniciativa: false, epicFilter: 'emValidacaoList' },
     { id: 'concluidos',   label: 'Concluídos',            valor: concluidos,        pct: pct(concluidos), cor: RED_400, grad: 'from-red-400 to-red-500', chave: 'concluidosList', isIniciativa: false, epicFilter: 'concluidosList' },
-    { id: 'validadas',    label: 'Hipóteses validadas',   valor: validadas,         pct: pctDe(validadas, decididas), cor: RED_700, grad: 'from-red-700 to-red-800', chave: 'validadas', isIniciativa: true, epicFilter: null },
-    { id: 'refutadas',    label: 'Hipóteses refutadas',   valor: refutadas,         pct: pctDe(refutadas, decididas), cor: RED_200, grad: 'from-red-200 to-red-300', chave: 'refutadas', isIniciativa: true, epicFilter: null },
-    { id: 'escala',       label: 'Em Escala',             valor: emEscala,          pct: pctDe(emEscala, validadas), cor: RED_800, grad: 'from-red-800 to-red-900', chave: 'escala', isIniciativa: true, epicFilter: null },
+    { id: 'validadas',    label: 'Hipóteses validadas',   valor: validadas,         pct: pctDe(validadas, decididas), cor: RED_700, grad: 'from-red-700 to-red-800', chave: 'validadasList', isIniciativa: false, epicFilter: 'validadasList' },
+    { id: 'refutadas',    label: 'Hipóteses refutadas',   valor: refutadas,         pct: pctDe(refutadas, decididas), cor: RED_200, grad: 'from-red-200 to-red-300', chave: 'refutadasList', isIniciativa: false, epicFilter: 'refutadasList' },
+    { id: 'escala',       label: 'Em Escala',             valor: emEscala,          pct: pctDe(emEscala, naEtapa), cor: RED_800, grad: 'from-red-800 to-red-900', chave: 'escala', isIniciativa: true, epicFilter: null, nota: 'iniciativas' },
   ]
 
   const camadas = visaoSimplificada ? camadasSimplificadas : camadasDetalhadas
@@ -291,8 +282,8 @@ export default function FunilExperimentos({ data, resultados }: Props) {
           <div className="flex flex-wrap items-center gap-2">
             {([
               ['Concluídos', `${pct(concluidos)}%`, RED_400, 'dos experimentos do período'],
-              ['Validadas', `${pctDe(validadas, decididas)}%`, RED_700, `de ${decididas} hipóteses decididas`],
-              ['Em escala', `${pctDe(emEscala, validadas)}%`, RED_800, 'das validadas'],
+              ['Validadas', `${pctDe(validadas, decididas)}%`, RED_700, `de ${decididas} experimentos concluídos`],
+              ['Em escala', `${pctDe(emEscala, naEtapa)}%`, RED_800, 'das iniciativas em piloto ou escala'],
             ] as const).map(([rotulo, valor, cor, base]) => (
               <div key={rotulo} className="flex items-center gap-1.5 bg-red-50/80 px-2 py-1 rounded-md" title={`${rotulo}: ${valor} ${base}`}>
                 <span className="w-2 h-2 rounded-full" style={{ background: cor }} />
@@ -307,7 +298,7 @@ export default function FunilExperimentos({ data, resultados }: Props) {
       {/* ── Footer info ── */}
       <div className="flex items-center justify-between mt-0.5">
         <p className="text-[7px] text-gray-300">
-          Experimentos: % do total · hipóteses (iniciativas): % das decididas · etapas: % das validadas
+          Experimentos: % do total · hipóteses (experimentos): % dos concluídos · etapas (iniciativas): % das em piloto ou escala
         </p>
         <p className="text-[7px] text-gray-300 flex items-center gap-1">
           <MousePointer2 size={7} />

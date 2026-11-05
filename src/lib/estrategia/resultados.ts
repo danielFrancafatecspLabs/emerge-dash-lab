@@ -2,6 +2,7 @@ import { epicCancelado, getPipelineStage } from '@/lib/mappers'
 import { getPeriodoIntervalo, isDataNoPeriodo, type PeriodoFiltro } from '@/lib/periodo-filter'
 import { epicBloqueado } from '@/lib/bloqueio'
 import { ehExperimentoConcluido } from '@/lib/concluido'
+import { contarHipoteses, ESTAGIO_DA_ETAPA, etapaValidada } from '@/lib/hipoteses'
 import type {
   DashboardData, EpicDetail, Iniciativa, MercadoAgregado, MetaCategoria, PipelineCount,
 } from '@/lib/types'
@@ -16,11 +17,8 @@ import type {
  *
  * Benefício potencial: nunca soma experimentos cancelados. O que foi cancelado com benefício aparece à parte.
  *
- * Hipóteses (por iniciativa, sem repetir a que tem vários ciclos), só das iniciativas com experimento concluído no
- * período:
- * - Validada: a iniciativa está em Aguardando piloto, Em piloto ou Em escala.
- * - Refutada: a iniciativa está em Concluído.
- * - O restante (iniciativa ainda em experimentação, cancelada, ou experimento sem iniciativa) fica fora das duas.
+ * Hipóteses: sempre em épicos (lib/hipoteses.ts). Validada: épico concluído no período com a iniciativa em
+ * Aguardando piloto, Em piloto ou Em escala. Refutada: os demais épicos concluídos no período.
  */
 
 /** Experimento cancelado: a mesma regra do resto do app (lib/mappers.ts). */
@@ -44,35 +42,50 @@ export function epicNoPeriodo(e: EpicDetail, periodo: PeriodoFiltro): boolean {
 // ── Hipóteses ─────────────────────────────────────────────────────────────────────────────────
 
 export type EtapaValidada = 'AGUARDANDO PILOTO' | 'EM PILOTO' | 'EM ESCALA'
-const ETAPAS_VALIDADAS: EtapaValidada[] = ['AGUARDANDO PILOTO', 'EM PILOTO', 'EM ESCALA']
 
 export interface Hipoteses {
-  /** Iniciativas com experimento concluído que seguiram para Aguardando piloto, Em piloto ou Em escala. */
-  validadas: Iniciativa[]
+  /** Épicos concluídos com a iniciativa em Aguardando piloto, Em piloto ou Em escala (lib/hipoteses.ts). */
+  validadas: EpicDetail[]
+  /** Épicos concluídos com a iniciativa fora dessas colunas. */
+  refutadas: EpicDetail[]
+  /** Iniciativas em cada etapa (como as seções do Semanal). */
   porEtapa: Record<EtapaValidada, Iniciativa[]>
-  /** Iniciativas com experimento concluído que foram para Concluído. */
-  refutadas: Iniciativa[]
-  /** Experimentos concluídos cuja iniciativa ainda não decidiu (outra coluna) ou que não têm iniciativa. */
-  semDecisao: EpicDetail[]
 }
 
+/** Hipóteses do período, sempre em épicos: a regra oficial de lib/hipoteses.ts. */
 export function hipoteses(iniciativas: Iniciativa[], epics: EpicDetail[]): Hipoteses {
-  const porKey = new Map(iniciativas.map(i => [i.key, i]))
-  const porEtapa: Record<EtapaValidada, Iniciativa[]> = { 'AGUARDANDO PILOTO': [], 'EM PILOTO': [], 'EM ESCALA': [] }
-  const refutadas: Iniciativa[] = []
-  const semDecisao: EpicDetail[] = []
-  const vistas = new Set<string>()
-  for (const e of epics.filter(ehExperimentoConcluido)) {
-    const mae = e.parentKey ? porKey.get(e.parentKey) : undefined
-    const etapa = mae ? getPipelineStage(mae.status) : undefined
-    const decisao = etapa && (ETAPAS_VALIDADAS as string[]).includes(etapa) ? 'validada' : etapa === 'FINALIZADO' ? 'refutada' : null
-    if (!mae || !decisao) { semDecisao.push(e); continue }
-    if (vistas.has(mae.key)) continue
-    vistas.add(mae.key)
-    if (decisao === 'validada') porEtapa[etapa as EtapaValidada].push(mae)
-    else refutadas.push(mae)
+  const statusDaIniciativa = new Map(iniciativas.map(i => [i.key, i.status]))
+  const c = contarHipoteses(epics, e => (e.parentKey ? statusDaIniciativa.get(e.parentKey) : null))
+  const naEtapa = (etapa: string) => iniciativas.filter(i => etapaValidada(i.status) === etapa)
+  return {
+    validadas: c.validadas,
+    refutadas: c.refutadas,
+    porEtapa: { 'AGUARDANDO PILOTO': naEtapa('aguardando'), 'EM PILOTO': naEtapa('piloto'), 'EM ESCALA': naEtapa('escala') },
   }
-  return { validadas: ETAPAS_VALIDADAS.flatMap(k => porEtapa[k]), porEtapa, refutadas, semDecisao }
+}
+
+// ── Funil (as contagens que a tela mostra) ────────────────────────────────────────────────────
+
+const emAndamento = (e: EpicDetail) => e.status?.id === '3' || e.status?.name === 'Em andamento'
+const emValidacao = (e: EpicDetail) => e.status?.id === '10204' || e.status?.name === 'EM VALIDAÇÃO' || e.status?.name === 'Em validação'
+
+export interface ContagensDoFunil {
+  total: number
+  emAndamento: number
+  emValidacao: number
+  concluidos: number
+  cancelados: number
+}
+
+/** As contagens de experimentos do Funil de Experimentos (a tela e o agente de analytics usam esta mesma função). */
+export function contagensDoFunil(epics: EpicDetail[]): ContagensDoFunil {
+  return {
+    total: epics.length,
+    emAndamento: epics.filter(emAndamento).length,
+    emValidacao: epics.filter(emValidacao).length,
+    concluidos: epics.filter(ehExperimentoConcluido).length,
+    cancelados: epics.filter(ehCancelado).length,
+  }
 }
 
 // ── Resultados do período ─────────────────────────────────────────────────────────────────────
@@ -161,7 +174,10 @@ export function filtrarDashboardData(data: DashboardData, periodo: PeriodoFiltro
     BACKLOG: 0, 'EM REFINAMENTO': 0, 'PRONTO PARA EXECUÇÃO': 0, 'EM EXPERIMENTAÇÃO': 0, 'AGUARDANDO PILOTO': 0,
     'EM PILOTO': 0, 'EM ESCALA': 0, FINALIZADO: 0, CANCELADO: 0,
   }
-  for (const ini of iniciativas) pipeline[getPipelineStage(ini.status) ?? 'BACKLOG']++
+  for (const ini of iniciativas) {
+    const etapa = etapaValidada(ini.status)
+    pipeline[etapa ? ESTAGIO_DA_ETAPA[etapa] : getPipelineStage(ini.status) ?? 'BACKLOG']++
+  }
 
   const ativos = allEpics.filter(e => !ehCancelado(e))
   const comBeneficio = ativos.filter(e => beneficioDe(e) > 0)

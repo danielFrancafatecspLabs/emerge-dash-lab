@@ -32,6 +32,8 @@ interface ItemComum {
   nome: string
   /** Nome do status no Jira. */
   status: string
+  /** Id do status no Jira (as regras oficiais, como a das hipóteses, usam o id). */
+  statusId: string
   /** Id da coluna do board em que o item está. */
   coluna: string
   situacao: Situacao

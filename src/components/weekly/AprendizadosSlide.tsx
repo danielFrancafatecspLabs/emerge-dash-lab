@@ -5,7 +5,7 @@ import {
   Users, Wrench, Gem, GraduationCap, HelpCircle, BarChart3, Network, Building2, Search, Sparkles,
 } from 'lucide-react'
 import type { WeeklyData } from '@/lib/weekly'
-import { SlideDownloadButtons } from '@/components/report/slideExport'
+import { SlideDownloadButtons } from '@/components/weekly/slideExport'
 
 const RED = '#8B0000'
 const PINK_BG = '#FCEAEA'

@@ -13,9 +13,10 @@ import LeadTimeJornada from '@/components/dashboard/LeadTimeJornada'
 import FunilExperimentos from '@/components/dashboard/FunilExperimentos'
 import GraficoComInsight from '@/components/dashboard/GraficoComInsight'
 import { PeriodoFiltro } from '@/lib/periodo-filter'
-import { DashboardData, MonitoramentoData, InsightExecutivo } from '@/lib/types'
+import { DashboardData, EpicDetail, MonitoramentoData, InsightExecutivo } from '@/lib/types'
 import { buildMonitoramentoData } from '@/lib/mappers'
 import { ehCancelado, filtrarDashboardData, resultadosDaEstrategia } from '@/lib/estrategia/resultados'
+import type { EstadoDaClassificacao } from '@/lib/portfolio-classifier'
 
 // ── Componente principal ──
 
@@ -24,9 +25,11 @@ interface EstrategiaClientProps {
   monitoramento: MonitoramentoData
   /** Benefício já validado pelo Financeiro, por Epic (controle em /beneficios). */
   beneficioValidadoPorEpic: Record<string, number>
+  /** Situação da classificação das metas pela IA (por que há experimentos sem meta). */
+  classificacao: EstadoDaClassificacao
 }
 
-export default function EstrategiaClient({ data, beneficioValidadoPorEpic }: EstrategiaClientProps) {
+export default function EstrategiaClient({ data, beneficioValidadoPorEpic, classificacao }: EstrategiaClientProps) {
   const [periodoFiltro, setPeriodoFiltro] = useState<PeriodoFiltro>({ tipo: 'ultimos12' })
   const [modoSlide, setModoSlide] = useState(() =>
     typeof document !== 'undefined' && document.body.classList.contains('modo-apresentacao')
@@ -59,9 +62,15 @@ export default function EstrategiaClient({ data, beneficioValidadoPorEpic }: Est
     [dadosFiltrados, beneficioValidadoPorEpic],
   )
 
+  // Diretorias: a contagem é por experimento; sem domínio no experimento, vale o da iniciativa-mãe.
+  const dominioDaIniciativa = useMemo(() => {
+    const porKey = new Map(data.iniciativas.map(i => [i.key, i.dominio || i.dominios[0] || null]))
+    return (e: EpicDetail) => (e.parentKey ? porKey.get(e.parentKey) : null)
+  }, [data.iniciativas])
+
   const monitoramentoFiltrado = useMemo(
     // O burnup usa todos os Epics (data.allEpics): concluídos não podem sumir por terem sido criados antes do período.
-    () => buildMonitoramentoData(dadosFiltrados, periodoFiltro as any, data.allEpics),
+    () => buildMonitoramentoData(dadosFiltrados, periodoFiltro, data.allEpics),
     [dadosFiltrados, periodoFiltro, data.allEpics]
   )
 
@@ -270,18 +279,15 @@ export default function EstrategiaClient({ data, beneficioValidadoPorEpic }: Est
             </div>
             <div className="grid gap-3 grid-cols-1 lg:grid-cols-3 auto-rows-fr min-w-0">
               <GraficoComInsight
-                step={1}
-                titulo="Resumo Executivo"
-                subtitulo="Metas estratégicas & pipeline"
                 insight={insightsMap['resumo']}
                 loading={insightsLoading}
                 ocultarInsight
               >
-                <ResumoExecutivo data={dadosFiltrados} resultados={resultados} beneficioValidadoTotal={beneficioValidadoTotal} />
+                <ResumoExecutivo data={dadosFiltrados} resultados={resultados} beneficioValidadoTotal={beneficioValidadoTotal} classificacao={classificacao} />
               </GraficoComInsight>
 
               <GraficoComInsight
-                step={2}
+                step={1}
                 titulo="Crescimento da Experimentação"
                 subtitulo="Acumulado de experimentos concluídos (mesma contagem do Semanal)"
                 insight={insightsMap['burnup']}
@@ -292,7 +298,7 @@ export default function EstrategiaClient({ data, beneficioValidadoPorEpic }: Est
               </GraficoComInsight>
 
               <GraficoComInsight
-                step={3}
+                step={2}
                 titulo="Jornada de Adoção"
                 subtitulo="Lead time e gargalos do pipeline"
                 insight={insightsMap['leadtime']}
@@ -316,7 +322,7 @@ export default function EstrategiaClient({ data, beneficioValidadoPorEpic }: Est
             </div>
             <div className="grid gap-3 grid-cols-1 lg:grid-cols-3 auto-rows-fr min-w-0">
               <GraficoComInsight
-                step={4}
+                step={3}
                 titulo="Funil de Experimentos"
                 subtitulo="Distribuição por etapa do pipeline"
                 insight={insightsMap['funil']}
@@ -327,7 +333,7 @@ export default function EstrategiaClient({ data, beneficioValidadoPorEpic }: Est
               </GraficoComInsight>
 
               <GraficoComInsight
-                step={5}
+                step={4}
                 titulo="Top 5 Experimentos"
                 subtitulo="Maior valor potencial (R$)"
                 insight={insightsMap['top5']}
@@ -338,14 +344,14 @@ export default function EstrategiaClient({ data, beneficioValidadoPorEpic }: Est
               </GraficoComInsight>
 
               <GraficoComInsight
-                step={6}
+                step={5}
                 titulo="Diretorias por Experimentos"
                 subtitulo="Ordenado por volume de experimentos · benefício potencial"
                 insight={insightsMap['portfolio']}
                 loading={insightsLoading}
                 ocultarInsight
               >
-                <MapaDiretorias epics={dadosFiltrados.allEpics.filter(e => !ehCancelado(e))} />
+                <MapaDiretorias epics={dadosFiltrados.allEpics.filter(e => !ehCancelado(e))} dominioReserva={dominioDaIniciativa} />
               </GraficoComInsight>
             </div>
           </section>

@@ -104,6 +104,7 @@ function experimentoItem(e: EpicDetail, colunaDe: (s: JiraStatus) => string): Ex
     key: e.key,
     nome: e.nome,
     status: e.status.name,
+    statusId: e.status.id,
     coluna: colunaDe(e.status),
     situacao,
     lab: e.timeResponsavel,
@@ -116,7 +117,8 @@ function experimentoItem(e: EpicDetail, colunaDe: (s: JiraStatus) => string): Ex
     descricao: textoLimpo(e.descricao),
     // Qualquer sinal (flag, campos de bloqueio, status, etiqueta, vínculo; ver lib/bloqueio.ts), só no que está aberto:
     // o "Motivo de Bloqueio" também guarda o motivo do cancelamento.
-    bloqueado: !encerrado(situacao) && ((e.sinaisBloqueio?.length ?? 0) > 0 || !!e.flagged || !!e.motivoBloqueio?.trim()),
+    // Bloqueio só interessa em experimentação (Em andamento ou Em validação): backlog, refinamento e pronto ficam de fora.
+    bloqueado: situacao === 'em-execucao' && ((e.sinaisBloqueio?.length ?? 0) > 0 || !!e.flagged || !!e.motivoBloqueio?.trim()),
     sinaisBloqueio: encerrado(situacao) ? [] : e.sinaisBloqueio ?? [],
     iniciativaKey: e.parentKey,
     bo: e.bo,
@@ -148,6 +150,7 @@ function iniciativaItem(ini: Iniciativa, filhos: ExperimentoItem[], colunaDe: (s
     key: ini.key,
     nome: ini.nome,
     status: ini.status.name,
+    statusId: ini.status.id,
     coluna: colunaDe(ini.status),
     situacao: situacaoDo(ini.status),
     lab: ini.timeResponsavel ?? primeiro(e => e.lab),

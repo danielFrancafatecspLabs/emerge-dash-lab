@@ -79,7 +79,6 @@ export const PORTAL_GROUPS: NavGroup[] = [
   {
     label: 'Rituais',
     items: [
-      { label: 'Report', href: '/report', icon: FileText, roles: ADMIN },
       { label: 'Semanal', href: '/semanal', icon: CalendarCheck, roles: ADMIN },
     ],
   },
