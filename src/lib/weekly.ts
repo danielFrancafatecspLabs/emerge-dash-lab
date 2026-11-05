@@ -1,7 +1,9 @@
 import { DashboardData, EpicDetail, Iniciativa, JiraBoardConfiguration } from './types'
 import type { ChangelogEntry } from './jira'
 import { formatBeneficioMM, limparDescricao } from './report-utils'
-import { ehExperimentoConcluido } from './concluido'
+import { ehExperimentoConcluido, nomeDeCancelado } from './concluido'
+
+const epicCancelado = (e: Pick<EpicDetail, 'status'>) => e.status?.id === '10015' || nomeDeCancelado(e.status?.name)
 import { buildGovernancaData, SAMPLE_GOVERNANCA_DATA, type GovernancaData } from './governanca'
 import { etapaValidada } from './hipoteses'
 
@@ -543,9 +545,9 @@ export function buildWeeklyData(data: DashboardData, epicChangelogs: Record<stri
   const pilotoInis = data.iniciativas.filter(i => etapaValidada(i.status) === 'piloto')
   const escalaInis = data.iniciativas.filter(i => etapaValidada(i.status) === 'escala')
 
-  const emAndamentoEpics = data.allEpics.filter(e => e.status?.id === '3' || e.status?.name === 'Em andamento')
-  const emValidacaoEpics = data.allEpics.filter(e => e.status?.id === '10204' || e.status?.name === 'EM VALIDAÇÃO' || e.status?.name === 'Em validação')
-  const canceladosEpics = data.allEpics.filter(e => e.status?.id === '10015' || e.status?.name === 'Cancelado' || e.status?.name === 'CANCELADO')
+  const canceladosEpics = data.allEpics.filter(epicCancelado)
+  const emAndamentoEpics = data.allEpics.filter(e => !epicCancelado(e) && (e.status?.id === '3' || e.status?.name === 'Em andamento'))
+  const emValidacaoEpics = data.allEpics.filter(e => !epicCancelado(e) && (e.status?.id === '10204' || e.status?.name === 'EM VALIDAÇÃO' || e.status?.name === 'Em validação'))
   const concluidosEpics = data.allEpics.filter(ehExperimentoConcluido)
 
   const emAndamentoCount = emAndamentoEpics.length + emValidacaoEpics.length
