@@ -8,6 +8,8 @@
  * "Finalizado" é o status antigo de Em escala e conta como Em escala enquanto ainda houver iniciativa com ele.
  */
 
+import { nomeDeCancelado } from './concluido'
+
 export type EtapaValidada = 'aguardando' | 'piloto' | 'escala'
 export const ETAPAS_VALIDADAS: EtapaValidada[] = ['aguardando', 'piloto', 'escala']
 
@@ -29,7 +31,8 @@ export function etapaValidada(status: Status | null | undefined): EtapaValidada 
 export const ESTAGIO_DA_ETAPA = { aguardando: 'AGUARDANDO PILOTO', piloto: 'EM PILOTO', escala: 'EM ESCALA' } as const
 
 const STATUS_CONCLUIDO = '10019'
-export const epicConcluido = (e: { status: Status }) => e.status?.id === STATUS_CONCLUIDO
+/** Concluído pelo id, desde que o nome do status não diga cancelado. */
+export const epicConcluido = (e: { status: Status }) => e.status?.id === STATUS_CONCLUIDO && !nomeDeCancelado(e.status?.name)
 
 export interface ContagemHipoteses<E> {
   /** Épicos concluídos com a iniciativa em Aguardando piloto, Em piloto ou Em escala. */

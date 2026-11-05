@@ -189,6 +189,22 @@ export function verificarConsistencia(e: EntradaConsistencia): RelatorioConsiste
     }, 'moeda', 1),
   ]
 
+  // Conta independente da regra do app: lê só o NOME do status (o id é reaproveitado entre boards no Jira). Nenhum
+  // experimento com status "Cancelado"/"Descontinuado" pode entrar no benefício potencial nem na lista dele.
+  const pareceCancelado = (x: { status: { id: string; name: string } }) =>
+    /CANCEL|DESCONTINU/.test((x.status?.name ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase())
+  verificacoes.push(
+    comparar('beneficio-pelo-nome', 'Benefício potencial sem nenhum status de nome cancelado',
+      'Soma direta do benefício, tirando todo Epic cujo nome de status diz cancelado/descontinuado.', {
+        'Estratégia (Tudo)': est.beneficio,
+        'Conta direta pelo nome do status': e.data.allEpics.reduce((acc, x) => acc + (pareceCancelado(x) ? 0 : x.beneficioQuantitativo ?? 0), 0),
+      }, 'moeda', 1),
+    comparar('lista-beneficio-sem-cancelado', 'Cancelados na lista do benefício potencial',
+      'Epics com status de nome cancelado na lista "contribuem para o benefício" (tem de ser zero).', {
+        'Lista da Estratégia': est.comBeneficio.filter(pareceCancelado).length, Esperado: 0,
+      }),
+  )
+
   // Visão de iniciativas do Portfólio: fica de fora o Epic sem iniciativa e entra o benefício próprio da iniciativa sem
   // experimento. Descontadas essas duas diferenças conhecidas, tem de bater com a visão de experimentos.
   const orfaos = e.data.allEpics.filter(x => !x.parentKey || !e.data.iniciativas.some(i => i.key === x.parentKey))
