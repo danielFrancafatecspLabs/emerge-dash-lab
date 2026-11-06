@@ -30,14 +30,21 @@ export const beneficioDe = (e: Pick<EpicDetail, 'beneficioQuantitativo'>) => e.b
 /** Soma do benefício potencial, sem os cancelados. */
 export const beneficioPotencial = (epics: EpicDetail[]) => epics.reduce((s, e) => s + (ehCancelado(e) ? 0 : beneficioDe(e)), 0)
 
+/**
+ * A data que decide o período do experimento: a conclusão, o cancelamento ou, em aberto, a criação. Antes o aberto
+ * contava em todo período em que já existia, e o mesmo experimento entrava no 1º e no 2º semestre. O Comparativo usa
+ * esta mesma data no benefício potencial.
+ */
+export function dataDoExperimentoNoPeriodo(e: EpicDetail): string | null {
+  if (ehExperimentoConcluido(e)) return e.concluidoEm ?? e.criadoEm ?? null
+  if (ehCancelado(e)) return e.canceladoEm ?? e.criadoEm ?? null
+  return e.criadoEm ?? null
+}
+
 /** O experimento conta no período? (ver a regra no topo) */
 export function epicNoPeriodo(e: EpicDetail, periodo: PeriodoFiltro): boolean {
   if (periodo.tipo === 'tudo') return true
-  if (ehExperimentoConcluido(e)) return isDataNoPeriodo(e.concluidoEm ?? e.criadoEm, periodo)
-  if (ehCancelado(e)) return isDataNoPeriodo(e.canceladoEm ?? e.criadoEm, periodo)
-  // Em aberto: pela data de criação. Antes contava em todo período em que já existia, e o mesmo experimento entrava
-  // no 1º e no 2º semestre: a soma dos semestres passava do ano.
-  return isDataNoPeriodo(e.criadoEm, periodo)
+  return isDataNoPeriodo(dataDoExperimentoNoPeriodo(e), periodo)
 }
 
 // ── Hipóteses ─────────────────────────────────────────────────────────────────────────────────

@@ -212,7 +212,7 @@ export default function ReportExecutivo({ dados }: { dados: ComparativoDados }) 
   const validadas = r.resultados.validadas
   const pctExp = (k: number) => (r.exploracao.registradas[k] ? Math.round((r.exploracao.viraramExperimento[k] / r.exploracao.registradas[k]) * 100) : 0)
   const encerrados = [0, 1].map(k => r.resultados.validadas[k] + r.resultados.refutadas[k] + r.resultados.cancelados[k])
-  const lead = r.tempos.find(t => t.titulo.includes('Experimentação'))!
+  const lead = r.tempos.find(t => t.titulo === 'Cycle time da Experimentação')!
   const area = r.areas.find(a => a.validadas[1] > 0) ?? r.areas[0]
 
   return (
@@ -283,9 +283,11 @@ export default function ReportExecutivo({ dados }: { dados: ComparativoDados }) 
               <div className="flex items-center gap-4 rounded-2xl px-5 py-3.5" style={{ background: ROSA }}>
                 <IconeCirculo icone={Coins} tamanho={52} />
                 <div className="min-w-0 flex-1">
-                  <p className="text-[10px] font-extrabold uppercase tracking-[0.12em] text-stone-700">Benefício potencial validado em {B}</p>
+                  <p className="text-[10px] font-extrabold uppercase tracking-[0.12em] text-stone-700">Benefício potencial dos experimentos em {B}</p>
                   <p className="text-[38px] font-extrabold leading-none tracking-tight tabular-nums" style={{ color: RED }}>{formatar(beneficio.valores[1], 'reais')}</p>
-                  <p className="mt-1 text-[11.5px] text-stone-700"><b>{validadas[1]}</b> {validadas[1] === 1 ? 'hipótese validada' : 'hipóteses validadas'} · em {A}: {formatar(beneficio.valores[0], 'reais')} em {validadas[0]}</p>
+                  <p className="mt-1 text-[11.5px] text-stone-700">
+                    <b>{r.valor.experimentos[1]}</b> {r.valor.experimentos[1] === 1 ? 'experimento' : 'experimentos'} · {formatar(r.valor.validado[1], 'reais')} em {validadas[1]} {validadas[1] === 1 ? 'hipótese validada' : 'hipóteses validadas'} · em {A}: {formatar(beneficio.valores[0], 'reais')}
+                  </p>
                 </div>
                 <Chip valores={beneficio.valores} melhor="maior" />
               </div>
@@ -297,7 +299,7 @@ export default function ReportExecutivo({ dados }: { dados: ComparativoDados }) 
               </div>
               <OQueCresceu base={A} itens={[
                 ...r.funil.map(f => ({ titulo: f.titulo, valores: f.valores as Par, formato: 'numero' as const })),
-                { titulo: 'Benefício validado', valores: beneficio.valores, formato: 'reais' as const },
+                { titulo: 'Benefício potencial', valores: beneficio.valores, formato: 'reais' as const },
               ]} />
             </section>
 
@@ -358,7 +360,7 @@ export default function ReportExecutivo({ dados }: { dados: ComparativoDados }) 
             </section>
 
             <section className="inteiro">
-              <Secao icone={Coins} olho="Valor" destaque="Valor" complemento="gerado" subtitulo={`Maiores benefícios potenciais entre as hipóteses validadas em ${B}`} />
+              <Secao icone={Coins} olho="Valor" destaque="Valor" complemento="gerado" subtitulo={`Maiores benefícios potenciais entre os experimentos de ${B}`} />
               <ol className="space-y-1">
                 {r.valor.top.map((d, i) => {
                   const [valor, areaNome] = d.detalhe.split(' · ')
@@ -396,7 +398,7 @@ export default function ReportExecutivo({ dados }: { dados: ComparativoDados }) 
                 <div className="rounded-2xl border border-stone-200 p-2.5">
                   <p className="flex items-center gap-1.5 text-[11px] font-bold text-stone-900"><IconeCirculo icone={Gauge} tamanho={24} /> Velocidade</p>
                   <p className="mt-2.5 text-[26px] font-extrabold leading-none tabular-nums" style={{ color: RED }}>{formatar(lead.valores[1], 'dias')}</p>
-                  <p className="mt-1 text-[10px] text-stone-600">para experimentar (mediana)</p>
+                  <p className="mt-1 text-[10px] text-stone-600">cycle time de experimentação (mediana, sem bloqueios)</p>
                   <p className="mt-1.5 flex items-center gap-1.5 text-[9.5px] text-stone-500">{A}: {formatar(lead.valores[0], 'dias')} <Chip valores={lead.valores} melhor="menor" /></p>
                 </div>
                 <div className="rounded-2xl border border-stone-200 p-2.5">

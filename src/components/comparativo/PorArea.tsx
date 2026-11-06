@@ -19,7 +19,7 @@ const COLUNAS: { id: keyof Metricas; label: string; formato: (v: number | null) 
   { id: 'refutadas', label: 'Hipóteses refutadas', formato: v => (v ? String(v) : '–') },
   { id: 'cancelados', label: 'Cancelados', formato: v => (v ? String(v) : '–') },
   { id: 'taxaValidacao', label: 'Taxa de validação', formato: v => (v === null ? '–' : `${v}%`) },
-  { id: 'beneficio', label: 'Benefício validado', formato: v => (v ? formatarValor(v) : '–') },
+  { id: 'beneficio', label: 'Benefício das validadas', formato: v => (v ? formatarValor(v) : '–') },
 ]
 
 function Cabecalho({ rotulos }: { rotulos: string[] }) {

@@ -1,5 +1,6 @@
 import { epicBloqueado } from '@/lib/bloqueio'
 import { buildMonitoramentoData } from '@/lib/mappers'
+import { janelaDe, resumir as resumirIndicador, type ComparativoDados } from '@/lib/comparativo/resumo'
 import { contagensDoFunil, ehCancelado, filtrarDashboardData, resultadosDaEstrategia } from '@/lib/estrategia/resultados'
 import { ehExperimentoConcluido } from '@/lib/concluido'
 import { criarContexto, resumir } from '@/lib/portfolio/filtros'
@@ -62,6 +63,8 @@ export interface EntradaConsistencia {
    */
   board2734Config?: JiraBoardConfiguration
   board2735Config?: JiraBoardConfiguration
+  /** Os dados do Comparativo, como a aba monta: o benefício potencial de cada ano tem de bater com a Estratégia. */
+  comparativo?: ComparativoDados
   agora?: Date
 }
 
@@ -292,6 +295,18 @@ export function verificarConsistencia(e: EntradaConsistencia): RelatorioConsiste
           'Soma dos semestres': s1.concluidos + s2.concluidos, [`Todo ${ano}`]: todo.concluidos,
         }),
     )
+  }
+
+  // ── Comparativo × Estratégia: o benefício potencial de cada ano é a mesma conta nas duas abas ──
+  const benComp = e.comparativo?.indicadores.find(i => i.id === 'beneficio')
+  if (benComp) {
+    for (const ano of [anoAtual - 1, anoAtual]) {
+      verificacoes.push(comparar(`comparativo-beneficio-${ano}`, `Benefício potencial de ${ano}: Comparativo × Estratégia`,
+        'O cartão de benefício do Comparativo e o Benefício Potencial da Estratégia em "Todo ano" somam os mesmos experimentos.', {
+          'Comparativo': resumirIndicador(benComp, janelaDe(String(ano))).soma,
+          [`Estratégia (Todo ${ano})`]: resultadosDaEstrategia(filtrarDashboardData(e.data, { tipo: 'ano', ano })).beneficio,
+        }, 'moeda', 1))
+    }
   }
 
   // ── Metas: as três metas mais os sem meta somam os experimentos não cancelados ──

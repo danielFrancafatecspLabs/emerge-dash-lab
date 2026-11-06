@@ -1,5 +1,6 @@
 import type { ChangelogEntry } from '../jira'
-import { getPeriodosBloqueio, subtrairBloqueios } from '../mappers'
+import { calcularTempoBloqueado, epicCancelado, getPeriodosBloqueio, subtrairBloqueios } from '../mappers'
+import { dataDoExperimentoNoPeriodo } from '../estrategia/resultados'
 import type { DashboardData, JiraIssue } from '../types'
 import type { WeeklyData } from '../weekly'
 import {
@@ -74,32 +75,43 @@ function periodosExperimentacao(log: ChangelogEntry[] | undefined, c: Classifica
   return { periodos, aberto: entrou, ultimaSaida }
 }
 
+type TemposExperimentacao = Pick<Indicador, 'amostras' | 'emAberto' | 'foraDaConta'>
+
 /**
- * Lead time da Experimentação: mesma regra da aba Estratégia. Epics concluídos, tempo em Em andamento + Em validação,
- * descontados os períodos bloqueados. Conta no período em que o Epic saiu da experimentação.
+ * Tempos da Experimentação dos Epics concluídos, contados no período em que o Epic saiu da experimentação:
+ * - Lead time: todo o tempo em Em andamento + Em validação, com os dias bloqueados (cada amostra diz quantos foram).
+ * - Cycle time: o mesmo tempo SEM os períodos bloqueados (a mesma conta do cycle time da aba Estratégia).
  */
-function leadExperimentacao(epics: JiraIssue[], logs: Record<string, ChangelogEntry[]>, c: Classificador, agora: number): Pick<Indicador, 'amostras' | 'emAberto' | 'foraDaConta'> {
-  const amostras: Amostra[] = []
-  const emAberto: EmAberto[] = []
-  const foraDaConta: ForaDaConta[] = []
+function temposExperimentacao(epics: JiraIssue[], logs: Record<string, ChangelogEntry[]>, c: Classificador, agora: number): { lead: TemposExperimentacao; cycle: TemposExperimentacao } {
+  const lead: TemposExperimentacao = { amostras: [], emAberto: [], foraDaConta: [] }
+  const cycle: TemposExperimentacao = { amostras: [], emAberto: [], foraDaConta: [] }
+  const total = (periodos: { inicio: number; fim: number }[]) => Math.round(periodos.reduce((s, p) => s + (p.fim - p.inicio), 0) / MS_DIA)
   for (const e of epics) {
     const atual = c.epic(e.fields.status.id, e.fields.status.name)
     const { periodos, aberto, ultimaSaida } = periodosExperimentacao(logs[e.key], c)
     const bloqueios = getPeriodosBloqueio(e.key, logs)
+    const nome = e.fields.summary
     if (atual === 'concluido') {
       // Concluídos que não dá para medir também aparecem, com o motivo, no período da conclusão.
       const concluiu = transicoes(logs[e.key], c.epic).find(t => t.para === 'concluido')?.data ?? null
-      const fora = (motivo: string) => foraDaConta.push({ key: e.key, nome: e.fields.summary, motivo, data: concluiu ? dia(concluiu) : null })
+      const fora = (motivo: string, alvo: TemposExperimentacao[] = [lead, cycle]) =>
+        alvo.forEach(x => x.foraDaConta!.push({ key: e.key, nome, motivo, data: concluiu ? dia(concluiu) : null }))
       if (!logs[e.key]) { fora('Sem histórico de status no Jira'); continue }
       if (!periodos.length || !ultimaSaida) { fora('Concluído sem passar por Em andamento ou Em validação no histórico'); continue }
-      const d = subtrairBloqueios(periodos, bloqueios)
-      if (d > 0) amostras.push({ key: e.key, nome: e.fields.summary, valor: d, data: dia(ultimaSaida) })
-      else fora('Tempo em experimentação zerado (mudanças de status no mesmo dia ou só bloqueado)')
+      const bruto = total(periodos)
+      const semBloqueio = subtrairBloqueios(periodos, bloqueios)
+      const data = dia(ultimaSaida)
+      if (bruto > 0) lead.amostras.push({ key: e.key, nome, valor: bruto, data, bloqueado: Math.min(bruto, calcularTempoBloqueado(periodos, bloqueios)) })
+      else fora('Tempo em experimentação zerado (mudanças de status no mesmo dia)', [lead])
+      if (semBloqueio > 0) cycle.amostras.push({ key: e.key, nome, valor: semBloqueio, data })
+      else fora('Tempo em experimentação zerado (mudanças de status no mesmo dia ou só bloqueado)', [cycle])
     } else if (aberto !== null && atual && EXPERIMENTANDO.includes(atual)) {
-      emAberto.push({ key: e.key, nome: e.fields.summary, dias: subtrairBloqueios([...periodos, { inicio: aberto, fim: agora }], bloqueios) })
+      const todos = [...periodos, { inicio: aberto, fim: agora }]
+      lead.emAberto.push({ key: e.key, nome, dias: total(todos) })
+      cycle.emAberto.push({ key: e.key, nome, dias: subtrairBloqueios(todos, bloqueios) })
     }
   }
-  return { amostras, emAberto, foraDaConta }
+  return { lead, cycle }
 }
 
 /** Epic do board de Experimentação com a situação do Semanal; as datas dos eventos vêm do histórico. */
@@ -118,6 +130,8 @@ export function experimentosDoSemanal(data: DashboardData, weekly: WeeklyData): 
   const texto = (v: string | null | undefined) => v?.trim() || null
   return data.allEpics.map(e => ({
     key: e.key, nome: e.nome, status: e.status.name, criadoEm: e.criadoEm ?? null, concluidoEm: e.concluidoEm ?? null,
+    // Benefício potencial: a mesma data e a mesma exclusão de cancelados da Estratégia (os números fecham entre as abas).
+    dataBeneficio: epicCancelado(e) ? null : (dataDoExperimentoNoPeriodo(e) ?? null),
     area: texto(e.dominio), lab: texto((e.parentKey ? labDaIniciativa.get(e.parentKey) : null) ?? e.timeResponsavel), diretoria: texto(e.diretoria),
     beneficio: e.beneficioQuantitativo && e.beneficioQuantitativo > 0 ? e.beneficioQuantitativo : null,
     situacao: validadas.has(e.key) ? 'validada' : concluidos.has(e.key) ? 'refutada' : cancelados.has(e.key) ? 'cancelada'
@@ -134,6 +148,7 @@ function comDatas(entradas: ExperimentoEntrada[], logs: Record<string, Changelog
     return {
       ...e,
       criadoEm: e.criadoEm ? dia(e.criadoEm) : null,
+      dataBeneficio: e.dataBeneficio ? diaLocal(e.dataBeneficio) : null,
       concluidoEm: concluiu ? dia(concluiu) : null,
       canceladoEm: cancelou ? dia(cancelou) : null,
     }
@@ -149,12 +164,22 @@ function eventos(lista: Experimento[], data: (e: Experimento) => string | null, 
   }
 }
 
-/** Benefício: o total de hoje das hipóteses validadas (fecha com o Semanal) e quantas não têm data de conclusão. */
-function conciliacao(validadas: Experimento[]): Indicador['conciliacao'] {
+/** Dia (AAAA-MM-DD) de uma data ISO no horário de Brasília, como a Estratégia decide o período. */
+const diaLocal = (iso: string) => (iso.length <= 10 ? iso : hojeEmSaoPaulo(new Date(iso)))
+
+/**
+ * Benefício potencial dos experimentos: a mesma conta do Benefício Potencial da Estratégia. Todo experimento não
+ * cancelado com benefício, no período da conclusão (ou da criação, se está em aberto). Cada amostra diz se é hipótese
+ * validada, para o detalhe mostrar quanto do benefício já está validado.
+ */
+function beneficioPotencial(experimentos: Experimento[]): Pick<Indicador, 'amostras' | 'emAberto' | 'foraDaConta' | 'conciliacao'> {
+  const comBeneficio = experimentos.filter(e => e.situacao !== 'cancelada' && (e.beneficio ?? 0) > 0)
+  const comData = comBeneficio.filter(e => e.dataBeneficio)
   return {
-    total: validadas.reduce((s, h) => s + (h.beneficio ?? 0), 0),
-    n: validadas.length,
-    semData: validadas.filter(h => !h.concluidoEm).length,
+    amostras: comData.map(e => ({ key: e.key, nome: e.nome, valor: e.beneficio!, data: e.dataBeneficio!, validada: e.situacao === 'validada' })),
+    emAberto: [],
+    foraDaConta: comBeneficio.filter(e => !e.dataBeneficio).map(e => ({ key: e.key, nome: e.nome, motivo: 'Sem data de criação ou conclusão no Jira', data: null })),
+    conciliacao: { total: comBeneficio.reduce((s, e) => s + (e.beneficio ?? 0), 0), n: comBeneficio.length, semData: comBeneficio.length - comData.length },
   }
 }
 
@@ -222,6 +247,7 @@ export function montarComparativo(raw: {
   const experimentos = comDatas(raw.experimentos, raw.epicChangelogs, c)
   const de = (...s: Experimento['situacao'][]) => experimentos.filter(e => s.includes(e.situacao))
   const validadas = de('validada')
+  const tempos = temposExperimentacao(raw.epics, raw.epicChangelogs, c, t)
   const indicadores: Indicador[] = [
     {
       id: 'concluidos', titulo: 'Experimentos concluídos', unidade: 'itens', melhor: 'maior', board: 'Experimentação', grupo: 'resultados',
@@ -244,10 +270,9 @@ export function montarComparativo(raw: {
       ...eventos(de('cancelada'), e => e.canceladoEm),
     },
     {
-      id: 'beneficio', titulo: 'Benefício das hipóteses validadas', unidade: 'reais', melhor: 'maior', board: 'Experimentação', grupo: 'resultados',
-      regra: 'Os mesmos experimentos do número "Hipóteses validadas" do Semanal: concluídos, com a iniciativa-mãe em Aguardando piloto, Piloto ou Escala. Soma o benefício potencial de cada um no período em que o experimento foi concluído.',
-      ...eventos(validadas, e => e.concluidoEm, e => e.beneficio ?? 0),
-      conciliacao: conciliacao(validadas),
+      id: 'beneficio', titulo: 'Benefício potencial dos experimentos', unidade: 'reais', melhor: 'maior', board: 'Experimentação', grupo: 'resultados',
+      regra: 'A mesma conta do Benefício Potencial da Estratégia: soma o benefício de todos os experimentos não cancelados. O concluído conta no período da conclusão; o que está em aberto, no período em que foi criado. Os períodos somam: 1º + 2º semestre = o ano.',
+      ...beneficioPotencial(experimentos),
     },
     {
       id: 'leadExploracao', grupo: 'tempos', titulo: 'Lead time da Exploração', unidade: 'dias', melhor: 'menor', board: 'Ideação',
@@ -256,8 +281,13 @@ export function montarComparativo(raw: {
     },
     {
       id: 'leadExperimentacao', grupo: 'tempos', titulo: 'Lead time da Experimentação', unidade: 'dias', melhor: 'menor', board: 'Experimentação',
-      regra: 'Experimentos concluídos: tempo em Em andamento e Em validação, sem os períodos bloqueados (mesma regra da aba Estratégia). Conta no período em que o experimento saiu da experimentação.',
-      ...leadExperimentacao(raw.epics, raw.epicChangelogs, c, t),
+      regra: 'Experimentos concluídos: todo o tempo em Em andamento e Em validação, contando os períodos bloqueados (o detalhe mostra quanto desse tempo foi bloqueio). Conta no período em que o experimento saiu da experimentação.',
+      ...tempos.lead,
+    },
+    {
+      id: 'cycleExperimentacao', grupo: 'tempos', titulo: 'Cycle time da Experimentação', unidade: 'dias', melhor: 'menor', board: 'Experimentação',
+      regra: 'O lead time da Experimentação descontados os períodos bloqueados: o tempo em que o experimento andou de fato (a mesma conta do cycle time da aba Estratégia). Conta no período em que o experimento saiu da experimentação.',
+      ...tempos.cycle,
     },
     {
       id: 'aguardandoPiloto', grupo: 'tempos', titulo: 'Cycle time de Aguardando piloto', unidade: 'dias', melhor: 'menor', board: 'Ideação',
