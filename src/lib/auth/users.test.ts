@@ -1,9 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { hashPassword, parseUserChanges, passwordProblem, verifyPassword } from './users'
 
-// Senhas de exemplo só para os testes (não são credenciais de verdade).
-const SENHA_FORTE = 'Rio-Gale-Tinta-42' // ggignore
-const SENHA_COM_O_NOME = 'ana.lima-2026!x' // ggignore
+const SENHA_FORTE = 'Rio-Gale-Tinta-42'
+const SENHA_COM_O_NOME = 'ana.lima-2026!x'
 
 describe('senhas', () => {
   it('recusa senhas curtas, repetitivas ou óbvias', () => {

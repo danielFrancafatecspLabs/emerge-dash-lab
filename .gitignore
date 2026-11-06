@@ -51,7 +51,7 @@ public/comunidade/*
 .DS_Store
 *.sw?
 
-# Rascunhos locais que não vão para o repositório
+# Rascunhos e caches locais
 .tmp/
 /_debug*
 /debug*.js
