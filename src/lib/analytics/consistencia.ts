@@ -1,5 +1,6 @@
 import { epicBloqueado } from '@/lib/bloqueio'
 import { buildMonitoramentoData } from '@/lib/mappers'
+import { janelaDe, resumir as resumirIndicador, type ComparativoDados } from '@/lib/comparativo/resumo'
 import { contagensDoFunil, ehCancelado, filtrarDashboardData, resultadosDaEstrategia } from '@/lib/estrategia/resultados'
 import { ehExperimentoConcluido } from '@/lib/concluido'
 import { criarContexto, resumir } from '@/lib/portfolio/filtros'
@@ -62,6 +63,8 @@ export interface EntradaConsistencia {
    */
   board2734Config?: JiraBoardConfiguration
   board2735Config?: JiraBoardConfiguration
+  /** Os dados do Comparativo, como a aba monta: o benefício potencial de cada ano tem de bater com a Estratégia. */
+  comparativo?: ComparativoDados
   agora?: Date
 }
 
@@ -266,6 +269,44 @@ export function verificarConsistencia(e: EntradaConsistencia): RelatorioConsiste
       'Experimentos concluídos no período: o funil da Estratégia e o "+N no período" do Crescimento da Experimentação.', {
         'Funil (Estratégia)': contagensDoFunil(d.allEpics).concluidos, 'Crescimento (+N no período)': m.experimentosConcluidos,
       }))
+  }
+
+  // ── Períodos somam: 1º semestre + 2º semestre = o ano todo (cada experimento cai em um período só) ──
+  const anoAtual = (e.agora ?? new Date()).getFullYear()
+  for (const ano of [anoAtual - 1, anoAtual]) {
+    const doPeriodo = (p: Parameters<typeof filtrarDashboardData>[1]) => {
+      const d = filtrarDashboardData(e.data, p)
+      return { beneficio: resultadosDaEstrategia(d).beneficio, experimentos: d.allEpics.length, concluidos: contagensDoFunil(d.allEpics).concluidos }
+    }
+    const s1 = doPeriodo({ tipo: 'semestre', ano, semestre: 1 })
+    const s2 = doPeriodo({ tipo: 'semestre', ano, semestre: 2 })
+    const todo = doPeriodo({ tipo: 'ano', ano })
+    verificacoes.push(
+      comparar(`semestres-beneficio-${ano}`, `Benefício potencial: 1º + 2º semestre de ${ano} = Todo ${ano}`,
+        'Os semestres somados têm de dar o ano: nenhum experimento conta em dois períodos.', {
+          'Soma dos semestres': s1.beneficio + s2.beneficio, [`Todo ${ano}`]: todo.beneficio,
+        }, 'moeda', 1),
+      comparar(`semestres-experimentos-${ano}`, `Experimentos: 1º + 2º semestre de ${ano} = Todo ${ano}`,
+        'Total de experimentos e concluídos dos semestres somados contra o ano.', {
+          'Soma dos semestres': s1.experimentos + s2.experimentos, [`Todo ${ano}`]: todo.experimentos,
+        }),
+      comparar(`semestres-concluidos-${ano}`, `Concluídos: 1º + 2º semestre de ${ano} = Todo ${ano}`,
+        'Experimentos concluídos em cada semestre, somados, contra o ano.', {
+          'Soma dos semestres': s1.concluidos + s2.concluidos, [`Todo ${ano}`]: todo.concluidos,
+        }),
+    )
+  }
+
+  // ── Comparativo × Estratégia: o benefício potencial de cada ano é a mesma conta nas duas abas ──
+  const benComp = e.comparativo?.indicadores.find(i => i.id === 'beneficio')
+  if (benComp) {
+    for (const ano of [anoAtual - 1, anoAtual]) {
+      verificacoes.push(comparar(`comparativo-beneficio-${ano}`, `Benefício potencial de ${ano}: Comparativo × Estratégia`,
+        'O cartão de benefício do Comparativo e o Benefício Potencial da Estratégia em "Todo ano" somam os mesmos experimentos.', {
+          'Comparativo': resumirIndicador(benComp, janelaDe(String(ano))).soma,
+          [`Estratégia (Todo ${ano})`]: resultadosDaEstrategia(filtrarDashboardData(e.data, { tipo: 'ano', ano })).beneficio,
+        }, 'moeda', 1))
+    }
   }
 
   // ── Metas: as três metas mais os sem meta somam os experimentos não cancelados ──

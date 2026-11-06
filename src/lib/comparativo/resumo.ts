@@ -5,7 +5,7 @@
 
 export type IndicadorId =
   | 'concluidos' | 'cancelados' | 'validadas' | 'refutadas' | 'beneficio'
-  | 'leadExploracao' | 'leadExperimentacao' | 'aguardandoPiloto' | 'piloto'
+  | 'leadExploracao' | 'leadExperimentacao' | 'cycleExperimentacao' | 'aguardandoPiloto' | 'piloto'
 
 /** Situação de hoje de cada Epic, com a mesma classificação do Semanal. */
 export type SituacaoExperimento = 'exploracao' | 'andamento' | 'validada' | 'refutada' | 'cancelada' | 'outro'
@@ -35,6 +35,11 @@ export interface Experimento {
   criadoEm: string | null     // AAAA-MM-DD
   concluidoEm: string | null
   canceladoEm: string | null
+  /**
+   * Dia em que o benefício potencial conta, na mesma regra da Estratégia: conclusão, ou criação se ainda está em
+   * aberto; null para cancelado (o benefício dele nunca entra) ou sem data.
+   */
+  dataBeneficio?: string | null
 }
 
 /** Iniciativa do board de Ideação, com a etapa de hoje e a primeira entrada em cada etapa (AAAA-MM-DD). */
@@ -59,6 +64,10 @@ export interface Amostra {
   valor: number
   /** Dia (AAAA-MM-DD) em que a amostra conta: decide em que período ela cai. */
   data: string
+  /** Lead time: quantos desses dias o item ficou bloqueado. */
+  bloqueado?: number
+  /** Benefício: o experimento é uma hipótese validada. */
+  validada?: boolean
 }
 
 /** Item que ainda está na etapa hoje (não entra na média; aparece como contexto). */
@@ -217,6 +226,8 @@ export interface Resumo {
   /** Quantidade de amostras por parte. */
   nPorParte: number[]
   amostras: Amostra[]
+  /** Lead time: dias bloqueados (soma, média por item) e a fatia do tempo total que foi bloqueio. */
+  bloqueado: { soma: number; media: number; pct: number } | null
 }
 
 /** Amostras que caem no período. */
@@ -244,7 +255,14 @@ export function resumir(ind: Indicador, j: Janela): Resumo {
     nPorParte: porParteValores.map(v => v.length),
     media: n ? Math.round(soma / n) : null,
     mediana: n ? mediana(valores) : null,
+    bloqueado: comBloqueio(amostras, soma),
   }
+}
+
+function comBloqueio(amostras: Amostra[], soma: number): Resumo['bloqueado'] {
+  if (!amostras.length || !amostras.some(a => a.bloqueado !== undefined)) return null
+  const b = amostras.reduce((s, a) => s + (a.bloqueado ?? 0), 0)
+  return { soma: b, media: Math.round(b / amostras.length), pct: soma ? Math.round((b / soma) * 100) : 0 }
 }
 
 function mediana(v: number[]): number {

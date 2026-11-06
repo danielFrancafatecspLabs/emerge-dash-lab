@@ -82,6 +82,8 @@ export interface JiraBoardConfiguration {
     columns: JiraBoardColumn[]
     constraintType?: string
   }
+  /** O filtro (JQL) salvo que define o board. */
+  filter?: { id: string | number; self?: string }
 }
 
 export interface EpicDetail {

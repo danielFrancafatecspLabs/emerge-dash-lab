@@ -4,13 +4,14 @@
 // com ícone, o funil em camadas, linhas numeradas e a leitura executiva. "Baixar PDF" imprime só o documento (o
 // navegador oferece "Salvar como PDF"), com cores e quebras de página.
 
-import { useMemo, useRef, type ComponentType } from 'react'
+import { useMemo, useRef, useState, type ComponentType } from 'react'
 import {
   ArrowDownRight, ArrowUpRight, Check, Coins, Compass, Download, FlaskConical, Gauge, Layers, Lightbulb, MapPin, Minus,
   Rocket, Sparkles, Target, Timer, TrendingUp, type LucideProps,
 } from 'lucide-react'
-import { Button, cx } from '@/components/ui'
-import { SITUACOES, type Comparacao, type ComparativoDados } from '@/lib/comparativo/resumo'
+import { Button, cx, focusRing } from '@/components/ui'
+import { SITUACOES, trecho, type ComparativoDados } from '@/lib/comparativo/resumo'
+import { comparacaoDoRecorte, NOME_DO_RECORTE, opcoesDoRecorte, RECORTES, type Recorte } from '@/lib/comparativo/recortes'
 import { formatar, montarReport, variacaoPar, type Par } from '@/lib/comparativo/report'
 
 const RED = '#C8102E'
@@ -150,10 +151,44 @@ function FunilCamadas({ etapas }: { etapas: { id: string; titulo: string; valor:
 }
 
 const ICONE_KPI: Record<string, Icone> = { ideias: Lightbulb, concluidos: FlaskConical, taxa: Target, lead: Timer }
-const NOME_MODO = { anual: 'anual', trimestral: 'trimestral', mensal: 'mensal' } as const
 
-export default function ReportExecutivo({ dados, comparacao }: { dados: ComparativoDados; comparacao: Comparacao }) {
+/** O que mudou do período base para o atual, em números absolutos ("+12 ideias registradas"). */
+function OQueCresceu({ itens, base }: { itens: { titulo: string; valores: Par; formato: 'numero' | 'reais' }[]; base: string }) {
+  const comDiferenca = itens.filter(i => i.valores[0] !== null && i.valores[1] !== null)
+    .map(i => ({ ...i, dif: (i.valores[1] ?? 0) - (i.valores[0] ?? 0) }))
+  const cresceu = comDiferenca.filter(i => i.dif > 0)
+  const caiu = comDiferenca.filter(i => i.dif < 0)
+  const texto = (i: (typeof comDiferenca)[number]) => `${i.dif > 0 ? '+' : '−'}${formatar(Math.abs(i.dif), i.formato)}`
+  return (
+    <div className="mt-3 rounded-2xl border border-stone-200 bg-white px-4 py-3">
+      <p className="text-[10px] font-extrabold uppercase tracking-[0.12em] text-stone-700">O que cresceu em relação a {base}</p>
+      {cresceu.length ? (
+        <ul className="mt-1.5 flex flex-wrap gap-1.5">
+          {cresceu.map(i => (
+            <li key={i.titulo} className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10.5px] text-emerald-900">
+              <ArrowUpRight className="h-3 w-3" aria-hidden /><b className="tabular-nums">{texto(i)}</b> {i.titulo.toLowerCase()}
+            </li>
+          ))}
+        </ul>
+      ) : <p className="mt-1 text-[10.5px] text-stone-500">Nenhum indicador cresceu neste recorte.</p>}
+      {caiu.length > 0 && (
+        <p className="mt-1.5 text-[10px] text-stone-500">
+          Caiu: {caiu.map(i => `${i.titulo.toLowerCase()} (${texto(i)})`).join(' · ')}
+        </p>
+      )}
+    </div>
+  )
+}
+
+export default function ReportExecutivo({ dados }: { dados: ComparativoDados }) {
   const ref = useRef<HTMLDivElement>(null)
+  // O report tem o próprio recorte (o padrão é o acumulado dos últimos 12 meses), sempre contra o período anterior.
+  const [recorte, setRecorte] = useState<Recorte>('ultimos12')
+  const opcoes = useMemo(() => opcoesDoRecorte(recorte, dados.hoje), [recorte, dados.hoje])
+  const [escolhido, setEscolhido] = useState<string | null>(null)
+  const periodoId = escolhido && opcoes.some(o => o.id === escolhido) ? escolhido : opcoes[0]?.id ?? 'ultimos12'
+  const comparacao = useMemo(() => comparacaoDoRecorte(recorte, periodoId, dados.hoje), [recorte, periodoId, dados.hoje])
+  const infoRecorte = RECORTES.find(x => x.id === recorte)!
   const r = useMemo(() => montarReport(dados, comparacao), [dados, comparacao])
   const [A, B] = r.rotulos
   const gerado = new Date(`${dados.hoje}T12:00:00`).toLocaleDateString('pt-BR')
@@ -177,7 +212,7 @@ export default function ReportExecutivo({ dados, comparacao }: { dados: Comparat
   const validadas = r.resultados.validadas
   const pctExp = (k: number) => (r.exploracao.registradas[k] ? Math.round((r.exploracao.viraramExperimento[k] / r.exploracao.registradas[k]) * 100) : 0)
   const encerrados = [0, 1].map(k => r.resultados.validadas[k] + r.resultados.refutadas[k] + r.resultados.cancelados[k])
-  const lead = r.tempos.find(t => t.titulo.includes('Experimentação'))!
+  const lead = r.tempos.find(t => t.titulo === 'Cycle time da Experimentação')!
   const area = r.areas.find(a => a.validadas[1] > 0) ?? r.areas[0]
 
   return (
@@ -186,12 +221,36 @@ export default function ReportExecutivo({ dados, comparacao }: { dados: Comparat
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-beon-red">Report executivo</p>
-          <h2 id="report-titulo" className="text-lg font-semibold tracking-tight text-beon-ink">{A} × {B} em duas páginas, pronto para levar à diretoria</h2>
+          <h2 id="report-titulo" className="text-lg font-semibold tracking-tight text-beon-ink">{B} em duas páginas, pronto para levar à diretoria</h2>
           <p className="mt-0.5 max-w-3xl text-sm text-beon-muted">
-            Os números macro desta página num documento só, com os mesmos períodos escolhidos acima. Em &quot;Baixar PDF&quot;, escolha &quot;Salvar como PDF&quot; e desmarque &quot;Cabeçalhos e rodapés&quot;.
+            Escolha o recorte do report: ele sempre compara com {infoRecorte.base} e mostra o que cresceu. Em &quot;Baixar PDF&quot;, escolha &quot;Salvar como PDF&quot; e desmarque &quot;Cabeçalhos e rodapés&quot;.
           </p>
         </div>
         <Button variant="primary" icon={Download} onClick={baixar}>Baixar PDF</Button>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-beon-line bg-white p-3">
+        <div role="radiogroup" aria-label="Recorte do report" className="inline-flex flex-wrap rounded-full bg-stone-100 p-1">
+          {RECORTES.map(x => (
+            <button key={x.id} type="button" role="radio" aria-checked={recorte === x.id} onClick={() => { setRecorte(x.id); setEscolhido(null) }}
+              className={cx('h-8 whitespace-nowrap rounded-full px-3 text-[13px] font-medium transition', focusRing,
+                recorte === x.id ? 'bg-white text-beon-ink shadow-sm' : 'text-beon-muted hover:text-beon-ink')}>
+              {x.rotulo}
+            </button>
+          ))}
+        </div>
+        {opcoes.length > 1 && (
+          <label className="inline-flex items-center gap-2 text-[13px] text-beon-muted">
+            Período
+            <select value={periodoId} onChange={e => setEscolhido(e.target.value)}
+              className={cx('h-9 rounded-full border border-beon-line bg-white px-3 text-[13px] font-medium text-beon-ink', focusRing)}>
+              {opcoes.map(o => <option key={o.id} value={o.id}>{o.rotulo}</option>)}
+            </select>
+          </label>
+        )}
+        <span className="text-xs text-beon-muted">
+          {B} ({trecho(comparacao.atual)}) × {A} ({trecho(comparacao.base)}){comparacao.cortada ? ' · base cortada no mesmo ponto' : ''}
+        </span>
       </div>
 
       <div ref={ref} className="text-stone-800" style={{ fontFamily: 'Inter, "Segoe UI", Arial, sans-serif' }}>
@@ -205,7 +264,7 @@ export default function ReportExecutivo({ dados, comparacao }: { dados: Comparat
               <path d="M0 150 C220 70 520 120 760 40 V0 H740 C540 90 260 30 0 120 Z" fill="#FFFFFF" opacity="0.07" />
             </svg>
             <div className="relative px-8 pb-12 pt-6">
-              <p className="text-[10.5px] font-semibold uppercase tracking-[0.24em] text-white/85">beOn Labs · Report executivo {NOME_MODO[comparacao.modo]}</p>
+              <p className="text-[10.5px] font-semibold uppercase tracking-[0.24em] text-white/85">beOn Labs · Report executivo {NOME_DO_RECORTE[recorte]}</p>
               <div className="mx-auto mt-3 inline-flex rounded-2xl bg-white px-5 py-2.5 shadow-sm">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src="/jira/semanal/logo.png" alt="beOn Labs" style={{ height: 34 }} />
@@ -224,9 +283,11 @@ export default function ReportExecutivo({ dados, comparacao }: { dados: Comparat
               <div className="flex items-center gap-4 rounded-2xl px-5 py-3.5" style={{ background: ROSA }}>
                 <IconeCirculo icone={Coins} tamanho={52} />
                 <div className="min-w-0 flex-1">
-                  <p className="text-[10px] font-extrabold uppercase tracking-[0.12em] text-stone-700">Benefício potencial validado em {B}</p>
+                  <p className="text-[10px] font-extrabold uppercase tracking-[0.12em] text-stone-700">Benefício potencial dos experimentos em {B}</p>
                   <p className="text-[38px] font-extrabold leading-none tracking-tight tabular-nums" style={{ color: RED }}>{formatar(beneficio.valores[1], 'reais')}</p>
-                  <p className="mt-1 text-[11.5px] text-stone-700"><b>{validadas[1]}</b> {validadas[1] === 1 ? 'hipótese validada' : 'hipóteses validadas'} · em {A}: {formatar(beneficio.valores[0], 'reais')} em {validadas[0]}</p>
+                  <p className="mt-1 text-[11.5px] text-stone-700">
+                    <b>{r.valor.experimentos[1]}</b> {r.valor.experimentos[1] === 1 ? 'experimento' : 'experimentos'} · {formatar(r.valor.validado[1], 'reais')} em {validadas[1]} {validadas[1] === 1 ? 'hipótese validada' : 'hipóteses validadas'} · em {A}: {formatar(beneficio.valores[0], 'reais')}
+                  </p>
                 </div>
                 <Chip valores={beneficio.valores} melhor="maior" />
               </div>
@@ -236,6 +297,10 @@ export default function ReportExecutivo({ dados, comparacao }: { dados: Comparat
                     base={`${A}: ${formatar(k.valores[0], k.formato)}`} chip={<Chip valores={k.valores} melhor={k.melhor} />} />
                 ))}
               </div>
+              <OQueCresceu base={A} itens={[
+                ...r.funil.map(f => ({ titulo: f.titulo, valores: f.valores as Par, formato: 'numero' as const })),
+                { titulo: 'Benefício potencial', valores: beneficio.valores, formato: 'reais' as const },
+              ]} />
             </section>
 
             <section className="inteiro">
@@ -251,7 +316,7 @@ export default function ReportExecutivo({ dados, comparacao }: { dados: Comparat
                         <span className="block text-[11.5px] font-semibold text-stone-900">{f.titulo}</span>
                         <span className="block truncate text-[10px] text-stone-500">{f.descricao}</span>
                       </span>
-                      <span className="w-14 text-right text-[10px] tabular-nums text-stone-500">{A}: <b className="text-stone-700">{f.valores[0]}</b></span>
+                      <span className="w-28 whitespace-nowrap text-right text-[10px] tabular-nums text-stone-500">{A}: <b className="text-stone-700">{f.valores[0]}</b></span>
                       <span className="w-[74px] text-right"><Chip valores={f.valores} melhor="maior" /></span>
                     </li>
                   ))}
@@ -295,7 +360,7 @@ export default function ReportExecutivo({ dados, comparacao }: { dados: Comparat
             </section>
 
             <section className="inteiro">
-              <Secao icone={Coins} olho="Valor" destaque="Valor" complemento="gerado" subtitulo={`Maiores benefícios potenciais entre as hipóteses validadas em ${B}`} />
+              <Secao icone={Coins} olho="Valor" destaque="Valor" complemento="gerado" subtitulo={`Maiores benefícios potenciais entre os experimentos de ${B}`} />
               <ol className="space-y-1">
                 {r.valor.top.map((d, i) => {
                   const [valor, areaNome] = d.detalhe.split(' · ')
@@ -333,7 +398,7 @@ export default function ReportExecutivo({ dados, comparacao }: { dados: Comparat
                 <div className="rounded-2xl border border-stone-200 p-2.5">
                   <p className="flex items-center gap-1.5 text-[11px] font-bold text-stone-900"><IconeCirculo icone={Gauge} tamanho={24} /> Velocidade</p>
                   <p className="mt-2.5 text-[26px] font-extrabold leading-none tabular-nums" style={{ color: RED }}>{formatar(lead.valores[1], 'dias')}</p>
-                  <p className="mt-1 text-[10px] text-stone-600">para experimentar (mediana)</p>
+                  <p className="mt-1 text-[10px] text-stone-600">cycle time de experimentação (mediana, sem bloqueios)</p>
                   <p className="mt-1.5 flex items-center gap-1.5 text-[9.5px] text-stone-500">{A}: {formatar(lead.valores[0], 'dias')} <Chip valores={lead.valores} melhor="menor" /></p>
                 </div>
                 <div className="rounded-2xl border border-stone-200 p-2.5">

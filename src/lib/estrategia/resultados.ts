@@ -13,7 +13,8 @@ import type {
  * Período: vale a data em que o experimento (Epic) terminou.
  * - Concluído entra no período em que foi concluído; cancelado, no período em que foi cancelado (sem o histórico do
  *   Jira, vale a data de criação).
- * - Em aberto (backlog, refinamento, andamento, validação) entra se já existia no fim do período: estava em curso.
+ * - Em aberto (backlog, refinamento, andamento, validação) entra no período em que foi criado.
+ * Cada experimento cai em UM período só, então os períodos somam: 1º semestre + 2º semestre = o ano todo.
  *
  * Benefício potencial: nunca soma experimentos cancelados. O que foi cancelado com benefício aparece à parte.
  *
@@ -29,14 +30,21 @@ export const beneficioDe = (e: Pick<EpicDetail, 'beneficioQuantitativo'>) => e.b
 /** Soma do benefício potencial, sem os cancelados. */
 export const beneficioPotencial = (epics: EpicDetail[]) => epics.reduce((s, e) => s + (ehCancelado(e) ? 0 : beneficioDe(e)), 0)
 
+/**
+ * A data que decide o período do experimento: a conclusão, o cancelamento ou, em aberto, a criação. Antes o aberto
+ * contava em todo período em que já existia, e o mesmo experimento entrava no 1º e no 2º semestre. O Comparativo usa
+ * esta mesma data no benefício potencial.
+ */
+export function dataDoExperimentoNoPeriodo(e: EpicDetail): string | null {
+  if (ehExperimentoConcluido(e)) return e.concluidoEm ?? e.criadoEm ?? null
+  if (ehCancelado(e)) return e.canceladoEm ?? e.criadoEm ?? null
+  return e.criadoEm ?? null
+}
+
 /** O experimento conta no período? (ver a regra no topo) */
 export function epicNoPeriodo(e: EpicDetail, periodo: PeriodoFiltro): boolean {
   if (periodo.tipo === 'tudo') return true
-  if (ehExperimentoConcluido(e)) return isDataNoPeriodo(e.concluidoEm ?? e.criadoEm, periodo)
-  if (ehCancelado(e)) return isDataNoPeriodo(e.canceladoEm ?? e.criadoEm, periodo)
-  if (!e.criadoEm) return true
-  const criado = Date.parse(e.criadoEm)
-  return Number.isNaN(criado) || criado <= getPeriodoIntervalo(periodo).fim.getTime()
+  return isDataNoPeriodo(dataDoExperimentoNoPeriodo(e), periodo)
 }
 
 // ── Hipóteses ─────────────────────────────────────────────────────────────────────────────────

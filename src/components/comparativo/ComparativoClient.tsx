@@ -77,8 +77,11 @@ function CartaoResumo({ ind, r1, r2, base, ativo, onClick }: {
             <Periodo k={k} rotulo={r.janela.rotulo} />
             <span className="mt-0.5 block truncate text-xl font-semibold tracking-tight tabular-nums text-beon-ink">{valor(ind, principal(ind, r))}</span>
             <span className="block text-[11px] tabular-nums text-beon-muted">
-              {base ? `${pct(r.n, base[k].n)}% dos concluídos` : ind.unidade === 'itens' ? 'experimentos' : `${r.n} ${r.n === 1 ? 'item' : 'itens'}`}
+              {base ? `${pct(r.n, base[k].n)}% dos concluídos` : ind.unidade === 'itens' ? 'experimentos' : `${r.n} ${r.n === 1 ? (ind.unidade === 'reais' ? 'experimento' : 'item') : (ind.unidade === 'reais' ? 'experimentos' : 'itens')}`}
             </span>
+            {r.bloqueado && r.n > 0 && (
+              <span className="block text-[11px] tabular-nums text-amber-700">{r.bloqueado.pct}% do tempo bloqueado</span>
+            )}
           </span>
         ))}
       </span>
@@ -291,7 +294,7 @@ function ForaDaConta({ ind, comparacao, jiraUrl }: { ind: Indicador; comparacao:
   )
 }
 
-/** Fecha o benefício com o Semanal: o total de hoje das hipóteses validadas e em que período cada uma foi concluída. */
+/** Fecha o benefício com a Estratégia: o total de hoje dos experimentos não cancelados e em que período cada um conta. */
 function Conciliacao({ ind, comparacao }: { ind: Indicador; comparacao: Comparacao }) {
   const c = ind.conciliacao!
   const janelas = [comparacao.base, comparacao.atual]
@@ -304,15 +307,15 @@ function Conciliacao({ ind, comparacao }: { ind: Indicador; comparacao: Comparac
   return (
     <div className="mt-4 rounded-xl bg-beon-soft px-3 py-2.5 text-xs leading-relaxed text-beon-body">
       <p>
-        Hoje, as <b className="text-beon-ink">hipóteses validadas</b> do Semanal somam <b className="text-beon-ink">{formatarValor(c.total)}</b> em {experimentos(c.n)}.
-        Pelo período da conclusão:
+        Hoje, os <b className="text-beon-ink">experimentos não cancelados</b> somam <b className="text-beon-ink">{formatarValor(c.total)}</b> em {experimentos(c.n)}: o Benefício Potencial da Estratégia em &quot;Tudo&quot;.
+        Pelo período (conclusão, ou criação se ainda está em aberto):
       </p>
       <ul className="mt-1.5 space-y-0.5 tabular-nums">
         {porJanela.map((x, k) => (
           <li key={x.j.id} className="flex items-center justify-between gap-3"><Periodo k={k} rotulo={x.j.rotulo} /><span><b className="text-beon-ink">{experimentos(x.n)}</b> · {formatarValor(x.soma)}</span></li>
         ))}
         {outros > 0 && <li className="flex justify-between gap-3"><span>Em outros períodos</span><span>{experimentos(outros)}</span></li>}
-        {c.semData > 0 && <li className="flex justify-between gap-3"><span>Sem data de conclusão no Jira</span><span>{experimentos(c.semData)}</span></li>}
+        {c.semData > 0 && <li className="flex justify-between gap-3"><span>Sem data no Jira</span><span>{experimentos(c.semData)}</span></li>}
       </ul>
     </div>
   )
@@ -343,14 +346,26 @@ function Detalhe({ ind, r1, r2, base, comparacao, jiraUrl }: {
   type Linha = [string, (r: Resumo, k: number) => string]
   const linhas: Linha[] =
     ind.unidade === 'reais'
-      ? [['Benefício', r => valor(ind, principal(ind, r))], ['Hipóteses validadas', r => String(r.n)], ['Média por hipótese', r => valor(ind, r.media)]]
+      ? [
+        ['Benefício potencial', r => valor(ind, principal(ind, r))],
+        ['Experimentos com benefício', r => String(r.n)],
+        ['Das hipóteses validadas', r => valor(ind, r.amostras.filter(a => a.validada).reduce((s, a) => s + a.valor, 0))],
+        ['Média por experimento', r => valor(ind, r.media)],
+      ]
       : ind.unidade === 'itens'
         ? [
           ['Total no período', r => itens(r.n)],
           [`Média por ${nomeParte.toLowerCase()}`, r => (r.n / partesNoPeriodo(r)).toLocaleString('pt-BR', { maximumFractionDigits: 1 })],
           ...(base ? [['% dos concluídos', (r: Resumo, k: number) => `${pct(r.n, base[k].n)}%`] as Linha] : []),
         ]
-        : [['Mediana', r => dias(r.mediana)], ['Média', r => dias(r.media)], ['Itens medidos', r => String(r.n)]]
+        : [
+          ['Mediana', r => dias(r.mediana)], ['Média', r => dias(r.media)], ['Itens medidos', r => String(r.n)],
+          // Lead time: quanto do tempo foi bloqueio (o cycle time é o mesmo tempo sem esses dias).
+          ...(ind.amostras.some(a => a.bloqueado !== undefined) ? [
+            ['Bloqueado (média por item)', (r: Resumo) => (r.bloqueado ? dias(r.bloqueado.media) : '—')] as Linha,
+            ['% do tempo bloqueado', (r: Resumo) => (r.bloqueado ? `${r.bloqueado.pct}%` : '—')] as Linha,
+          ] : []),
+        ]
   const aberto = ind.emAberto
   const ordenados = aberto.map(e => e.dias).sort((a, b) => a - b)
   const meio = Math.floor(ordenados.length / 2)
@@ -476,7 +491,10 @@ export default function ComparativoClient({ dados }: { dados: ComparativoDados }
   const [modo, setModo] = useState<Modo>('anual')
   const opcoes = useMemo(() => periodosDisponiveis(modo, dados.hoje), [modo, dados.hoje])
   const [escolhido, setEscolhido] = useState<string | null>(null)
-  const periodoId = escolhido && opcoes.some(o => o.id === escolhido) ? escolhido : opcoes[0]?.id ?? dados.hoje.slice(0, 4)
+  // No mensal, o mês corrente acabou de começar (dias de dados contra uma base cortada no mesmo ponto, quase tudo zero):
+  // o padrão é o último mês fechado; o corrente continua na lista.
+  const padrao = (modo === 'mensal' && opcoes.length > 1 ? opcoes[1] : opcoes[0])?.id ?? dados.hoje.slice(0, 4)
+  const periodoId = escolhido && opcoes.some(o => o.id === escolhido) ? escolhido : padrao
   const [baseTipo, setBaseTipo] = useState<'anterior' | 'ano-anterior'>('anterior')
   const [mesmoPeriodo, setMesmoPeriodo] = useState(true)
   const [atual, setAtual] = useState<IndicadorId>('concluidos')
@@ -512,7 +530,7 @@ export default function ComparativoClient({ dados }: { dados: ComparativoDados }
           {modo === 'anual' ? 'Ano' : modo === 'trimestral' ? 'Trimestre' : 'Mês'}
           <select value={periodoId} onChange={e => setEscolhido(e.target.value)}
             className={cx('h-9 rounded-full border border-beon-line bg-white px-3 text-[13px] font-medium text-beon-ink', focusRing)}>
-            {opcoes.map(o => <option key={o.id} value={o.id}>{o.rotulo}</option>)}
+            {opcoes.map((o, k) => <option key={o.id} value={o.id}>{o.rotulo}{k === 0 && modo !== 'anual' ? ' (até agora)' : ''}</option>)}
           </select>
         </label>
         {modo !== 'anual' && (
@@ -542,15 +560,15 @@ export default function ComparativoClient({ dados }: { dados: ComparativoDados }
       <PorArea experimentos={dados.experimentos} comparacao={comparacao} jiraUrl={dados.jiraUrl} />
 
       <Secao olho="Tempos do processo" titulo="Quanto tempo cada etapa leva"
-        descricao="Mediana de dias por etapa, no período em que o item saiu dela. Itens ainda na etapa e itens sem histórico ficam de fora, e o detalhe mostra quantos.">
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">{cartoes('tempos')}</div>
+        descricao="Mediana de dias por etapa, no período em que o item saiu dela. Na Experimentação, o lead time conta o tempo bloqueado (e mostra quanto foi) e o cycle time o desconta, como na Estratégia. Itens ainda na etapa e sem histórico ficam de fora.">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5">{cartoes('tempos')}</div>
       </Secao>
 
       <div ref={detalheRef} className="scroll-mt-16">
         <Detalhe ind={ind} r1={r1} r2={r2} base={baseDe(ind)} comparacao={comparacao} jiraUrl={dados.jiraUrl} />
       </div>
 
-      <ReportExecutivo dados={dados} comparacao={comparacao} />
+      <ReportExecutivo dados={dados} />
 
       <p className="text-xs leading-relaxed text-beon-muted">
         Nos tempos, o número principal é a mediana: metade dos itens levou menos que isso e metade, mais; a média aparece no detalhe.
