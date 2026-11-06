@@ -4,6 +4,7 @@ import { AUTH_ROLES, type AuthSessionRole } from '@/lib/auth/session'
 import { isSafeLink } from '@/lib/validation/url'
 import { jsonStorePath, readJsonStore, writeJsonStore } from '@/lib/storage/json-store'
 import { passwordProblem } from './password-rules'
+import { MENSAGEM_SENHA_EXPOSTA, senhaExposta } from './senhas-expostas'
 
 export { MIN_PASSWORD_LENGTH, passwordProblem } from './password-rules'
 
@@ -164,6 +165,11 @@ export function checkLogin(username: string, password: string): LoginCheck {
   const user = users.find(u => u.username.toLowerCase() === login) ?? users.find(u => u.email?.toLowerCase() === login)
   const ok = verifyPassword(password, user?.passwordHash ?? DUMMY_HASH)
   if (!user || !ok) return null
+  // Senha que já circulou fora do app não entra mais: um admin define uma nova.
+  if (senhaExposta(password)) {
+    console.warn(`[auth] login recusado para ${user.username}: senha fora de uso; defina uma nova no Admin`)
+    return null
+  }
   if (user.active) return { user }
   return user.status === 'pendente' ? { pendente: true } : null
 }
@@ -208,7 +214,7 @@ export function parseUserChanges(body: unknown, criando: boolean): { value: User
     out.role = b.role as AuthSessionRole
   }
   if ((b.password !== undefined && b.password !== '') || criando) {
-    const problema = passwordProblem(b.password, out.username ?? '')
+    const problema = passwordProblem(b.password, out.username ?? '') ?? (senhaExposta(b.password) ? MENSAGEM_SENHA_EXPOSTA : null)
     if (problema) return { error: problema }
     out.password = b.password as string
   }
@@ -246,7 +252,7 @@ export function parseSignup(body: unknown): { value: SignupInput } | { error: st
   if (nome.length < 3) return { error: 'Informe seu nome completo' }
   if (!EMAIL.test(email)) return { error: 'Informe um e-mail válido' }
   if (!area) return { error: 'Informe sua área ou diretoria' }
-  const problema = passwordProblem(b.password, email)
+  const problema = passwordProblem(b.password, email) ?? (senhaExposta(b.password) ? MENSAGEM_SENHA_EXPOSTA : null)
   if (problema) return { error: problema }
   return { value: { nome, email, area, motivo, password: b.password as string } }
 }
