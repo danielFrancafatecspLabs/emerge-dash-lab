@@ -476,7 +476,10 @@ export default function ComparativoClient({ dados }: { dados: ComparativoDados }
   const [modo, setModo] = useState<Modo>('anual')
   const opcoes = useMemo(() => periodosDisponiveis(modo, dados.hoje), [modo, dados.hoje])
   const [escolhido, setEscolhido] = useState<string | null>(null)
-  const periodoId = escolhido && opcoes.some(o => o.id === escolhido) ? escolhido : opcoes[0]?.id ?? dados.hoje.slice(0, 4)
+  // No mensal, o mês corrente acabou de começar (dias de dados contra uma base cortada no mesmo ponto, quase tudo zero):
+  // o padrão é o último mês fechado; o corrente continua na lista.
+  const padrao = (modo === 'mensal' && opcoes.length > 1 ? opcoes[1] : opcoes[0])?.id ?? dados.hoje.slice(0, 4)
+  const periodoId = escolhido && opcoes.some(o => o.id === escolhido) ? escolhido : padrao
   const [baseTipo, setBaseTipo] = useState<'anterior' | 'ano-anterior'>('anterior')
   const [mesmoPeriodo, setMesmoPeriodo] = useState(true)
   const [atual, setAtual] = useState<IndicadorId>('concluidos')
@@ -512,7 +515,7 @@ export default function ComparativoClient({ dados }: { dados: ComparativoDados }
           {modo === 'anual' ? 'Ano' : modo === 'trimestral' ? 'Trimestre' : 'Mês'}
           <select value={periodoId} onChange={e => setEscolhido(e.target.value)}
             className={cx('h-9 rounded-full border border-beon-line bg-white px-3 text-[13px] font-medium text-beon-ink', focusRing)}>
-            {opcoes.map(o => <option key={o.id} value={o.id}>{o.rotulo}</option>)}
+            {opcoes.map((o, k) => <option key={o.id} value={o.id}>{o.rotulo}{k === 0 && modo !== 'anual' ? ' (até agora)' : ''}</option>)}
           </select>
         </label>
         {modo !== 'anual' && (
@@ -550,7 +553,7 @@ export default function ComparativoClient({ dados }: { dados: ComparativoDados }
         <Detalhe ind={ind} r1={r1} r2={r2} base={baseDe(ind)} comparacao={comparacao} jiraUrl={dados.jiraUrl} />
       </div>
 
-      <ReportExecutivo dados={dados} comparacao={comparacao} />
+      <ReportExecutivo dados={dados} />
 
       <p className="text-xs leading-relaxed text-beon-muted">
         Nos tempos, o número principal é a mediana: metade dos itens levou menos que isso e metade, mais; a média aparece no detalhe.

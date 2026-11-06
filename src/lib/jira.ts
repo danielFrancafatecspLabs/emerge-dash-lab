@@ -64,6 +64,7 @@ const FIELDS_INICIATIVA = [
   'customfield_11991', // PROP DOMINIO 01
   'customfield_30014', // Domínio (was customfield_11661)
   'customfield_30021', // Domínio (option select) — NOVO
+  'archiveddate',      // Preenchido quando a issue foi arquivada (fica fora de todas as contas)
 ].join(',')
 
 const FIELDS_EPIC = [
@@ -90,6 +91,7 @@ const FIELDS_EPIC = [
   'customfield_21499', // Diretoria (was customfield_10904)
   'duedate',             // Data limite
   'attachment',          // Anexos
+  'archiveddate',        // Preenchido quando a issue foi arquivada (fica fora de todas as contas)
 ].join(',')
 
 function getHeaders(): HeadersInit {
@@ -227,6 +229,44 @@ export async function getAllBoardIssues(boardId: number, fields: string): Promis
   return all
 }
 
+/**
+ * Chaves que a busca do Jira (JQL) devolve para o filtro do board. Issue arquivada não aparece em busca nenhuma do Jira,
+ * então quem está no board mas não está aqui foi arquivado. Devolve null se a busca falhar: aí nada é descartado.
+ */
+async function chavesNaBuscaDoFiltro(filterId: number | string): Promise<Set<string> | null> {
+  const base = process.env.JIRA_BASE_URL
+  if (!base) return null
+  const chaves = new Set<string>()
+  let token: string | undefined
+  try {
+    for (let pagina = 0; pagina < 40; pagina++) {
+      const url = `${base}/rest/api/3/search/jql?jql=${encodeURIComponent(`filter = ${filterId}`)}&fields=key&maxResults=1000` +
+        (token ? `&nextPageToken=${encodeURIComponent(token)}` : '')
+      const res = await jiraFetch(url, getHeaders())
+      if (!res.ok) return null
+      const data = await res.json() as { issues?: { key?: string }[]; nextPageToken?: string; isLast?: boolean }
+      for (const i of data.issues ?? []) if (i.key) chaves.add(i.key)
+      token = data.nextPageToken
+      if (data.isLast || !token) return chaves
+    }
+    return chaves
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Tira as issues arquivadas no Jira: as que trazem `archiveddate` e as que estão no board mas a busca do Jira não acha
+ * mais. Se a busca discordar demais do board (filtro diferente, sem permissão), ela é ignorada: melhor não descartar
+ * nada do que descartar errado.
+ */
+export function semArquivadas(issues: JiraIssue[], naBusca: Set<string> | null): { issues: JiraIssue[]; arquivadas: string[] } {
+  const marcadas = (i: JiraIssue) => !!(i.fields as unknown as { archiveddate?: unknown })?.archiveddate
+  const buscaConfiavel = !!naBusca && naBusca.size > 0 && issues.filter(i => naBusca.has(i.key)).length >= issues.length * 0.8
+  const arquivada = (i: JiraIssue) => marcadas(i) || (buscaConfiavel && !naBusca!.has(i.key))
+  return { issues: issues.filter(i => !arquivada(i)), arquivadas: issues.filter(arquivada).map(i => i.key) }
+}
+
 export interface DashboardRaw {
   iniciativas: JiraIssue[]
   epics: JiraIssue[]
@@ -234,6 +274,8 @@ export interface DashboardRaw {
   board2735Config: JiraBoardConfiguration
   epicChangelogs: Record<string, ChangelogEntry[]>
   iniciativaChangelogs: Record<string, ChangelogEntry[]>
+  /** Issues arquivadas no Jira, que ficaram fora de todas as contas. */
+  arquivadas?: string[]
 }
 
 const CHAVE_CACHE_DASHBOARD = 'jira-dashboard'
@@ -297,12 +339,24 @@ async function buscarDashboardRaw(anterior?: DashboardRaw): Promise<DashboardRaw
     ...FIELDS_EPIC.split(','), ...(tecnologiaFieldId ? [tecnologiaFieldId] : []), ...camposParaBloqueio(campos),
   ])].join(',')
 
-  const [iniciativas, epicsRaw, board2734Config, board2735Config] = await Promise.all([
+  const [iniciativasDoBoard, epicsDoBoard, board2734Config, board2735Config] = await Promise.all([
     getAllBoardIssues(IDEACAO_BOARD_ID, FIELDS_INICIATIVA),
     getAllBoardIssues(EXPERIMENTACAO_BOARD_ID, fieldsEpicComTecnologia),
     getBoardConfiguration(IDEACAO_BOARD_ID),
     getBoardConfiguration(EXPERIMENTACAO_BOARD_ID),
   ])
+
+  // Arquivadas no Jira saem de tudo (portfólio, cancelados, benefício…).
+  const [buscaIni, buscaExp] = await Promise.all([
+    board2734Config.filter?.id ? chavesNaBuscaDoFiltro(board2734Config.filter.id) : Promise.resolve(null),
+    board2735Config.filter?.id ? chavesNaBuscaDoFiltro(board2735Config.filter.id) : Promise.resolve(null),
+  ])
+  const ini = semArquivadas(iniciativasDoBoard, buscaIni)
+  const exp = semArquivadas(epicsDoBoard, buscaExp)
+  const iniciativas = ini.issues
+  const epicsRaw = exp.issues
+  const arquivadas = [...ini.arquivadas, ...exp.arquivadas]
+  if (arquivadas.length) console.info(`[jira] ${arquivadas.length} issue(s) arquivada(s) fora das contas: ${arquivadas.join(', ')}`)
 
   // Normaliza o valor do campo "Tecnologia" (customfield_ID resolvido acima)
   // para uma chave fixa `tecnologia` — assim o resto do código não precisa
@@ -396,7 +450,7 @@ async function buscarDashboardRaw(anterior?: DashboardRaw): Promise<DashboardRaw
   const iniciativaChangelogs = iniciativaLogs.result
   console.log(`[jira] changelogs buscados: ${epicLogs.buscados}/${epics.length} epics, ${iniciativaLogs.buscados}/${iniciativas.length} iniciativas`)
 
-  return { iniciativas, epics: epicsWithComments, board2734Config, board2735Config, epicChangelogs, iniciativaChangelogs }
+  return { iniciativas, epics: epicsWithComments, board2734Config, board2735Config, epicChangelogs, iniciativaChangelogs, arquivadas }
 }
 
 export interface ChangelogEntry {

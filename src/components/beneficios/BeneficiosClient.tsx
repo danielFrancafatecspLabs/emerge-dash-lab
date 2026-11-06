@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { AvisoDadosEmRevisao, PortalPage } from '@/components/shell/PortalPage'
+import { PortalPage } from '@/components/shell/PortalPage'
 import {
   Search, SlidersHorizontal, X, TrendingUp, CheckCircle2, Clock, XCircle,
   HelpCircle, ArrowUpDown,
@@ -139,7 +139,6 @@ export default function BeneficiosClient({ rows, currentRole, currentUsername }:
       title="Controle financeiro de benefícios"
       description="Benefício quantitativo potencial × validado pelo Financeiro — board de Experimentação"
       refreshable
-      aviso={<AvisoDadosEmRevisao />}
       actions={!canEdit && (
         <span className="rounded-full bg-beon-soft px-3 py-1 text-xs font-medium text-beon-muted">Modo leitura</span>
       )}

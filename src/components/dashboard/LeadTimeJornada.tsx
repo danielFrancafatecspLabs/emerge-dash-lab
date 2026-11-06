@@ -4,6 +4,9 @@ import {
   AreaChart, Area, XAxis, YAxis, Tooltip, ReferenceLine,
   ResponsiveContainer, Label, Customized,
 } from 'recharts'
+
+/** Lead time de experimentação saudável para o beOn Labs (a linha pontilhada). */
+const CURVA_SAUDAVEL_DIAS = 45
 import { LeadTimeJornada, CycleTimeEstagio } from '@/lib/types'
 import { Clock, AlertTriangle, Zap, Lock, TrendingDown, TrendingUp } from 'lucide-react'
 
@@ -280,16 +283,16 @@ export default function LeadTimeJornadaComponent({
                 tick={{ fontSize: 11, fontWeight: 500, fill: '#64748B' }}
                 dy={4}
               />
-              <YAxis hide domain={['dataMin - 5', 'dataMax + 5']} />
+              <YAxis hide domain={[(min: number) => Math.min(min - 5, CURVA_SAUDAVEL_DIAS - 5), (max: number) => Math.max(max + 5, CURVA_SAUDAVEL_DIAS + 5)]} />
               <Tooltip content={<LeadTimeTooltip />} />
               <ReferenceLine
-                y={90}
+                y={CURVA_SAUDAVEL_DIAS}
                 stroke="#EF4444"
                 strokeDasharray="4 3"
                 strokeWidth={1.5}
               >
                 <Label
-                  value="Curva Saudável 90d"
+                  value={`Curva Saudável ${CURVA_SAUDAVEL_DIAS}d`}
                   position="insideTopRight"
                   fill="#EF4444"
                   fontSize={9}
@@ -337,7 +340,7 @@ export default function LeadTimeJornadaComponent({
             </span>
             <span style={{ fontSize: 9, color: '#94A3B8' }}>·</span>
             <span style={{ fontSize: 9, color: '#64748B' }}>
-              Curva Saudável: <strong style={{ color: '#EF4444' }}>90d</strong>
+              Curva Saudável: <strong style={{ color: '#EF4444' }}>{CURVA_SAUDAVEL_DIAS}d</strong>
             </span>
             <span style={{ fontSize: 9, color: '#94A3B8' }}>·</span>
             <span className={`font-medium ${diferencaMesAnterior <= 0 ? 'text-green-600' : 'text-red-600'}`} style={{ fontSize: 9 }}>

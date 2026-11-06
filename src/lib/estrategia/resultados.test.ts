@@ -40,7 +40,7 @@ describe('período pela conclusão do experimento', () => {
     expect(epicNoPeriodo(e, s1_26)).toBe(true)
     expect(epicNoPeriodo(e, { tipo: 'ano', ano: 2025 })).toBe(false)
   })
-  it('em aberto conta se já existia no fim do período (estava em curso)', () => {
+  it('em aberto conta no período em que foi criado (cada experimento cai em um período só)', () => {
     const e = epic('GL-3', null, { criadoEm: '2026-08-01T10:00:00Z' })
     expect(epicNoPeriodo(e, s1_26)).toBe(false)
     expect(epicNoPeriodo(e, { tipo: 'semestre', ano: 2026, semestre: 2 })).toBe(true)
@@ -110,11 +110,20 @@ describe('benefício potencial', () => {
     expect(d.iniciativas.find(i => i.key === 'GL-8')?.beneficioQuantitativoTotal).toBe(1_000_000)
   })
 
-  it('no período, cancelado e concluído contam pela data do evento', () => {
-    const d = filtrarDashboardData(data, { tipo: 'semestre', ano: 2025, semestre: 2 })
-    // Em 2025/2: só os abertos já existentes (criados em mar/2025); o concluído e o cancelado são de 2026.
+  it('no período, cancelado e concluído contam pela data do evento; os abertos, pela criação', () => {
+    const d = filtrarDashboardData(data, { tipo: 'semestre', ano: 2025, semestre: 1 })
+    // Em 2025/1: os abertos criados em mar/2025; o concluído e o cancelado são de 2026.
     expect(d.allEpics.map(e => e.key)).toEqual(['GL-20', 'GL-23'])
     expect(resultadosDaEstrategia(d).cancelados.valor).toBe(0)
+    expect(filtrarDashboardData(data, { tipo: 'semestre', ano: 2025, semestre: 2 }).allEpics).toEqual([])
+  })
+
+  it('os semestres somam o ano: nenhum experimento conta em dois períodos', () => {
+    const ben = (p: Parameters<typeof filtrarDashboardData>[1]) => resultadosDaEstrategia(filtrarDashboardData(data, p)).beneficio
+    for (const ano of [2025, 2026]) {
+      expect(ben({ tipo: 'semestre', ano, semestre: 1 }) + ben({ tipo: 'semestre', ano, semestre: 2 })).toBe(ben({ tipo: 'ano', ano }))
+    }
+    expect(ben({ tipo: 'ano', ano: 2025 }) + ben({ tipo: 'ano', ano: 2026 })).toBe(ben({ tipo: 'tudo' }))
   })
 })
 

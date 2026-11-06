@@ -92,7 +92,10 @@ export interface PortalPageProps {
   chrome?: boolean
   /** Mostra "Maximizar" (padrão): esconde o menu lateral e as barras do app, mantendo a barra da página. */
   maximizable?: boolean
-  /** Aviso fixo logo abaixo da barra (ex.: "Dados em revisão"). */
+  /**
+   * Aviso fixo logo abaixo da barra. Todo painel com dados do Jira (`refreshable`) mostra "Dados em revisão" por
+   * padrão; `aviso={null}` tira.
+   */
   aviso?: ReactNode
   children: ReactNode
 }
@@ -102,7 +105,7 @@ export function AvisoDadosEmRevisao({ children }: { children?: ReactNode }) {
   return (
     <div role="status" className="flex items-start gap-2 border-b border-amber-200 bg-amber-50 px-4 py-2 text-[13px] text-amber-900 sm:px-6">
       <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-amber-500" aria-hidden />
-      <p><b className="font-semibold">Dados em revisão.</b> {children ?? 'Os números desta página estão sendo conferidos e podem mudar.'}</p>
+      <p><b className="font-semibold">Dados em revisão.</b> {children ?? 'Todos os dados deste painel estão sendo revistos e podem mudar.'}</p>
     </div>
   )
 }
@@ -142,7 +145,7 @@ export function PortalPage({ title, description, actions, refreshable, fit, chro
           </div>
         )}
       </div>
-      {aviso}
+      {aviso === undefined ? (refreshable ? <AvisoDadosEmRevisao /> : null) : aviso}
       <div className={cx('flex min-w-0 flex-1 flex-col', fit && 'min-h-0 overflow-hidden')}>{children}</div>
     </div>
   )

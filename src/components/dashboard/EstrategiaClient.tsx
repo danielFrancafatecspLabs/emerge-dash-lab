@@ -143,7 +143,7 @@ export default function EstrategiaClient({ data, beneficioValidadoPorEpic, class
         {
           id: 'burnup',
           titulo: 'Crescimento da Experimentação no Período',
-          descricao: 'Acumulado mês a mês de experimentos concluídos (mesma contagem do report Semanal: status Concluído), partindo do que já estava concluído antes do período, e benefício quantitativo.',
+          descricao: 'Experimentos concluídos dentro do período, acumulados mês a mês a partir de zero (mesma contagem do report Semanal: status Concluído), e benefício quantitativo.',
           dados: {
             realizado: monitoramentoFiltrado.burnup.realizado,
             beneficio: monitoramentoFiltrado.burnup.beneficio,
@@ -289,7 +289,7 @@ export default function EstrategiaClient({ data, beneficioValidadoPorEpic, class
               <GraficoComInsight
                 step={1}
                 titulo="Crescimento da Experimentação"
-                subtitulo="Acumulado de experimentos concluídos (mesma contagem do Semanal)"
+                subtitulo="Experimentos concluídos no período, mês a mês (mesma contagem do Semanal)"
                 insight={insightsMap['burnup']}
                 loading={insightsLoading}
                 ocultarInsight
