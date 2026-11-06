@@ -33,7 +33,7 @@ export interface ReportExecutivo {
   resultados: { concluidos: [number, number]; validadas: [number, number]; refutadas: [number, number]; cancelados: [number, number] }
   tempos: { titulo: string; valores: Par }[]
   areas: { nome: string; validadas: [number, number]; concluidos: [number, number]; beneficio: [number, number] }[]
-  valor: { total: [number, number]; top: Destaque[] }
+  valor: { total: [number, number]; validado: [number, number]; experimentos: [number, number]; top: Destaque[] }
   emAndamentoHoje: number
   leitura: string[]
 }
@@ -67,9 +67,14 @@ export function montarReport(dados: ComparativoDados, c: Comparacao): ReportExec
   const inis = dados.iniciativas
 
   const concluidos = n(ind('concluidos')), validadas = n(ind('validadas')), refutadas = n(ind('refutadas')), cancelados = n(ind('cancelados'))
-  const beneficio = par(ind('beneficio')).map(v => v ?? 0) as [number, number]
+  const indBeneficio = ind('beneficio')
+  const beneficio = par(indBeneficio).map(v => v ?? 0) as [number, number]
+  // Quanto do benefício potencial do período já está em hipóteses validadas, e em quantos experimentos ele está.
+  const resumosBen = [resumir(indBeneficio, c.base), resumir(indBeneficio, c.atual)]
+  const beneficioValidado = resumosBen.map(r => r.amostras.filter(a => a.validada).reduce((s, a) => s + a.valor, 0)) as [number, number]
+  const experimentosComBeneficio = resumosBen.map(r => r.n) as [number, number]
   const taxa: Par = [pct(validadas[0], concluidos[0]), pct(validadas[1], concluidos[1])]
-  const leadExp = par(ind('leadExperimentacao'))
+  const leadExp = par(ind('cycleExperimentacao'))
   const registradas = contar(inis, i => i.criadoEm, c)
   const safra = (j: Janela) => inis.filter(i => dentro(i.criadoEm, j))
   const viraram: [number, number] = [safra(c.base).filter(i => i.experimentacaoEm).length, safra(c.atual).filter(i => i.experimentacaoEm).length]
@@ -100,19 +105,23 @@ export function montarReport(dados: ComparativoDados, c: Comparacao): ReportExec
       beneficio: [l.porPeriodo[0].beneficio, l.porPeriodo[1].beneficio] as [number, number],
     }))
 
-  const validadasB = dados.experimentos.filter(e => e.situacao === 'validada' && dentro(e.concluidoEm, c.atual))
-  const top = [...validadasB].sort((a, b) => (b.beneficio ?? 0) - (a.beneficio ?? 0)).filter(e => e.beneficio).slice(0, 5)
-    .map((e: Experimento) => ({ key: e.key, nome: e.nome, detalhe: `${formatarValor(e.beneficio!)}${e.area ? ` · ${e.area}` : ''}` }))
+  // Maiores benefícios potenciais do período (os experimentos que formam o número; validada ganha o selo).
+  const porKey = new Map(dados.experimentos.map(e => [e.key, e]))
+  const top = [...resumosBen[1].amostras].sort((a, b) => b.valor - a.valor).slice(0, 5)
+    .map(a => {
+      const e = porKey.get(a.key) as Experimento | undefined
+      return { key: a.key, nome: a.nome, detalhe: `${formatarValor(a.valor)}${a.validada ? ' · hipótese validada' : ''}${e?.area ? ` · ${e.area}` : ''}` }
+    })
 
-  const tempos = (['leadExploracao', 'leadExperimentacao', 'aguardandoPiloto', 'piloto'] as IndicadorId[])
+  const tempos = (['leadExploracao', 'leadExperimentacao', 'cycleExperimentacao', 'aguardandoPiloto', 'piloto'] as IndicadorId[])
     .map(id => ({ titulo: ind(id).titulo, valores: par(ind(id)) }))
 
   const kpis: Kpi[] = [
     { id: 'ideias', titulo: 'Ideias registradas', valores: registradas, formato: 'numero', melhor: 'maior', nota: 'no board de Ideação' },
     { id: 'concluidos', titulo: 'Experimentos concluídos', valores: concluidos, formato: 'numero', melhor: 'maior', nota: 'validadas ou refutadas' },
     { id: 'taxa', titulo: 'Taxa de validação', valores: taxa, formato: 'pct', melhor: 'maior', nota: 'validadas / concluídos' },
-    { id: 'beneficio', titulo: 'Benefício validado', valores: beneficio, formato: 'reais', melhor: 'maior', nota: 'potencial das validadas' },
-    { id: 'lead', titulo: 'Tempo de experimentação', valores: leadExp, formato: 'dias', melhor: 'menor', nota: 'mediana, sem bloqueios' },
+    { id: 'beneficio', titulo: 'Benefício potencial', valores: beneficio, formato: 'reais', melhor: 'maior', nota: 'experimentos não cancelados' },
+    { id: 'lead', titulo: 'Cycle time de experimentação', valores: leadExp, formato: 'dias', melhor: 'menor', nota: 'mediana, sem bloqueios' },
   ]
 
   const emExploracaoHoje = inis.filter(i => i.etapa === 'exploracao').length
@@ -127,7 +136,7 @@ export function montarReport(dados: ComparativoDados, c: Comparacao): ReportExec
     resultados: { concluidos, validadas, refutadas, cancelados },
     tempos,
     areas,
-    valor: { total: beneficio, top },
+    valor: { total: beneficio, validado: beneficioValidado, experimentos: experimentosComBeneficio, top },
     emAndamentoHoje,
     leitura: leitura({ concluidos, taxa, beneficio, leadExp, registradas, areas, emExploracaoHoje, emAndamentoHoje, ind: ind('concluidos'), rotulos }),
   }
@@ -147,9 +156,9 @@ function leitura(x: {
     const d = x.taxa[1] - x.taxa[0]
     frases.push(`A taxa de validação ${d === 0 ? 'se manteve em' : d > 0 ? `subiu ${d} pontos, para` : `caiu ${Math.abs(d)} pontos, para`} ${x.taxa[1]}%: ${d >= 0 ? 'mais' : 'menos'} hipóteses seguindo para piloto.`)
   }
-  if (x.beneficio[1] > 0) frases.push(`As hipóteses validadas em ${B} somam ${formatarValor(x.beneficio[1])} de benefício potencial${x.beneficio[0] ? `, contra ${formatarValor(x.beneficio[0])} em ${A}` : ''}.`)
+  if (x.beneficio[1] > 0) frases.push(`Os experimentos de ${B} somam ${formatarValor(x.beneficio[1])} de benefício potencial${x.beneficio[0] ? `, contra ${formatarValor(x.beneficio[0])} em ${A}` : ''}.`)
   if (x.leadExp[0] !== null && x.leadExp[1] !== null && x.leadExp[0] !== x.leadExp[1]) {
-    frases.push(`Experimentar ficou mais ${x.leadExp[1] < x.leadExp[0] ? 'rápido' : 'lento'}: a mediana foi de ${x.leadExp[0]} para ${x.leadExp[1]} dias.`)
+    frases.push(`Experimentar ficou mais ${x.leadExp[1] < x.leadExp[0] ? 'rápido' : 'lento'}: o cycle time (sem bloqueios) foi de ${x.leadExp[0]} para ${x.leadExp[1]} dias.`)
   }
   const area = x.areas.find(a => a.validadas[1] > 0)
   if (area) frases.push(`${area.nome} é a área com mais hipóteses validadas em ${B} (${area.validadas[1]}).`)

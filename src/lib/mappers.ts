@@ -1294,7 +1294,7 @@ export function subtrairBloqueios(
  * períodos de bloqueio, retorna o total de dias BLOQUEADOS (soma da interseção).
  * Diferente de subtrairBloqueios, esta função retorna o tempo perdido com bloqueios.
  */
-function calcularTempoBloqueado(
+export function calcularTempoBloqueado(
   periodos: { inicio: number; fim: number }[],
   bloqueios: { inicio: number; fim: number }[]
 ): number {

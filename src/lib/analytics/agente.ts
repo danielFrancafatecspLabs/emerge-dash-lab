@@ -8,6 +8,7 @@ import { montarPortfolio } from '@/lib/portfolio/dados'
 import { buildWeeklyData, statusIdsDeExploracao } from '@/lib/weekly'
 import { buildSemanalData } from '@/lib/semanal'
 import { diretorioDoCache } from '@/lib/cache-dados'
+import { experimentosDoSemanal, montarComparativo } from '@/lib/comparativo/montar'
 import { verificarConsistencia, type RelatorioConsistencia } from './consistencia'
 
 /**
@@ -29,7 +30,11 @@ export async function rodarAgenteAnalitico(): Promise<RelatorioConsistencia> {
   // Como o Semanal monta:
   const dataSemanal = buildDashboardData(raw.iniciativas, raw.epics, {}, {}, raw.board2734Config)
   const weekly = buildWeeklyData(dataSemanal, raw.epicChangelogs, raw.board2735Config)
+  // Como o Comparativo monta:
+  const dataComp = buildDashboardData(raw.iniciativas, raw.epics, {}, {}, raw.board2734Config, raw.epicChangelogs, raw.iniciativaChangelogs)
+  const comparativo = montarComparativo({ ...raw, experimentos: experimentosDoSemanal(dataComp, buildWeeklyData(dataComp, raw.epicChangelogs, raw.board2735Config)) })
   const relatorio = verificarConsistencia({
+    comparativo,
     data,
     dataSemanal,
     weekly,

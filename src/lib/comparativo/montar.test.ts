@@ -82,13 +82,15 @@ const dados = montarComparativo({
   },
   // Os Epics com a situação do Semanal (GL-12 concluiu, mas a iniciativa está no backlog: refutada).
   experimentos: [
-    exp('GL-10', 'validada', 5_000_000, T('2026-01-20')),
-    exp('GL-11', 'validada', 2_000_000, T('2025-02-01')),
-    exp('GL-12', 'refutada', 9_000_000, T('2026-03-01')),
-    { ...exp('GL-13', 'validada', 1_000_000, T('2024-06-01')), concluidoEm: T('2024-11-03') }, // sem histórico: data do mapeamento
+    // dataBeneficio: a data da Estratégia (conclusão; em aberto, a criação), que experimentosDoSemanal preenche.
+    { ...exp('GL-10', 'validada', 5_000_000, T('2026-01-20')), dataBeneficio: T('2026-03-20') },
+    { ...exp('GL-11', 'validada', 2_000_000, T('2025-02-01')), dataBeneficio: T('2025-04-15') },
+    { ...exp('GL-12', 'refutada', 9_000_000, T('2026-03-01')), dataBeneficio: T('2026-04-01') },
+    { ...exp('GL-13', 'validada', 1_000_000, T('2024-06-01')), concluidoEm: T('2024-11-03'), dataBeneficio: T('2024-11-03') }, // sem histórico: data do mapeamento
     exp('GL-14', 'validada', null, T('2025-05-01')),       // sem histórico nem data: fora da conta
-    exp('GL-15', 'cancelada', null, T('2025-07-01')),
+    { ...exp('GL-15', 'cancelada', 50_000_000, T('2025-07-01')), dataBeneficio: null }, // cancelado: o benefício nunca entra
     exp('GL-16', 'exploracao', null, null),
+    { ...exp('GL-17', 'andamento', 3_000_000, T('2026-06-10')), dataBeneficio: T('2026-06-10') }, // em aberto: conta na criação
   ],
 }, new Date('2026-10-21T15:00:00Z'), 'https://jira.exemplo/')
 
@@ -101,23 +103,32 @@ describe('montarComparativo', () => {
     expect(i.emAberto.map(e => e.key)).toEqual(['GL-3'])
   })
 
-  it('lead time da Experimentação: Em andamento + Em validação, sem os dias bloqueados', () => {
-    expect(ind('leadExperimentacao').amostras.map(a => [a.key, a.valor, a.data])).toEqual([
+  it('lead time da Experimentação: Em andamento + Em validação, com os dias bloqueados à mostra', () => {
+    expect(ind('leadExperimentacao').amostras.map(a => [a.key, a.valor, a.bloqueado, a.data])).toEqual([
+      ['GL-10', 38, 5, '2026-03-20'],
+      ['GL-11', 41, 0, '2025-04-15'],
+    ])
+    expect(resumir(ind('leadExperimentacao'), ano(2026)).bloqueado).toEqual({ soma: 5, media: 5, pct: 13 })
+  })
+
+  it('cycle time da Experimentação: o mesmo tempo sem os dias bloqueados (a conta da Estratégia)', () => {
+    expect(ind('cycleExperimentacao').amostras.map(a => [a.key, a.valor, a.data])).toEqual([
       ['GL-10', 33, '2026-03-20'], // 38 dias − 5 bloqueados
       ['GL-11', 41, '2025-04-15'],
     ])
   })
 
-  it('benefício: os Epics de "Hipóteses validadas" do Semanal, no ano da conclusão', () => {
+  it('benefício potencial: todo experimento não cancelado, na data da Estratégia, marcando as validadas', () => {
     const b = ind('beneficio')
-    expect(b.amostras.map(a => [a.key, a.valor, a.data])).toEqual([
-      ['GL-10', 5_000_000, '2026-03-20'],
-      ['GL-11', 2_000_000, '2025-04-15'],
-      ['GL-13', 1_000_000, '2024-11-03'], // sem histórico: usa a data de conclusão do Epic
+    expect(b.amostras.map(a => [a.key, a.valor, a.data, a.validada])).toEqual([
+      ['GL-10', 5_000_000, '2026-03-20', true],
+      ['GL-11', 2_000_000, '2025-04-15', true],
+      ['GL-12', 9_000_000, '2026-04-01', false], // refutada também tem benefício potencial
+      ['GL-13', 1_000_000, '2024-11-03', true],
+      ['GL-17', 3_000_000, '2026-06-10', false], // em aberto: conta no período da criação
     ])
-    // Fecha com o total do Semanal: R$ 8 mi em 4 hipóteses, 1 delas sem data de conclusão.
-    expect(b.conciliacao).toEqual({ total: 8_000_000, n: 4, semData: 1 })
-    expect(b.foraDaConta!.map(f => f.key)).toEqual(['GL-14'])
+    // Fecha com a Estratégia em "Tudo": R$ 20 mi em 5 experimentos; o cancelado (R$ 50 mi) nunca entra.
+    expect(b.conciliacao).toEqual({ total: 20_000_000, n: 5, semData: 0 })
   })
 
   it('resultados por ano: concluídos, validadas, refutadas e cancelados pela data do evento', () => {
@@ -130,8 +141,8 @@ describe('montarComparativo', () => {
   })
 
   it('panorama: todos os Epics, com o ano de criação', () => {
-    expect(dados.experimentos).toHaveLength(7)
-    expect(dados.experimentos.map(e => periodoDeCriacao(e, anual('2026-12-31', false)))).toEqual(['atual', 'base', 'atual', 'outro', 'base', 'base', 'sem-data'])
+    expect(dados.experimentos).toHaveLength(8)
+    expect(dados.experimentos.map(e => periodoDeCriacao(e, anual('2026-12-31', false)))).toEqual(['atual', 'base', 'atual', 'outro', 'base', 'base', 'sem-data', 'atual'])
   })
 
   it('lead time da Experimentação explica quem ficou fora', () => {
@@ -151,14 +162,15 @@ describe('montarComparativo', () => {
 
 describe('resumir e variacao', () => {
   it('agrega por ano e mês, com corte no mesmo dia do ano', () => {
-    const exp = ind('leadExperimentacao')
+    const exp = ind('cycleExperimentacao')
     expect(resumir(exp, ano(2026))).toMatchObject({ n: 1, media: 33, mediana: 33 })
     expect(resumir(exp, { ...ano(2026), fim: '2026-03-15' }).n).toBe(0)
     const b = ind('beneficio')
     const r25 = resumir(b, ano(2025)), r26 = resumir(b, ano(2026))
     expect(r26.porParte[2]).toBe(5_000_000)
     expect(principal(b, r25)).toBe(2_000_000)
-    expect(variacao(b, principal(b, r25), principal(b, r26))).toEqual({ pct: 150, diferenca: 3_000_000, melhorou: true })
+    expect(principal(b, r26)).toBe(17_000_000)
+    expect(variacao(b, principal(b, r25), principal(b, r26))).toEqual({ pct: 750, diferenca: 15_000_000, melhorou: true })
     expect(variacao(exp, 41, 33)).toEqual({ pct: -20, diferenca: -8, melhorou: true })
     expect(variacao(exp, null, 33)).toBeNull()
   })

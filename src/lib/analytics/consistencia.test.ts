@@ -4,6 +4,7 @@ import { montarPortfolio } from '@/lib/portfolio/dados'
 import { buildSemanalData } from '@/lib/semanal'
 import type { JiraBoardConfiguration, JiraIssue } from '@/lib/types'
 import { buildWeeklyData, statusIdsDeExploracao } from '@/lib/weekly'
+import { experimentosDoSemanal, montarComparativo } from '@/lib/comparativo/montar'
 import { verificarConsistencia, type EntradaConsistencia } from './consistencia'
 
 const S = {
@@ -105,5 +106,18 @@ describe('agente de analytics', () => {
     expect(v('beneficio').ok).toBe(true)
     expect(v('cancelados').valores).toMatchObject({ Semanal: 2, 'Estratégia (Tudo)': 2, Portfólio: 2 })
   })
-})
 
+  it('o benefício potencial de cada ano bate entre o Comparativo e a Estratégia', () => {
+    const e = entrada()
+    const comparativo = montarComparativo({
+      iniciativas, epics, iniciativaChangelogs: {}, epicChangelogs: {}, board2734Config: cfgIni, board2735Config: cfgExp,
+      experimentos: experimentosDoSemanal(e.data, buildWeeklyData(e.data, {}, cfgExp)),
+    }, new Date('2026-11-04T12:00:00Z'))
+    const r = verificarConsistencia({ ...e, comparativo })
+    const v = r.verificacoes.filter(x => x.id.startsWith('comparativo-beneficio-'))
+    expect(v).toHaveLength(2)
+    expect(v.every(x => x.ok)).toBe(true)
+    // Todos os épicos do exemplo são de 2025: R$ 33 mi (sem o cancelado), o mesmo da Estratégia.
+    expect(v.find(x => x.id === 'comparativo-beneficio-2025')!.valores).toEqual({ Comparativo: 33_000_000, 'Estratégia (Todo 2025)': 33_000_000 })
+  })
+})
