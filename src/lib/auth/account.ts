@@ -1,5 +1,5 @@
 import { existsSync, mkdirSync, readFileSync, renameSync, unlinkSync, writeFileSync } from 'fs'
-import { MENSAGEM_SENHA_EXPOSTA, senhaExposta } from './senhas-expostas'
+import { MENSAGEM_SENHA_DESATIVADA, senhaDesativada } from './senhas-desativadas'
 import { join } from 'path'
 import { LABORATORIOS, type Laboratorio } from './laboratorios'
 import { hashPassword, loadUsers, passwordProblem, saveUsers, verifyPassword, type User } from './users'
@@ -66,7 +66,7 @@ export function updateAccount(username: string, changes: AccountChanges): Accoun
   }
   if (changes.senha) {
     if (!verifyPassword(changes.senha.atual, user.passwordHash)) return { error: 'A senha atual não confere', status: 403 }
-    const problema = passwordProblem(changes.senha.nova, user.username) ?? (senhaExposta(changes.senha.nova) ? MENSAGEM_SENHA_EXPOSTA : null)
+    const problema = passwordProblem(changes.senha.nova, user.username) ?? (senhaDesativada(changes.senha.nova) ? MENSAGEM_SENHA_DESATIVADA : null)
     if (problema) return { error: problema, status: 400 }
     if (changes.senha.nova === changes.senha.atual) return { error: 'A nova senha precisa ser diferente da atual', status: 400 }
   }
