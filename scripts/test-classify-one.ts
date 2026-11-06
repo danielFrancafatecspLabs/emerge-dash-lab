@@ -3,7 +3,7 @@
  * usando OpenAI via proxy LiteLLM.
  *
  * COMO USAR:
- *   1. Edite as variáveis no bloco CONFIGURAÇÃO abaixo
+ *   1. Defina LLM_API_BASE e LLM_API_KEY no ambiente (ou no .env.local)
  *   2. Rode com tsx (sem precisar compilar):
  *         npx tsx scripts/test-classify-one.ts
  *
@@ -13,13 +13,18 @@
  */
 
 // ============================================================
-// CONFIGURAÇÃO — PREENCHA AQUI
+// CONFIGURAÇÃO (do ambiente)
 // ============================================================
 
-// Endpoint do proxy LiteLLM (ex: http://localhost:4000/v1 ou https://ip:porta/v1)
-const LLM_API_BASE = 'https://4.228.49.1:3010/v1'
-const LLM_API_KEY = '***REMOVIDO***'
-const LLM_MODEL = 'gpt-4o-mini'
+// Endpoint e chave do proxy LiteLLM vêm do ambiente (as mesmas variáveis do app, veja .env.example). Nunca escreva a
+// chave aqui: este arquivo vai para o Git.
+const LLM_API_BASE = process.env.LLM_API_BASE ?? ''
+const LLM_API_KEY = process.env.LLM_API_KEY ?? ''
+const LLM_MODEL = process.env.LLM_MODEL ?? 'gpt-4o-mini'
+if (!LLM_API_BASE || !LLM_API_KEY) {
+  console.error('Defina LLM_API_BASE e LLM_API_KEY no ambiente (veja .env.example).')
+  process.exit(1)
+}
 
 const EPIC_TEST = {
   key: 'TEST-001',
