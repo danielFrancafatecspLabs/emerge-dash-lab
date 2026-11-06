@@ -50,3 +50,10 @@ public/comunidade/*
 .idea/
 .DS_Store
 *.sw?
+
+# Rascunhos locais que não vão para o repositório
+.tmp/
+/_debug*
+/debug*.js
+node-compile-cache/
+.cache_ggshield

@@ -1,6 +1,6 @@
 import fs from 'fs'
 import path from 'path'
-import { fetchDashboardRaw } from '@/lib/jira'
+import { dashboardRawAtualizadoEm, fetchDashboardRaw } from '@/lib/jira'
 import { buildDashboardData } from '@/lib/mappers'
 import { metasJaClassificadas } from '@/lib/portfolio-classifier'
 import { classifySegmentos } from '@/lib/segmento-classifier'
@@ -35,6 +35,7 @@ export async function rodarAgenteAnalitico(): Promise<RelatorioConsistencia> {
   const comparativo = montarComparativo({ ...raw, experimentos: experimentosDoSemanal(dataComp, buildWeeklyData(dataComp, raw.epicChangelogs, raw.board2735Config)) })
   const relatorio = verificarConsistencia({
     comparativo,
+    arquivadas: raw.arquivadas ?? [],
     data,
     dataSemanal,
     weekly,
@@ -81,7 +82,9 @@ export function talvezRodarAgenteAnalitico(agora = Date.now()): void {
 export async function relatorioAtual(): Promise<RelatorioConsistencia> {
   if (G.__beonAnalyticsRodando) return G.__beonAnalyticsRodando
   const guardado = ultimoRelatorio()
-  if (guardado && Date.now() - Date.parse(guardado.geradoEm) < INTERVALO_MS) return guardado
+  // Vale o guardado se é recente E veio depois da última leitura do Jira (senão confere dados que já mudaram).
+  const leituraDoJira = Number(dashboardRawAtualizadoEm() ?? 0)
+  if (guardado && Date.now() - Date.parse(guardado.geradoEm) < INTERVALO_MS && Date.parse(guardado.geradoEm) >= leituraDoJira) return guardado
   G.__beonAnalyticsEm = Date.now()
   G.__beonAnalyticsRodando = rodarAgenteAnalitico()
   try { return await G.__beonAnalyticsRodando } finally { G.__beonAnalyticsRodando = null }
