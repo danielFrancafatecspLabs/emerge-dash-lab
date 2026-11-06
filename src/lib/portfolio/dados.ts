@@ -1,5 +1,8 @@
 import type { DashboardData, EpicDetail, Iniciativa, JiraBoardConfiguration, JiraStatus } from '../types'
 import { getPipelineStage } from '../mappers'
+import { epicBloqueado } from '../bloqueio'
+
+const EM_EXPERIMENTACAO = /andamento|valida/i
 import type { BoardInfo, ColunaBoard, Entidade, ExperimentoItem, IniciativaItem, PortfolioDados, Situacao } from './tipos'
 
 /**
@@ -118,7 +121,8 @@ function experimentoItem(e: EpicDetail, colunaDe: (s: JiraStatus) => string): Ex
     // Qualquer sinal (flag, campos de bloqueio, status, etiqueta, vínculo; ver lib/bloqueio.ts), só no que está aberto:
     // o "Motivo de Bloqueio" também guarda o motivo do cancelamento.
     // Bloqueio só interessa em experimentação (Em andamento ou Em validação): backlog, refinamento e pronto ficam de fora.
-    bloqueado: situacao === 'em-execucao' && ((e.sinaisBloqueio?.length ?? 0) > 0 || !!e.flagged || !!e.motivoBloqueio?.trim()),
+    // "Em experimentação" também pelo nome do status: um "Em validação" com id fora do mapa ficava de fora.
+    bloqueado: (situacao === 'em-execucao' || EM_EXPERIMENTACAO.test(e.status?.name ?? '')) && epicBloqueado(e),
     sinaisBloqueio: encerrado(situacao) ? [] : e.sinaisBloqueio ?? [],
     iniciativaKey: e.parentKey,
     bo: e.bo,

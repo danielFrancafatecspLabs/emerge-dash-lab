@@ -63,6 +63,8 @@ export interface EntradaConsistencia {
    */
   board2734Config?: JiraBoardConfiguration
   board2735Config?: JiraBoardConfiguration
+  /** Issues arquivadas no Jira que a leitura tirou de todas as contas. */
+  arquivadas?: string[]
   /** Os dados do Comparativo, como a aba monta: o benefício potencial de cada ano tem de bater com a Estratégia. */
   comparativo?: ComparativoDados
   agora?: Date
@@ -81,8 +83,9 @@ function colunas(config?: JiraBoardConfiguration): Map<string, string> {
 function etapaPelaColuna(coluna: string | undefined): 'aguardando' | 'piloto' | 'escala' | null {
   if (!coluna) return null
   if (coluna.includes('AGUARDANDO')) return 'aguardando'
-  // Finalizado é o status antigo de Em escala: a coluna Concluído/Finalizado do board de Ideação conta como escala.
-  if (coluna.includes('ESCALA') || coluna.includes('FINALIZ') || coluna.includes('CONCLU')) return 'escala'
+  // Finalizado é o status antigo de Em escala e conta como escala. "Concluído" NÃO: iniciativa concluída fora de
+  // Em escala é hipótese que não seguiu (a regra oficial, lib/hipoteses.ts).
+  if (coluna.includes('ESCALA') || coluna.includes('FINALIZ')) return 'escala'
   if (coluna.includes('PILOTO')) return 'piloto'
   return null
 }
@@ -222,9 +225,16 @@ export function verificarConsistencia(e: EntradaConsistencia): RelatorioConsiste
 
   // Bloqueados: só experimentos em experimentação (andamento ou validação), com a regra de bloqueio do app.
   const emExperimentacao = (x: EpicDetail) => ['3', '10204'].includes(x.status?.id) || /andamento|valida/i.test(x.status?.name ?? '')
+  const bloqueadosPelaRegra = e.data.allEpics.filter(x => emExperimentacao(x) && epicBloqueado(x))
   verificacoes.push(comparar('bloqueados', 'Experimentos bloqueados', 'Em andamento ou em validação, com sinal de bloqueio.', {
-    Portfólio: portExp.bloqueados, 'Regra do app (lib/bloqueio)': e.data.allEpics.filter(x => emExperimentacao(x) && epicBloqueado(x)).length,
+    Portfólio: portExp.bloqueados, 'Regra do app (lib/bloqueio)': bloqueadosPelaRegra.length,
   }))
+  // Quem a regra conta como bloqueado e o Portfólio não (com o status), para explicar a diferença.
+  const bloqueadosNoPortfolio = new Set(e.portfolio.experimentos.filter(x => x.bloqueado).map(x => x.key))
+  const bloqueadosFora = bloqueadosPelaRegra.filter(x => !bloqueadosNoPortfolio.has(x.key))
+  const alertaBloqueados: Alerta | null = bloqueadosFora.length
+    ? { id: 'bloqueados-fora-do-portfolio', titulo: 'Bloqueados pela regra que o Portfólio não conta (chave e status)', quantidade: bloqueadosFora.length, exemplos: bloqueadosFora.slice(0, 8).map(x => `${x.key} (${x.status.name}, id ${x.status.id})`) }
+    : null
 
   // As 5 fatias do Semanal precisam somar o total de experimentos.
   const somaFatias = ['exploracao', 'andamento', 'validadas', 'refutadas', 'cancelados'].reduce((s, id) => s + fatia(id), 0)
@@ -336,6 +346,8 @@ export function verificarConsistencia(e: EntradaConsistencia): RelatorioConsiste
     { id: 'bloqueio-fora', titulo: 'Sinal de bloqueio fora de experimentação (não conta em Bloqueados)', quantidade: bloqueioForaDeExperimentacao.length, exemplos: exemplos(bloqueioForaDeExperimentacao) },
     ...inventarioDeStatus(e, colIni, colExp),
     { id: 'cancelados-com-beneficio', titulo: 'Cancelados com benefício (fora do benefício potencial)', quantidade: est.cancelados.epics.length, exemplos: exemplos(est.cancelados.epics) },
+    ...(alertaBloqueados ? [alertaBloqueados] : []),
+    { id: 'arquivadas', titulo: 'Arquivadas no Jira, fora de todas as contas', quantidade: e.arquivadas?.length ?? 0, exemplos: (e.arquivadas ?? []).slice(0, 8) },
   ].filter(a => a.quantidade > 0)
 
   return {

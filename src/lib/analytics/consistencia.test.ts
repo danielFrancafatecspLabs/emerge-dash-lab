@@ -120,4 +120,23 @@ describe('agente de analytics', () => {
     // Todos os épicos do exemplo são de 2025: R$ 33 mi (sem o cancelado), o mesmo da Estratégia.
     expect(v.find(x => x.id === 'comparativo-beneficio-2025')!.valores).toEqual({ Comparativo: 33_000_000, 'Estratégia (Todo 2025)': 33_000_000 })
   })
+
+  it('iniciativa concluída (coluna Concluído) não conta como Em escala; Finalizado conta', () => {
+    const cfg = config([['BACKLOG', ['10004']], ['EM EXPERIMENTAÇÃO', ['14460']], ['AGUARDANDO PILOTO', ['14468']], ['EM PILOTO', ['14459']], ['EM ESCALA', ['13562']], ['CONCLUÍDO', ['10019']], ['CANCELADO', ['10015']]])
+    const variante = [...iniciativas, ini('GL-8', { id: '10019', name: 'Concluído' }), ini('GL-9', { id: '10019', name: 'Concluído' })]
+    const r = verificarConsistencia({ ...entrada(variante), board2734Config: cfg })
+    expect(r.verificacoes.find(v => v.id === 'coluna-escala')).toMatchObject({ ok: true })
+  })
+
+  it('bloqueado em validação com um id fora do mapa conta no Portfólio e na regra', () => {
+    const VALIDACAO_NOVA = { id: '77777', name: 'Em Validação' }
+    const bloqueado = { ...epic('GL-30', 'GL-4', VALIDACAO_NOVA, 1_000_000), fields: { ...epic('GL-30', 'GL-4', VALIDACAO_NOVA, 1_000_000).fields, customfield_10021: [{ value: 'Impediment' }] } } as unknown as JiraIssue
+    const todos = [...epics, bloqueado]
+    const data = buildDashboardData(iniciativas, todos, {}, {}, cfgIni, {}, {})
+    const portfolio = montarPortfolio(data, { iniciativa: cfgIni, experimento: cfgExp }, null)
+    expect(portfolio.experimentos.find(x => x.key === 'GL-30')?.bloqueado).toBe(true)
+    const r = verificarConsistencia({ ...entrada(), data, portfolio })
+    expect(r.verificacoes.find(v => v.id === 'bloqueados')).toMatchObject({ ok: true, valores: { Portfólio: 1, 'Regra do app (lib/bloqueio)': 1 } })
+  })
 })
+
