@@ -12,23 +12,27 @@ interface Props {
 }
 
 export default function BurnupChart({ data }: Props) {
+  // Só o que foi concluído DENTRO do período: o acumulado começa em zero no primeiro mês do filtro. O que já estava
+  // concluído antes (data.anteriores) aparece só como referência no cabeçalho.
+  const anteriores = data.anteriores ?? 0
   const chartData = useMemo(() => {
     return data.realizado.map((p) => ({
       label: `${p.mes}/${String(p.ano).slice(2)}`,
-      Acumulado: p.valor,
-      epics: p.epics ?? [],
+      Acumulado: p.valor - anteriores,
+      epics: (p.epics ?? []).slice(anteriores),
     }))
-  }, [data])
+  }, [data, anteriores])
 
   const totalRealizado = data.realizado[data.realizado.length - 1]?.valor ?? 0
+  const noPeriodo = data.noPeriodo ?? totalRealizado - anteriores
 
   return (
     <div className="flex flex-col h-full gap-0">
       {/* Header com total */}
       <div className="flex items-center justify-between flex-shrink-0">
         <span className="text-[11px] text-gray-500">
-          Total acumulado: <strong className="text-gray-800">{totalRealizado}</strong> experimentos concluídos
-          {data.noPeriodo !== undefined && <> · <strong className="text-gray-800">+{data.noPeriodo}</strong> no período</>}
+          <strong className="text-gray-800">{noPeriodo}</strong> experimentos concluídos no período
+          {anteriores > 0 && <> · <span title="Concluídos desde o início, até o fim do período">{totalRealizado} desde o início</span></>}
         </span>
       </div>
 
@@ -58,7 +62,7 @@ export default function BurnupChart({ data }: Props) {
                 fontSize: 11,
                 padding: '6px 10px',
               }}
-              formatter={(value: number) => [String(value), 'Acumulado']}
+              formatter={(value: number) => [String(value), 'Concluídos no período (acumulado)']}
               labelStyle={{ fontWeight: 600, marginBottom: 2 }}
             />
             <Bar

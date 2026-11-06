@@ -268,6 +268,32 @@ export function verificarConsistencia(e: EntradaConsistencia): RelatorioConsiste
       }))
   }
 
+  // ── Períodos somam: 1º semestre + 2º semestre = o ano todo (cada experimento cai em um período só) ──
+  const anoAtual = (e.agora ?? new Date()).getFullYear()
+  for (const ano of [anoAtual - 1, anoAtual]) {
+    const doPeriodo = (p: Parameters<typeof filtrarDashboardData>[1]) => {
+      const d = filtrarDashboardData(e.data, p)
+      return { beneficio: resultadosDaEstrategia(d).beneficio, experimentos: d.allEpics.length, concluidos: contagensDoFunil(d.allEpics).concluidos }
+    }
+    const s1 = doPeriodo({ tipo: 'semestre', ano, semestre: 1 })
+    const s2 = doPeriodo({ tipo: 'semestre', ano, semestre: 2 })
+    const todo = doPeriodo({ tipo: 'ano', ano })
+    verificacoes.push(
+      comparar(`semestres-beneficio-${ano}`, `Benefício potencial: 1º + 2º semestre de ${ano} = Todo ${ano}`,
+        'Os semestres somados têm de dar o ano: nenhum experimento conta em dois períodos.', {
+          'Soma dos semestres': s1.beneficio + s2.beneficio, [`Todo ${ano}`]: todo.beneficio,
+        }, 'moeda', 1),
+      comparar(`semestres-experimentos-${ano}`, `Experimentos: 1º + 2º semestre de ${ano} = Todo ${ano}`,
+        'Total de experimentos e concluídos dos semestres somados contra o ano.', {
+          'Soma dos semestres': s1.experimentos + s2.experimentos, [`Todo ${ano}`]: todo.experimentos,
+        }),
+      comparar(`semestres-concluidos-${ano}`, `Concluídos: 1º + 2º semestre de ${ano} = Todo ${ano}`,
+        'Experimentos concluídos em cada semestre, somados, contra o ano.', {
+          'Soma dos semestres': s1.concluidos + s2.concluidos, [`Todo ${ano}`]: todo.concluidos,
+        }),
+    )
+  }
+
   // ── Metas: as três metas mais os sem meta somam os experimentos não cancelados ──
   const metas = tudo.metasAgregadas
   verificacoes.push(comparar('metas', 'Metas: soma das metas + sem meta = experimentos não cancelados', 'Cada experimento não cancelado está em uma meta ou na lista de sem meta.', {
