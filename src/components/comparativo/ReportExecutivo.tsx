@@ -1,184 +1,146 @@
 'use client'
 
-// Report executivo do Comparativo, em formato de infográfico: duas folhas A4 com capa vermelha, número herói, cartões
-// com ícone, o funil em camadas, linhas numeradas e a leitura executiva. "Baixar PDF" imprime só o documento (o
-// navegador oferece "Salvar como PDF"), com cores e quebras de página.
+// Report executivo do Comparativo: duas folhas A4 em preto, com a identidade do beOn Labs. Tipografia editorial
+// (títulos com serifa, números finos), tons de marfim sobre o preto e o degradê do logo como único acento. Os blocos
+// são registros com filetes (sem cartões): o livro-razão dos indicadores, o funil em barras com a marca do período
+// anterior, o valor gerado em ranking e a leitura em parágrafos numerados. "Baixar PDF" imprime só o documento.
 
-import { useMemo, useRef, useState, type ComponentType } from 'react'
-import {
-  ArrowDownRight, ArrowUpRight, Check, Coins, Compass, Download, FlaskConical, Gauge, Layers, Lightbulb, MapPin, Minus,
-  Rocket, Sparkles, Target, Timer, TrendingUp, type LucideProps,
-} from 'lucide-react'
+import { useMemo, useRef, useState, type ReactNode } from 'react'
+import { Download } from 'lucide-react'
 import { Button, cx, focusRing } from '@/components/ui'
-import { SITUACOES, trecho, type ComparativoDados } from '@/lib/comparativo/resumo'
+import { trecho, type ComparativoDados } from '@/lib/comparativo/resumo'
 import { comparacaoDoRecorte, NOME_DO_RECORTE, opcoesDoRecorte, RECORTES, type Recorte } from '@/lib/comparativo/recortes'
 import { formatar, montarReport, variacaoPar, type Par } from '@/lib/comparativo/report'
 
-const RED = '#C8102E'
-const INK = '#1C1917'
-const ROSA = '#FDF1F2'
-const COR = Object.fromEntries(SITUACOES.map(s => [s.id, s.cor]))
-type Icone = ComponentType<LucideProps>
+// ── Identidade: preto, marfins e o degradê do logo ────────────────────────────────────────────
+const PRETO = '#0B0B0C'
+const GRAFITE = '#151517'
+const FILETE = '#2A2A2D'
+const MARFIM = '#F4F1EA'
+const OSSO = '#CFC9BC'
+const CINZA = '#8C877E'
+const CINZA_ESCURO = '#55524D'
+const LARANJA = '#F7941D'
+const VERMELHO = '#EE3124'
+const DEGRADE = `linear-gradient(90deg, ${LARANJA}, ${VERMELHO})`
+const SERIFA = 'Georgia, "Iowan Old Style", "Times New Roman", serif'
+const MONO = 'ui-monospace, "SF Mono", Menlo, Consolas, monospace'
+const LOGO = '/jira/semanal/logo.png'
 
 const IMPRESSAO = `
 #area-impressao { display: none; }
 @media print {
-  @page { size: A4; margin: 8mm; }
-  html, body { background: #fff !important; }
+  @page { size: A4; margin: 0; }
+  html, body { background: ${PRETO} !important; }
   body > *:not(#area-impressao) { display: none !important; }
   #area-impressao { display: block !important; }
   #area-impressao * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  #area-impressao .folha { box-shadow: none !important; border: 0 !important; margin: 0 !important; max-width: none !important; }
+  #area-impressao .folha { box-shadow: none !important; border: 0 !important; border-radius: 0 !important; margin: 0 auto !important; max-width: none !important; zoom: 0.94; }
   #area-impressao .quebra { break-before: page; }
-  #area-impressao .folha { break-inside: avoid; }
   #area-impressao .inteiro { break-inside: avoid; }
 }`
 
-/** Variação em relação à base; com menos de 3 na base, o percentual exagera e mostra só "base pequena". */
-function Chip({ valores, melhor, claro = false }: { valores: Par; melhor: 'maior' | 'menor'; claro?: boolean }) {
-  if (valores[0] !== null && valores[0] < 3) return <span className={cx('text-[10px]', claro ? 'text-white/70' : 'text-stone-400')}>base pequena</span>
+// ── Peças ─────────────────────────────────────────────────────────────────────────────────────
+
+/** Variação contra o período anterior: seta e percentual, em marfim quando melhora e em cinza quando piora. */
+function Delta({ valores, melhor, grande = false }: { valores: Par; melhor: 'maior' | 'menor'; grande?: boolean }) {
+  const base = { fontFamily: MONO, fontSize: grande ? 12 : 10 }
+  if (valores[0] !== null && valores[0] < 3) return <span style={{ ...base, color: CINZA_ESCURO }}>base pequena</span>
   const v = variacaoPar(valores, melhor)
-  if (!v) return <span className={cx('text-[10px]', claro ? 'text-white/70' : 'text-stone-400')}>sem base</span>
-  const Seta = v.pct === 0 ? Minus : v.pct > 0 ? ArrowUpRight : ArrowDownRight
+  if (!v) return <span style={{ ...base, color: CINZA_ESCURO }}>sem base</span>
+  const seta = v.pct === 0 ? '=' : v.pct > 0 ? '▲' : '▼'
   return (
-    <span className={cx('inline-flex items-center gap-0.5 rounded-full px-1.5 py-px text-[10px] font-semibold tabular-nums',
-      v.boa === null ? 'bg-stone-100 text-stone-600' : v.boa ? 'bg-emerald-50 text-emerald-800' : 'bg-red-50 text-red-800')}>
-      <Seta className="h-3 w-3" aria-hidden />{v.pct > 0 ? '+' : ''}{v.pct}%
+    <span className="whitespace-nowrap tabular-nums" style={{ ...base, color: v.boa === false ? CINZA : MARFIM, fontWeight: v.boa ? 600 : 400 }}>
+      {seta} {v.pct > 0 ? '+' : ''}{v.pct}%
     </span>
   )
 }
 
-/** Cabeçalho de seção no padrão do infográfico: ícone num círculo, olho em vermelho e título "destaque | complemento". */
-function Secao({ icone: I, olho, destaque, complemento, subtitulo }: { icone: Icone; olho: string; destaque: string; complemento?: string; subtitulo?: string }) {
+/** Cabeçalho de seção: número em mono, título com serifa e um filete que corre até a margem. */
+function Secao({ n, titulo, nota }: { n: string; titulo: string; nota?: string }) {
   return (
-    <div className="mb-3 flex items-center gap-3">
-      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-[2.5px]" style={{ borderColor: RED }}>
-        <I className="h-5 w-5" color={RED} strokeWidth={1.8} aria-hidden />
-      </span>
-      <div className="min-w-0">
-        <p className="text-[10px] font-extrabold uppercase tracking-[0.14em]" style={{ color: RED }}>{olho}</p>
-        <h3 className="text-[21px] font-extrabold leading-[1.1] tracking-tight">
-          <span style={{ color: RED }}>{destaque}</span>
-          {complemento && <><span className="mx-1.5 font-light text-stone-300">|</span><span style={{ color: INK }}>{complemento}</span></>}
-        </h3>
-        {subtitulo && <p className="mt-0.5 text-[11px] text-stone-500">{subtitulo}</p>}
+    <div className="mb-3">
+      <div className="flex items-baseline gap-3">
+        <span style={{ fontFamily: MONO, fontSize: 10, color: LARANJA, letterSpacing: '0.08em' }}>{n}</span>
+        <h3 style={{ fontFamily: SERIFA, fontSize: 20, color: MARFIM, letterSpacing: '-0.01em' }}>{titulo}</h3>
+        <span className="h-px flex-1 self-center" style={{ background: FILETE }} />
       </div>
+      {nota && <p className="mt-1 pl-[34px]" style={{ fontSize: 10, color: CINZA }}>{nota}</p>}
     </div>
   )
 }
 
-function IconeCirculo({ icone: I, tamanho = 30 }: { icone: Icone; tamanho?: number }) {
-  return (
-    <span className="flex shrink-0 items-center justify-center rounded-full" style={{ width: tamanho, height: tamanho, background: '#FDE7EA' }}>
-      <I width={tamanho * 0.52} height={tamanho * 0.52} color={RED} strokeWidth={2} aria-hidden />
-    </span>
-  )
-}
+/** Rótulo pequeno em caixa-alta mono. */
+const Rotulo = ({ children, cor = CINZA }: { children: ReactNode; cor?: string }) => (
+  <p style={{ fontFamily: MONO, fontSize: 9, letterSpacing: '0.14em', textTransform: 'uppercase', color: cor }}>{children}</p>
+)
 
-/** Cartão com ícone e número grande, como os "ganhos estimados" do infográfico. */
-function Destaque({ icone, valor, rotulo, base, chip }: { icone: Icone; valor: string; rotulo: string; base: string; chip: React.ReactNode }) {
+/** Cabeçalho de cada folha: logo original sobre o preto, o nome do report e o período. */
+function Cabecalho({ direita }: { direita: ReactNode }) {
   return (
-    <div className="flex flex-col items-center rounded-2xl border border-stone-200 bg-white px-2 pb-2.5 pt-3 text-center">
-      <IconeCirculo icone={icone} />
-      <p className="mt-2 whitespace-nowrap text-[24px] font-extrabold leading-none tracking-tight tabular-nums" style={{ color: RED }}>{valor}</p>
-      <p className="mt-1 text-[10.5px] font-semibold leading-tight text-stone-800">{rotulo}</p>
-      <p className="mt-1.5 text-[9.5px] tabular-nums text-stone-500">{base}</p>
-      <div className="mt-1">{chip}</div>
+    <div className="flex items-center justify-between px-10 pt-6">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={LOGO} alt="beOn Labs" style={{ height: 30 }} />
+      <div className="text-right">{direita}</div>
     </div>
   )
 }
 
-/** Linha numerada com círculo vermelho, como os "ganhos por iniciativa". */
-function LinhaNumerada({ n, titulo, detalhe, direita }: { n: number; titulo: string; detalhe?: string; direita: React.ReactNode }) {
+/** Funil em barras horizontais: a barra é o período atual; o traço vertical marca o período anterior. */
+function Funil({ etapas, base }: { etapas: { id: string; titulo: string; descricao: string; valores: [number, number] }[]; base: string }) {
+  const max = Math.max(1, ...etapas.flatMap(e => e.valores))
   return (
-    <li className="flex items-center gap-3 rounded-xl border border-stone-200 bg-white px-3 py-1.5">
-      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-bold text-white" style={{ background: RED }}>{n}</span>
-      <span className="min-w-0 flex-1 truncate">
-        <span className="text-[11.5px] font-semibold uppercase tracking-[0.02em] text-stone-900">{titulo}</span>
-        {detalhe && <span className="ml-2 text-[10px] text-stone-500">{detalhe}</span>}
-      </span>
-      {direita}
-    </li>
-  )
-}
-
-// ── Funil em camadas ──────────────────────────────────────────────────────────────────────────
-
-const mistura = (a: string, b: string, t: number) => {
-  const c = (h: string, i: number) => parseInt(h.slice(1 + i * 2, 3 + i * 2), 16)
-  return `#${[0, 1, 2].map(i => Math.round(c(a, i) + (c(b, i) - c(a, i)) * t).toString(16).padStart(2, '0')).join('')}`
-}
-
-const PASSO = 50, ALTURA = 44, RY = 7, LARGURA = 290
-
-/**
- * O funil como camadas 3D (um cone fatiado): cada etapa é um tronco com aro elíptico, do vermelho ao vinho, com o
- * nome e o número do período atual. Em SVG para sair nítido no PDF, sem gradientes por id: na impressão o documento é
- * copiado, e um url(#id) apontaria para a cópia escondida da tela. O volume vem de faixas translúcidas sobre a cor.
- */
-function FunilCamadas({ etapas }: { etapas: { id: string; titulo: string; valor: number }[] }) {
-  const n = etapas.length
-  const cx0 = LARGURA / 2
-  const larg = (i: number) => LARGURA - i * ((LARGURA - 112) / n)
-  const altura = n * PASSO + RY * 2
-  // Ponto da borda esquerda (lado -1) ou direita (+1) a uma fração da largura, no topo (wt) e na base (wb) da camada.
-  const faixa = (y: number, wt: number, wb: number, de: number, ate: number) => {
-    const x = (w: number, f: number) => cx0 - w + 2 * w * f
-    return `M ${x(wt, de)} ${y} L ${x(wt, ate)} ${y} L ${x(wb, ate)} ${y + ALTURA} L ${x(wb, de)} ${y + ALTURA} Z`
-  }
-  return (
-    <svg width={LARGURA} height={altura} viewBox={`0 0 ${LARGURA} ${altura}`} role="img" aria-label={etapas.map(e => `${e.titulo}: ${e.valor}`).join(', ')}>
-      {etapas.map((e, i) => {
-        const y = RY + i * PASSO
-        const wt = larg(i) / 2, wb = larg(i + 1) / 2 + 6
-        const cor = mistura('#EE3A2B', '#6E0A1E', i / Math.max(1, n - 1))
-        return (
-          <g key={e.id}>
-            <path d={`M ${cx0 - wt} ${y} L ${cx0 - wb} ${y + ALTURA} A ${wb} ${RY} 0 0 0 ${cx0 + wb} ${y + ALTURA} L ${cx0 + wt} ${y} A ${wt} ${RY} 0 0 1 ${cx0 - wt} ${y} Z`} fill={cor} />
-            <path d={faixa(y, wt, wb, 0, 0.16)} fill="#000000" opacity="0.22" />
-            <path d={faixa(y, wt, wb, 0.84, 1)} fill="#000000" opacity="0.28" />
-            <path d={faixa(y, wt, wb, 0.3, 0.55)} fill="#FFFFFF" opacity="0.08" />
-            <path d={`M ${cx0 - wb} ${y + ALTURA} A ${wb} ${RY} 0 0 0 ${cx0 + wb} ${y + ALTURA}`} fill="none" stroke="#000000" strokeOpacity="0.18" strokeWidth="1" />
-            <ellipse cx={cx0} cy={y} rx={wt} ry={RY} fill={mistura(cor, '#FFFFFF', 0.3)} />
-            <ellipse cx={cx0} cy={y} rx={wt - 4} ry={RY - 2.5} fill={mistura(cor, '#FFFFFF', 0.14)} />
-            <text x={cx0} y={y + 21} textAnchor="middle" fontSize="9.5" fontWeight="600" fill="#FFFFFF" opacity="0.92">{e.titulo}</text>
-            <text x={cx0} y={y + 40} textAnchor="middle" fontSize="19" fontWeight="800" fill="#FFFFFF">{e.valor.toLocaleString('pt-BR')}</text>
-          </g>
-        )
-      })}
-    </svg>
-  )
-}
-
-const ICONE_KPI: Record<string, Icone> = { ideias: Lightbulb, concluidos: FlaskConical, taxa: Target, lead: Timer }
-
-/** O que mudou do período base para o atual, em números absolutos ("+12 ideias registradas"). */
-function OQueCresceu({ itens, base }: { itens: { titulo: string; valores: Par; formato: 'numero' | 'reais' }[]; base: string }) {
-  const comDiferenca = itens.filter(i => i.valores[0] !== null && i.valores[1] !== null)
-    .map(i => ({ ...i, dif: (i.valores[1] ?? 0) - (i.valores[0] ?? 0) }))
-  const cresceu = comDiferenca.filter(i => i.dif > 0)
-  const caiu = comDiferenca.filter(i => i.dif < 0)
-  const texto = (i: (typeof comDiferenca)[number]) => `${i.dif > 0 ? '+' : '−'}${formatar(Math.abs(i.dif), i.formato)}`
-  return (
-    <div className="mt-3 rounded-2xl border border-stone-200 bg-white px-4 py-3">
-      <p className="text-[10px] font-extrabold uppercase tracking-[0.12em] text-stone-700">O que cresceu em relação a {base}</p>
-      {cresceu.length ? (
-        <ul className="mt-1.5 flex flex-wrap gap-1.5">
-          {cresceu.map(i => (
-            <li key={i.titulo} className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10.5px] text-emerald-900">
-              <ArrowUpRight className="h-3 w-3" aria-hidden /><b className="tabular-nums">{texto(i)}</b> {i.titulo.toLowerCase()}
-            </li>
-          ))}
-        </ul>
-      ) : <p className="mt-1 text-[10.5px] text-stone-500">Nenhum indicador cresceu neste recorte.</p>}
-      {caiu.length > 0 && (
-        <p className="mt-1.5 text-[10px] text-stone-500">
-          Caiu: {caiu.map(i => `${i.titulo.toLowerCase()} (${texto(i)})`).join(' · ')}
-        </p>
-      )}
+    <div>
+      {etapas.map((e, i) => (
+        <div key={e.id} className="grid grid-cols-[28px_170px_1fr_56px_74px] items-center gap-3 py-[5px]" style={{ borderTop: `1px solid ${FILETE}` }}>
+          <span style={{ fontFamily: MONO, fontSize: 10, color: CINZA_ESCURO }}>{String(i + 1).padStart(2, '0')}</span>
+          <span className="min-w-0">
+            <span className="block truncate" style={{ fontSize: 11.5, color: MARFIM }}>{e.titulo}</span>
+            <span className="block truncate" style={{ fontSize: 9, color: CINZA }}>{e.descricao}</span>
+          </span>
+          <span className="relative h-[10px]" style={{ background: GRAFITE }}>
+            <span className="absolute inset-y-0 left-0" style={{ width: `${(e.valores[1] / max) * 100}%`, background: i === etapas.length - 1 ? DEGRADE : OSSO }} />
+            <span className="absolute -inset-y-[3px] w-[2px]" style={{ left: `calc(${(e.valores[0] / max) * 100}% - 1px)`, background: CINZA }} title={`${base}: ${e.valores[0]}`} />
+          </span>
+          <span className="text-right tabular-nums" style={{ fontSize: 16, fontWeight: 300, color: MARFIM }}>{e.valores[1]}</span>
+          <span className="text-right"><Delta valores={e.valores} melhor="maior" /></span>
+        </div>
+      ))}
+      <p className="mt-2 flex items-center gap-2" style={{ fontSize: 9, color: CINZA }}>
+        <span className="inline-block h-[8px] w-5" style={{ background: OSSO }} /> período atual
+        <span className="ml-3 inline-block h-[10px] w-[2px]" style={{ background: CINZA }} /> {base}
+      </p>
     </div>
   )
 }
+
+/** O que mudou em números absolutos: duas colunas, o que cresceu e o que caiu. */
+function Balanco({ itens, base }: { itens: { titulo: string; valores: Par; formato: 'numero' | 'reais' }[]; base: string }) {
+  const lista = itens.filter(i => i.valores[0] !== null && i.valores[1] !== null).map(i => ({ ...i, dif: (i.valores[1] ?? 0) - (i.valores[0] ?? 0) }))
+  const texto = (dif: number, f: 'numero' | 'reais') => `${dif > 0 ? '+' : '−'}${formatar(Math.abs(dif), f)}`
+  const coluna = (titulo: string, xs: typeof lista, cor: string, vazio: string) => (
+    <div>
+      <Rotulo cor={cor}>{titulo}</Rotulo>
+      <ul className="mt-1.5">
+        {xs.map(i => (
+          <li key={i.titulo} className="flex items-baseline justify-between gap-3 py-[2px]" style={{ borderBottom: `1px dotted ${FILETE}` }}>
+            <span style={{ fontSize: 10.5, color: OSSO }}>{i.titulo}</span>
+            <span className="whitespace-nowrap tabular-nums" style={{ fontFamily: MONO, fontSize: 10.5, color: cor }}>{texto(i.dif, i.formato)}</span>
+          </li>
+        ))}
+        {!xs.length && <li style={{ fontSize: 10, color: CINZA_ESCURO }}>{vazio}</li>}
+      </ul>
+    </div>
+  )
+  return (
+    <div className="grid grid-cols-2 gap-8">
+      {coluna(`Cresceu em relação a ${base}`, lista.filter(i => i.dif > 0), MARFIM, 'Nenhum indicador cresceu neste recorte.')}
+      {coluna('Caiu', lista.filter(i => i.dif < 0), CINZA, 'Nada caiu neste recorte.')}
+    </div>
+  )
+}
+
+// ── Report ────────────────────────────────────────────────────────────────────────────────────
 
 export default function ReportExecutivo({ dados }: { dados: ComparativoDados }) {
   const ref = useRef<HTMLDivElement>(null)
@@ -208,12 +170,15 @@ export default function ReportExecutivo({ dados }: { dados: ComparativoDados }) 
   }
 
   const beneficio = r.kpis.find(k => k.id === 'beneficio')!
-  const tiles = r.kpis.filter(k => k.id !== 'beneficio')
+  const ledger = r.kpis.filter(k => k.id !== 'beneficio')
   const validadas = r.resultados.validadas
   const pctExp = (k: number) => (r.exploracao.registradas[k] ? Math.round((r.exploracao.viraramExperimento[k] / r.exploracao.registradas[k]) * 100) : 0)
   const encerrados = [0, 1].map(k => r.resultados.validadas[k] + r.resultados.refutadas[k] + r.resultados.cancelados[k])
   const lead = r.tempos.find(t => t.titulo === 'Cycle time da Experimentação')!
   const area = r.areas.find(a => a.validadas[1] > 0) ?? r.areas[0]
+  const TONS = { validada: MARFIM, refutada: CINZA, cancelada: CINZA_ESCURO } as const
+  const NOMES = { validada: 'Validadas', refutada: 'Refutadas', cancelada: 'Canceladas' } as const
+  const desfecho = (id: keyof typeof TONS, k: number) => (id === 'validada' ? r.resultados.validadas[k] : id === 'refutada' ? r.resultados.refutadas[k] : r.resultados.cancelados[k])
 
   return (
     <section aria-labelledby="report-titulo" className="space-y-3">
@@ -223,7 +188,7 @@ export default function ReportExecutivo({ dados }: { dados: ComparativoDados }) 
           <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-beon-red">Report executivo</p>
           <h2 id="report-titulo" className="text-lg font-semibold tracking-tight text-beon-ink">{B} em duas páginas, pronto para levar à diretoria</h2>
           <p className="mt-0.5 max-w-3xl text-sm text-beon-muted">
-            Escolha o recorte do report: ele sempre compara com {infoRecorte.base} e mostra o que cresceu. Em &quot;Baixar PDF&quot;, escolha &quot;Salvar como PDF&quot; e desmarque &quot;Cabeçalhos e rodapés&quot;.
+            Escolha o recorte do report: ele sempre compara com {infoRecorte.base} e mostra o que cresceu. Em &quot;Baixar PDF&quot;, escolha &quot;Salvar como PDF&quot;, desmarque &quot;Cabeçalhos e rodapés&quot; e marque &quot;Gráficos de plano de fundo&quot;.
           </p>
         </div>
         <Button variant="primary" icon={Download} onClick={baixar}>Baixar PDF</Button>
@@ -253,196 +218,203 @@ export default function ReportExecutivo({ dados }: { dados: ComparativoDados }) 
         </span>
       </div>
 
-      <div ref={ref} className="text-stone-800" style={{ fontFamily: 'Inter, "Segoe UI", Arial, sans-serif' }}>
+      <div ref={ref} style={{ fontFamily: 'Inter, "Segoe UI", Arial, sans-serif', color: MARFIM }}>
         {/* ─── Folha 1 ─── */}
-        <article className="folha mx-auto max-w-[760px] overflow-hidden rounded-2xl border border-beon-line bg-white shadow-sm">
-          {/* Capa. div, não <header>: o CSS de impressão do app esconde todo <header>. */}
-          <div className="relative overflow-hidden text-center text-white" style={{ background: RED }}>
-            <svg className="absolute inset-0 h-full w-full" viewBox="0 0 760 200" preserveAspectRatio="none" aria-hidden>
-              <path d="M0 0 H300 C220 60 120 70 0 150 Z" fill="#E0262E" opacity="0.55" />
-              <path d="M760 0 H470 C560 50 660 80 760 160 Z" fill="#8E0B1A" opacity="0.55" />
-              <path d="M0 150 C220 70 520 120 760 40 V0 H740 C540 90 260 30 0 120 Z" fill="#FFFFFF" opacity="0.07" />
-            </svg>
-            <div className="relative px-8 pb-12 pt-6">
-              <p className="text-[10.5px] font-semibold uppercase tracking-[0.24em] text-white/85">beOn Labs · Report executivo {NOME_DO_RECORTE[recorte]}</p>
-              <div className="mx-auto mt-3 inline-flex rounded-2xl bg-white px-5 py-2.5 shadow-sm">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/jira/semanal/logo.png" alt="beOn Labs" style={{ height: 34 }} />
-              </div>
-              <h1 className="mt-3 text-[30px] font-extrabold leading-tight tracking-tight">Experimentação em números</h1>
-              <p className="mt-0.5 text-[14px] font-light text-white/90">{B} comparado a {A} · do que exploramos ao que chegou à escala</p>
-            </div>
-            <svg className="absolute bottom-0 left-0 h-7 w-full" viewBox="0 0 760 28" preserveAspectRatio="none" aria-hidden>
-              <path d="M0 28 C200 0 560 0 760 28 Z" fill="#FFFFFF" />
-            </svg>
-          </div>
+        <article className="folha mx-auto max-w-[780px] overflow-hidden rounded-xl" style={{ background: PRETO, boxShadow: '0 1px 2px rgba(0,0,0,.2)' }}>
+          {/* div, não <header>: o CSS de impressão do app esconde todo <header>. */}
+          <Cabecalho direita={<>
+            <Rotulo>Report executivo · {NOME_DO_RECORTE[recorte]}</Rotulo>
+            <p className="mt-0.5" style={{ fontFamily: MONO, fontSize: 9, color: CINZA_ESCURO }}>{gerado}</p>
+          </>} />
 
-          <div className="space-y-5 px-8 pb-6 pt-3">
-            <section className="inteiro">
-              <Secao icone={TrendingUp} olho="Visão geral" destaque="Resultados" complemento={B} subtitulo={`Comparado a ${A} · ${r.periodo}`} />
-              <div className="flex items-center gap-4 rounded-2xl px-5 py-3.5" style={{ background: ROSA }}>
-                <IconeCirculo icone={Coins} tamanho={52} />
-                <div className="min-w-0 flex-1">
-                  <p className="text-[10px] font-extrabold uppercase tracking-[0.12em] text-stone-700">Benefício potencial dos experimentos em {B}</p>
-                  <p className="text-[38px] font-extrabold leading-none tracking-tight tabular-nums" style={{ color: RED }}>{formatar(beneficio.valores[1], 'reais')}</p>
-                  <p className="mt-1 text-[11.5px] text-stone-700">
-                    <b>{r.valor.experimentos[1]}</b> {r.valor.experimentos[1] === 1 ? 'experimento' : 'experimentos'} · {formatar(r.valor.validado[1], 'reais')} em {validadas[1]} {validadas[1] === 1 ? 'hipótese validada' : 'hipóteses validadas'} · em {A}: {formatar(beneficio.valores[0], 'reais')}
-                  </p>
+          <div className="px-10 pb-7 pt-6">
+            <p style={{ fontFamily: MONO, fontSize: 10, color: CINZA, letterSpacing: '0.1em' }}>{B.toUpperCase()}</p>
+            <h1 className="mt-2" style={{ fontFamily: SERIFA, fontSize: 34, lineHeight: 1.05, letterSpacing: '-0.02em', color: MARFIM }}>
+              O que a experimentação<br />entregou no período
+            </h1>
+            <p className="mt-2.5" style={{ fontSize: 11.5, color: OSSO }}>{trecho(comparacao.atual)}, comparado a {A} ({trecho(comparacao.base)})</p>
+            <div className="mt-4 h-[3px] w-28" style={{ background: DEGRADE }} />
+
+            {/* Número principal e o livro-razão dos indicadores */}
+            <section className="inteiro mt-6 grid grid-cols-[1.05fr_1fr] gap-10">
+              <div>
+                <Rotulo>Benefício potencial dos experimentos</Rotulo>
+                <p className="mt-2 whitespace-nowrap tabular-nums" style={{ fontSize: 46, fontWeight: 200, letterSpacing: '-0.03em', lineHeight: 1, color: MARFIM }}>
+                  {formatar(beneficio.valores[1], 'reais')}
+                </p>
+                <div className="mt-3 flex items-center gap-3">
+                  <Delta valores={beneficio.valores} melhor="maior" grande />
+                  <span style={{ fontSize: 10.5, color: CINZA }}>{A}: {formatar(beneficio.valores[0], 'reais')}</span>
                 </div>
-                <Chip valores={beneficio.valores} melhor="maior" />
+                <dl className="mt-5 grid grid-cols-2 gap-4" style={{ borderTop: `1px solid ${FILETE}`, paddingTop: 12 }}>
+                  <div>
+                    <dt><Rotulo>Experimentos com benefício</Rotulo></dt>
+                    <dd className="mt-1 tabular-nums" style={{ fontSize: 20, fontWeight: 300 }}>{r.valor.experimentos[1]}</dd>
+                  </div>
+                  <div>
+                    <dt><Rotulo>Já em hipóteses validadas</Rotulo></dt>
+                    <dd className="mt-1 tabular-nums" style={{ fontSize: 20, fontWeight: 300 }}>{formatar(r.valor.validado[1], 'reais')}</dd>
+                    <dd style={{ fontSize: 9.5, color: CINZA }}>{validadas[1]} {validadas[1] === 1 ? 'hipótese' : 'hipóteses'}</dd>
+                  </div>
+                </dl>
               </div>
-              <div className="mt-3 grid grid-cols-4 gap-2.5">
-                {tiles.map(k => (
-                  <Destaque key={k.id} icone={ICONE_KPI[k.id] ?? Gauge} valor={formatar(k.valores[1], k.formato)} rotulo={k.titulo}
-                    base={`${A}: ${formatar(k.valores[0], k.formato)}`} chip={<Chip valores={k.valores} melhor={k.melhor} />} />
-                ))}
-              </div>
-              <OQueCresceu base={A} itens={[
+              <table className="w-full self-start">
+                <caption className="pb-2 text-left"><Rotulo>Indicadores · atual, anterior e variação</Rotulo></caption>
+                <tbody>
+                  {ledger.map(k => (
+                    <tr key={k.id} style={{ borderTop: `1px solid ${FILETE}` }}>
+                      <th scope="row" className="py-2 pr-2 text-left align-top font-normal">
+                        <span className="block" style={{ fontSize: 11.5, color: MARFIM }}>{k.titulo}</span>
+                        <span className="block" style={{ fontSize: 9, color: CINZA }}>{k.nota}</span>
+                      </th>
+                      <td className="whitespace-nowrap py-2 text-right align-top tabular-nums" style={{ fontSize: 19, fontWeight: 300, color: MARFIM }}>{formatar(k.valores[1], k.formato)}</td>
+                      <td className="whitespace-nowrap py-2 pl-3 text-right align-top">
+                        <span className="block tabular-nums" style={{ fontSize: 9.5, color: CINZA }}>{formatar(k.valores[0], k.formato)}</span>
+                        <Delta valores={k.valores} melhor={k.melhor} />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </section>
+
+            <section className="inteiro mt-7">
+              <Secao n="01 —" titulo="Da ideia à escala" nota={`Quantas iniciativas e experimentos passaram por cada etapa em ${B}`} />
+              <Funil etapas={r.funil} base={A} />
+            </section>
+
+            <section className="inteiro mt-6">
+              <Secao n="02 —" titulo="Balanço do período" nota="A diferença em números absolutos contra o período anterior" />
+              <Balanco base={A} itens={[
                 ...r.funil.map(f => ({ titulo: f.titulo, valores: f.valores as Par, formato: 'numero' as const })),
                 { titulo: 'Benefício potencial', valores: beneficio.valores, formato: 'reais' as const },
               ]} />
-            </section>
-
-            <section className="inteiro">
-              <Secao icone={Layers} olho="Nosso funil" destaque="Funil" complemento="de experimentos"
-                subtitulo={`Da ideia à escala: quantas iniciativas e experimentos passaram por cada camada em ${B}`} />
-              <div className="flex items-start gap-5">
-                <FunilCamadas etapas={r.funil.map(f => ({ id: f.id, titulo: f.titulo, valor: f.valores[1] }))} />
-                <ol className="min-w-0 flex-1" style={{ paddingTop: RY }}>
-                  {r.funil.map((f, i) => (
-                    <li key={f.id} className="flex items-center gap-3 border-b border-dashed border-stone-200 last:border-0" style={{ height: PASSO }}>
-                      <span className="w-4 text-[10px] font-bold tabular-nums" style={{ color: RED }}>{i + 1}</span>
-                      <span className="min-w-0 flex-1">
-                        <span className="block text-[11.5px] font-semibold text-stone-900">{f.titulo}</span>
-                        <span className="block truncate text-[10px] text-stone-500">{f.descricao}</span>
-                      </span>
-                      <span className="w-28 whitespace-nowrap text-right text-[10px] tabular-nums text-stone-500">{A}: <b className="text-stone-700">{f.valores[0]}</b></span>
-                      <span className="w-[74px] text-right"><Chip valores={f.valores} melhor="maior" /></span>
-                    </li>
-                  ))}
-                </ol>
-              </div>
             </section>
           </div>
         </article>
 
         {/* ─── Folha 2 ─── */}
-        <article className="folha quebra mx-auto mt-6 max-w-[760px] overflow-hidden rounded-2xl border border-beon-line bg-white shadow-sm">
-          <div className="flex items-center justify-between px-8 pb-1 pt-3.5">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/jira/semanal/logo.png" alt="beOn Labs" style={{ height: 22 }} />
-            <p className="text-[10px] font-semibold uppercase tracking-[0.16em]" style={{ color: RED }}>{A} × {B}</p>
-          </div>
-          <div className="space-y-4 px-8 pb-4 pt-1">
+        <article className="folha quebra mx-auto mt-6 max-w-[780px] overflow-hidden rounded-xl" style={{ background: PRETO, boxShadow: '0 1px 2px rgba(0,0,0,.2)' }}>
+          <Cabecalho direita={<Rotulo>{A} × {B}</Rotulo>} />
+          <div className="px-10 pb-5 pt-6">
             <section className="inteiro">
-              <Secao icone={Compass} olho="Exploração" destaque="Iniciativas" complemento="que exploramos" subtitulo="Ideias registradas no board de Ideação e o caminho até o experimento" />
-              <div className="grid grid-cols-[1fr_1fr_1fr_1.35fr] gap-2.5">
-                <Destaque icone={Lightbulb} valor={String(r.exploracao.registradas[1])} rotulo="Ideias registradas" base={`${A}: ${r.exploracao.registradas[0]}`}
-                  chip={<Chip valores={r.exploracao.registradas} melhor="maior" />} />
-                <Destaque icone={FlaskConical} valor={`${pctExp(1)}%`} rotulo="Já viraram experimento" base={`${A}: ${pctExp(0)}%`} chip={null} />
-                <Destaque icone={Timer} valor={formatar(r.exploracao.leadMediana[1], 'dias')} rotulo="Da ideia ao experimento" base={`${A}: ${formatar(r.exploracao.leadMediana[0], 'dias')}`}
-                  chip={<Chip valores={r.exploracao.leadMediana} melhor="menor" />} />
-                <div className="rounded-2xl p-3" style={{ background: ROSA }}>
-                  <p className="flex items-center gap-1.5 text-[10.5px] font-bold text-stone-900"><Rocket className="h-3.5 w-3.5" color={RED} aria-hidden /> Chegaram mais longe em {B}</p>
-                  <ul className="mt-1.5 space-y-1">
+              <Secao n="03 —" titulo="Exploração" nota="Ideias registradas no board de Ideação e o caminho até o experimento" />
+              <div className="grid grid-cols-[1fr_1fr_1fr_1.5fr]">
+                {[
+                  { rotulo: 'Ideias registradas', valor: String(r.exploracao.registradas[1]), base: String(r.exploracao.registradas[0]), delta: <Delta valores={r.exploracao.registradas} melhor="maior" /> },
+                  { rotulo: 'Viraram experimento', valor: `${pctExp(1)}%`, base: `${pctExp(0)}%`, delta: null },
+                  { rotulo: 'Da ideia ao experimento', valor: formatar(r.exploracao.leadMediana[1], 'dias'), base: formatar(r.exploracao.leadMediana[0], 'dias'), delta: <Delta valores={r.exploracao.leadMediana} melhor="menor" /> },
+                ].map((x, i) => (
+                  <div key={x.rotulo} className={cx('pr-4', i > 0 && 'pl-4')} style={i > 0 ? { borderLeft: `1px solid ${FILETE}` } : undefined}>
+                    <Rotulo>{x.rotulo}</Rotulo>
+                    <p className="mt-1.5 whitespace-nowrap tabular-nums" style={{ fontSize: 26, fontWeight: 200, lineHeight: 1 }}>{x.valor}</p>
+                    <p className="mt-1.5 flex items-center gap-2" style={{ fontSize: 9.5, color: CINZA }}>{A}: {x.base} {x.delta}</p>
+                  </div>
+                ))}
+                <div className="pl-5" style={{ borderLeft: `1px solid ${FILETE}` }}>
+                  <Rotulo cor={LARANJA}>Chegaram mais longe</Rotulo>
+                  <ul className="mt-1.5">
                     {r.exploracao.chegaramLonge.map(d => (
-                      <li key={d.key} className="flex items-center gap-1.5 text-[10.5px]">
-                        <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: RED }} />
-                        <span className="min-w-0 flex-1 truncate text-stone-800">{d.nome}</span>
-                        <span className="shrink-0 rounded-full bg-white px-1.5 text-[9px] font-semibold" style={{ color: d.detalhe === 'Escala' ? RED : '#57534E' }}>{d.detalhe}</span>
+                      <li key={d.key} className="flex items-center justify-between gap-2 py-[3px]" style={{ borderBottom: `1px dotted ${FILETE}` }}>
+                        <span className="min-w-0 truncate" style={{ fontSize: 10.5, color: OSSO }}>{d.nome}</span>
+                        <span className="shrink-0 px-1.5" style={{ fontFamily: MONO, fontSize: 8.5, letterSpacing: '0.08em', textTransform: 'uppercase', color: d.detalhe === 'Escala' ? PRETO : MARFIM, background: d.detalhe === 'Escala' ? MARFIM : 'transparent', border: `1px solid ${d.detalhe === 'Escala' ? MARFIM : CINZA_ESCURO}` }}>{d.detalhe}</span>
                       </li>
                     ))}
-                    {!r.exploracao.chegaramLonge.length && <li className="text-[10.5px] text-stone-500">Nenhuma iniciativa entrou em Piloto ou Escala no período.</li>}
+                    {!r.exploracao.chegaramLonge.length && <li style={{ fontSize: 10, color: CINZA_ESCURO }}>Nenhuma iniciativa entrou em Piloto ou Escala no período.</li>}
                   </ul>
-                  <p className="mt-1.5 text-[9.5px] text-stone-500">{r.exploracao.emExploracaoHoje} ideias em exploração hoje</p>
+                  <p className="mt-1.5" style={{ fontSize: 9, color: CINZA }}>{r.exploracao.emExploracaoHoje} ideias em exploração hoje</p>
                 </div>
               </div>
             </section>
 
-            <section className="inteiro">
-              <Secao icone={Coins} olho="Valor" destaque="Valor" complemento="gerado" subtitulo={`Maiores benefícios potenciais entre os experimentos de ${B}`} />
-              <ol className="space-y-1">
+            <section className="inteiro mt-6">
+              <Secao n="04 —" titulo="Valor gerado" nota={`Maiores benefícios potenciais entre os experimentos de ${B}`} />
+              <ol>
                 {r.valor.top.map((d, i) => {
-                  const [valor, areaNome] = d.detalhe.split(' · ')
+                  const [valor, ...resto] = d.detalhe.split(' · ')
                   return (
-                    <LinhaNumerada key={d.key} n={i + 1} titulo={d.nome} detalhe={areaNome}
-                      direita={<span className="whitespace-nowrap text-[15px] font-extrabold tabular-nums" style={{ color: RED }}>{valor}</span>} />
+                    <li key={d.key} className="grid grid-cols-[44px_1fr_auto] items-baseline gap-3 py-1.5" style={{ borderTop: `1px solid ${FILETE}` }}>
+                      <span style={{ fontFamily: SERIFA, fontSize: 20, color: i === 0 ? LARANJA : CINZA_ESCURO, lineHeight: 1 }}>{String(i + 1).padStart(2, '0')}</span>
+                      <span className="min-w-0">
+                        <span className="block truncate" style={{ fontSize: 12, color: MARFIM }}>{d.nome}</span>
+                        {resto.length > 0 && <span className="block truncate" style={{ fontSize: 9.5, color: CINZA }}>{resto.join(' · ')}</span>}
+                      </span>
+                      <span className="whitespace-nowrap tabular-nums" style={{ fontSize: 16, fontWeight: 300, color: MARFIM }}>{valor}</span>
+                    </li>
                   )
                 })}
-                {!r.valor.top.length && <li className="rounded-xl border border-stone-200 px-3 py-2 text-[11px] text-stone-500">Sem benefício registrado nas hipóteses validadas do período.</li>}
+                {!r.valor.top.length && <li className="py-2" style={{ fontSize: 10.5, color: CINZA_ESCURO, borderTop: `1px solid ${FILETE}` }}>Sem benefício registrado nos experimentos do período.</li>}
               </ol>
             </section>
 
-            <section className="inteiro">
-              <Secao icone={Sparkles} olho="Como foi o período" destaque="Resultados," complemento="velocidade e áreas" />
-              <div className="grid grid-cols-3 gap-2.5">
-                <div className="rounded-2xl border border-stone-200 p-2.5">
-                  <p className="flex items-center gap-1.5 text-[11px] font-bold text-stone-900"><IconeCirculo icone={FlaskConical} tamanho={24} /> Como terminaram</p>
+            <section className="inteiro mt-6">
+              <Secao n="05 —" titulo="Como o período terminou" />
+              <div className="grid grid-cols-[1.4fr_1fr_1fr] gap-0">
+                <div className="pr-5">
+                  <Rotulo>Desfecho dos experimentos encerrados</Rotulo>
                   {[0, 1].map(k => (
-                    <div key={k} className="mt-2">
-                      <p className="flex justify-between text-[9.5px] text-stone-500"><span>{r.rotulos[k]}</span><span>{encerrados[k]} encerrados</span></p>
-                      <div className="mt-0.5 flex h-3.5 gap-[2px] overflow-hidden rounded">
+                    <div key={k} className="mt-2.5">
+                      <p className="flex justify-between" style={{ fontSize: 9.5, color: CINZA }}><span>{r.rotulos[k]}</span><span className="tabular-nums">{encerrados[k]} encerrados</span></p>
+                      <div className="mt-1 flex h-[14px] gap-[2px]">
                         {(['validada', 'refutada', 'cancelada'] as const).map(id => {
-                          const v = id === 'validada' ? r.resultados.validadas[k] : id === 'refutada' ? r.resultados.refutadas[k] : r.resultados.cancelados[k]
-                          return v ? <div key={id} className="flex items-center justify-center text-[8.5px] font-bold text-white" style={{ width: `${(v / Math.max(1, encerrados[k])) * 100}%`, background: COR[id] }}>{v}</div> : null
+                          const v = desfecho(id, k)
+                          return v ? (
+                            <div key={id} className="flex items-center justify-center tabular-nums" style={{ width: `${(v / Math.max(1, encerrados[k])) * 100}%`, background: TONS[id], color: id === 'validada' ? PRETO : MARFIM, fontSize: 8.5, fontWeight: 600 }}>{v}</div>
+                          ) : null
                         })}
                       </div>
                     </div>
                   ))}
-                  <p className="mt-2 flex flex-wrap gap-x-2 text-[9px] text-stone-500">
+                  <p className="mt-2 flex flex-wrap gap-x-3" style={{ fontSize: 9, color: CINZA }}>
                     {(['validada', 'refutada', 'cancelada'] as const).map(id => (
-                      <span key={id} className="inline-flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-sm" style={{ background: COR[id] }} />{SITUACOES.find(s => s.id === id)!.label.replace('Hipótese ', '')}</span>
+                      <span key={id} className="inline-flex items-center gap-1"><span className="inline-block h-2 w-2" style={{ background: TONS[id], outline: id === 'cancelada' ? `1px solid ${CINZA}` : undefined }} />{NOMES[id]}</span>
                     ))}
                   </p>
                 </div>
-                <div className="rounded-2xl border border-stone-200 p-2.5">
-                  <p className="flex items-center gap-1.5 text-[11px] font-bold text-stone-900"><IconeCirculo icone={Gauge} tamanho={24} /> Velocidade</p>
-                  <p className="mt-2.5 text-[26px] font-extrabold leading-none tabular-nums" style={{ color: RED }}>{formatar(lead.valores[1], 'dias')}</p>
-                  <p className="mt-1 text-[10px] text-stone-600">cycle time de experimentação (mediana, sem bloqueios)</p>
-                  <p className="mt-1.5 flex items-center gap-1.5 text-[9.5px] text-stone-500">{A}: {formatar(lead.valores[0], 'dias')} <Chip valores={lead.valores} melhor="menor" /></p>
+                <div className="px-5" style={{ borderLeft: `1px solid ${FILETE}` }}>
+                  <Rotulo>Velocidade</Rotulo>
+                  <p className="mt-2 whitespace-nowrap tabular-nums" style={{ fontSize: 28, fontWeight: 200, lineHeight: 1 }}>{formatar(lead.valores[1], 'dias')}</p>
+                  <p className="mt-1.5" style={{ fontSize: 9.5, color: OSSO }}>cycle time de experimentação, mediana, sem bloqueios</p>
+                  <p className="mt-1.5 flex items-center gap-2" style={{ fontSize: 9.5, color: CINZA }}>{A}: {formatar(lead.valores[0], 'dias')} <Delta valores={lead.valores} melhor="menor" /></p>
                 </div>
-                <div className="rounded-2xl border border-stone-200 p-2.5">
-                  <p className="flex items-center gap-1.5 text-[11px] font-bold text-stone-900"><IconeCirculo icone={MapPin} tamanho={24} /> Onde aconteceu</p>
+                <div className="pl-5" style={{ borderLeft: `1px solid ${FILETE}` }}>
+                  <Rotulo>Onde aconteceu</Rotulo>
                   {area ? (
                     <>
-                      <p className="mt-2.5 truncate text-[20px] font-extrabold leading-none" style={{ color: RED }}>{area.nome}</p>
-                      <p className="mt-1 text-[10px] text-stone-600">{area.validadas[1]} {area.validadas[1] === 1 ? 'hipótese validada' : 'hipóteses validadas'} em {B}</p>
-                      <ul className="mt-1.5 space-y-0.5 text-[9.5px] text-stone-500">
-                        {r.areas.filter(a => a !== area).slice(0, 3).map(a => <li key={a.nome} className="flex justify-between gap-2"><span className="truncate">{a.nome}</span><span className="tabular-nums">{a.validadas[1]}</span></li>)}
+                      <p className="mt-2 truncate" style={{ fontFamily: SERIFA, fontSize: 19, lineHeight: 1.1 }}>{area.nome}</p>
+                      <p className="mt-1" style={{ fontSize: 9.5, color: OSSO }}>{area.validadas[1]} {area.validadas[1] === 1 ? 'hipótese validada' : 'hipóteses validadas'} em {B}</p>
+                      <ul className="mt-1.5">
+                        {r.areas.filter(a => a !== area).slice(0, 3).map(a => (
+                          <li key={a.nome} className="flex justify-between gap-2 py-[2px]" style={{ fontSize: 9.5, color: CINZA }}><span className="truncate">{a.nome}</span><span className="tabular-nums">{a.validadas[1]}</span></li>
+                        ))}
                       </ul>
                     </>
-                  ) : <p className="mt-2 text-[10px] text-stone-500">Sem área informada nos experimentos.</p>}
+                  ) : <p className="mt-2" style={{ fontSize: 10, color: CINZA_ESCURO }}>Sem área informada nos experimentos.</p>}
                 </div>
               </div>
             </section>
 
-            <section className="inteiro rounded-2xl px-5 py-3" style={{ background: ROSA }}>
-              <p className="text-[10px] font-extrabold uppercase tracking-[0.14em]" style={{ color: RED }}>Leitura executiva</p>
-              <ul className="mt-1.5 space-y-0.5">
-                {/* A área com mais validadas já está no cartão "Onde aconteceu". */}
-                {r.leitura.filter(f => !f.includes('é a área com mais')).map(f => (
-                  <li key={f} className="flex gap-2 text-[11px] leading-snug text-stone-800">
-                    <span className="mt-[1px] flex h-4 w-4 shrink-0 items-center justify-center rounded-full" style={{ background: RED }}><Check className="h-2.5 w-2.5" color="#fff" strokeWidth={3} aria-hidden /></span>{f}
+            <section className="inteiro mt-6 px-6 py-4" style={{ background: GRAFITE, borderLeft: `3px solid ${LARANJA}` }}>
+              <Rotulo cor={LARANJA}>Leitura executiva</Rotulo>
+              <ol className="mt-2.5 space-y-2">
+                {/* A área com mais validadas já está em "Onde aconteceu". */}
+                {r.leitura.filter(f => !f.includes('é a área com mais')).map((f, i) => (
+                  <li key={f} className="grid grid-cols-[26px_1fr] gap-2">
+                    <span style={{ fontFamily: MONO, fontSize: 10, color: CINZA, paddingTop: 2 }}>{String(i + 1).padStart(2, '0')}</span>
+                    <span style={{ fontFamily: SERIFA, fontSize: 13, lineHeight: 1.45, color: MARFIM }}>{f}</span>
                   </li>
                 ))}
-              </ul>
+              </ol>
             </section>
           </div>
 
-          <div className="relative overflow-hidden px-8 pb-3 pt-4 text-white" style={{ background: RED }}>
-            <svg className="absolute left-0 top-0 h-5 w-full" viewBox="0 0 760 20" preserveAspectRatio="none" aria-hidden>
-              <path d="M0 0 H760 V0 C560 20 200 20 0 0 Z" fill="#FFFFFF" />
-            </svg>
-            <div className="relative flex items-end justify-between gap-6">
-              <p className="max-w-[520px] text-[8.5px] leading-relaxed text-white/80">
-                Fonte: Jira (boards de Ideação e de Experimentação), lido em {gerado}. Cada número conta no período em que o evento aconteceu.
-                Hipótese validada: experimento concluído cuja iniciativa seguiu para Aguardando piloto, Piloto ou Escala. Tempos em mediana.
-              </p>
-              <span className="rounded-xl bg-white px-3 py-1.5">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/jira/semanal/logo.png" alt="beOn Labs" style={{ height: 20 }} />
-              </span>
-            </div>
+          <div className="mx-10 flex items-end justify-between gap-6 pb-6 pt-3" style={{ borderTop: `1px solid ${FILETE}` }}>
+            <p className="max-w-[520px]" style={{ fontSize: 8.5, lineHeight: 1.6, color: CINZA }}>
+              Fonte: Jira (boards de Ideação e de Experimentação), lido em {gerado}. Cada número conta no período em que o evento aconteceu.
+              Hipótese validada: experimento concluído cuja iniciativa seguiu para Aguardando piloto, Piloto ou Escala. Tempos em mediana.
+            </p>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={LOGO} alt="beOn Labs" style={{ height: 22 }} />
           </div>
         </article>
       </div>
