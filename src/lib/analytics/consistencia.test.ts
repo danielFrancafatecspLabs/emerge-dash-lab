@@ -72,7 +72,7 @@ describe('agente de analytics', () => {
     const e = entrada(variante)
     const r = verificarConsistencia({ ...e, board2734Config: cfg })
     expect(r.verificacoes.find(v => v.id === 'coluna-aguardando')).toMatchObject({
-      ok: false, valores: { 'Semanal (regra por status)': 2, 'Operacional (estágio)': 2, 'Coluna no Jira': 3 },
+      ok: false, valores: { 'Semanal (regra por status)': 2, 'Operacional (estágio)': 3, 'Coluna no Jira': 3 },
     })
     expect(r.alertas.map(a => a.titulo)).toContain(
       'Status Aguardando validação do piloto (id 99999), na coluna "AGUARDANDO PILOTO": a regra do app conta como não validada, a coluna indica aguardando')
@@ -137,6 +137,62 @@ describe('agente de analytics', () => {
     expect(portfolio.experimentos.find(x => x.key === 'GL-30')?.bloqueado).toBe(true)
     const r = verificarConsistencia({ ...entrada(), data, portfolio })
     expect(r.verificacoes.find(v => v.id === 'bloqueados')).toMatchObject({ ok: true, valores: { Portfólio: 1, 'Regra do app (lib/bloqueio)': 1 } })
+  })
+
+  it('diagnostica a divergência: diz qual item uma tela conta e a outra não', () => {
+    const e = entrada()
+    const fora = e.portfolio.experimentos[0]
+    e.portfolio = { ...e.portfolio, experimentos: e.portfolio.experimentos.slice(1) }
+    const total = verificarConsistencia(e).verificacoes.find(x => x.id === 'total')!
+    expect(total.natureza).toBe('telas')
+    expect(total.diagnostico!.diferencas).toContainEqual(expect.objectContaining({ conta: 'Semanal', naoConta: 'Portfólio', total: 1, itens: [expect.objectContaining({ key: fora.key })] }))
+  })
+
+  it('totais iguais com itens diferentes também é divergência', () => {
+    const e = entrada()
+    // O Portfólio troca um concluído por um cancelado: os dois totais continuam iguais.
+    const trocar = (x: (typeof e.portfolio.experimentos)[number]) =>
+      x.key === 'GL-16' ? { ...x, situacao: 'concluido' as const } : x.key === 'GL-18' ? { ...x, situacao: 'cancelado' as const } : x
+    e.portfolio = { ...e.portfolio, experimentos: e.portfolio.experimentos.map(trocar) }
+    const v = verificarConsistencia(e).verificacoes.find(x => x.id === 'concluidos')!
+    expect(v).toMatchObject({ ok: false, diferenca: 0 })
+    expect(v.diagnostico!.causa).toMatch(/^Os totais são iguais, mas os itens não são os mesmos/)
+    expect(v.diagnostico!.diferencas.flatMap(d => d.itens.map(i => i.key)).sort()).toEqual(['GL-16', 'GL-18'])
+  })
+
+  it('aponta a causa provável pelo status em comum dos itens divergentes', () => {
+    const cfg = config([['BACKLOG', ['10004']], ['EM EXPERIMENTAÇÃO', ['14460']], ['AGUARDANDO PILOTO', ['14468', '99999']], ['EM PILOTO', ['14459']], ['EM ESCALA', ['13562']], ['CANCELADO', ['10015']]])
+    const variante = [...iniciativas, ini('GL-7', { id: '99999', name: 'Aguardando validação do piloto' })]
+    const r = verificarConsistencia({ ...entrada(variante), board2734Config: cfg })
+    const v = r.verificacoes.find(x => x.id === 'coluna-aguardando')!
+    expect(v.natureza).toBe('jira')
+    expect(v.diagnostico!.diferencas).toEqual([expect.objectContaining({ conta: 'Coluna no Jira', naoConta: 'Semanal (regra por status)', itens: [expect.objectContaining({ key: 'GL-7' })] })])
+    expect(v.diagnostico!.causa).toContain('Aguardando validação do piloto (id 99999)')
+    expect(r.resumo[0]).toMatch(/divergem?\.$/)
+    // O Operacional lê o nome do status e conta a iniciativa em aguardando; o Semanal não: diverge também entre telas.
+    expect(r.verificacoes.filter(x => !x.ok).map(x => x.id)).toEqual(['aguardando', 'coluna-aguardando'])
+    expect(r.resumo).toContain('1 divergência entre telas do app.')
+    expect(r.resumo).toContain('1 divergência entre a regra do app e as colunas do Jira.')
+  })
+
+  it('quando tudo bate, a conclusão diz isso; e os alertas novos explicam os dados', () => {
+    const r = verificarConsistencia(entrada())
+    expect(r.resumo).toEqual([`${r.verificacoes.length} conferências, todas batem: as telas contam a mesma história, item por item.`])
+    const alerta = (id: string) => r.alertas.find(a => a.id === id)
+    // GL-10 tem R$ 10 mi dos R$ 33 mi (30%); GL-12, R$ 8 mi (24%).
+    expect(alerta('beneficio-concentrado')).toMatchObject({ quantidade: 2, exemplos: ['GL-10 (30%)', 'GL-12 (24%)'] })
+    // Sem histórico no exemplo, nenhum concluído tem a data de conclusão.
+    expect(alerta('concluido-sem-data')!.quantidade).toBe(5)
+  })
+
+  it('avisa de experimentos com o mesmo nome', () => {
+    const repetido = { ...epic('GL-40', 'GL-4', S.AND, 2_000_000), fields: { ...epic('GL-40', 'GL-4', S.AND, 2_000_000).fields, summary: 'gl-14' } } as unknown as JiraIssue
+    const todos = [...epics, repetido]
+    const data = buildDashboardData(iniciativas, todos, {}, {}, cfgIni, {}, {})
+    const dataSemanal = buildDashboardData(iniciativas, todos, {}, {}, cfgIni)
+    const weekly = buildWeeklyData(dataSemanal, {}, cfgExp)
+    const r = verificarConsistencia({ ...entrada(), data, dataSemanal, weekly, semanal: buildSemanalData(dataSemanal, weekly, {}), portfolio: montarPortfolio(data, { iniciativa: cfgIni, experimento: cfgExp }, null) })
+    expect(r.alertas.find(a => a.id === 'possiveis-duplicados')).toMatchObject({ quantidade: 2, exemplos: ['GL-14 = GL-40'] })
   })
 })
 

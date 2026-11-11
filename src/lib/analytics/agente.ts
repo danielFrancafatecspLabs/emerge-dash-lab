@@ -10,6 +10,7 @@ import { buildSemanalData } from '@/lib/semanal'
 import { diretorioDoCache } from '@/lib/cache-dados'
 import { experimentosDoSemanal, montarComparativo } from '@/lib/comparativo/montar'
 import { verificarConsistencia, type RelatorioConsistencia } from './consistencia'
+import { avancarFotos, compararFotos, tirarFoto, type Foto } from './movimento'
 
 /**
  * Executa o agente de analytics no servidor: monta cada visão a partir da leitura do Jira, exatamente como as telas
@@ -18,6 +19,23 @@ import { verificarConsistencia, type RelatorioConsistencia } from './consistenci
  */
 
 const arquivo = () => path.join(diretorioDoCache(), 'analytics-consistencia.json')
+const arquivoDasFotos = () => path.join(diretorioDoCache(), 'analytics-fotos.json')
+
+/** Guarda a foto desta leitura do Jira e devolve o que mudou desde a leitura anterior (null na primeira). */
+function movimentoDesdeAAnterior(nova: Foto) {
+  let guardado: { atual: Foto; anterior: Foto | null } | null = null
+  try { guardado = JSON.parse(fs.readFileSync(arquivoDasFotos(), 'utf-8')) } catch { /* primeira leitura */ }
+  const fotos = avancarFotos(guardado?.atual ? guardado : null, nova)
+  if (fotos !== guardado) {
+    try {
+      fs.mkdirSync(diretorioDoCache(), { recursive: true })
+      fs.writeFileSync(arquivoDasFotos(), JSON.stringify(fotos), 'utf-8')
+    } catch (err) {
+      console.warn('[analytics] foto da leitura não gravada:', String(err))
+    }
+  }
+  return fotos.anterior ? compararFotos(fotos.anterior, fotos.atual) : undefined
+}
 const INTERVALO_MS = 10 * 60 * 1000
 const G = globalThis as typeof globalThis & { __beonAnalyticsEm?: number; __beonAnalyticsRodando?: Promise<RelatorioConsistencia> | null }
 
@@ -46,8 +64,10 @@ export async function rodarAgenteAnalitico(): Promise<RelatorioConsistencia> {
     board2735Config: raw.board2735Config,
   })
 
+  relatorio.movimento = movimentoDesdeAAnterior(tirarFoto(data, (dashboardRawAtualizadoEm() ?? new Date()).toISOString()))
+
   for (const v of relatorio.verificacoes.filter(x => !x.ok)) {
-    console.warn(`[analytics] Divergência em "${v.titulo}": ${Object.entries(v.valores).map(([k, n]) => `${k}=${n}`).join(', ')}`)
+    console.warn(`[analytics] Divergência em "${v.titulo}": ${Object.entries(v.valores).map(([k, n]) => `${k}=${n}`).join(', ')}${v.diagnostico?.causa ? ` · ${v.diagnostico.causa}` : ''}`)
   }
   if (!relatorio.divergencias) console.log(`[analytics] ${relatorio.verificacoes.length} verificações, todas batem.`)
   try {

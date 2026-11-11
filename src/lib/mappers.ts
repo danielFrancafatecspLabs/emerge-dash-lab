@@ -273,8 +273,9 @@ export function getPipelineStage(status: JiraStatus): keyof PipelineCount | unde
   if (byName) return byName
   // Fallback: busca parcial por palavras-chave
   if (normalized.includes('ESCALA') && !normalized.includes('AGUARDANDO')) return 'EM ESCALA'
-  if (normalized.includes('PILOTO')) return 'EM PILOTO'
+  // "Aguardando" antes de "piloto": um status como "Aguardando validação do piloto" é aguardando, não em piloto.
   if (normalized.includes('AGUARDANDO')) return 'AGUARDANDO PILOTO'
+  if (normalized.includes('PILOTO')) return 'EM PILOTO'
   if (normalized.includes('EXPERIMENTA') || normalized.includes('ANDAMENTO') || normalized.includes('VALIDAÇÃO') || normalized.includes('VALIDACAO')) return 'EM EXPERIMENTAÇÃO'
   if (normalized.includes('CONCLUÍ') || normalized.includes('CONCLUI') || normalized === 'DONE') return 'FINALIZADO'
   if (normalized.includes('CANCEL') || normalized.includes('DESCONTINU')) return 'CANCELADO'

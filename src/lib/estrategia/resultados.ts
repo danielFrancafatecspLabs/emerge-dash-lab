@@ -85,15 +85,21 @@ export interface ContagensDoFunil {
   cancelados: number
 }
 
+/** Os experimentos de cada camada do Funil de Experimentos (o agente de analytics confere item por item). */
+export function gruposDoFunil(epics: EpicDetail[]) {
+  return {
+    total: epics,
+    emAndamento: epics.filter(emAndamento),
+    emValidacao: epics.filter(emValidacao),
+    concluidos: epics.filter(ehExperimentoConcluido),
+    cancelados: epics.filter(ehCancelado),
+  }
+}
+
 /** As contagens de experimentos do Funil de Experimentos (a tela e o agente de analytics usam esta mesma função). */
 export function contagensDoFunil(epics: EpicDetail[]): ContagensDoFunil {
-  return {
-    total: epics.length,
-    emAndamento: epics.filter(emAndamento).length,
-    emValidacao: epics.filter(emValidacao).length,
-    concluidos: epics.filter(ehExperimentoConcluido).length,
-    cancelados: epics.filter(ehCancelado).length,
-  }
+  const g = gruposDoFunil(epics)
+  return { total: g.total.length, emAndamento: g.emAndamento.length, emValidacao: g.emValidacao.length, concluidos: g.concluidos.length, cancelados: g.cancelados.length }
 }
 
 // ── Resultados do período ─────────────────────────────────────────────────────────────────────
