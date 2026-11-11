@@ -1,11 +1,12 @@
 'use client'
 
-// Selo do agente de analytics, só para admins: diz se as visões (Semanal, Estratégia, Portfólio, Comparativo…) contam
-// a mesma história. Clicando, mostra a conclusão, cada divergência com os itens que a causam e a causa provável, o que
-// mudou no Jira desde a leitura anterior e os alertas de qualidade dos dados.
+// Selo do Auditor de Analytics, só para admins: diz se as visões (Semanal, Estratégia, Portfólio, Comparativo…) contam
+// a mesma história. Clicando, mostra o parecer, cada divergência com o veredito e a causa provável e o que mudou no
+// Jira desde a leitura anterior. O relatório completo, com a explicação de cada caso, fica na página /auditor.
 
+import Link from 'next/link'
 import { useEffect, useState } from 'react'
-import { AlertTriangle, ArrowRightLeft, CheckCircle2, Loader2, ScanSearch } from 'lucide-react'
+import { AlertTriangle, ArrowRight, ArrowRightLeft, CheckCircle2, Loader2, ScanSearch } from 'lucide-react'
 import { Popover } from '@/components/portfolio/Comum'
 import { useCommunity } from '@/components/comunidade/CommunityProvider'
 import { cx, focusRing } from '@/components/ui'
@@ -55,13 +56,14 @@ function Divergencia({ v }: { v: Verificacao }) {
         <span className="min-w-0 flex-1">{v.titulo}</span>
         <span className="shrink-0 rounded-full bg-white px-1.5 py-px text-[10px] font-medium text-amber-800 ring-1 ring-inset ring-amber-200">{NATUREZA[v.natureza]}</span>
       </p>
-      <Valores v={v} />
+      {v.veredito ? <p className="mt-0.5 text-xs leading-relaxed text-beon-body">{v.veredito}</p> : <Valores v={v} />}
       {v.diagnostico && (
         <div className="mt-1.5 border-t border-amber-200 pt-1.5">
           <ul className="space-y-1">{v.diagnostico.diferencas.map(d => <LinhaDeDiferenca key={`${d.conta}>${d.naoConta}`} d={d} />)}</ul>
           {v.diagnostico.causa && <p className="mt-1.5 text-xs text-amber-900"><b>Causa provável:</b> {v.diagnostico.causa}</p>}
         </div>
       )}
+      {v.acoes?.[0] && <p className="mt-1.5 text-xs text-beon-body"><b className="text-beon-ink">O que fazer ({v.acoes[0].onde === 'Jira' ? 'no Jira' : 'no app'}):</b> {v.acoes[0].texto}</p>}
     </li>
   )
 }
@@ -90,12 +92,12 @@ export function SeloDeConsistencia({ className }: { className?: string }) {
 
   return (
     <Popover
-      rotulo="Agente de analytics"
+      rotulo="Auditor de Analytics"
       alinhar="direita"
       largura={520}
       botao={({ aberto, alternar }) => (
         <button type="button" onClick={alternar} aria-expanded={aberto}
-          title="Agente de analytics: confere, item por item, se os números batem entre as telas (só admins veem)"
+          title="Auditor de Analytics: confere, item por item, se os números batem entre as telas (só admins veem)"
           className={cx('inline-flex h-7 items-center gap-1.5 rounded-full px-2.5 text-xs font-medium ring-1 ring-inset', focusRing,
             !rel ? 'text-beon-muted ring-beon-line' : div ? 'bg-amber-50 text-amber-800 ring-amber-200' : 'bg-emerald-50 text-emerald-800 ring-emerald-200',
             className)}>
@@ -109,8 +111,11 @@ export function SeloDeConsistencia({ className }: { className?: string }) {
           <div className="flex items-start gap-2">
             <ScanSearch className="mt-0.5 h-4 w-4 shrink-0 text-beon-red" aria-hidden />
             <div className="min-w-0 text-beon-body">
-              <p><b className="text-beon-ink">Agente de analytics.</b> {(rel.resumo ?? []).join(' ')}</p>
-              <p className="mt-0.5 text-xs text-beon-muted">Recalcula cada número com as funções de cada tela e compara item por item. Rodou {quando(rel.geradoEm)}.</p>
+              <p><b className="text-beon-ink">Auditor de Analytics.</b> {rel.parecer?.titulo ?? (rel.resumo ?? []).join(' ')}</p>
+              <p className="mt-0.5 text-xs text-beon-muted">{(rel.resumo ?? [])[0]} Auditado em {quando(rel.geradoEm)}.</p>
+              <Link href="/auditor" className={cx('mt-1.5 inline-flex items-center gap-1 text-xs font-semibold text-beon-red hover:underline', focusRing)}>
+                Abrir o relatório completo, com a explicação de cada caso<ArrowRight className="h-3.5 w-3.5" aria-hidden />
+              </Link>
             </div>
           </div>
 
@@ -157,15 +162,13 @@ export function SeloDeConsistencia({ className }: { className?: string }) {
 
           {rel.alertas.length > 0 && (
             <div>
-              <Titulo>Qualidade dos dados no Jira</Titulo>
-              <ul className="space-y-1">
-                {rel.alertas.map(a => (
-                  <li key={a.id} className="text-xs text-beon-body">
-                    <b className="tabular-nums text-beon-ink">{a.quantidade}</b> {a.titulo.toLowerCase()}
-                    {a.exemplos.length > 0 && <span className="text-beon-muted"> · {a.exemplos.join(', ')}{a.quantidade > a.exemplos.length ? '…' : ''}</span>}
-                  </li>
-                ))}
-              </ul>
+              <Titulo>Cadastro no Jira</Titulo>
+              <p className="text-xs leading-relaxed text-beon-body">
+                {(['corrigir', 'conferir', 'informativo'] as const).map(g => {
+                  const n = rel.alertas.filter(a => (a.gravidade ?? 'conferir') === g).length
+                  return n ? `${n} ${g === 'corrigir' ? (n === 1 ? 'ponto para corrigir' : 'pontos para corrigir') : g === 'conferir' ? (n === 1 ? 'ponto para conferir' : 'pontos para conferir') : (n === 1 ? 'informativo' : 'informativos')}` : null
+                }).filter(Boolean).join(' · ')}. O relatório completo explica cada um e lista os itens.
+              </p>
             </div>
           )}
 

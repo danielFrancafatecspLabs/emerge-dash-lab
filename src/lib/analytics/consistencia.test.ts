@@ -194,5 +194,81 @@ describe('agente de analytics', () => {
     const r = verificarConsistencia({ ...entrada(), data, dataSemanal, weekly, semanal: buildSemanalData(dataSemanal, weekly, {}), portfolio: montarPortfolio(data, { iniciativa: cfgIni, experimento: cfgExp }, null) })
     expect(r.alertas.find(a => a.id === 'possiveis-duplicados')).toMatchObject({ quantidade: 2, exemplos: ['GL-14 = GL-40'] })
   })
+
+  describe('Auditor: explica cada resultado', () => {
+    it('toda conferência tem pergunta, motivo, veredito e a explicação de como cada visão conta', () => {
+      const r = verificarConsistencia(entrada())
+      for (const v of r.verificacoes) {
+        expect(v.pergunta, v.id).not.toBe('')
+        expect(v.pergunta, v.id).not.toBe(v.titulo)
+        expect(v.porQueImporta, v.id).not.toBe('')
+        expect(v.veredito, v.id).not.toBe('')
+        expect(Object.keys(v.comoConta).sort(), v.id).toEqual(Object.keys(v.valores).sort())
+      }
+      expect(r.verificacoes.find(v => v.id === 'total')!.veredito).toBe('Semanal, Estratégia (Tudo) e Portfólio mostram 9 experimentos, e são exatamente os mesmos.')
+      expect(r.parecer).toMatchObject({ nivel: 'ok', titulo: 'As telas contam a mesma história, item por item.' })
+      expect(r.telas.map(t => t.situacao)).toEqual(r.telas.map(() => 'bate'))
+    })
+
+    it('todo alerta diz por que importa e o que fazer', () => {
+      const r = verificarConsistencia(entrada())
+      for (const a of r.alertas) {
+        expect(a.porQueImporta, a.id).not.toBe('')
+        expect(a.oQueFazer.texto, a.id).not.toBe('')
+        expect(a.itens.length, a.id).toBeGreaterThan(0)
+      }
+      // O cancelado com benefício é informativo e traz o peso: R$ 250 mi fora da conta.
+      expect(r.alertas.find(a => a.id === 'cancelados-com-beneficio')).toMatchObject({ gravidade: 'informativo', impacto: 'Tem R$ 250 mi de benefício cadastrado.' })
+      expect(r.alertas.find(a => a.id === 'sem-iniciativa')).toMatchObject({ gravidade: 'corrigir', oQueFazer: { onde: 'Jira' } })
+    })
+
+    it('numa divergência entre telas, diz quem destoa, quais itens, o impacto e o que fazer', () => {
+      const e = entrada()
+      const fora = e.portfolio.experimentos[0]
+      e.portfolio = { ...e.portfolio, experimentos: e.portfolio.experimentos.slice(1) }
+      const r = verificarConsistencia(e)
+      const total = r.verificacoes.find(x => x.id === 'total')!
+      expect(total.veredito).toBe('Portfólio destoa: mostra 8, enquanto Semanal e Estratégia (Tudo) mostram 9.')
+      expect(total.destoam).toEqual(['Portfólio'])
+      expect(total.explicacao![0]).toContain(`Semanal conta 1 experimento que Portfólio não conta: ${fora.key}`)
+      expect(total.impacto).toContain('Afeta todos os números de experimentos')
+      expect(total.acoes!.length).toBeGreaterThan(0)
+      expect(r.parecer.nivel).toBe('critico')
+      expect(r.telas.find(t => t.tela === 'Portfólio')).toMatchObject({ situacao: 'destoa' })
+      expect(r.telas.find(t => t.tela === 'Semanal')!.situacao).not.toBe('destoa')
+    })
+
+    it('a pista da causa compara os itens divergentes com o resto e sugere a ação', () => {
+      const cfg = config([['BACKLOG', ['10004']], ['EM EXPERIMENTAÇÃO', ['14460']], ['AGUARDANDO PILOTO', ['14468', '99999']], ['EM PILOTO', ['14459']], ['EM ESCALA', ['13562']], ['CANCELADO', ['10015']]])
+      const variante = [...iniciativas, ini('GL-7', { id: '99999', name: 'Aguardando validação do piloto' })]
+      const v = verificarConsistencia({ ...entrada(variante), board2734Config: cfg }).verificacoes.find(x => x.id === 'coluna-aguardando')!
+      expect(v.diagnostico!.pistas[0].texto).toBe('O item divergente está com o status Aguardando validação do piloto (id 99999). Nenhuma das outras 6 iniciativas está assim: é nesse ponto que as visões discordam.')
+      expect(v.acoes).toContainEqual({ onde: 'App', texto: 'Decidir como o status Aguardando validação do piloto (id 99999) deve contar e tratá-lo do mesmo jeito em todas as telas (src/lib/hipoteses.ts).' })
+      expect(v.acoes!.some(a => a.onde === 'Jira')).toBe(true)
+    })
+
+    it('quando só a coluna do Jira difere, as telas não são culpadas: "diferem do Jira"', () => {
+      const cfg = config([['BACKLOG', ['10004']], ['EM EXPERIMENTAÇÃO', ['14460']], ['AGUARDANDO PILOTO', ['14468']], ['EM PILOTO', ['14459']], ['EM ESCALA', ['13562']], ['CONCLUÍDO', ['10003']], ['CANCELADO', ['10015']]])
+      // "FINALIZADO" (o status antigo de Em escala) numa coluna Concluído: a regra conta como escala, a coluna não.
+      const variante = [...iniciativas, ini('GL-8', { id: '10003', name: 'FINALIZADO' })]
+      const r = verificarConsistencia({ ...entrada(variante), board2734Config: cfg })
+      const v = r.verificacoes.find(x => x.id === 'coluna-escala')!
+      expect(v.veredito).toBe('As telas mostram 2 (Semanal (regra por status) e Operacional (estágio)), mas pela coluna do board no Jira são 1.')
+      expect(r.parecer).toMatchObject({ nivel: 'atencao', titulo: 'As telas batem entre si, mas a regra do app discorda do board do Jira em 1 ponto.' })
+      expect(r.telas.find(t => t.tela === 'Semanal')).toMatchObject({ situacao: 'difere do Jira', destoa: 0 })
+      expect(r.telas.find(t => t.tela === 'Portfólio')!.situacao).toBe('bate')
+    })
+
+    it('conta que não fecha: explica pela ficha e dá a diferença', () => {
+      const e = entrada()
+      // A lista do benefício ganha um cancelado: a conferência da lista deixa de fechar.
+      const r = verificarConsistencia({ ...e, semanal: { ...e.semanal, resumo: { ...e.semanal.resumo, fatias: e.semanal.resumo.fatias.map(f => (f.id === 'exploracao' ? { ...f, quantidade: f.quantidade + 2 } : f)) } } })
+      const v = r.verificacoes.find(x => x.id === 'fatias-semanal')!
+      expect(v).toMatchObject({ ok: false, natureza: 'soma' })
+      expect(v.veredito).toMatch(/diferença de 2\.$/)
+      expect(v.explicacao![0]).toContain('algum experimento está em duas fatias ou em nenhuma')
+      expect(v.acoes![0].onde).toBe('App')
+    })
+  })
 })
 

@@ -13,7 +13,7 @@ import { verificarConsistencia, type RelatorioConsistencia } from './consistenci
 import { avancarFotos, compararFotos, tirarFoto, type Foto } from './movimento'
 
 /**
- * Executa o agente de analytics no servidor: monta cada visão a partir da leitura do Jira, exatamente como as telas
+ * Executa o Auditor de Analytics no servidor: monta cada visão a partir da leitura do Jira, exatamente como as telas
  * montam, confere a consistência entre elas e guarda o último relatório. Não chama a IA (usa as metas já
  * classificadas) e não lê o Jira de novo: usa a leitura do dia.
  */
@@ -31,7 +31,7 @@ function movimentoDesdeAAnterior(nova: Foto) {
       fs.mkdirSync(diretorioDoCache(), { recursive: true })
       fs.writeFileSync(arquivoDasFotos(), JSON.stringify(fotos), 'utf-8')
     } catch (err) {
-      console.warn('[analytics] foto da leitura não gravada:', String(err))
+      console.warn('[auditor] foto da leitura não gravada:', String(err))
     }
   }
   return fotos.anterior ? compararFotos(fotos.anterior, fotos.atual) : undefined
@@ -64,17 +64,18 @@ export async function rodarAgenteAnalitico(): Promise<RelatorioConsistencia> {
     board2735Config: raw.board2735Config,
   })
 
+  relatorio.jiraUrl = process.env.JIRA_BASE_URL?.replace(/\/+$/, '') ?? null
   relatorio.movimento = movimentoDesdeAAnterior(tirarFoto(data, (dashboardRawAtualizadoEm() ?? new Date()).toISOString()))
 
   for (const v of relatorio.verificacoes.filter(x => !x.ok)) {
-    console.warn(`[analytics] Divergência em "${v.titulo}": ${Object.entries(v.valores).map(([k, n]) => `${k}=${n}`).join(', ')}${v.diagnostico?.causa ? ` · ${v.diagnostico.causa}` : ''}`)
+    console.warn(`[auditor] Divergência em "${v.titulo}": ${Object.entries(v.valores).map(([k, n]) => `${k}=${n}`).join(', ')}${v.diagnostico?.causa ? ` · ${v.diagnostico.causa}` : ''}`)
   }
-  if (!relatorio.divergencias) console.log(`[analytics] ${relatorio.verificacoes.length} verificações, todas batem.`)
+  if (!relatorio.divergencias) console.log(`[auditor] ${relatorio.verificacoes.length} verificações, todas batem.`)
   try {
     fs.mkdirSync(diretorioDoCache(), { recursive: true })
     fs.writeFileSync(arquivo(), JSON.stringify(relatorio, null, 2), 'utf-8')
   } catch (err) {
-    console.warn('[analytics] relatório não gravado:', String(err))
+    console.warn('[auditor] relatório não gravado:', String(err))
   }
   return relatorio
 }
@@ -94,14 +95,14 @@ export function talvezRodarAgenteAnalitico(agora = Date.now()): void {
   G.__beonAnalyticsEm = agora
   G.__beonAnalyticsRodando = rodarAgenteAnalitico()
   G.__beonAnalyticsRodando
-    .catch(err => console.warn('[analytics] agente não rodou:', String(err)))
+    .catch(err => console.warn('[auditor] agente não rodou:', String(err)))
     .finally(() => { G.__beonAnalyticsRodando = null })
 }
 
-/** O relatório mais recente: o da rodada em andamento, o guardado, ou uma rodada nova. */
-export async function relatorioAtual(): Promise<RelatorioConsistencia> {
+/** O relatório mais recente: o da rodada em andamento, o guardado, ou uma rodada nova (`forcar` audita de novo já). */
+export async function relatorioAtual(forcar = false): Promise<RelatorioConsistencia> {
   if (G.__beonAnalyticsRodando) return G.__beonAnalyticsRodando
-  const guardado = ultimoRelatorio()
+  const guardado = forcar ? null : ultimoRelatorio()
   // Vale o guardado se é recente E veio depois da última leitura do Jira (senão confere dados que já mudaram).
   const leituraDoJira = Number(dashboardRawAtualizadoEm() ?? 0)
   if (guardado && Date.now() - Date.parse(guardado.geradoEm) < INTERVALO_MS && Date.parse(guardado.geradoEm) >= leituraDoJira) return guardado
