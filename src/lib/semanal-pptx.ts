@@ -1,12 +1,14 @@
 import { join } from 'path'
+import JSZip from 'jszip'
 import PptxGenJS from 'pptxgenjs'
 import { PRAZO_ATENCAO_PCT, type SemanalCancelamento, type SemanalData, type SemanalResumo, type SemanalRow, type SemanalSecaoId, type SituacaoPrazo } from './semanal'
 import {
   dataAtualizacao, GOV_BOLINHA_EXPLORACAO, GOV_GRAFITE, GOV_LAYOUT, layoutGovernanca, TECNOLOGIAS_GOV, type SemanalGovernanca,
 } from './semanal-governanca'
 import {
-  CANCELAMENTO_LAYOUT, chipCor, COR_PRAZO, colunasDa, contagemPorLab, corDoLab, diretorEPontoFocal, formatBeneficioMM, formatData,
-  formatMilhoes, fraseDestaque, larguraPrazo, legendaPrazo, LINHAS_POR_PAGINA, montarPaginas, pctUmaCasa, RESUMO_FUNIL, sequenciasDeLab, setaDoFunil, type PaginaDeck,
+  CANCELAMENTO_PAINEL, chipCor, COR_PRAZO, colunasDa, contagemPorLab, corDoLab, diretorEPontoFocal, formatBeneficioMM, formatData,
+  formatMilhoes, fraseDestaque, larguraPrazo, legendaPrazo, LINHAS_POR_PAGINA, montarPaginas, PAINEL, PAINEL_COR, PAINEL_ETAPAS, PAINEL_FATIA, paresConectados,
+  pctUmaCasa, reaisMi, segmentosDaBarra, sequenciasDeLab, setaDoPainel, type PaginaDeck,
 } from './semanal-deck'
 
 /**
@@ -122,170 +124,177 @@ function obrigado(slide: Slide) {
 
 // ── beOn Labs — visão geral ───────────────────────────────────────────────────────────────────────────
 
-const FATIA_COR: Record<string, string> = {
-  exploracao: 'E07B00', andamento: 'F2B8B8', validadas: 'CC0000', refutadas: 'C5C9D0', cancelados: '6B0000',
+// ── Painel de experimentos (visão geral) ─────────────────────────────────────────────────────────────────
+
+const PC = PAINEL_COR
+
+/** Fundo do slide no tom do painel. */
+function fundoPainel(slide: Slide) {
+  slide.background = { color: PC.fundo }
 }
 
-const ETAPAS = [
-  { n: 1, t: 'Exploração', d: 'Entender e validar o problema, o benefício potencial e definir as bases para experimentação', bg: 'FBE4E4', fg: INK, nbg: RED, nfg: 'FFFFFF' },
-  { n: 2, t: 'Experimentação', d: 'Testar hipóteses rapidamente para gerar evidências e reduzir incertezas.', bg: 'F5C0C0', fg: INK, nbg: '5A0609', nfg: 'FFFFFF' },
-  { n: 3, t: 'Piloto', d: 'Aguardando e em execução. Validar solução em ambiente controlado e confirmar seu potencial de escala.', bg: 'CC0000', fg: 'FFFFFF', nbg: 'FFFFFF', nfg: RED },
-  { n: 4, t: 'Em escala', d: 'Operar, evoluir e ampliar a adoção da solução, maximizando a geração de valor para o negócio.', bg: '6B0000', fg: 'FFFFFF', nbg: 'FFFFFF', nfg: '6B0000' },
-]
+/** Cartão branco do painel (sem borda, sombra leve). `topoReto` deixa os cantos de cima retos (cartão sob a seta). */
+function cartaoPainel(slide: Slide, x: number, y: number, w: number, h: number, cor: string = PC.cartao, topoReto = false) {
+  slide.addShape('roundRect', {
+    x: I(x), y: I(y), w: I(w), h: I(h), rectRadius: I(14), fill: { color: cor }, line: { type: 'none' },
+    shadow: { type: 'outer', blur: 3, offset: 1, angle: 90, color: '3C1414', opacity: 0.06 },
+  })
+  if (topoReto) slide.addShape('rect', { x: I(x), y: I(y), w: I(w), h: I(16), fill: { color: cor }, line: { type: 'none' } })
+}
 
-function seta(slide: Slide, x: number, y: number, w: number, h: number, cor: string, entalhe: boolean) {
-  const d = RESUMO_FUNIL.ponta
-  const pts = entalhe
-    ? [[0, 0], [w - d, 0], [w, h / 2], [w - d, h], [0, h], [d, h / 2]]
-    : [[0, 0], [w - d, 0], [w, h / 2], [w - d, h], [0, h]]
+/** Cabeçalho comum: marca, título do slide, data da leitura e logo. */
+function cabecalhoPainel(slide: Slide, titulo: string, data: string) {
+  texto(slide, 'beOn Labs', PAINEL.margem, 30, 200, 40, { fontSize: P(30), bold: true, color: PC.vermelho, valign: 'middle' })
+  slide.addShape('line', { x: I(270), y: I(36), w: 0, h: I(28), line: { color: 'DCD3D2', width: 0.75 } })
+  const wTitulo = Math.ceil(titulo.length * 7.4)
+  texto(slide, titulo, 286, 30, wTitulo + 10, 40, { fontSize: P(14.5), color: PC.tinta, valign: 'middle' })
+  const xData = 286 + wTitulo + 42
+  slide.addShape('roundRect', { x: I(xData), y: I(35), w: I(128), h: I(30), rectRadius: I(15), fill: { color: 'FFFFFF' }, line: { color: 'E9B8B8', width: 1.1 } })
+  imagem(slide, icone('calendario'), xData + 14, 42, 16, 16)
+  texto(slide, data, xData + 38, 35, 86, 30, { fontSize: P(14), bold: true, color: PC.tinta, valign: 'middle' })
+  imagem(slide, join(ASSETS, 'logo.png'), PAINEL.direita - 76, 32, 76, 36)
+}
+
+/** Polígono livre (as setas do funil). */
+function poligono(slide: Slide, x: number, y: number, w: number, h: number, pontos: [number, number][], cor: string) {
   // Forma livre: os tipos do pptxgenjs ainda não listam custGeom, mas a biblioteca o gera.
   slide.addShape('custGeom' as PptxGenJS.SHAPE_NAME, {
     x: I(x), y: I(y), w: I(w), h: I(h), fill: { color: cor }, line: { type: 'none' },
-    points: [...pts.map(([px, py]) => ({ x: I(px), y: I(py) })), { close: true }],
+    points: [...pontos.map(([px, py]) => ({ x: I(px), y: I(py) })), { close: true }],
   })
 }
 
-function numeroGrande(slide: Slide, x: number, y: number, n: number, rotulo: string, w = 220) {
-  texto(slide, [
-    { text: String(n), options: { fontSize: P(40), bold: true, color: INK } },
-    { text: `   ${rotulo}`, options: { fontSize: P(13), color: MUTED } },
-  ], x, y, w, 50, { valign: 'middle' })
+/** Anel de percentual: fundo claro e arco a partir do topo, no sentido horário. */
+function anelPainel(slide: Slide, x: number, y: number, d: number, espessura: number, pct: number, cor: string) {
+  const base = { x: I(x), y: I(y), w: I(d), h: I(d), line: { type: 'none' as const }, arcThicknessRatio: (2 * espessura) / d }
+  slide.addShape('blockArc', { ...base, fill: { color: 'EDE7E6' }, angleRange: [0, 180] })
+  slide.addShape('blockArc', { ...base, fill: { color: 'EDE7E6' }, angleRange: [180, 360] })
+  const p = Math.min(100, Math.max(0, pct))
+  if (p > 0) slide.addShape('blockArc', { ...base, fill: { color: cor }, angleRange: [270, (270 + Math.min(p, 99.9) * 3.6) % 360] })
 }
 
-function beneficio(slide: Slide, cx: number, cy: number, cw: number, valor: number) {
-  slide.addShape('line', { x: I(cx + 18), y: I(cy + 76), w: I(cw - 36), h: 0, line: { color: BORDA, width: 0.75 } })
-  texto(slide, 'Benefício potencial', cx + 18, cy + 90, cw - 36, 18, { fontSize: P(13), color: MUTED })
-  texto(slide, `R$ ${formatMilhoes(valor)}`, cx + 18, cy + 112, cw - 36, 32, { fontSize: P(24), bold: true, color: RED })
+const umaCasa = (v: number) => v.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })
+
+function detalhesPainel(slide: Slide, x: number, y: number, destino: number | undefined) {
+  texto(slide, [{ text: 'DETALHES →', options: destino ? { hyperlink: { slide: destino, tooltip: 'Ver a lista' } } : {} }], x, y, 90, 18,
+    { fontSize: P(11), bold: true, color: PC.vermelho, align: 'right', valign: 'middle', charSpacing: P(0.4) })
 }
 
-function rodape(slide: Slide, cx: number, cy: number, cw: number, y: number, ic: string, t: string) {
-  circulo(slide, cx + 18, cy + y, 28, 'FBE4E4')
-  imagem(slide, icone(ic), cx + 24, cy + y + 6, 16, 16)
-  texto(slide, t, cx + 56, cy + y, cw - 68, 28, { fontSize: P(12.5), color: INK, valign: 'middle' })
-}
+function resumo(slide: Slide, r: SemanalResumo, dataLabel: string, destino: (id: SemanalSecaoId) => number | undefined) {
+  const L = PAINEL
+  fundoPainel(slide)
+  cabecalhoPainel(slide, 'Painel de experimentos', dataLabel)
 
-function potencial(slide: Slide, x: number, y: number, valor: number, destino?: number) {
-  texto(slide, 'Com benefício potencial de:', x, y, 140, 13, { fontSize: P(9.5), color: MUTED })
-  texto(slide, [{ text: formatMilhoes(valor, 'Milhões'), options: destino ? { hyperlink: { slide: destino } } : {} }],
-    x, y + 12, 140, 20, { fontSize: P(15), bold: true, color: INK })
-}
-
-function resumo(slide: Slide, r: SemanalResumo, ate: string, destino: (id: SemanalSecaoId) => number | undefined) {
-  texto(slide, [
-    { text: 'beOn Labs', options: { fontSize: P(40), bold: true, color: TITLE_RED } },
-    { text: `     ${ate}`, options: { fontSize: P(14), bold: true, color: INK } },
-  ], 44, 22, 600, 56, { valign: 'bottom' })
-  imagem(slide, join(ASSETS, 'logo.png'), 1280 - 40 - 92, 28, 92, 44)
-
-  // Total + composição
-  cartao(slide, 44, 90, 930, 104)
-  circulo(slide, 62, 114, 56, 'FBE4E4')
-  imagem(slide, icone('frasco'), 76, 128, 28, 28)
-  texto(slide, String(r.totalExperimentos), 132, 96, 160, 54, { fontSize: P(46), bold: true, color: RED, valign: 'middle' })
-  texto(slide, 'Total de experimentos no beOn Labs', 132, 152, 190, 34, { fontSize: P(14), color: MUTED })
+  // Total e composição
+  cartaoPainel(slide, L.total.x, L.topoCartoes, L.total.w, L.alturaTopo)
+  slide.addShape('roundRect', { x: I(82), y: I(125), w: I(56), h: I(56), rectRadius: I(12), fill: { color: PC.rosa }, line: { type: 'none' } })
+  imagem(slide, icone('frasco-vermelho'), 96, 139, 28, 28)
+  texto(slide, String(r.totalExperimentos), 150, 110, 200, 62, { fontSize: P(54), bold: true, color: PC.tinta, valign: 'middle' })
+  texto(slide, 'experimentos no beOn Labs', 152, 171, 200, 20, { fontSize: P(13.5), color: PC.apagado })
+  slide.addShape('line', { x: I(358), y: I(110), w: 0, h: I(86), line: { color: PC.linha, width: 0.75 } })
+  for (const s of segmentosDaBarra(r.fatias.map(f => f.quantidade))) {
+    slide.addShape('rect', { x: I(s.x), y: I(L.barra.y), w: I(s.w), h: I(L.barra.h), fill: { color: PAINEL_FATIA[r.fatias[s.i].id] }, line: { type: 'none' } })
+  }
   r.fatias.forEach((f, i) => {
-    const x = 344 + i * 126
+    const x = L.barra.x + i * L.barra.passoLegenda
     texto(slide, [
-      { text: '● ', options: { fontSize: P(13), color: FATIA_COR[f.id] } },
-      { text: String(f.quantidade), options: { fontSize: P(30), bold: true, color: INK } },
-      { text: ` ${f.pct}%`, options: { fontSize: P(13), color: MUTED } },
-    ], x - 10, 102, 136, 40, { align: 'center', valign: 'bottom' })
-    texto(slide, f.label, x - 10, 143, 136, 16, { fontSize: P(12.5), color: MUTED, align: 'center' })
-    slide.addShape('rect', { x: I(x), y: I(165), w: I(116), h: I(11), fill: { color: FATIA_COR[f.id] }, line: { type: 'none' } })
+      { text: '● ', options: { fontSize: P(9), color: PAINEL_FATIA[f.id] } },
+      { text: String(f.quantidade), options: { fontSize: P(21), bold: true, color: PC.tinta } },
+      { text: ` ${umaCasa(f.pctDecimal)}%`, options: { fontSize: P(10.5), color: PC.apagado } },
+    ], x, 140, 98, 28, { valign: 'middle' })
+    texto(slide, f.label, x, 172, 92, 32, { fontSize: P(11.5), color: PC.apagado, lineSpacingMultiple: 0.95 })
   })
 
   // Benefício potencial total
-  slide.addShape('roundRect', { x: I(988), y: I(90), w: I(248), h: I(104), rectRadius: I(10), fill: { color: INK }, line: { type: 'none' } })
-  texto(slide, `R$ ${formatMilhoes(r.beneficioTotal, 'milhões', true)}`, 1004, 100, 170, 32, { fontSize: P(24), bold: true, color: 'FFFFFF', valign: 'middle' })
-  texto(slide, 'Benefício potencial total', 1004, 133, 216, 18, { fontSize: P(14), color: 'FFFFFF' })
-  texto(slide, 'Exploração, andamento e hipóteses validadas (sem cancelados e refutados)', 1004, 154, 216, 30, { fontSize: P(10.5), color: 'B8BEC6' })
-  circulo(slide, 1180, 102, 40, RED)
-  imagem(slide, icone('moedas'), 1189, 111, 22, 22)
+  cartaoPainel(slide, L.beneficio.x, L.topoCartoes, L.beneficio.w, L.alturaTopo, PC.escuro)
+  texto(slide, 'BENEFÍCIO POTENCIAL TOTAL', L.beneficio.x, 110, L.beneficio.w, 18, { fontSize: P(10.5), bold: true, color: 'FFFFFF', align: 'center', charSpacing: P(2.6) })
+  texto(slide, [
+    { text: 'R$  ', options: { fontSize: P(17), color: 'FFFFFF' } },
+    { text: formatMilhoes(r.beneficioTotal, '', true).trim(), options: { fontSize: P(28), bold: true, color: 'FFFFFF' } },
+    { text: '  milhões', options: { fontSize: P(20), bold: true, color: 'FFFFFF' } },
+  ], L.beneficio.x, 132, L.beneficio.w, 40, { align: 'center', valign: 'middle' })
+  texto(slide, 'Concedido pelas áreas de negócio para os experimentos (sem cancelados e refutados)', L.beneficio.x + 32, 174, L.beneficio.w - 64, 32,
+    { fontSize: P(10.5), color: 'E6E1E0', align: 'center' })
 
-  // Etapas do funil
-  const { topoSeta, alturaSeta, ponta } = RESUMO_FUNIL
-  ETAPAS.forEach((e, i) => {
-    const { x, w } = setaDoFunil(i)
-    seta(slide, x, topoSeta, w, alturaSeta, e.bg, i > 0)
-    const nx = x + (i === 0 ? 16 : ponta + 12)
-    const ny = topoSeta + (alturaSeta - 30) / 2
-    circulo(slide, nx, ny, 30, e.nbg)
-    texto(slide, String(e.n), nx, ny, 30, 30, { fontSize: P(15), bold: true, color: e.nfg, align: 'center', valign: 'middle' })
+  // Setas das etapas
+  PAINEL_ETAPAS.forEach((e, i) => {
+    const s = setaDoPainel(i)
+    poligono(slide, s.x, L.setaTopo, s.w, L.setaAltura, s.pontos, e.bg)
+    const xt = (i === 0 ? s.x : L.colunas[i]) + 10
+    const yc = L.setaTopo + L.setaAltura / 2
+    circulo(slide, xt, yc - 14, 28, e.nbg)
+    texto(slide, String(e.n), xt, yc - 14, 28, 28, { fontSize: P(13), bold: true, color: e.nfg, align: 'center', valign: 'middle' })
+    const fim = s.x + s.w - (i === 3 ? 12 : L.ponta + 4)
     texto(slide, [
-      { text: e.t, options: { fontSize: P(15), bold: true, color: e.fg, breakLine: true } },
-      { text: e.d, options: { fontSize: P(11.5), color: e.fg } },
-    ], nx + 40, topoSeta + 2, x + w - ponta - 4 - (nx + 40), alturaSeta - 4, { valign: 'middle', lineSpacingMultiple: 0.95 })
+      { text: e.t, options: { fontSize: P(16), bold: true, color: e.titulo, breakLine: true } },
+      { text: e.d, options: { fontSize: P(10.5), color: e.texto } },
+    ], xt + 38, L.setaTopo + 4, fim - xt - 38, L.setaAltura - 8, { valign: 'middle', lineSpacingMultiple: 0.95 })
   })
-  const [c1, c2, c3, c4] = RESUMO_FUNIL.colunas
 
-  // Exploração
-  cartao(slide, c1.x, 314, c1.w, 250)
-  texto(slide, `${r.exploracao.ideiasNaoAvaliadas} ideias não avaliadas`, c1.x + 18, 322, c1.w - 32, 18, { fontSize: P(12.5), color: MUTED })
-  numeroGrande(slide, c1.x + 18, 340, r.exploracao.oportunidades, 'oportunidades')
-  beneficio(slide, c1.x, 314, c1.w, r.exploracao.beneficio)
-  rodape(slide, c1.x, 314, c1.w, 178, 'lampada', 'Triagem e priorização de ideias')
-  detalhes(slide, c1.x + 18, 530, c1.w - 36, 22, destino('backlog'))
-
-  // Experimentação
-  cartao(slide, c2.x, 314, c2.w, 250)
-  numeroGrande(slide, c2.x + 18, 328, r.experimentacao.experimentos, 'experimentos')
-  beneficio(slide, c2.x, 314, c2.w, r.experimentacao.beneficio)
-  rodape(slide, c2.x, 314, c2.w, 178, 'engrenagem', 'Construção e validação da solução')
-  detalhes(slide, c2.x + 18, 530, c2.w - 36, 22, destino('andamento'))
-
-  // Piloto
-  cartao(slide, c3.x, 314, c3.w, 250)
-  numeroGrande(slide, c3.x + 16, 320, r.piloto.total, 'experimentos')
-  detalhes(slide, c3.x + 180, 330, 180, 22, destino('aguardando'))
-  slide.addShape('roundRect', { x: I(c3.x + 14), y: I(372), w: I(348), h: I(38), rectRadius: I(6), fill: { color: 'FFFFFF' }, line: { color: RED, width: 1.1 } })
-  texto(slide, [
-    { text: String(r.piloto.aguardando.quantidade), options: { fontSize: P(20), bold: true, color: RED } },
-    { text: '  AGUARDANDO PILOTO', options: { fontSize: P(12), color: RED } },
-  ], c3.x + 26, 372, 190, 38, { valign: 'middle' })
-  potencial(slide, c3.x + 214, 375, r.piloto.aguardando.beneficio)
-  slide.addShape('roundRect', { x: I(c3.x + 14), y: I(416), w: I(348), h: I(112), rectRadius: I(6), fill: { color: 'FFFFFF' }, line: { color: RED, width: 1.1 } })
-  texto(slide, [
-    { text: String(r.piloto.execucao.quantidade), options: { fontSize: P(20), bold: true, color: RED } },
-    { text: '  EM EXECUÇÃO', options: { fontSize: P(12), color: RED } },
-  ], c3.x + 26, 420, 190, 32, { valign: 'middle' })
-  potencial(slide, c3.x + 214, 420, r.piloto.execucao.beneficio, destino('piloto'))
+  // Cartões das etapas
   const { destaque, demais } = r.piloto.execucao
-  if (destaque && demais) {
-    const caixas = [
-      { n: 1, titulo: `Outlier ${destaque.nome}`, valor: destaque.beneficio },
-      { n: demais.quantidade, titulo: '', valor: demais.beneficio },
-    ]
-    caixas.forEach((c, i) => {
-      const x = c3.x + 26 + i * 165
-      slide.addShape('roundRect', { x: I(x), y: I(466), w: I(159), h: I(52), rectRadius: I(4), fill: { color: 'FBE4E4' }, line: { type: 'none' } })
-      texto(slide, String(c.n), x + 8, 466, 24, 52, { fontSize: P(18), bold: true, color: INK, valign: 'middle' })
-      if (c.titulo) texto(slide, caber(c.titulo, 62, 9, 4), x + 28, 466, 62, 52, { fontSize: P(9), bold: true, color: INK, valign: 'middle', lineSpacingMultiple: 0.9 })
-      texto(slide, [
-        { text: formatMilhoes(c.valor), options: { fontSize: P(13), bold: true, color: RED, underline: { style: 'sng' }, breakLine: true } },
-        { text: 'Em benefício potencial', options: { fontSize: P(8), color: MUTED } },
-      ], x + 70, 466, 81, 52, { align: 'right', valign: 'middle' })
-    })
+  const linhaPiloto = (cx: number, y: number, h: number, n: number, rotulo: string, valor: number, nome?: string, amarelo = false, dest?: number) => {
+    slide.addShape('roundRect', { x: I(cx + 17), y: I(y), w: I(L.larguraColuna - 34), h: I(h), rectRadius: I(8), fill: { color: amarelo ? PC.amarelo : PC.linhaRosa }, line: { type: 'none' } })
+    texto(slide, [{ text: String(n), options: dest ? { hyperlink: { slide: dest } } : {} }], cx + 29, y, 30, h, { fontSize: P(20), bold: true, color: amarelo ? PC.tinta : PC.vermelho, valign: 'middle' })
+    texto(slide, [
+      { text: rotulo, options: { fontSize: P(11), bold: true, color: PC.tinta, charSpacing: P(0.6), ...(nome ? { breakLine: true } : {}) } },
+      ...(nome ? [{ text: caber(nome, 100, 11, 2), options: { fontSize: P(11), color: PC.tinta } }] : []),
+    ], cx + 64, y, 110, h, { valign: 'middle', lineSpacingMultiple: 0.95 })
+    texto(slide, [
+      { text: 'benefício potencial', options: { fontSize: P(8.5), color: amarelo ? '5B4A1F' : PC.apagado, breakLine: true } },
+      { text: reaisMi(valor), options: { fontSize: P(14), bold: true, color: PC.tinta } },
+    ], cx + 160, y, L.larguraColuna - 189, h, { align: 'right', valign: 'middle' })
   }
-  rodape(slide, c3.x, 314, c3.w, 218, 'microscopio', 'Avaliação e execução de pilotos em ambiente real')
-
-  // Em escala
-  cartao(slide, c4.x, 314, c4.w, 250)
-  numeroGrande(slide, c4.x + 18, 328, r.escala.experimentos, 'experimentos')
-  beneficio(slide, c4.x, 314, c4.w, r.escala.beneficio)
-  rodape(slide, c4.x, 314, c4.w, 178, 'foguete', 'Escala e geração de valor')
-  detalhes(slide, c4.x + 18, 530, c4.w - 36, 22, destino('escala'))
+  const cartoes: [number, string, SemanalSecaoId][] = [
+    [r.exploracao.oportunidades, 'oportunidades', 'backlog'], [r.experimentacao.experimentos, 'experimentos', 'andamento'],
+    [r.piloto.total, 'experimentos', 'aguardando'], [r.escala.experimentos, 'experimentos', 'escala'],
+  ]
+  cartoes.forEach(([n, rotulo, secao], i) => {
+    const cx = L.colunas[i], top = L.cartaoTopo
+    cartaoPainel(slide, cx, top, L.larguraColuna, L.cartaoAltura, PC.cartao, true)
+    texto(slide, [
+      { text: String(n), options: { fontSize: P(44), bold: true, color: PC.tinta } },
+      { text: `    ${rotulo}`, options: { fontSize: P(13.5), color: PC.apagado } },
+    ], cx + 22, top + 10, L.larguraColuna - 30, 56, { valign: 'middle' })
+    if (i === 2) {
+      linhaPiloto(cx, top + 73, 42, r.piloto.aguardando.quantidade, 'AGUARDANDO', r.piloto.aguardando.beneficio, undefined, false, destino('aguardando'))
+      if (destaque && demais) {
+        linhaPiloto(cx, top + 121, 42, demais.quantidade, 'EM EXECUÇÃO', demais.beneficio, undefined, false, destino('piloto'))
+        linhaPiloto(cx, top + 169, 54, 1, 'OUTLIER', destaque.beneficio, destaque.nome, true, destino('piloto'))
+      } else {
+        linhaPiloto(cx, top + 121, 42, r.piloto.execucao.quantidade, 'EM EXECUÇÃO', r.piloto.execucao.beneficio, undefined, false, destino('piloto'))
+      }
+    } else {
+      if (i === 0 && r.exploracao.ideiasNaoAvaliadas > 0) {
+        const t = `+ ${r.exploracao.ideiasNaoAvaliadas} IDEIAS NÃO AVALIADAS`
+        texto(slide, t, cx + 17, top + 72, t.length * 6.2 + 24, 21, {
+          shape: 'roundRect', rectRadius: I(4), fill: { color: PC.areia }, line: { type: 'none' },
+          fontSize: P(8.5), bold: true, color: PC.tinta, charSpacing: P(1.1), align: 'center', valign: 'middle',
+        })
+      }
+      slide.addShape('line', { x: I(cx + 17), y: I(top + 104), w: I(L.larguraColuna - 34), h: 0, line: { color: PC.linha, width: 0.75 } })
+      texto(slide, 'Benefício potencial', cx + 17, top + 124, 200, 18, { fontSize: P(12), color: PC.apagado })
+      const valor = i === 0 ? 'Em análise' : reaisMi(i === 1 ? r.experimentacao.beneficio : r.escala.beneficio)
+      texto(slide, valor, cx + 17, top + 146, L.larguraColuna - 34, 40, { fontSize: P(28), bold: true, color: PC.vermelho, valign: 'middle' })
+    }
+    slide.addShape('line', { x: I(cx + 17), y: I(top + 238), w: I(L.larguraColuna - 34), h: 0, line: { color: PC.linha, width: 0.75 } })
+    imagem(slide, icone(PAINEL_ETAPAS[i].icone), cx + 17, top + 253, 14, 14)
+    texto(slide, PAINEL_ETAPAS[i].rodape, cx + 38, top + 250, 150, 20, { fontSize: P(11.5), color: PC.tinta, valign: 'middle' })
+    detalhesPainel(slide, cx + L.larguraColuna - 17 - 90, top + 251, destino(secao))
+  })
 
   // Principais métricas
-  texto(slide, 'PRINCIPAIS MÉTRICAS', 44, 578, 400, 18, { fontSize: P(12.5), bold: true, color: RED, charSpacing: P(3) })
-  r.metricas.slice(0, 4).forEach((m, i) => {
-    const x = 44 + i * 301
-    cartao(slide, x, 602, 289, 78)
-    anel(slide, x + 16.5, 611.5, 59, 7, m.pct)
-    texto(slide, `${m.pct}%`, x + 14, 609, 64, 64, { fontSize: P(14), bold: true, color: INK, align: 'center', valign: 'middle' })
+  texto(slide, 'PRINCIPAIS', L.margem, 616, 160, 14, { fontSize: P(10), bold: true, color: PC.vermelho, charSpacing: P(3) })
+  texto(slide, 'Métricas', L.margem, 632, 160, 30, { fontSize: P(22), bold: true, color: PC.tinta })
+  r.metricas.slice(0, 2).forEach((m, i) => {
+    const { x, w } = L.metricas[i]
+    cartaoPainel(slide, x, L.metricasTopo, w, L.metricasAltura)
+    anelPainel(slide, x + 24, L.metricasTopo + 8, 68, 9, m.pct, i === 0 ? PC.vermelhoForte : PC.bordo)
+    texto(slide, `${m.pct.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%`, x + 24, L.metricasTopo + 8, 68, 68, { fontSize: P(13), bold: true, color: PC.tinta, align: 'center', valign: 'middle' })
     texto(slide, [
-      { text: m.titulo, options: { fontSize: P(15), bold: true, color: INK, breakLine: true } },
-      { text: m.descricao, options: { fontSize: P(11.5), color: MUTED } },
-    ], x + 90, 606, 190, 70, { valign: 'middle' })
+      { text: m.titulo, options: { fontSize: P(17), bold: true, color: PC.tinta, breakLine: true } },
+      { text: m.descricao, options: { fontSize: P(11.5), color: PC.apagado } },
+    ], x + 112, L.metricasTopo + 10, w - 130, L.metricasAltura - 20, { valign: 'middle' })
   })
 }
 
@@ -405,41 +414,63 @@ function governanca(slide: Slide, g: SemanalGovernanca, geradoEm: string) {
 
 // ── Principais motivos de cancelamento ────────────────────────────────────────────────────────────────
 
-function cancelamento(slide: Slide, c: SemanalCancelamento) {
-  const L = CANCELAMENTO_LAYOUT
-  const ARIAL = { fontFace: 'Arial' }
-  const CINZA = '6B7280'
-  texto(slide, 'Principais motivos de cancelamento dos Experimentos', 44, 26, 1000, 52, { ...ARIAL, fontSize: P(38), bold: true, color: RED })
-  imagem(slide, join(ASSETS, 'logo.png'), 1280 - 44 - 92, 36, 92, 44)
+function cancelamento(slide: Slide, k: SemanalCancelamento, dataLabel: string) {
+  const L = CANCELAMENTO_PAINEL, T = PAINEL
+  fundoPainel(slide)
+  cabecalhoPainel(slide, 'Principais motivos de cancelamento', dataLabel)
 
-  texto(slide, String(c.total), 44, 108, 140, 84, { ...ARIAL, fontSize: P(70), bold: true, color: RED })
-  texto(slide, 'experimentos\ncancelados', 180, 128, 260, 56, { ...ARIAL, fontSize: P(21), color: CINZA })
-  if (c.destaque) {
-    texto(slide, pctUmaCasa(c.destaque.pct), 460, 116, 240, 70, { ...ARIAL, fontSize: P(56), bold: true, color: RED, align: 'right' })
-    texto(slide, fraseDestaque(c), 722, 124, 520, 60, { ...ARIAL, fontSize: P(21), color: INK })
+  // Total de cancelados e o peso no total de experimentos
+  cartaoPainel(slide, L.total.x, T.topoCartoes, L.total.w, T.alturaTopo)
+  slide.addShape('roundRect', { x: I(L.total.x + 24), y: I(T.topoCartoes + 37), w: I(56), h: I(56), rectRadius: I(12), fill: { color: PC.rosa }, line: { type: 'none' } })
+  imagem(slide, icone('cancelado'), L.total.x + 38, T.topoCartoes + 51, 28, 28)
+  texto(slide, String(k.total), L.total.x + 94, T.topoCartoes + 22, 200, 62, { fontSize: P(54), bold: true, color: PC.tinta, valign: 'middle' })
+  texto(slide, 'experimentos cancelados', L.total.x + 96, T.topoCartoes + 84, 200, 20, { fontSize: P(13.5), color: PC.apagado })
+  if (k.totalExperimentos) {
+    slide.addShape('line', { x: I(L.total.x + 300), y: I(T.topoCartoes + 22), w: 0, h: I(86), line: { color: PC.linha, width: 0.75 } })
+    texto(slide, pctUmaCasa(Math.round((k.total / k.totalExperimentos) * 1000) / 10), L.total.x + 326, T.topoCartoes + 30, 220, 42,
+      { fontSize: P(30), bold: true, color: PC.vermelho, valign: 'middle' })
+    texto(slide, `dos ${k.totalExperimentos} experimentos do beOn Labs`, L.total.x + 326, T.topoCartoes + 78, 220, 30, { fontSize: P(12), color: PC.apagado })
   }
 
-  const cabecalho = { ...ARIAL, fontSize: P(15), bold: true, color: CINZA }
-  texto(slide, 'MOTIVO', 44, 232, 300, 20, cabecalho)
-  texto(slide, '% DO TOTAL', L.pctDireita - 160, 232, 160, 20, { ...cabecalho, align: 'right' })
-  texto(slide, 'QUANTIDADE DE EXPERIMENTOS', L.barraX + 10, 232, 400, 20, cabecalho)
+  // Concentração nos dois principais motivos
+  cartaoPainel(slide, L.destaque.x, T.topoCartoes, L.destaque.w, T.alturaTopo, PC.escuro)
+  texto(slide, 'CONCENTRAÇÃO', L.destaque.x + 30, T.topoCartoes + 22, 300, 16, { fontSize: P(10.5), bold: true, color: 'FFFFFF', charSpacing: P(2.6) })
+  if (k.destaque) {
+    texto(slide, pctUmaCasa(k.destaque.pct), L.destaque.x + 30, T.topoCartoes + 44, 180, 60, { fontSize: P(44), bold: true, color: 'FFFFFF', valign: 'middle' })
+    texto(slide, fraseDestaque(k), L.destaque.x + 210, T.topoCartoes + 46, 360, 64, { fontSize: P(15), color: 'EDE8E7', valign: 'middle' })
+  } else {
+    texto(slide, 'Nenhum motivo registrado ainda.', L.destaque.x + 30, T.topoCartoes + 54, 400, 24, { fontSize: P(15), color: 'EDE8E7' })
+  }
 
-  const max = Math.max(1, ...c.motivos.map(m => m.quantidade))
-  c.motivos.forEach((m, i) => {
-    const y = L.linhaTopo + i * L.passo(c.motivos.length)
-    const principal = i < (c.destaque?.motivos.length ?? 0)
+  // Ranking dos motivos
+  cartaoPainel(slide, L.tabela.x, L.tabela.y, L.tabela.w, L.tabela.h)
+  const cab = { fontSize: P(10), bold: true, color: PC.apagado, charSpacing: P(1.6) }
+  texto(slide, 'MOTIVO DA SAÍDA', L.colMotivo, 254, 300, 16, cab)
+  texto(slide, 'QUANTIDADE DE EXPERIMENTOS', L.colBarra, 254, 300, 16, cab)
+  texto(slide, '% DO TOTAL', L.colPct - 160, 254, 160, 16, { ...cab, align: 'right' })
+  slide.addShape('line', { x: I(82), y: I(280), w: I(L.tabela.w - 48), h: 0, line: { color: PC.linha, width: 0.75 } })
+  const max = Math.max(1, ...k.motivos.map(m => m.quantidade))
+  const passo = L.alturaLinhas / Math.max(5, k.motivos.length)
+  const principais = k.destaque?.motivos.length ?? 0
+  k.motivos.forEach((m, i) => {
+    const y = L.topoLinhas + i * passo
+    const principal = i < principais
+    if (i > 0) slide.addShape('line', { x: I(82), y: I(y - 8), w: I(L.tabela.w - 48), h: 0, line: { color: PC.linha, width: 0.75 } })
+    circulo(slide, 82, y + 4, 26, principal ? PC.vermelhoForte : PC.linhaRosa)
+    texto(slide, String(i + 1), 82, y + 4, 26, 26, { fontSize: P(12), bold: true, color: principal ? 'FFFFFF' : PC.vermelho, align: 'center', valign: 'middle' })
+    texto(slide, [
+      { text: caber(m.motivo, 560, 17, 1), options: { fontSize: P(17), bold: principal, color: PC.tinta, ...(m.descricao ? { breakLine: true } : {}) } },
+      ...(m.descricao ? [{ text: caber(m.descricao, 560, 11.5, 1), options: { fontSize: P(11.5), color: PC.apagado } }] : []),
+    ], L.colMotivo, y - 2, 560, 44, { valign: 'top' })
     const w = Math.max(4, (m.quantidade / max) * L.barraMaxW)
-    texto(slide, caber(m.motivo, 640, 25, 1), 44, y - 2, 640, 32, { ...ARIAL, fontSize: P(25), bold: principal, color: INK })
-    if (m.descricao) texto(slide, m.descricao, 52, y + 33, 640, 20, { fontSize: P(14), color: INK })
-    texto(slide, pctUmaCasa(m.pct), L.pctDireita - 160, y - 2, 160, 32, { ...ARIAL, fontSize: P(25), bold: true, color: principal ? RED : CINZA, align: 'right' })
-    slide.addShape('rect', {
-      x: I(L.barraX), y: I(y - 4), w: I(w), h: I(L.barraH), line: { type: 'none' },
-      fill: { color: principal ? ['CC0000', '8B0000'][i] : 'C4C7CE' },
-    })
-    texto(slide, String(m.quantidade), L.barraX + w + 8, y - 4, 80, L.barraH, { ...ARIAL, fontSize: P(21), bold: true, color: INK, valign: 'middle' })
+    slide.addShape('roundRect', { x: I(L.colBarra), y: I(y + 6), w: I(w), h: I(22), rectRadius: I(4), line: { type: 'none' },
+      fill: { color: principal ? [PC.vermelhoForte, PC.bordo][i] : 'D5CCCB' } })
+    texto(slide, String(m.quantidade), L.colBarra + w + 10, y + 6, 60, 22, { fontSize: P(16), bold: true, color: PC.tinta, valign: 'middle' })
+    texto(slide, pctUmaCasa(m.pct), L.colPct - 160, y + 2, 160, 28, { fontSize: P(19), bold: true, color: principal ? PC.vermelho : PC.apagado, align: 'right', valign: 'middle' })
   })
-
-  texto(slide, `Base: ${c.total} experimentos cancelados. Percentuais arredondados a uma casa decimal.`, 44, 668, 900, 22, { ...ARIAL, fontSize: P(15), color: CINZA })
+  const fonte = k.fonte === 'bloqueio' ? 'Motivo de Bloqueio do épico no Jira (nenhum épico cancelado tem a Saída preenchida)' : 'campo Saída do épico no Jira'
+  texto(slide, `Base: ${k.total} experimentos cancelados. Motivo pelo ${fonte}. Percentuais com uma casa decimal.`, 82, L.tabela.y + L.tabela.h - 36, 1000, 18,
+    { fontSize: P(11), color: PC.apagado })
 }
 
 // ── Listas por fase ───────────────────────────────────────────────────────────────────────────────────
@@ -454,10 +485,7 @@ function celula(slide: Slide, col: string, row: SemanalRow, x: number, y: number
         imagem(slide, icone('estrela'), cx, y + h / 2 - 11, 22, 22)
         tx += 30; tw -= 30
       }
-      texto(slide, [
-        { text: caber(row.nome, tw, 13, 2), options: { fontSize: P(13), bold: true, color: INK, breakLine: true } },
-        { text: row.key, options: { fontSize: P(10.5), color: '9CA3AF' } },
-      ], tx, y, tw, h, meio)
+      texto(slide, caber(row.nome, tw, 13, 3), tx, y, tw, h, { ...meio, fontSize: P(13), bold: true, color: INK })
       return
     }
     case 'descricao':
@@ -466,14 +494,25 @@ function celula(slide: Slide, col: string, row: SemanalRow, x: number, y: number
     case 'observacao':
       texto(slide, caber(row.situacao ?? 'Sem visibilidade', cw, 10, 3), cx, y, cw, h, { ...meio, fontSize: P(10), color: '374151' })
       return
-    case 'situacao':
+    case 'situacao': {
+      // Como no deck: "Sit Atual:" e "Pendência:" só quando há o que mostrar.
+      if (!row.situacao && !row.pendencia) {
+        texto(slide, 'Sem atualização no Jira', cx, y, cw, h, { ...meio, fontSize: P(10), color: 'B5BAC1' })
+        return
+      }
+      const linhas = row.situacao && row.pendencia ? 2 : 4
       texto(slide, [
-        { text: 'Sit. Atual: ', options: { bold: true, color: row.situacao ? INK : RED } },
-        { text: caber(row.situacao ?? 'Não informada', cw, 10, 2), options: { breakLine: true } },
-        { text: 'Pendência: ', options: { bold: true, color: INK } },
-        { text: caber(row.pendencia ?? '—', cw, 10, 2) },
+        ...(row.situacao ? [
+          { text: 'Sit Atual: ', options: { bold: true, color: INK } },
+          { text: caber(row.situacao, cw, 10, linhas), options: row.pendencia ? { breakLine: true } : {} },
+        ] : []),
+        ...(row.pendencia ? [
+          { text: 'Pendência: ', options: { bold: true, color: INK } },
+          { text: caber(row.pendencia, cw, 10, linhas) },
+        ] : []),
       ], cx, y, cw, h, { ...meio, fontSize: P(10), color: '374151' })
       return
+    }
     case 'fase': {
       const t = row.pendencia ?? row.fase
       const c = chipCor(t)
@@ -565,22 +604,37 @@ function lista(slide: Slide, pg: Extract<PaginaDeck, { tipo: 'lista' }>, voltar:
     })
   }
 
+  // Iniciativas conectadas: colchete à esquerda ligando as linhas vinculadas no Jira
+  for (const i of paresConectados(pg.rows)) {
+    const y1 = TOP + 4 + i * rowH + rowH / 2, y2 = y1 + rowH
+    const traco = { color: RED, width: 1.1 }
+    slide.addShape('line', { x: I(30), y: I(y1), w: 0, h: I(y2 - y1), line: traco })
+    slide.addShape('line', { x: I(30), y: I(y1), w: I(10), h: 0, line: traco })
+    slide.addShape('line', { x: I(30), y: I(y2), w: I(10), h: 0, line: traco })
+    slide.addShape('ellipse', { x: I(21), y: I((y1 + y2) / 2 - 10), w: I(20), h: I(20), fill: { color: 'FFFFFF' }, line: traco })
+    imagem(slide, icone('conexao'), 25, (y1 + y2) / 2 - 6, 12, 12)
+  }
+
   // Legenda
   slide.addShape('line', { x: 0, y: I(656), w: I(1280), h: 0, line: { color: 'D9DCE1', width: 1.1 } })
   texto(slide, 'LEGENDAS:', 12, 656, 80, 64, { fontSize: P(10.5), color: '6B7280', valign: 'middle' })
   slide.addShape('line', { x: I(92), y: I(656), w: 0, h: I(64), line: { color: BORDA, width: 0.75 } })
-  texto(slide, 'Estratégico:', 110, 664, 90, 16, { fontSize: P(10.5), color: '6B7280' })
-  imagem(slide, icone('estrela-legenda'), 110, 686, 22, 22)
-  slide.addShape('line', { x: I(196), y: I(656), w: 0, h: I(64), line: { color: BORDA, width: 0.75 } })
-  texto(slide, 'Qt. de Iniciativas + Laboratórios resp.:', 214, 664, 400, 16, { fontSize: P(10.5), color: '6B7280' })
+  texto(slide, 'Iniciativas Conectadas:', 102, 664, 124, 16, { fontSize: P(10.5), color: '6B7280', align: 'center' })
+  slide.addShape('ellipse', { x: I(153), y: I(686), w: I(22), h: I(22), fill: { color: 'FFFFFF' }, line: { color: RED, width: 1.1 } })
+  imagem(slide, icone('conexao'), 157, 690, 14, 14)
+  slide.addShape('line', { x: I(226), y: I(656), w: 0, h: I(64), line: { color: BORDA, width: 0.75 } })
+  texto(slide, 'Estratégico:', 244, 664, 90, 16, { fontSize: P(10.5), color: '6B7280' })
+  imagem(slide, icone('estrela-legenda'), 244, 686, 22, 22)
+  slide.addShape('line', { x: I(312), y: I(656), w: 0, h: I(64), line: { color: BORDA, width: 0.75 } })
+  texto(slide, 'Qt. de Iniciativas + Laboratórios resp.:', 330, 664, 400, 16, { fontSize: P(10.5), color: '6B7280' })
   // Em andamento, a legenda da barra de prazo ocupa a direita do rodapé.
   const prazo = pg.secao === 'andamento'
   const limiteLabs = prazo ? 930 : 1260
-  let lx = 214, ly = 688
+  let lx = 330, ly = 688
   for (const [lab, n] of contagemPorLab(pg.todas)) {
     const rotulo = `${String(n).padStart(2, '0')} ${lab}`
     const w = 20 + rotulo.length * 6
-    if (lx + w > limiteLabs) { lx = 214; ly += 16 }
+    if (lx + w > limiteLabs) { lx = 330; ly += 16 }
     const cor = corDoLab(lab).slice(1)
     slide.addShape('roundRect', { x: I(lx), y: I(ly + 2), w: I(11), h: I(11), rectRadius: I(3), fill: { color: 'FFFFFF' }, line: { color: cor, width: 1.1 } })
     texto(slide, [
@@ -618,13 +672,23 @@ export async function gerarPptxSemanal(data: SemanalData): Promise<Buffer> {
     switch (pg.tipo) {
       case 'capa': capa(slide, pg.periodo); break
       case 'objetivo': objetivo(slide); break
-      case 'resumo': resumo(slide, data.resumo, pg.ateLabel, id => slideDe.get(id)); break
+      case 'resumo': resumo(slide, data.resumo, pg.dataLabel, id => slideDe.get(id)); break
       case 'governanca': governanca(slide, data.governanca, data.geradoEm); break
-      case 'cancelamento': cancelamento(slide, pg.cancelamento); break
+      case 'cancelamento': cancelamento(slide, pg.cancelamento, pg.dataLabel); break
       case 'divisor': divisor(slide, pg.linhas, pg.icone); break
       case 'lista': lista(slide, pg, slideDe.get('resumo')); break
       case 'obrigado': obrigado(slide); break
     }
   }
-  return (await pres.write({ outputType: 'nodebuffer' })) as Buffer
+  return semPastas((await pres.write({ outputType: 'nodebuffer' })) as Buffer)
+}
+
+/** Tira do ZIP as entradas de pasta que o pptxgenjs grava: com elas, o arquivo não abre para coedição na nuvem. */
+async function semPastas(buf: Buffer): Promise<Buffer> {
+  const origem = await JSZip.loadAsync(buf)
+  const limpo = new JSZip()
+  for (const [nome, entrada] of Object.entries(origem.files)) {
+    if (!entrada.dir) limpo.file(nome, await entrada.async('nodebuffer'), { createFolders: false })
+  }
+  return limpo.generateAsync({ type: 'nodebuffer', compression: 'DEFLATE' })
 }

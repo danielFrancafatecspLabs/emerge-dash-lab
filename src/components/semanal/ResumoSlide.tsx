@@ -1,253 +1,239 @@
 'use client'
 
-import type { ReactNode } from 'react'
-import { Coins, FlaskConical, Lightbulb, Microscope, Rocket, Settings } from 'lucide-react'
+import type { CSSProperties, ReactNode } from 'react'
+import { ArrowRight, CalendarDays, Crosshair, FlaskConical, Rocket, Target } from 'lucide-react'
 import type { SemanalResumo, SemanalSecaoId } from '@/lib/semanal'
-import { formatMilhoes, RESUMO_FUNIL, setaDoFunil } from '@/lib/semanal-deck'
+import { formatMilhoes, PAINEL, PAINEL_COR, PAINEL_ETAPAS, PAINEL_FATIA, reaisMi, segmentosDaBarra, setaDoPainel } from '@/lib/semanal-deck'
 import { SLIDE_H, SLIDE_W } from './SlideArt'
 
-// Slide "beOn Labs — até mês/aa": composição do total de experimentos,
-// funil Exploração → Experimentação → Piloto → Em escala e principais métricas.
+// Slide "beOn Labs — Painel de experimentos": o total de experimentos e a composição, o benefício potencial total,
+// o funil Exploração → Experimentação → Piloto → Em escala (setas encaixadas, com um cartão debaixo de cada uma) e as
+// duas conversões. A geometria fica em lib/semanal-deck.ts (PAINEL), a mesma do PPTX.
 
-const RED = '#CC0000'
-const TITLE_RED = '#B00000'
-const INK = '#1F2328'
-const MUTED = '#5B6472'
-const BORDER = '#E5E7EB'
+const c = (h: string) => `#${h}`
+const C = Object.fromEntries(Object.entries(PAINEL_COR).map(([k, v]) => [k, c(v)])) as Record<keyof typeof PAINEL_COR, string>
+const FONTE = '"Segoe UI", Calibri, Arial, sans-serif'
 
-const FATIA_COR: Record<string, string> = {
-  exploracao: '#E07B00', andamento: '#F2B8B8', validadas: '#CC0000', refutadas: '#C5C9D0', cancelados: '#6B0000',
+const ICONE_RODAPE = [Target, FlaskConical, Crosshair, Rocket]
+
+function Caixa({ x, y, w, h, style, children }: { x: number; y: number; w: number; h: number; style?: CSSProperties; children?: ReactNode }) {
+  return <div style={{ position: 'absolute', left: x, top: y, width: w, height: h, ...style }}>{children}</div>
 }
 
-function Card({ children, x, y, w, h, style }: { children: ReactNode; x: number; y: number; w: number; h: number; style?: React.CSSProperties }) {
+/** Cabeçalho comum ao painel e ao slide de cancelamento: marca, título do slide, data da leitura e logo. */
+export function CabecalhoPainel({ titulo, data }: { titulo: string; data: string }) {
   return (
-    <div style={{ position: 'absolute', left: x, top: y, width: w, height: h, background: '#fff', border: `1px solid ${BORDER}`, borderRadius: 12,
-      boxShadow: '0 2px 6px rgba(15,23,42,0.08)', ...style }}>
-      {children}
-    </div>
+    <>
+      <div style={{ position: 'absolute', left: PAINEL.margem, top: 30, height: 40, display: 'flex', alignItems: 'center' }}>
+        <span style={{ fontSize: 30, fontWeight: 700, color: C.vermelho, letterSpacing: -0.3 }}>beOn Labs</span>
+        <span style={{ width: 1, height: 28, background: '#DCD3D2', margin: '0 16px 0 58px' }} />
+        <span style={{ fontSize: 14.5, color: C.tinta }}>{titulo}</span>
+        <span style={{ marginLeft: 42, height: 30, padding: '0 14px', borderRadius: 999, border: `1.5px solid #E9B8B8`, background: '#fff',
+          display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 14, fontWeight: 700, color: C.tinta }}>
+          <CalendarDays size={16} color={C.vermelhoForte} />{data}
+        </span>
+      </div>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src="/jira/semanal/logo.png" alt="beOn Labs" style={{ position: 'absolute', right: 1280 - PAINEL.direita, top: 32, height: 36 }} />
+    </>
   )
 }
 
-function Detalhes({ onClick, style }: { onClick?: () => void; style?: React.CSSProperties }) {
+function Detalhes({ onClick }: { onClick?: () => void }) {
   return (
-    <button type="button" onClick={onClick} style={{
-      border: `1.5px solid ${RED}`, color: RED, background: '#fff', borderRadius: 4, fontSize: 11.5, fontWeight: 700,
-      textDecoration: 'underline', cursor: onClick ? 'pointer' : 'default', height: 22, ...style,
-    }}>DETALHES</button>
+    <button type="button" onClick={onClick} style={{ border: 'none', background: 'none', padding: 0, cursor: onClick ? 'pointer' : 'default',
+      color: C.vermelho, fontSize: 11, fontWeight: 800, letterSpacing: 0.4, display: 'inline-flex', alignItems: 'center', gap: 3, fontFamily: FONTE }}>
+      DETALHES <ArrowRight size={13} strokeWidth={2.6} />
+    </button>
   )
 }
 
-function Donut({ pct }: { pct: number }) {
-  const r = 26, c = 2 * Math.PI * r
+function Donut({ pct, cor }: { pct: number; cor: string }) {
+  const r = 28, circ = 2 * Math.PI * r
   return (
-    <svg width={64} height={64} viewBox="0 0 64 64" style={{ flexShrink: 0 }}>
-      <circle cx={32} cy={32} r={r} fill="none" stroke="#EDEFF2" strokeWidth={7} />
-      <circle cx={32} cy={32} r={r} fill="none" stroke={RED} strokeWidth={7} strokeDasharray={`${(pct / 100) * c} ${c}`}
-        transform="rotate(-90 32 32)" />
-      <text x={32} y={37} textAnchor="middle" fontSize={14} fontWeight={700} fill={INK}>{pct}%</text>
+    <svg width={68} height={68} viewBox="0 0 68 68" style={{ flexShrink: 0 }}>
+      <circle cx={34} cy={34} r={r} fill="none" stroke="#EDE7E6" strokeWidth={9} />
+      <circle cx={34} cy={34} r={r} fill="none" stroke={cor} strokeWidth={9} strokeDasharray={`${(Math.min(100, pct) / 100) * circ} ${circ}`}
+        transform="rotate(-90 34 34)" />
+      <text x={34} y={39} textAnchor="middle" fontSize={13} fontWeight={700} fill={C.tinta}>{pct.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%</text>
     </svg>
   )
 }
 
-const ETAPAS = [
-  { n: 1, t: 'Exploração', d: 'Entender e validar o problema, o benefício potencial e definir as bases para experimentação', bg: '#FBE4E4', fg: INK, nbg: RED, nfg: '#fff' },
-  { n: 2, t: 'Experimentação', d: 'Testar hipóteses rapidamente para gerar evidências e reduzir incertezas.', bg: '#F5C0C0', fg: INK, nbg: '#5A0609', nfg: '#fff' },
-  { n: 3, t: 'Piloto', d: 'Aguardando e em execução. Validar solução em ambiente controlado e confirmar seu potencial de escala.', bg: '#CC0000', fg: '#fff', nbg: '#fff', nfg: RED },
-  { n: 4, t: 'Em escala', d: 'Operar, evoluir e ampliar a adoção da solução, maximizando a geração de valor para o negócio.', bg: '#6B0000', fg: '#fff', nbg: '#fff', nfg: '#6B0000' },
-]
+/** Uma linha do cartão de Piloto (aguardando, em execução ou o outlier). */
+function LinhaPiloto({ n, rotulo, nome, valor, destaque, onClick, y, h }: {
+  n: number; rotulo: string; nome?: string; valor: number; destaque?: boolean; onClick?: () => void; y: number; h: number
+}) {
+  return (
+    <div onClick={onClick} style={{ position: 'absolute', left: 17, right: 17, top: y, height: h, borderRadius: 8, cursor: onClick ? 'pointer' : 'default',
+      background: destaque ? C.amarelo : C.linhaRosa, display: 'flex', alignItems: 'center', gap: 12, padding: '0 12px' }}>
+      <b style={{ fontSize: 20, color: destaque ? C.tinta : C.vermelho, minWidth: 24 }}>{n}</b>
+      <div style={{ minWidth: 0, flex: 1 }}>
+        <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: 0.6, color: C.tinta }}>{rotulo}</div>
+        {nome && <div style={{ fontSize: 11, color: C.tinta, lineHeight: 1.15, marginTop: 1, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{nome}</div>}
+      </div>
+      <div style={{ textAlign: 'right', flexShrink: 0 }}>
+        <div style={{ fontSize: 8.5, color: destaque ? '#5B4A1F' : C.apagado }}>benefício potencial</div>
+        <div style={{ fontSize: 14, fontWeight: 800, color: C.tinta, whiteSpace: 'nowrap' }}>{reaisMi(valor)}</div>
+      </div>
+    </div>
+  )
+}
 
-export default function ResumoSlide({ resumo, ateLabel, onDetalhes, onDetalhesBeneficio, pagina }: {
+export default function ResumoSlide({ resumo: r, dataLabel, onDetalhes, onDetalhesBeneficio, pagina }: {
   resumo: SemanalResumo
-  ateLabel: string
+  /** Data da leitura do Jira ("16/11/2026"). */
+  dataLabel: string
   onDetalhes?: (secao: SemanalSecaoId) => void
   /** Abre a lista dos experimentos que compõem o benefício potencial total. */
   onDetalhesBeneficio?: () => void
   pagina?: number
 }) {
-  const r = resumo
-  const det = (id: SemanalSecaoId) => onDetalhes ? () => onDetalhes(id) : undefined
-  const col = RESUMO_FUNIL.colunas, PONTA = RESUMO_FUNIL.ponta
+  const det = (id: SemanalSecaoId) => (onDetalhes ? () => onDetalhes(id) : undefined)
+  const P = PAINEL
+  const segs = segmentosDaBarra(r.fatias.map(f => f.quantidade))
+  const { destaque, demais } = r.piloto.execucao
+  const cartoes: { numero: number; rotulo: string; conteudo: ReactNode; detalhes: SemanalSecaoId }[] = [
+    { numero: r.exploracao.oportunidades, rotulo: 'oportunidades', detalhes: 'backlog', conteudo: (
+      <>
+        {r.exploracao.ideiasNaoAvaliadas > 0 && (
+          <div style={{ position: 'absolute', left: 17, top: 72, height: 21, padding: '0 12px', borderRadius: 4, background: C.areia,
+            fontSize: 8.5, fontWeight: 800, letterSpacing: 1.1, color: C.tinta, display: 'flex', alignItems: 'center' }}>
+            + {r.exploracao.ideiasNaoAvaliadas} IDEIAS NÃO AVALIADAS
+          </div>
+        )}
+        <Beneficio texto="Em análise" />
+      </>
+    ) },
+    { numero: r.experimentacao.experimentos, rotulo: 'experimentos', detalhes: 'andamento', conteudo: <Beneficio texto={reaisMi(r.experimentacao.beneficio)} /> },
+    { numero: r.piloto.total, rotulo: 'experimentos', detalhes: 'aguardando', conteudo: (
+      <>
+        <LinhaPiloto y={73} h={42} n={r.piloto.aguardando.quantidade} rotulo="AGUARDANDO" valor={r.piloto.aguardando.beneficio} onClick={det('aguardando')} />
+        {destaque && demais ? (
+          <>
+            <LinhaPiloto y={121} h={42} n={demais.quantidade} rotulo="EM EXECUÇÃO" valor={demais.beneficio} onClick={det('piloto')} />
+            <LinhaPiloto y={169} h={54} n={1} rotulo="OUTLIER" nome={destaque.nome} valor={destaque.beneficio} destaque onClick={det('piloto')} />
+          </>
+        ) : (
+          <LinhaPiloto y={121} h={42} n={r.piloto.execucao.quantidade} rotulo="EM EXECUÇÃO" valor={r.piloto.execucao.beneficio} onClick={det('piloto')} />
+        )}
+      </>
+    ) },
+    { numero: r.escala.experimentos, rotulo: 'experimentos', detalhes: 'escala', conteudo: <Beneficio texto={reaisMi(r.escala.beneficio)} /> },
+  ]
 
   return (
-    <div style={{ width: SLIDE_W, height: SLIDE_H, position: 'relative', overflow: 'hidden', background: '#fff', color: INK,
-      fontFamily: 'Calibri, "Segoe UI", Arial, sans-serif' }}>
-      {/* Título */}
-      <div style={{ position: 'absolute', left: 44, top: 28, display: 'flex', alignItems: 'baseline', gap: 22 }}>
-        <span style={{ fontSize: 40, fontWeight: 700, color: TITLE_RED }}>beOn Labs</span>
-        <span style={{ fontSize: 14, fontWeight: 700 }}>{ateLabel}</span>
-      </div>
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src="/jira/semanal/logo.png" alt="beOn Labs" style={{ position: 'absolute', right: 40, top: 28, height: 44 }} />
+    <div style={{ width: SLIDE_W, height: SLIDE_H, position: 'relative', overflow: 'hidden', background: C.fundo, color: C.tinta, fontFamily: FONTE }}>
+      <CabecalhoPainel titulo="Painel de experimentos" data={dataLabel} />
 
-      {/* Total + composição */}
-      <Card x={44} y={90} w={930} h={104}>
-        <div style={{ position: 'absolute', left: 18, top: 24, width: 56, height: 56, borderRadius: '50%', background: '#FBE4E4',
-          display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <FlaskConical size={28} color={RED} />
-        </div>
-        <div style={{ position: 'absolute', left: 88, top: 8, fontSize: 46, fontWeight: 800, color: RED, lineHeight: 1.1 }}>{r.totalExperimentos}</div>
-        <div style={{ position: 'absolute', left: 88, top: 62, width: 190, fontSize: 14, lineHeight: 1.15, color: MUTED }}>Total de experimentos no beOn Labs</div>
-        {r.fatias.map((f, i) => {
-          const x = 300 + i * 126
-          return (
-            <div key={f.id} style={{ position: 'absolute', left: x, top: 14, width: 116 }}>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, justifyContent: 'center' }}>
-                <span style={{ width: 10, height: 10, borderRadius: '50%', background: FATIA_COR[f.id], alignSelf: 'center' }} />
-                <span style={{ fontSize: 30, fontWeight: 700 }}>{f.quantidade}</span>
-                <span style={{ fontSize: 13, color: MUTED }}>{f.pct}%</span>
-              </div>
-              <div style={{ fontSize: 12.5, color: MUTED, textAlign: 'center', marginTop: 2, whiteSpace: 'nowrap' }}>{f.label}</div>
-              <div style={{ height: 11, background: FATIA_COR[f.id], marginTop: 8, borderRadius: 1 }} />
-            </div>
-          )
-        })}
-      </Card>
+      {/* Total e composição */}
+      <Caixa x={P.total.x} y={P.topoCartoes} w={P.total.w} h={P.alturaTopo} style={{ background: '#fff', borderRadius: 14, boxShadow: '0 1px 3px rgba(60,20,20,0.06)' }} />
+      <Caixa x={82} y={125} w={56} h={56} style={{ background: C.rosa, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <FlaskConical size={28} color={C.vermelhoForte} />
+      </Caixa>
+      <Caixa x={152} y={112} w={200} h={60} style={{ fontSize: 54, fontWeight: 800, lineHeight: '60px', letterSpacing: -1 }}>{r.totalExperimentos}</Caixa>
+      <Caixa x={152} y={171} w={200} h={20} style={{ fontSize: 13.5, color: C.apagado }}>experimentos no beOn Labs</Caixa>
+      <Caixa x={358} y={110} w={1} h={86} style={{ background: C.linha }} />
+      {segs.map(s => (
+        <Caixa key={s.i} x={s.x} y={P.barra.y} w={s.w} h={P.barra.h} style={{ background: c(PAINEL_FATIA[r.fatias[s.i].id]) }} />
+      ))}
+      {r.fatias.map((f, i) => (
+        <Caixa key={f.id} x={P.barra.x + i * P.barra.passoLegenda} y={142} w={96} h={60}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+            <span style={{ width: 7, height: 7, borderRadius: '50%', background: c(PAINEL_FATIA[f.id]) }} />
+            <b style={{ fontSize: 21 }}>{f.quantidade}</b>
+            <span style={{ fontSize: 10.5, color: C.apagado }}>{f.pctDecimal.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%</span>
+          </div>
+          <div style={{ fontSize: 11.5, color: C.apagado, lineHeight: 1.25, marginTop: 4 }}>{f.label}</div>
+        </Caixa>
+      ))}
 
       {/* Benefício potencial total */}
-      <div style={{ position: 'absolute', left: 988, top: 90, width: 248, height: 104, background: '#1F2328', borderRadius: 10, padding: '12px 16px', color: '#fff' }}>
-        <div style={{ fontSize: 24, fontWeight: 700 }}>R$ {formatMilhoes(r.beneficioTotal, 'milhões', true)}</div>
-        <div style={{ fontSize: 14, marginTop: 2 }}>Benefício potencial total</div>
-        <div style={{ fontSize: 10.5, color: '#B8BEC6', marginTop: 4, lineHeight: 1.2, width: 132 }}>
-          Exploração, andamento e hipóteses validadas
-        </div>
-        <Detalhes onClick={onDetalhesBeneficio} style={{ position: 'absolute', right: 16, bottom: 12, width: 82 }} />
-        <div style={{ position: 'absolute', right: 16, top: 12, width: 40, height: 40, borderRadius: '50%', background: RED,
-          display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <Coins size={22} color="#fff" />
-        </div>
-      </div>
-
-      {/* Etapas */}
-      {ETAPAS.map((e, i) => {
-        const s = setaDoFunil(i)
-        const corpo = `calc(100% - ${PONTA}px)`
-        return (
-        <div key={e.n} style={{
-          position: 'absolute', left: s.x, top: RESUMO_FUNIL.topoSeta, width: s.w, height: RESUMO_FUNIL.alturaSeta, background: e.bg, color: e.fg,
-          clipPath: `polygon(0 0, ${corpo} 0, 100% 50%, ${corpo} 100%, 0 100%${i === 0 ? '' : `, ${PONTA}px 50%`})`,
-          display: 'flex', alignItems: 'center', gap: 10, padding: i === 0 ? `0 ${PONTA + 4}px 0 16px` : `0 ${PONTA + 4}px 0 ${PONTA + 12}px`,
-        }}>
-          <span style={{ width: 30, height: 30, borderRadius: '50%', background: e.nbg, color: e.nfg, fontWeight: 700, fontSize: 15,
-            display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{e.n}</span>
-          <div>
-            <div style={{ fontSize: 15, fontWeight: 700 }}>{e.t}</div>
-            <div style={{ fontSize: 11.5, lineHeight: 1.18 }}>{e.d}</div>
+      <Caixa x={P.beneficio.x} y={P.topoCartoes} w={P.beneficio.w} h={P.alturaTopo}
+        style={{ background: C.escuro, borderRadius: 14, color: '#fff', textAlign: 'center', cursor: onDetalhesBeneficio ? 'pointer' : 'default' }}>
+        <div onClick={onDetalhesBeneficio} title="Ver os experimentos que compõem o benefício" style={{ position: 'absolute', inset: 0 }}>
+          <div style={{ marginTop: 26, fontSize: 10.5, fontWeight: 800, letterSpacing: 2.6 }}>BENEFÍCIO POTENCIAL TOTAL</div>
+          <div style={{ marginTop: 10, display: 'flex', alignItems: 'baseline', justifyContent: 'center', gap: 8 }}>
+            <span style={{ fontSize: 17 }}>R$</span>
+            <span style={{ fontSize: 28, fontWeight: 800 }}>{formatMilhoes(r.beneficioTotal, '', true).trim()}</span>
+            <span style={{ fontSize: 20, fontWeight: 800 }}>milhões</span>
+          </div>
+          <div style={{ margin: '6px auto 0', width: 250, fontSize: 10.5, lineHeight: 1.35, color: '#E6E1E0' }}>
+            Concedido pelas áreas de negócio para os experimentos (sem cancelados e refutados)
           </div>
         </div>
+      </Caixa>
+
+      {/* Setas das etapas */}
+      {PAINEL_ETAPAS.map((e, i) => {
+        const s = setaDoPainel(i)
+        const poly = s.pontos.map(([px, py]) => `${px}px ${py}px`).join(', ')
+        const xTexto = (i === 0 ? s.x : P.colunas[i]) + 10
+        const fimTexto = s.x + s.w - (i === 3 ? 12 : P.ponta + 4)
+        return (
+          <div key={e.n} style={{ position: 'absolute', left: s.x, top: P.setaTopo, width: s.w, height: P.setaAltura, overflow: 'hidden',
+            borderTopLeftRadius: i === 0 ? 14 : 0, borderTopRightRadius: i === 3 ? 14 : 0 }}>
+            <div style={{ position: 'absolute', inset: 0, background: c(e.bg), clipPath: `polygon(${poly})` }} />
+            <div style={{ position: 'absolute', left: xTexto - s.x, top: 0, width: fimTexto - xTexto, height: P.setaAltura, display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span style={{ width: 28, height: 28, borderRadius: '50%', background: c(e.nbg), color: c(e.nfg), fontWeight: 800, fontSize: 13,
+                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{e.n}</span>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: 16, fontWeight: 700, color: c(e.titulo) }}>{e.t}</div>
+                <div style={{ fontSize: 10.5, lineHeight: 1.2, color: c(e.texto), marginTop: 2 }}>{e.d}</div>
+              </div>
+            </div>
+          </div>
         )
       })}
 
-      {/* Exploração */}
-      <Card x={col[0].x} y={314} w={col[0].w} h={250}>
-        <div style={{ position: 'absolute', left: 18, top: 10, fontSize: 12.5, color: MUTED }}>{r.exploracao.ideiasNaoAvaliadas} ideias não avaliadas</div>
-        <BigNumber x={18} y={26} n={r.exploracao.oportunidades} label="oportunidades" />
-        <Beneficio y={96} valor={r.exploracao.beneficio} />
-        <Rodape icon={<Lightbulb size={16} color={RED} />} texto="Triagem e priorização de ideias" y={178} />
-        <Detalhes onClick={det('backlog')} style={{ position: 'absolute', left: 18, right: 18, bottom: 12, width: 'auto' }} />
-      </Card>
-
-      {/* Experimentação */}
-      <Card x={col[1].x} y={314} w={col[1].w} h={250}>
-        <BigNumber x={18} y={14} n={r.experimentacao.experimentos} label="experimentos" />
-        <Beneficio y={96} valor={r.experimentacao.beneficio} />
-        <Rodape icon={<Settings size={16} color={RED} />} texto="Construção e validação da solução" y={178} />
-        <Detalhes onClick={det('andamento')} style={{ position: 'absolute', left: 18, right: 18, bottom: 12, width: 'auto' }} />
-      </Card>
-
-      {/* Piloto */}
-      <Card x={col[2].x} y={314} w={col[2].w} h={250}>
-        <BigNumber x={16} y={6} n={r.piloto.total} label="experimentos" />
-        <Detalhes onClick={det('aguardando')} style={{ position: 'absolute', right: 16, top: 16, width: 180 }} />
-        <div style={{ position: 'absolute', left: 14, right: 14, top: 58, height: 38, border: `1.5px solid ${RED}`, borderRadius: 6,
-          display: 'flex', alignItems: 'center', padding: '0 12px', justifyContent: 'space-between' }}>
-          <span><b style={{ fontSize: 20, color: RED }}>{r.piloto.aguardando.quantidade}</b> <span style={{ fontSize: 12, color: RED, marginLeft: 4 }}>AGUARDANDO PILOTO</span></span>
-          <Potencial valor={r.piloto.aguardando.beneficio} />
-        </div>
-        <div style={{ position: 'absolute', left: 14, right: 14, top: 102, height: 112, border: `1.5px solid ${RED}`, borderRadius: 6, padding: '6px 12px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span><b style={{ fontSize: 20, color: RED }}>{r.piloto.execucao.quantidade}</b> <span style={{ fontSize: 12, color: RED, marginLeft: 4 }}>EM EXECUÇÃO</span></span>
-            <Potencial valor={r.piloto.execucao.beneficio} onDetalhes={det('piloto')} />
-          </div>
-          {r.piloto.execucao.destaque && r.piloto.execucao.demais && (
-            <div style={{ display: 'flex', gap: 6, marginTop: 6 }}>
-              <SubBox n={1} titulo={`Outlier ${r.piloto.execucao.destaque.nome}`} valor={r.piloto.execucao.destaque.beneficio} />
-              <SubBox n={r.piloto.execucao.demais.quantidade} valor={r.piloto.execucao.demais.beneficio} />
+      {/* Cartões das etapas */}
+      {cartoes.map((k, i) => {
+        const Icone = ICONE_RODAPE[i]
+        return (
+          <Caixa key={i} x={P.colunas[i]} y={P.cartaoTopo} w={P.larguraColuna} h={P.cartaoAltura}
+            style={{ background: '#fff', borderRadius: '0 0 14px 14px', boxShadow: '0 1px 3px rgba(60,20,20,0.06)' }}>
+            <div style={{ position: 'absolute', left: 22, top: 14, display: 'flex', alignItems: 'center', gap: 16 }}>
+              <span style={{ fontSize: 44, fontWeight: 800, letterSpacing: -1 }}>{k.numero}</span>
+              <span style={{ fontSize: 13.5, color: C.apagado }}>{k.rotulo}</span>
             </div>
-          )}
-        </div>
-        <Rodape icon={<Microscope size={16} color={RED} />} texto="Avaliação e execução de pilotos em ambiente real" y={218} />
-      </Card>
-
-      {/* Em escala */}
-      <Card x={col[3].x} y={314} w={col[3].w} h={250}>
-        <BigNumber x={18} y={14} n={r.escala.experimentos} label="experimentos" />
-        <Beneficio y={96} valor={r.escala.beneficio} />
-        <Rodape icon={<Rocket size={16} color={RED} />} texto="Escala e geração de valor" y={178} />
-        <Detalhes onClick={det('escala')} style={{ position: 'absolute', left: 18, right: 18, bottom: 12, width: 'auto' }} />
-      </Card>
+            {k.conteudo}
+            <div style={{ position: 'absolute', left: 17, right: 17, top: 238, borderTop: `1px solid ${C.linha}`, paddingTop: 12,
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 11.5, color: C.tinta }}>
+                <Icone size={14} color={C.vermelhoForte} />{PAINEL_ETAPAS[i].rodape}
+              </span>
+              <Detalhes onClick={det(k.detalhes)} />
+            </div>
+          </Caixa>
+        )
+      })}
 
       {/* Principais métricas */}
-      <div style={{ position: 'absolute', left: 44, top: 580, fontSize: 12.5, fontWeight: 700, color: RED, letterSpacing: 3 }}>PRINCIPAIS MÉTRICAS</div>
-      {r.metricas.map((m, i) => (
-        <Card key={m.titulo} x={44 + i * 301} y={602} w={289} h={78} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '0 14px' }}>
-          <Donut pct={m.pct} />
+      <Caixa x={P.margem} y={616} w={160} h={50}>
+        <div style={{ fontSize: 10, fontWeight: 800, color: C.vermelho, letterSpacing: 3 }}>PRINCIPAIS</div>
+        <div style={{ fontSize: 22, fontWeight: 800, marginTop: 2 }}>Métricas</div>
+      </Caixa>
+      {r.metricas.slice(0, 2).map((m, i) => (
+        <Caixa key={m.titulo} x={P.metricas[i].x} y={P.metricasTopo} w={P.metricas[i].w} h={P.metricasAltura}
+          style={{ background: '#fff', borderRadius: 14, display: 'flex', alignItems: 'center', gap: 20, padding: '0 24px', boxShadow: '0 1px 3px rgba(60,20,20,0.06)' }}>
+          <Donut pct={m.pct} cor={i === 0 ? C.vermelhoForte : C.bordo} />
           <div>
-            <div style={{ fontSize: 15, fontWeight: 700 }}>{m.titulo}</div>
-            <div style={{ fontSize: 11.5, color: MUTED, lineHeight: 1.2, marginTop: 2 }}>{m.descricao}</div>
+            <div style={{ fontSize: 17, fontWeight: 700 }}>{m.titulo}</div>
+            <div style={{ fontSize: 11.5, color: C.apagado, marginTop: 4 }}>{m.descricao}</div>
           </div>
-        </Card>
+        </Caixa>
       ))}
 
-      {pagina !== undefined && <span style={{ position: 'absolute', right: 18, bottom: 8, fontSize: 11, color: MUTED }}>{pagina}</span>}
+      {pagina !== undefined && <span style={{ position: 'absolute', right: 14, bottom: 8, fontSize: 11, color: C.apagado }}>{pagina}</span>}
     </div>
   )
 }
 
-function BigNumber({ x, y, n, label }: { x: number; y: number; n: number; label: string }) {
+function Beneficio({ texto }: { texto: string }) {
   return (
-    <div style={{ position: 'absolute', left: x, top: y, display: 'flex', alignItems: 'center', gap: 12 }}>
-      <span style={{ fontSize: 40, fontWeight: 700 }}>{n}</span>
-      <span style={{ fontSize: 13, color: MUTED }}>{label}</span>
-    </div>
-  )
-}
-
-function Beneficio({ y, valor }: { y: number; valor: number }) {
-  return (
-    <div style={{ position: 'absolute', left: 18, right: 18, top: y - 20, borderTop: `1px solid ${BORDER}`, paddingTop: 14 }}>
-      <div style={{ fontSize: 13, color: MUTED }}>Benefício potencial</div>
-      <div style={{ fontSize: 24, fontWeight: 700, color: RED, marginTop: 6 }}>R$ {formatMilhoes(valor)}</div>
-    </div>
-  )
-}
-
-function Potencial({ valor, onDetalhes }: { valor: number; onDetalhes?: () => void }) {
-  return (
-    <div style={{ textAlign: 'left', cursor: onDetalhes ? 'pointer' : 'default' }} onClick={onDetalhes}>
-      <div style={{ fontSize: 9.5, color: MUTED }}>Com benefício potencial de:</div>
-      <div style={{ fontSize: 15, fontWeight: 700 }}>{formatMilhoes(valor, 'Milhões')}</div>
-    </div>
-  )
-}
-
-function SubBox({ n, titulo, valor }: { n: number; titulo?: string; valor: number }) {
-  return (
-    <div style={{ flex: 1, background: '#FBE4E4', borderRadius: 4, display: 'flex', alignItems: 'center', gap: 6, padding: '4px 8px', minWidth: 0, height: 52 }}>
-      <b style={{ fontSize: 18 }}>{n}</b>
-      {titulo && <span style={{ fontSize: 9, fontWeight: 700, lineHeight: 1.1, maxWidth: 62 }}>{titulo}</span>}
-      <div style={{ marginLeft: 'auto', textAlign: 'right' }}>
-        <div style={{ fontSize: 13, fontWeight: 700, color: RED, textDecoration: 'underline', whiteSpace: 'nowrap' }}>{formatMilhoes(valor)}</div>
-        <div style={{ fontSize: 8, color: MUTED, whiteSpace: 'nowrap' }}>Em benefício potencial</div>
-      </div>
-    </div>
-  )
-}
-
-function Rodape({ icon, texto, y }: { icon: ReactNode; texto: string; y: number }) {
-  return (
-    <div style={{ position: 'absolute', left: 18, right: 12, top: y, display: 'flex', alignItems: 'center', gap: 10, fontSize: 12.5, color: INK }}>
-      <span style={{ width: 28, height: 28, borderRadius: '50%', background: '#FBE4E4', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{icon}</span>
-      {texto}
+    <div style={{ position: 'absolute', left: 17, right: 17, top: 104, borderTop: `1px solid ${C.linha}`, paddingTop: 20 }}>
+      <div style={{ fontSize: 12, color: C.apagado }}>Benefício potencial</div>
+      <div style={{ fontSize: 28, fontWeight: 800, color: C.vermelho, marginTop: 8, letterSpacing: -0.3 }}>{texto}</div>
     </div>
   )
 }

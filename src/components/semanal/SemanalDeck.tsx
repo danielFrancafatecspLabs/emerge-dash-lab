@@ -35,9 +35,9 @@ function montarSlides(data: SemanalData): SlideDef[] {
     switch (pg.tipo) {
       case 'capa': return { ...base, render: () => <CapaSlide periodo={pg.periodo} /> }
       case 'objetivo': return { ...base, render: () => <ObjetivoSlide /> }
-      case 'resumo': return { ...base, render: nav => <ResumoSlide resumo={data.resumo} ateLabel={pg.ateLabel} onDetalhes={(id: SemanalSecaoId) => nav.irPara(id)} onDetalhesBeneficio={nav.beneficio} /> }
+      case 'resumo': return { ...base, render: nav => <ResumoSlide resumo={data.resumo} dataLabel={pg.dataLabel} onDetalhes={(id: SemanalSecaoId) => nav.irPara(id)} onDetalhesBeneficio={nav.beneficio} /> }
       case 'governanca': return { ...base, render: () => <GovernancaSemanalSlide governanca={data.governanca} geradoEm={data.geradoEm} /> }
-      case 'cancelamento': return { ...base, render: () => <CancelamentoSlide cancelamento={pg.cancelamento} /> }
+      case 'cancelamento': return { ...base, render: () => <CancelamentoSlide cancelamento={pg.cancelamento} dataLabel={pg.dataLabel} /> }
       case 'divisor': return { ...base, render: () => <DivisorSlide linhas={pg.linhas} icone={pg.icone} /> }
       case 'lista': return {
         ...base,

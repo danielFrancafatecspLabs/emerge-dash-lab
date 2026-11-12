@@ -1,10 +1,10 @@
 'use client'
 
 import type { ReactNode } from 'react'
-import { CornerUpLeft, Star } from 'lucide-react'
+import { CornerUpLeft, Link2, Star } from 'lucide-react'
 import { PRAZO_ATENCAO_PCT, type SemanalRow, type SemanalSecaoId, type SituacaoPrazo } from '@/lib/semanal'
 import {
-  chipCor, colunasDa, contagemPorLab, corDoLab, COR_PRAZO, diretorEPontoFocal, formatBeneficioMM, formatData, larguraPrazo, legendaPrazo, LINHAS_POR_PAGINA,
+  chipCor, colunasDa, contagemPorLab, corDoLab, COR_PRAZO, diretorEPontoFocal, formatBeneficioMM, formatData, larguraPrazo, legendaPrazo, LINHAS_POR_PAGINA, paresConectados,
   sequenciasDeLab, type ColunaLista,
 } from '@/lib/semanal-deck'
 import { SLIDE_H, SLIDE_W } from './SlideArt'
@@ -29,10 +29,7 @@ function Celula({ coluna, row, rowH }: { coluna: ColunaLista; row: SemanalRow; r
       return (
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           {row.estrategico && <Star size={22} color="#CC0000" strokeWidth={1.6} style={{ flexShrink: 0 }} />}
-          <div style={{ minWidth: 0 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: INK, lineHeight: 1.25, ...clamp(2) }}>{row.nome}</div>
-            <div style={{ fontSize: 10.5, color: '#9CA3AF', marginTop: 2 }}>{row.key}</div>
-          </div>
+          <div style={{ minWidth: 0, fontSize: 13, fontWeight: 700, color: INK, lineHeight: 1.25, ...clamp(3) }} title={row.key}>{row.nome}</div>
         </div>
       )
     case 'descricao':
@@ -40,10 +37,12 @@ function Celula({ coluna, row, rowH }: { coluna: ColunaLista; row: SemanalRow; r
     case 'observacao':
       return <div style={{ fontSize: 10, color: '#374151', lineHeight: 1.3, ...clamp(3) }}>{row.situacao ?? 'Sem visibilidade'}</div>
     case 'situacao':
+      // Como no deck: "Sit Atual:" e "Pendência:" só quando há o que mostrar.
+      if (!row.situacao && !row.pendencia) return <div style={{ fontSize: 10, color: '#B5BAC1' }}>Sem atualização no Jira</div>
       return (
         <div style={{ fontSize: 10, color: '#374151', lineHeight: 1.3, ...clamp(Math.min(4, linhas)) }}>
-          <b style={{ color: row.situacao ? INK : '#CC0000' }}>Sit. Atual:</b> {row.situacao ?? 'Não informada'}<br />
-          <b>Pendência:</b> {row.pendencia ?? '—'}
+          {row.situacao && <><b style={{ color: INK }}>Sit Atual:</b> {row.situacao}{row.pendencia && <br />}</>}
+          {row.pendencia && <><b style={{ color: INK }}>Pendência:</b> {row.pendencia}</>}
         </div>
       )
     case 'fase': {
@@ -156,6 +155,20 @@ export default function ListaSlide({ secao, titulo, subtitulo, rows, todas, pagi
         })}
       </div>
 
+      {/* Iniciativas conectadas: colchete à esquerda ligando as linhas vinculadas no Jira */}
+      {paresConectados(rows).map(i => {
+        const y1 = TOP + 4 + i * rowH + rowH / 2, y2 = y1 + rowH
+        return (
+          <div key={`con-${i}`}>
+            <div style={{ position: 'absolute', left: 30, top: y1, width: 10, height: y2 - y1, border: '1.5px solid #CC0000', borderRight: 'none', borderRadius: '6px 0 0 6px' }} />
+            <div style={{ position: 'absolute', left: 21, top: (y1 + y2) / 2 - 10, width: 20, height: 20, borderRadius: '50%', background: '#fff',
+              border: '1.5px solid #CC0000', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Link2 size={12} color="#CC0000" strokeWidth={2.4} />
+            </div>
+          </div>
+        )
+      })}
+
       <Legenda rows={todas} prazo={secao === 'andamento'} />
       {pagina !== undefined && <span style={{ position: 'absolute', right: 10, bottom: 6, fontSize: 10, color: MUTED }}>{pagina}</span>}
     </div>
@@ -168,6 +181,14 @@ function Legenda({ rows, prazo }: { rows: SemanalRow[]; prazo: boolean }) {
   return (
     <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 64, borderTop: '1.5px solid #D9DCE1', display: 'flex', alignItems: 'stretch', fontSize: 10.5, color: '#6B7280' }}>
       <div style={{ width: 92, display: 'flex', alignItems: 'center', paddingLeft: 12 }}>LEGENDAS:</div>
+      <div style={{ borderLeft: '1px solid #E5E7EB', padding: '8px 18px' }}>
+        Iniciativas Conectadas:
+        <div style={{ marginTop: 6, display: 'flex', justifyContent: 'center' }}>
+          <span style={{ width: 22, height: 22, borderRadius: '50%', border: '1.5px solid #CC0000', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Link2 size={13} color="#CC0000" strokeWidth={2.4} />
+          </span>
+        </div>
+      </div>
       <div style={{ borderLeft: '1px solid #E5E7EB', padding: '8px 18px' }}>
         Estratégico:
         <div style={{ marginTop: 6 }}><Star size={22} color="#4B5563" strokeWidth={1.4} /></div>

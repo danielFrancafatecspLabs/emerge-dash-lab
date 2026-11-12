@@ -81,7 +81,7 @@ export function colunasDa(secao: SemanalSecaoId): ColunaLista[] {
       { id: 'fase', label: 'Fase / Pendências', w: 186 }, { id: 'previsao', label: 'Previsão e prazo', w: 140 }, ...fim]
   }
   return [{ id: 'nome', label: 'Nome da iniciativa', w: 224 },
-    { id: 'descricao', label: secao === 'backlog' ? 'Objetivo' : 'Descrição', w: 330 },
+    { id: 'descricao', label: 'Descrição', w: 330 },
     { id: 'situacao', label: 'Sit. atual / Pendências', w: 250 }, ...fim]
 }
 
@@ -94,6 +94,11 @@ export function sequenciasDeLab(rows: SemanalRow[]): { lab: string | null; ini: 
     else runs.push({ lab: r.lab, ini: i, fim: i })
   })
   return runs
+}
+
+/** Índices i em que a linha i e a seguinte são iniciativas conectadas (colchete na lista). */
+export function paresConectados(rows: SemanalRow[]): number[] {
+  return rows.slice(0, -1).flatMap((r, i) => (r.conectadas?.includes(rows[i + 1].key) ? [i] : []))
 }
 
 /** Quantidade de iniciativas por laboratório (legenda), da maior para a menor. */
@@ -119,29 +124,6 @@ export function legendaPrazo(p: ProgressoPrazo): string {
   return `${p.pct}% do prazo · ${p.diasRestantes === 0 ? 'vence hoje' : `faltam ${dias(p.diasRestantes)}`}`
 }
 
-/** Geometria do slide de motivos de cancelamento (px no canvas de 1280×720), usada pela tela e pelo PPTX. */
-export const CANCELAMENTO_LAYOUT = {
-  linhaTopo: 284, pctDireita: 758, barraX: 796, barraMaxW: 356, barraH: 36,
-  /** Distância entre as linhas: 74 px até 5 motivos; com a linha extra de "sem motivo", 62 px. */
-  passo: (linhas: number) => (linhas > 5 ? 62 : 74),
-}
-
-/**
- * Colunas do funil no slide "beOn Labs" (px no canvas de 1280×720): cada quadro fica exatamente debaixo da sua
- * seta. A seta ocupa a largura do quadro e a ponta avança sobre o vão até o entalhe da seta seguinte.
- */
-export const RESUMO_FUNIL = {
-  topoSeta: 214, alturaSeta: 86, ponta: 28, vao: 12, folgaSetas: 14,
-  colunas: [{ x: 44, w: 260 }, { x: 316, w: 260 }, { x: 588, w: 376 }, { x: 976, w: 260 }],
-}
-
-/** Posição e largura da seta da etapa i (a última termina no quadro, sem avançar sobre a margem). */
-export function setaDoFunil(i: number): { x: number; w: number } {
-  const { colunas, vao, ponta, folgaSetas } = RESUMO_FUNIL
-  const c = colunas[i]
-  return { x: c.x, w: i === colunas.length - 1 ? c.w : c.w + vao + ponta - folgaSetas }
-}
-
 /** "1,1%" — percentuais com uma casa decimal, como no deck. */
 export const pctUmaCasa = (v: number) => `${v.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`
 
@@ -155,9 +137,9 @@ export function fraseDestaque(c: SemanalCancelamento): string {
 export type PaginaDeck = { key: string; label: string; anchor?: string } & (
   | { tipo: 'capa'; periodo: string }
   | { tipo: 'objetivo' }
-  | { tipo: 'resumo'; ateLabel: string }
+  | { tipo: 'resumo'; ateLabel: string; dataLabel: string }
   | { tipo: 'governanca' }
-  | { tipo: 'cancelamento'; cancelamento: SemanalCancelamento }
+  | { tipo: 'cancelamento'; cancelamento: SemanalCancelamento; dataLabel: string }
   | { tipo: 'divisor'; linhas: string[]; icone: 'check' | 'flask' }
   | { tipo: 'lista'; secao: SemanalSecaoId; titulo: string; subtitulo?: string; rows: SemanalRow[]; todas: SemanalRow[] }
   | { tipo: 'obrigado' }
@@ -168,12 +150,12 @@ export function montarPaginas(data: SemanalData): PaginaDeck[] {
   const paginas: PaginaDeck[] = [
     { key: 'capa', label: 'Capa', tipo: 'capa', periodo: periodoLabel(data.geradoEm) },
     { key: 'objetivo', label: 'Objetivo', tipo: 'objetivo' },
-    { key: 'resumo', label: 'beOn Labs — visão geral', anchor: 'resumo', tipo: 'resumo', ateLabel: ateLabel(data.geradoEm) },
+    { key: 'resumo', label: 'beOn Labs — visão geral', anchor: 'resumo', tipo: 'resumo', ateLabel: ateLabel(data.geradoEm), dataLabel: dataDoPainel(data.geradoEm) },
   ]
   if (data.governanca) paginas.push({ key: 'governanca', label: 'Governança beOn Labs', tipo: 'governanca' })
   // Como no deck do Comitê, os motivos de cancelamento vêm logo depois da visão geral.
   if (data.cancelamento?.total) {
-    paginas.push({ key: 'cancelamento', label: 'Principais motivos de cancelamento', anchor: 'cancelados', tipo: 'cancelamento', cancelamento: data.cancelamento })
+    paginas.push({ key: 'cancelamento', label: 'Principais motivos de cancelamento', anchor: 'cancelados', tipo: 'cancelamento', cancelamento: data.cancelamento, dataLabel: dataDoPainel(data.geradoEm) })
   }
   for (const secao of data.secoes) {
     paginas.push({
@@ -194,4 +176,88 @@ export function montarPaginas(data: SemanalData): PaginaDeck[] {
   }
   paginas.push({ key: 'obrigado', label: 'Obrigado', tipo: 'obrigado' })
   return paginas
+}
+
+// ── Painel de experimentos (visão geral) e motivos de cancelamento: layout de 2026-11 ─────────────────────
+
+/** "16/11/2026": a data da leitura do Jira, no fuso de Brasília (selo do cabeçalho). */
+export function dataDoPainel(iso: string): string {
+  return new Date(iso).toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit', year: 'numeric' })
+}
+
+/** "R$ 26,5 mi" (valores do painel). */
+export const reaisMi = (valor: number) => `R$ ${formatMilhoes(valor, 'mi')}`
+
+/** Cores do painel (hex sem #, para a tela e o PPTX). */
+export const PAINEL_COR = {
+  fundo: 'F7F3F2', cartao: 'FFFFFF', tinta: '1C1B1B', apagado: '6E6767', linha: 'ECE6E5',
+  vermelho: 'B3261E', vermelhoForte: 'C62828', bordo: '6B0E0E', escuro: '262626', rosa: 'FBE3E3', rosaMedio: 'F1C6C6',
+  areia: 'F8E5D8', amarelo: 'F5C242', linhaRosa: 'FDF0F0',
+}
+
+/** Cores das cinco fatias do total de experimentos. */
+export const PAINEL_FATIA: Record<string, string> = {
+  exploracao: 'D9772B', andamento: 'E08A8A', validadas: 'C0282D', refutadas: 'C8C9D0', cancelados: '6B0E0E',
+}
+
+/** As quatro etapas do funil (setas) e o rodapé de cada cartão. */
+export const PAINEL_ETAPAS = [
+  { n: 1, t: 'Exploração', d: 'Entender e validar o problema e o benefício potencial', bg: 'FBE3E3', titulo: 'B3261E', texto: '5B4F4F', nbg: 'C62828', nfg: 'FFFFFF',
+    rodape: 'Triagem e priorização', icone: 'alvo' },
+  { n: 2, t: 'Experimentação', d: 'Testar hipóteses rápido para gerar evidências', bg: 'F1C6C6', titulo: '7A1414', texto: '3A2A2A', nbg: '5A0A0A', nfg: 'FFFFFF',
+    rodape: 'Construção e validação', icone: 'frasco-vermelho' },
+  { n: 3, t: 'Piloto', d: 'Validar em ambiente controlado e confirmar o potencial de escala', bg: 'C0282D', titulo: 'FFFFFF', texto: 'FFFFFF', nbg: 'FFFFFF', nfg: 'C0282D',
+    rodape: 'Pilotos em ambiente real', icone: 'mira' },
+  { n: 4, t: 'Em escala', d: 'Operar, evoluir e ampliar a adoção da solução', bg: '6B0E0E', titulo: 'FFFFFF', texto: 'FFFFFF', nbg: 'FFFFFF', nfg: '1C1B1B',
+    rodape: 'Geração de valor', icone: 'foguete-vermelho' },
+] as const
+
+/** Geometria do painel (px no canvas de 1280×720). */
+export const PAINEL = {
+  margem: 58, direita: 1231,
+  topoCartoes: 88, alturaTopo: 128,
+  total: { x: 58, w: 843 }, beneficio: { x: 917, w: 314 },
+  barra: { x: 383, w: 492, y: 112, h: 12, vao: 3, passoLegenda: 99 },
+  setaTopo: 232, setaAltura: 73, ponta: 30,
+  colunas: [58, 355, 652, 949], larguraColuna: 281,
+  cartaoTopo: 305, cartaoAltura: 277,
+  metricasTopo: 599, metricasAltura: 84, metricas: [{ x: 232, w: 490 }, { x: 739, w: 492 }],
+}
+
+/** Seta da etapa i: posição, largura e pontos (relativos) do polígono. As setas se encaixam sem vão. */
+export function setaDoPainel(i: number): { x: number; w: number; pontos: [number, number][] } {
+  const { colunas, ponta: p, setaAltura: h, direita, larguraColuna } = PAINEL
+  const x = i === 0 ? colunas[0] : colunas[i] - p
+  const fim = i === colunas.length - 1 ? Math.max(direita, colunas[i] + larguraColuna) : colunas[i + 1]
+  const w = fim - x
+  const ultima = i === colunas.length - 1
+  const pontos: [number, number][] = [
+    [0, 0], ultima ? [w, 0] : [w - p, 0], ultima ? [w, h] : [w, h / 2], ...(ultima ? [] : [[w - p, h] as [number, number]]), [0, h],
+    ...(i === 0 ? [] : [[p, h / 2] as [number, number]]),
+  ]
+  return { x, w, pontos }
+}
+
+/** Larguras dos segmentos da barra do total (proporcionais, com vão entre eles; fatia vazia não aparece). */
+export function segmentosDaBarra(quantidades: number[]): { x: number; w: number; i: number }[] {
+  const { x, w, vao } = PAINEL.barra
+  const visiveis = quantidades.map((q, i) => ({ q, i })).filter(s => s.q > 0)
+  const total = visiveis.reduce((s, v) => s + v.q, 0)
+  if (!total) return []
+  const util = w - vao * (visiveis.length - 1)
+  let cursor = x
+  return visiveis.map(({ q, i }, k) => {
+    const largura = k === visiveis.length - 1 ? x + w - cursor : Math.max(2, Math.round((q / total) * util))
+    const seg = { x: cursor, w: largura, i }
+    cursor += largura + vao
+    return seg
+  })
+}
+
+/** Geometria do slide de motivos de cancelamento no estilo do painel. */
+export const CANCELAMENTO_PAINEL = {
+  total: { x: 58, w: 560 }, destaque: { x: 634, w: 597 },
+  tabela: { x: 58, y: 232, w: 1173, h: 451 },
+  colMotivo: 120, colBarra: 700, barraMaxW: 330, colPct: 1205,
+  topoLinhas: 300, alturaLinhas: 330,
 }

@@ -39,6 +39,8 @@ export interface SemanalRow {
   estrategico: boolean
   previsao: string | null      // Data limite (duedate)
   fase: string                 // nome do status no Jira
+  /** Outras linhas da mesma lista vinculadas a esta no Jira ("Iniciativas conectadas"). */
+  conectadas?: string[]
   /** Quanto do prazo já passou (só nos experimentos em andamento com início conhecido). */
   progresso?: ProgressoPrazo | null
 }
@@ -94,6 +96,8 @@ export interface SemanalFatia {
   label: string
   quantidade: number
   pct: number
+  /** Percentual com uma casa decimal (painel). */
+  pctDecimal: number
 }
 
 export interface SemanalMetrica {
@@ -141,6 +145,10 @@ export interface SemanalMotivoCancelamento {
 
 export interface SemanalCancelamento {
   total: number
+  /** Total de experimentos (para o peso dos cancelados). */
+  totalExperimentos?: number
+  /** De onde vem o motivo: o campo "Saída" do épico ou, sem Saída preenchida, o Motivo de Bloqueio. */
+  fonte?: 'saida' | 'bloqueio'
   motivos: SemanalMotivoCancelamento[]   // até 5 linhas; o excedente vira "Outros motivos"
   /** Quanto os dois principais motivos concentram (slide: "87,4% dos cancelamentos…"). */
   destaque: { pct: number; motivos: string[] } | null
@@ -184,6 +192,7 @@ const DESCRICAO_MOTIVO: Record<string, string> = {
   'despriorizado pelo solicitante': 'O solicitante optou por não dar continuidade à iniciativa naquele momento.',
   'ferramentas/solucoes existentes': 'Foi identificada uma solução já disponível que atendia à necessidade levantada.',
   'motivo nao registrado': 'Cancelado sem motivo preenchido no Jira.',
+  'saida nao preenchida': 'Cancelado sem o campo Saída preenchido no Jira.',
   'outros motivos': 'Demais motivos registrados no Jira.',
 }
 const chaveMotivo = (m: string) => m.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim()
@@ -193,9 +202,12 @@ const pct1 = (n: number, total: number) => (total > 0 ? Math.round((n / total) *
  * Slide "Principais motivos de cancelamento": até 5 motivos, do maior para o menor. Cancelados sem motivo
  * no Jira ficam numa linha a mais, a última, e fora do destaque (que soma os dois principais motivos registrados).
  */
-export function montarCancelamento(motivos: { motivo: string; count: number }[]): SemanalCancelamento {
+export function montarCancelamento(
+  motivos: { motivo: string; count: number }[],
+  extra: { fonte?: 'saida' | 'bloqueio'; totalExperimentos?: number } = {},
+): SemanalCancelamento {
   const validos = motivos.filter(m => m.count > 0)
-  const semMotivo = validos.filter(m => chaveMotivo(m.motivo) === 'motivo nao registrado')
+  const semMotivo = validos.filter(m => ['motivo nao registrado', 'saida nao preenchida'].includes(chaveMotivo(m.motivo)))
   const registrados = validos.filter(m => !semMotivo.includes(m)).sort((a, b) => b.count - a.count)
   const total = validos.reduce((s, m) => s + m.count, 0)
   const vagas = 5
@@ -208,6 +220,8 @@ export function montarCancelamento(motivos: { motivo: string; count: number }[])
   const principais = registrados.slice(0, 2)
   return {
     total,
+    ...(extra.fonte ? { fonte: extra.fonte } : {}),
+    ...(extra.totalExperimentos ? { totalExperimentos: extra.totalExperimentos } : {}),
     motivos: linhas.map(m => ({
       motivo: m.motivo, descricao: DESCRICAO_MOTIVO[chaveMotivo(m.motivo)] ?? null, quantidade: m.count, pct: pct1(m.count, total),
     })),
@@ -232,16 +246,70 @@ function texto(v: string | null | undefined): string | null {
   return t ? t : null
 }
 
+const ROTULO_SITUACAO = /(sit(?:\.|ua[cç][aã]o)?\s*atual|pend[eê]ncias?)\s*:/gi
+const limpar = (t: string) => t.replace(/\s+/g, ' ').replace(/^[\s\-–—|;,.]+|[\s\-–—|;,]+$/g, '').trim()
+
+/**
+ * Separa o comentário do Jira em situação atual e pendência, como o deck mostra ("Sit Atual: … / Pendência: …").
+ * Sem esses rótulos, o comentário inteiro é a situação atual.
+ */
+export function separarSituacao(comentario: string | null | undefined): { situacao: string | null; pendencia: string | null } {
+  const t = (comentario ?? '').trim()
+  if (!t) return { situacao: null, pendencia: null }
+  const marcas = [...t.matchAll(ROTULO_SITUACAO)]
+  if (!marcas.length) return { situacao: limpar(t) || null, pendencia: null }
+  const partes: { situacao: string[]; pendencia: string[] } = { situacao: [], pendencia: [] }
+  const antes = limpar(t.slice(0, marcas[0].index))
+  if (antes) partes.situacao.push(antes)
+  marcas.forEach((m, i) => {
+    const fim = i + 1 < marcas.length ? marcas[i + 1].index : t.length
+    const conteudo = limpar(t.slice((m.index ?? 0) + m[0].length, fim))
+    if (conteudo) partes[/^pend/i.test(m[1]) ? 'pendencia' : 'situacao'].push(conteudo)
+  })
+  return { situacao: partes.situacao.join(' ') || null, pendencia: partes.pendencia.join(' ') || null }
+}
+
+/** Mantém juntas, em sequência, as linhas vinculadas entre si (só os vínculos dentro da mesma lista contam). */
+export function juntarConectadas(rows: (SemanalRow & { vinculos?: string[] })[]): SemanalRow[] {
+  const naLista = new Set(rows.map(r => r.key))
+  const viz = new Map<string, Set<string>>(rows.map(r => [r.key, new Set<string>()]))
+  for (const r of rows) for (const k of r.vinculos ?? []) {
+    if (!naLista.has(k) || k === r.key) continue
+    viz.get(r.key)!.add(k)
+    viz.get(k)!.add(r.key)
+  }
+  const porChave = new Map(rows.map(r => [r.key, r]))
+  const saida: SemanalRow[] = []
+  const usado = new Set<string>()
+  for (const r of rows) {
+    if (usado.has(r.key)) continue
+    // O grupo inteiro entra na posição do primeiro (o mais importante pela ordenação), na ordem original.
+    const grupo = new Set([r.key]), fila = [r.key]
+    while (fila.length) for (const k of viz.get(fila.shift()!)!) if (!grupo.has(k)) { grupo.add(k); fila.push(k) }
+    for (const g of rows.filter(x => grupo.has(x.key))) {
+      usado.add(g.key)
+      const { vinculos: _v, ...linha } = porChave.get(g.key)!
+      const conectadas = [...viz.get(g.key)!]
+      saida.push(conectadas.length ? { ...linha, conectadas } : linha)
+    }
+  }
+  return saida
+}
+
 // Prioridade "Highest" no Jira = iniciativa estratégica (estrela no deck).
 const ehEstrategico = (e: EpicDetail) => e.prioridade === 'Highest'
 
-function rowFromEpic(e: EpicDetail, labDaIniciativa: Map<string, string | null>): SemanalRow {
+type RowComVinculos = SemanalRow & { vinculos?: string[] }
+
+function rowFromEpic(e: EpicDetail, labDaIniciativa: Map<string, string | null>): RowComVinculos {
+  const sit = separarSituacao(e.statusDetalhado)
   return {
     key: e.key,
     nome: e.nome,
     descricao: limparDescricao(e.descricao),
-    situacao: texto(e.statusDetalhado),
-    pendencia: texto(e.motivoBloqueio),
+    situacao: sit.situacao,
+    pendencia: sit.pendencia ?? texto(e.motivoBloqueio),
+    vinculos: e.conectadas ?? [],
     lab: texto(labDaIniciativa.get(e.parentKey ?? '') ?? e.timeResponsavel),
     diretor: texto(e.sponsor),
     pontoFocal: texto(e.bo),
@@ -253,10 +321,12 @@ function rowFromEpic(e: EpicDetail, labDaIniciativa: Map<string, string | null>)
   }
 }
 
-function rowFromIniciativa(i: Iniciativa): SemanalRow {
-  // Situação/pendência: a do Epic filho mais recente (a Iniciativa em si não
-  // tem esses campos no board de Ideação).
+function rowFromIniciativa(i: Iniciativa): RowComVinculos {
+  // Situação/pendência (e a Observação de Em escala): o último comentário da própria Iniciativa; sem ele, o do Epic
+  // filho mais recente que tiver, com o Motivo de Bloqueio como pendência.
   const epicsRecentes = [...i.epics].sort((a, b) => (b.criadoEm ?? '').localeCompare(a.criadoEm ?? ''))
+  const daIniciativa = separarSituacao(i.statusDetalhado)
+  const doEpic = separarSituacao(epicsRecentes.find(e => texto(e.statusDetalhado))?.statusDetalhado)
   const beneficio = i.beneficioQuantitativo && i.beneficioQuantitativo > 0
     ? i.beneficioQuantitativo
     : i.beneficioQuantitativoTotal > 0 ? i.beneficioQuantitativoTotal : null
@@ -264,8 +334,9 @@ function rowFromIniciativa(i: Iniciativa): SemanalRow {
     key: i.key,
     nome: i.nome,
     descricao: limparDescricao(i.descricao ?? epicsRecentes[0]?.descricao ?? null),
-    situacao: texto(epicsRecentes.find(e => texto(e.statusDetalhado))?.statusDetalhado),
-    pendencia: texto(epicsRecentes.find(e => texto(e.motivoBloqueio))?.motivoBloqueio),
+    situacao: daIniciativa.situacao ?? (daIniciativa.pendencia ? null : doEpic.situacao),
+    pendencia: daIniciativa.pendencia ?? (daIniciativa.situacao ? null : doEpic.pendencia ?? texto(epicsRecentes.find(e => texto(e.motivoBloqueio))?.motivoBloqueio)),
+    vinculos: i.conectadas ?? [],
     lab: texto(i.timeResponsavel),
     diretor: texto(i.sponsor ?? i.sponsors[0]),
     pontoFocal: texto(i.bo ?? epicsRecentes.find(e => texto(e.bo))?.bo),
@@ -290,17 +361,17 @@ export function buildSemanalData(data: DashboardData, weekly: WeeklyData, epicCh
     .map(r => iniByKey.get(r.key)).filter((i): i is Iniciativa => !!i)
     .map(rowFromIniciativa)
 
-  const backlog = ordenarRows(epicRows('backlog'))
+  const backlog = juntarConectadas(ordenarRows(epicRows('backlog')))
   // Barra de progresso dos experimentos em andamento: prazo decorrido desde a entrada em "Em andamento".
   const hoje = hojeEmBrasilia(weekly.geradoEm)
-  const andamento = ordenarRows(epicRows('andamento').map(r => {
+  const andamento = juntarConectadas(ordenarRows(epicRows('andamento').map(r => {
     const e = epicByKey.get(r.key)
     const inicio = inicioDaExecucao(epicChangelogs[r.key]) ?? e?.criadoEm?.slice(0, 10) ?? null
     return { ...r, progresso: inicio ? progressoDoPrazo(inicio, r.previsao, hoje) : null }
-  }))
-  const aguardando = ordenarRows(iniRows('aguardando'))
-  const piloto = ordenarRows(iniRows('piloto'))
-  const escala = ordenarRows(iniRows('escala'))
+  })))
+  const aguardando = juntarConectadas(ordenarRows(iniRows('aguardando')))
+  const piloto = juntarConectadas(ordenarRows(iniRows('piloto')))
+  const escala = juntarConectadas(ordenarRows(iniRows('escala')))
   const cancelados = stage('cancelados')?.quantidade ?? 0
 
   // Hipóteses sempre em épicos (lib/hipoteses.ts): concluídos com a iniciativa em aguardando piloto, piloto ou escala
@@ -342,7 +413,7 @@ export function buildSemanalData(data: DashboardData, weekly: WeeklyData, epicCh
       escala: inisDe('escala').map(entradaDeIniciativa),
     }),
     secoes: montarSecoes({ escala, aguardando, piloto, andamento, backlog }),
-    cancelamento: montarCancelamento(weekly.motivosCancelamento ?? []),
+    cancelamento: montarCancelamento(weekly.motivosCancelamento ?? [], { fonte: weekly.motivosCancelamentoFonte, totalExperimentos: resumo.totalExperimentos }),
   }
 }
 
@@ -372,7 +443,7 @@ function montarResumo(i: ResumoInput): SemanalResumo {
   const qtds = [i.exploracao, i.andamento.length, i.validadas, i.refutadas, i.cancelados]
   const pcts = percentuaisInteiros(qtds)
   const labels: [SemanalFatia['id'], string][] = [
-    ['exploracao', 'Em Exploração'], ['andamento', 'Em andamento'], ['validadas', 'Hipóteses validadas'],
+    ['exploracao', 'Em exploração'], ['andamento', 'Em andamento'], ['validadas', 'Hipóteses validadas'],
     ['refutadas', 'Hipóteses refutadas'], ['cancelados', 'Cancelados'],
   ]
   const totalFatias = qtds.reduce((a, b) => a + b, 0)
@@ -384,7 +455,7 @@ function montarResumo(i: ResumoInput): SemanalResumo {
 
   return {
     totalExperimentos: totalFatias,
-    fatias: labels.map(([id, label], k) => ({ id, label, quantidade: qtds[k], pct: pcts[k] })),
+    fatias: labels.map(([id, label], k) => ({ id, label, quantidade: qtds[k], pct: pcts[k], pctDecimal: pct1(qtds[k], totalFatias) })),
     beneficioTotal: i.beneficioTotal,
     beneficioDetalhe: i.beneficioDetalhe,
     exploracao: { oportunidades: i.backlog.length, ideiasNaoAvaliadas: i.ideiasNaoAvaliadas, beneficio: soma(i.backlog) },
@@ -401,15 +472,10 @@ function montarResumo(i: ResumoInput): SemanalResumo {
     },
     escala: { experimentos: i.escala.length, beneficio: soma(i.escala) },
     metricas: [
-      { titulo: 'Conversão para piloto', pct: pct(i.piloto.length + i.escala.length, totalFatias),
+      { titulo: 'Conversão para piloto', pct: pct1(i.piloto.length + i.escala.length, totalFatias),
         descricao: `${i.piloto.length + i.escala.length} de ${totalFatias} experimentos aprovados já realizaram piloto` },
-      { titulo: 'Conversão para escala', pct: pct(i.escala.length, totalFatias),
+      { titulo: 'Conversão para escala', pct: pct1(i.escala.length, totalFatias),
         descricao: `${i.escala.length} de ${totalFatias} experimentos aprovados já em escala` },
-      // Cadastro: sobre os mesmos experimentos do benefício potencial (sem cancelados e sem hipóteses refutadas).
-      { titulo: 'Sem benefício potencial', pct: pct(i.semBeneficio, i.epicsAtivos),
-        descricao: `${i.semBeneficio} de ${i.epicsAtivos} experimentos considerados sem registro de benefício potencial` },
-      { titulo: 'Sem patrocínio formal', pct: pct(i.semSponsor, i.epicsAtivos),
-        descricao: `${i.semSponsor} de ${i.epicsAtivos} experimentos considerados sem patrocínio formal da diretoria` },
     ],
   }
 }
@@ -420,7 +486,7 @@ function montarSecoes(s: Record<SemanalSecaoId, SemanalRow[]>): SemanalSecao[] {
     { id: 'aguardando', titulo: 'Aguardando Piloto', divisor: ['Experimentos', 'Aguardando', 'Piloto'], rows: s.aguardando },
     { id: 'piloto', titulo: 'Em Piloto', divisor: ['Experimentos', 'Em Piloto'], rows: s.piloto },
     { id: 'andamento', titulo: 'Em andamento', subtitulo: 'Experimentos com Execução do beOn Labs e Áreas de Negócio', divisor: ['Experimentos', 'Em Andamento'], rows: s.andamento },
-    { id: 'backlog', titulo: 'Backlog – Ideias já Avaliadas como Experimento', divisor: ['Iniciativas', 'Em Backlog'], rows: s.backlog },
+    { id: 'backlog', titulo: 'Exploração – Ideias já Avaliadas como Experimento', divisor: ['Experimentos', 'Em Exploração'], rows: s.backlog },
   ]
 }
 
@@ -520,7 +586,8 @@ const SAMPLE_BACKLOG = sampleRows([
 
 export const SAMPLE_SEMANAL_DATA: SemanalData = (() => {
   const secoes = montarSecoes({
-    escala: SAMPLE_ESCALA, aguardando: ordenarRows(SAMPLE_AGUARDANDO), piloto: ordenarRows(SAMPLE_PILOTO),
+    // No exemplo, os dois experimentos do Whisper são iniciativas conectadas, como no deck do Comitê.
+    escala: SAMPLE_ESCALA.map(r => (r.key === 'GL-378' ? { ...r, conectadas: ['GL-478'] } : r.key === 'GL-478' ? { ...r, conectadas: ['GL-378'] } : r)), aguardando: ordenarRows(SAMPLE_AGUARDANDO), piloto: ordenarRows(SAMPLE_PILOTO),
     andamento: ordenarRows(SAMPLE_ANDAMENTO), backlog: SAMPLE_BACKLOG,
   })
   const sec = (id: SemanalSecaoId) => secoes.find(s => s.id === id)!.rows
@@ -553,7 +620,7 @@ export const SAMPLE_SEMANAL_DATA: SemanalData = (() => {
       { motivo: 'Inatividade do Ponto Focal', count: 68 }, { motivo: 'Direcionado para Outra Área', count: 8 },
       { motivo: 'Dados Insuficientes para Execução', count: 6 }, { motivo: 'Despriorizado pelo Solicitante', count: 4 },
       { motivo: 'Ferramentas/Soluções Existentes', count: 1 }, { motivo: 'Motivo não registrado', count: 1 },
-    ]),
+    ], { totalExperimentos: resumo.totalExperimentos }),
     resumo,
   }
 })()

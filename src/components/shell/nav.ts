@@ -4,7 +4,7 @@
 
 import {
   Activity, BarChart2, Beaker, BookOpen, Bookmark, Bot, CalendarCheck, Compass, GitFork, FileText, FlaskConical, GitCompareArrows, Home, Images, Info, Library,
-  Lightbulb, MessageCircle, Newspaper, Radar, Route, Target, UserCog, Users, Wallet, type LucideIcon,
+  Lightbulb, MessageCircle, Newspaper, Radar, Route, ScanSearch, Target, UserCog, Users, Wallet, type LucideIcon,
 } from 'lucide-react'
 import type { AuthSessionRole } from '@/lib/auth/session'
 
@@ -84,7 +84,9 @@ export const PORTAL_GROUPS: NavGroup[] = [
   },
   {
     label: 'Análises',
-    items: [],
+    items: [
+      { label: 'Auditor de Analytics', href: '/auditor', icon: ScanSearch, roles: ADMIN },
+    ],
   },
   {
     label: 'Administração',

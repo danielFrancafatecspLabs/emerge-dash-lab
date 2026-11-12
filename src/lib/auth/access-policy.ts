@@ -45,6 +45,9 @@ const ROLE_RULES: RoleRule[] = [
   { prefix: '/weekly', roles: ADMIN },
   { prefix: '/api/weekly', roles: ADMIN },
   { prefix: '/semanal', roles: ADMIN },
+  // Auditor de Analytics: o relatório que confere as telas entre si.
+  { prefix: '/auditor', roles: ADMIN },
+  { prefix: '/api/analytics', roles: ADMIN },
   // Exploração (Discovery Flow 2.0): prévia com dados ilustrativos, só admin.
   { prefix: '/exploracao', roles: ADMIN },
   { prefix: '/api/semanal', roles: ADMIN },

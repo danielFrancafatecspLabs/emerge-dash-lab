@@ -10,14 +10,33 @@ import { buildSemanalData } from '@/lib/semanal'
 import { diretorioDoCache } from '@/lib/cache-dados'
 import { experimentosDoSemanal, montarComparativo } from '@/lib/comparativo/montar'
 import { verificarConsistencia, type RelatorioConsistencia } from './consistencia'
+import { avancarFotos, compararFotos, tirarFoto, type Foto } from './movimento'
+import { talvezGerarLeitura } from './leitura-ia-servidor'
 
 /**
- * Executa o agente de analytics no servidor: monta cada visão a partir da leitura do Jira, exatamente como as telas
+ * Executa o Auditor de Analytics no servidor: monta cada visão a partir da leitura do Jira, exatamente como as telas
  * montam, confere a consistência entre elas e guarda o último relatório. Não chama a IA (usa as metas já
  * classificadas) e não lê o Jira de novo: usa a leitura do dia.
  */
 
 const arquivo = () => path.join(diretorioDoCache(), 'analytics-consistencia.json')
+const arquivoDasFotos = () => path.join(diretorioDoCache(), 'analytics-fotos.json')
+
+/** Guarda a foto desta leitura do Jira e devolve o que mudou desde a leitura anterior (null na primeira). */
+function movimentoDesdeAAnterior(nova: Foto) {
+  let guardado: { atual: Foto; anterior: Foto | null } | null = null
+  try { guardado = JSON.parse(fs.readFileSync(arquivoDasFotos(), 'utf-8')) } catch { /* primeira leitura */ }
+  const fotos = avancarFotos(guardado?.atual ? guardado : null, nova)
+  if (fotos !== guardado) {
+    try {
+      fs.mkdirSync(diretorioDoCache(), { recursive: true })
+      fs.writeFileSync(arquivoDasFotos(), JSON.stringify(fotos), 'utf-8')
+    } catch (err) {
+      console.warn('[auditor] foto da leitura não gravada:', String(err))
+    }
+  }
+  return fotos.anterior ? compararFotos(fotos.anterior, fotos.atual) : undefined
+}
 const INTERVALO_MS = 10 * 60 * 1000
 const G = globalThis as typeof globalThis & { __beonAnalyticsEm?: number; __beonAnalyticsRodando?: Promise<RelatorioConsistencia> | null }
 
@@ -46,15 +65,20 @@ export async function rodarAgenteAnalitico(): Promise<RelatorioConsistencia> {
     board2735Config: raw.board2735Config,
   })
 
+  relatorio.jiraUrl = process.env.JIRA_BASE_URL?.replace(/\/+$/, '') ?? null
+  relatorio.movimento = movimentoDesdeAAnterior(tirarFoto(data, (dashboardRawAtualizadoEm() ?? new Date()).toISOString()))
+
   for (const v of relatorio.verificacoes.filter(x => !x.ok)) {
-    console.warn(`[analytics] Divergência em "${v.titulo}": ${Object.entries(v.valores).map(([k, n]) => `${k}=${n}`).join(', ')}`)
+    console.warn(`[auditor] Divergência em "${v.titulo}": ${Object.entries(v.valores).map(([k, n]) => `${k}=${n}`).join(', ')}${v.diagnostico?.causa ? ` · ${v.diagnostico.causa}` : ''}`)
   }
-  if (!relatorio.divergencias) console.log(`[analytics] ${relatorio.verificacoes.length} verificações, todas batem.`)
+  if (!relatorio.divergencias) console.log(`[auditor] ${relatorio.verificacoes.length} verificações, todas batem.`)
+  // A leitura da IA: uma vez por dia, depois da primeira auditoria do dia, em segundo plano.
+  talvezGerarLeitura(relatorio)
   try {
     fs.mkdirSync(diretorioDoCache(), { recursive: true })
     fs.writeFileSync(arquivo(), JSON.stringify(relatorio, null, 2), 'utf-8')
   } catch (err) {
-    console.warn('[analytics] relatório não gravado:', String(err))
+    console.warn('[auditor] relatório não gravado:', String(err))
   }
   return relatorio
 }
@@ -74,14 +98,14 @@ export function talvezRodarAgenteAnalitico(agora = Date.now()): void {
   G.__beonAnalyticsEm = agora
   G.__beonAnalyticsRodando = rodarAgenteAnalitico()
   G.__beonAnalyticsRodando
-    .catch(err => console.warn('[analytics] agente não rodou:', String(err)))
+    .catch(err => console.warn('[auditor] agente não rodou:', String(err)))
     .finally(() => { G.__beonAnalyticsRodando = null })
 }
 
-/** O relatório mais recente: o da rodada em andamento, o guardado, ou uma rodada nova. */
-export async function relatorioAtual(): Promise<RelatorioConsistencia> {
+/** O relatório mais recente: o da rodada em andamento, o guardado, ou uma rodada nova (`forcar` audita de novo já). */
+export async function relatorioAtual(forcar = false): Promise<RelatorioConsistencia> {
   if (G.__beonAnalyticsRodando) return G.__beonAnalyticsRodando
-  const guardado = ultimoRelatorio()
+  const guardado = forcar ? null : ultimoRelatorio()
   // Vale o guardado se é recente E veio depois da última leitura do Jira (senão confere dados que já mudaram).
   const leituraDoJira = Number(dashboardRawAtualizadoEm() ?? 0)
   if (guardado && Date.now() - Date.parse(guardado.geradoEm) < INTERVALO_MS && Date.parse(guardado.geradoEm) >= leituraDoJira) return guardado
