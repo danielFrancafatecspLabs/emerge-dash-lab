@@ -48,6 +48,8 @@ export interface JiraIssueFields {
   // Preenchido pelo backend com o valor do campo "Tecnologia" — customfield_ID
   // resolvido em runtime pelo NOME do campo (ver resolverCamposDinamicos em jira.ts)
   tecnologia?: { value: string } | string | null
+  // Preenchido pelo backend com o valor do campo "Saída" (motivo de saída do experimento), resolvido pelo nome
+  saida?: string | null
   // Preenchido pelo backend com o último comentário (texto plano)
   lastComment?: string | null
   // Prioridade padrão do Jira
@@ -114,6 +116,10 @@ export interface EpicDetail {
   /** Por que o Epic está bloqueado: flag, campos de bloqueio, status, etiquetas, vínculos (ver lib/bloqueio.ts). */
   sinaisBloqueio?: string[] | null
   statusDetalhado?: string | null
+  /** Campo "Saída": por que o experimento saiu (motivo do cancelamento). */
+  saida?: string | null
+  /** Issues vinculadas a este Epic no Jira (chaves). */
+  conectadas?: string[]
   prioridade?: string | null
   duedate?: string | null
   criadoEm?: string | null
@@ -140,6 +146,10 @@ export interface Iniciativa {
   descricao: string | null                  // Solução (description da Iniciativa)
   bo: string | null                         // Business Owner da própria Iniciativa
   dominio: string | null                    // Domínio da própria Iniciativa
+  /** Último comentário da Iniciativa (situação atual / observação no deck Semanal). */
+  statusDetalhado?: string | null
+  /** Iniciativas vinculadas a esta no Jira (chaves): "Iniciativas conectadas" no deck. */
+  conectadas?: string[]
 }
 
 export interface PipelineCount {

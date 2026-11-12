@@ -90,8 +90,8 @@ describe('buildSemanalData', () => {
     // Benefício e cadastro: só os experimentos considerados (sem cancelados e refutados), não o total aprovado.
     expect(out.resumo.beneficioTotal).toBe(19_600_000)
     expect(out.resumo.beneficioDetalhe.fora).toEqual({ cancelados: 1, refutados: 2 })
-    const sem = out.resumo.metricas.find(m => m.titulo === 'Sem benefício potencial')!
-    expect(sem).toMatchObject({ pct: 50, descricao: '1 de 2 experimentos considerados sem registro de benefício potencial' })
+    // Painel novo: as principais métricas são as duas conversões.
+    expect(out.resumo.metricas.map(m => m.titulo)).toEqual(['Conversão para piloto', 'Conversão para escala'])
     const andamento = out.secoes.find(s => s.id === 'andamento')!.rows[0]
     expect(andamento).toMatchObject({ estrategico: true, pendencia: 'Pendente Status', previsao: '2026-10-30', descricao: 'testar' })
   })
@@ -102,7 +102,7 @@ describe('buildSemanalData', () => {
     expect(r.fatias.map(f => f.pct)).toEqual([2, 9, 19, 28, 42])
     expect(Math.round(r.piloto.execucao.beneficio / 1e5) / 10).toBe(266.6)
     expect(r.piloto.execucao.destaque?.nome).toBe('Integridade do Produto')
-    expect(r.metricas.map(m => m.pct)).toEqual([10, 8, 70, 0])
+    expect(r.metricas.map(m => m.pct)).toEqual([10, 7.6])
   })
 })
 

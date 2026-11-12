@@ -23,7 +23,8 @@ describe('PPTX editável da Semanal', () => {
     expect(governanca).toContain(`${data.governanca.totalExperimentos} EXPERIMENTOS`)
     expect(governanca).toContain('typeface="AMX"')
     const cancelamento = await xml(5)
-    expect(cancelamento).toContain('Principais motivos de cancelamento dos Experimentos')
+    expect(cancelamento).toContain('Principais motivos de cancelamento')
+    expect(cancelamento).toContain('MOTIVO DA SAÍDA')
     expect(cancelamento).toContain(data.cancelamento.motivos[0].motivo)
     const primeiraLista = montarPaginas(data).findIndex(p => p.tipo === 'lista') + 1
     const lista = await xml(primeiraLista)

@@ -127,6 +127,11 @@ const LAB_ALIASES: Record<string, string> = {
   'Cx Lab': 'CX Lab',
 }
 
+/** Chaves das issues vinculadas (qualquer tipo de vínculo, nos dois sentidos). */
+function chavesVinculadas(f: JiraIssue['fields']): string[] {
+  return [...new Set((f.issuelinks ?? []).map(l => l.inwardIssue?.key ?? l.outwardIssue?.key).filter((k): k is string => !!k))]
+}
+
 function normalizeLab(raw: string | null | undefined): string | null {
   if (!raw) return null
   const trimmed = raw.trim()
@@ -209,6 +214,8 @@ function mapEpicToDetail(epic: JiraIssue, changelog?: ChangelogEntry[]): EpicDet
     tipoImpedimento: bloqueio.tipo,
     sinaisBloqueio: bloqueio.sinais,
     statusDetalhado: f.lastComment ?? null,
+    saida: f.saida ?? null,
+    conectadas: chavesVinculadas(f),
     prioridade: f.priority?.name ?? null,
     duedate: f.duedate ?? null,
     criadoEm: f.created ?? null,
@@ -376,6 +383,8 @@ export function buildDashboardData(
       descricao: ini.fields.description ?? null,
       bo: ini.fields.customfield_30340 ?? null,
       dominio: ini.fields.customfield_30021?.value ?? ini.fields.customfield_11987?.value ?? ini.fields.customfield_11991?.value ?? null,
+      statusDetalhado: ini.fields.lastComment ?? null,
+      conectadas: chavesVinculadas(ini.fields),
     }
   })
 

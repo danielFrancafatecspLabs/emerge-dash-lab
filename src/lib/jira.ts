@@ -65,6 +65,7 @@ const FIELDS_INICIATIVA = [
   'customfield_30014', // Domínio (was customfield_11661)
   'customfield_30021', // Domínio (option select) — NOVO
   'archiveddate',      // Preenchido quando a issue foi arquivada (fica fora de todas as contas)
+  'issuelinks',        // Iniciativas conectadas (vínculos entre iniciativas, no deck Semanal)
 ].join(',')
 
 const FIELDS_EPIC = [
@@ -141,6 +142,8 @@ async function getBoardConfiguration(boardId: number): Promise<JiraBoardConfigur
 // Impedimento"…). Usa /rest/api/3/field (todos os campos, com nome e id). Cacheado no módulo.
 interface CamposDinamicos {
   tecnologia: string | null
+  /** Campo "Saída" do épico: o motivo da saída (cancelamento) do experimento. */
+  saida: string | null
   bloqueio: { id: string; nome: string }[]
   /** De onde vieram os campos de bloqueio (para o diagnóstico). */
   origem: 'jira' | 'padrao'
@@ -149,7 +152,7 @@ let cachedCampos: CamposDinamicos | undefined
 
 export async function resolverCamposDinamicos(): Promise<CamposDinamicos> {
   if (cachedCampos) return cachedCampos
-  const padrao: CamposDinamicos = { tecnologia: null, bloqueio: CAMPOS_BLOQUEIO_PADRAO, origem: 'padrao' }
+  const padrao: CamposDinamicos = { tecnologia: null, saida: null, bloqueio: CAMPOS_BLOQUEIO_PADRAO, origem: 'padrao' }
   const base = process.env.JIRA_BASE_URL
   if (!base) return padrao
   try {
@@ -161,15 +164,25 @@ export async function resolverCamposDinamicos(): Promise<CamposDinamicos> {
     const fields: Array<{ id: string; name: string }> = await res.json()
     const tecnologia = fields.find(f => f.name?.trim().toLowerCase() === 'tecnologia')?.id ?? null
     if (!tecnologia) console.warn('[jira] Campo "Tecnologia" não encontrado via /rest/api/3/field — cor por tecnologia ficará vazia.')
+    const saida = campoSaida(fields)
+    if (!saida) console.warn('[jira] Campo "Saída" não encontrado via /rest/api/3/field: os motivos de cancelamento usam o Motivo de Bloqueio.')
     const porNome = fields.filter(f => f.id && f.name && ehCampoDeBloqueio(f.name)).map(f => ({ id: f.id, nome: f.name.trim() }))
     const ids = new Set(porNome.map(f => f.id))
     const bloqueio = [...porNome, ...CAMPOS_BLOQUEIO_PADRAO.filter(c => !ids.has(c.id))]
-    cachedCampos = { tecnologia, bloqueio, origem: 'jira' }
+    cachedCampos = { tecnologia, saida, bloqueio, origem: 'jira' }
   } catch (err) {
     console.warn('[jira] Falha ao listar os campos do Jira:', err)
     return padrao
   }
   return cachedCampos
+}
+
+const semAcento = (t: string) => t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim()
+
+/** O campo "Saída" (motivo de saída do experimento): o de nome exato, ou o primeiro que começa com "Saída". */
+export function campoSaida(fields: Array<{ id: string; name: string }>): string | null {
+  const nomes = fields.filter(f => f.id && f.name).map(f => ({ id: f.id, n: semAcento(f.name) }))
+  return (nomes.find(f => f.n === 'saida') ?? nomes.find(f => /^saida\b/.test(f.n)))?.id ?? null
 }
 
 /** Campos pedidos à API para detectar bloqueio: os de bloqueio resolvidos, etiquetas e vínculos. */
@@ -336,7 +349,7 @@ async function buscarDashboardRaw(anterior?: DashboardRaw): Promise<DashboardRaw
   const campos = await resolverCamposDinamicos()
   const tecnologiaFieldId = campos.tecnologia
   const fieldsEpicComTecnologia = [...new Set([
-    ...FIELDS_EPIC.split(','), ...(tecnologiaFieldId ? [tecnologiaFieldId] : []), ...camposParaBloqueio(campos),
+    ...FIELDS_EPIC.split(','), ...(tecnologiaFieldId ? [tecnologiaFieldId] : []), ...(campos.saida ? [campos.saida] : []), ...camposParaBloqueio(campos),
   ])].join(',')
 
   const [iniciativasDoBoard, epicsDoBoard, board2734Config, board2735Config] = await Promise.all([
@@ -361,9 +374,18 @@ async function buscarDashboardRaw(anterior?: DashboardRaw): Promise<DashboardRaw
   // Normaliza o valor do campo "Tecnologia" (customfield_ID resolvido acima)
   // para uma chave fixa `tecnologia` — assim o resto do código não precisa
   // conhecer o ID dinâmico do campo.
-  const epics: JiraIssue[] = anexarCamposDeBloqueio(tecnologiaFieldId
-    ? epicsRaw.map(e => ({ ...e, fields: { ...e.fields, tecnologia: (e.fields as any)[tecnologiaFieldId] ?? null } }))
-    : epicsRaw, campos)
+  // O campo "Saída" vira `saida` (texto), como a Tecnologia.
+  const epics: JiraIssue[] = anexarCamposDeBloqueio(epicsRaw.map(e => {
+    const f = e.fields as unknown as Record<string, unknown>
+    return {
+      ...e,
+      fields: {
+        ...e.fields,
+        ...(tecnologiaFieldId ? { tecnologia: (f[tecnologiaFieldId] as JiraIssue['fields']['tecnologia']) ?? null } : {}),
+        ...(campos.saida ? { saida: textoDoValor(f[campos.saida]) || null } : {}),
+      },
+    }
+  }), campos)
 
   // Buscar último comentário (texto plano) apenas para Epics em refinamento/andamento/validação
   async function getIssueLastComment(issueKey: string): Promise<string | null> {
@@ -398,29 +420,37 @@ async function buscarDashboardRaw(anterior?: DashboardRaw): Promise<DashboardRaw
     return String(body).trim()
   }
 
-  // Status IDs de Epic para os quais buscamos o último comentário (usado como "status
-  // detalhado" no Report): Em refinamento, Em andamento e Em validação — inclui aliases
-  // legados/migrados vistos no board 2735 (ver STATUS_PIPELINE em mappers.ts).
-  const EPIC_STATUS_NEEDS_COMMENT = new Set(['10139', '14538', '3', '10204', '11201'])
+  // Status IDs de Epic para os quais buscamos o último comentário (a situação atual no deck Semanal): Backlog,
+  // Em refinamento, Em andamento e Em validação — inclui aliases legados/migrados vistos no board 2735.
+  const EPIC_STATUS_NEEDS_COMMENT = new Set(['10004', '10139', '14538', '3', '10204', '11201'])
+  // Iniciativas em Aguardando piloto, Em piloto e Em escala: o comentário é a situação atual / observação do deck.
+  const INICIATIVA_STATUS_NEEDS_COMMENT = new Set(['13045', '14468', '12847', '14459', '13562'])
+  const iniciativaPrecisaDeComentario = (s?: { id?: string; name?: string }) =>
+    INICIATIVA_STATUS_NEEDS_COMMENT.has(s?.id ?? '') || /aguard|piloto|escala|finaliz/i.test(s?.name ?? '')
 
-  const epicsAnteriores = new Map((anterior?.epics ?? []).map(e => [e.key, e]))
-  const epicsWithComments: JiraIssue[] = await Promise.all(
-    epics.map(async e => {
-      const copy = { ...e }
-      if (!EPIC_STATUS_NEEDS_COMMENT.has(copy.fields?.status?.id ?? '')) return copy
-      const antes = semMudanca(copy, epicsAnteriores)
+  /** Último comentário de cada issue que precisa dele; reaproveita o da leitura anterior quando a issue não mudou. */
+  async function comComentarios(issues: JiraIssue[], anteriores: JiraIssue[], precisa: (i: JiraIssue) => boolean): Promise<JiraIssue[]> {
+    const porChave = new Map(anteriores.map(i => [i.key, i]))
+    const saida = issues.map(i => ({ ...i }))
+    await emParalelo(saida.filter(precisa), 8, async copy => {
+      const antes = semMudanca(copy, porChave)
       if (antes && antes.fields && 'lastComment' in antes.fields) {
         copy.fields = { ...copy.fields, lastComment: antes.fields.lastComment }
-        return copy
+        return
       }
       try {
         copy.fields = { ...copy.fields, lastComment: await getIssueLastComment(copy.key) }
       } catch {
-        // Silencioso: o epic segue sem comentário nesta leitura, sem `lastComment`, para ser buscado de novo na próxima.
+        // Silencioso: a issue segue sem comentário nesta leitura, sem `lastComment`, para ser buscada de novo na próxima.
       }
-      return copy
     })
-  )
+    return saida
+  }
+
+  const [epicsWithComments, iniciativasWithComments] = await Promise.all([
+    comComentarios(epics, anterior?.epics ?? [], e => EPIC_STATUS_NEEDS_COMMENT.has(e.fields?.status?.id ?? '')),
+    comComentarios(iniciativas, anterior?.iniciativas ?? [], i => iniciativaPrecisaDeComentario(i.fields?.status)),
+  ])
 
   // Changelogs de TODOS os Epics (cycle time de experimentação, data de conclusão) e de TODAS as Iniciativas (cycle
   // time por etapa). Só busca os de issues novas ou alteradas desde a leitura anterior; os demais são reaproveitados.
@@ -450,7 +480,7 @@ async function buscarDashboardRaw(anterior?: DashboardRaw): Promise<DashboardRaw
   const iniciativaChangelogs = iniciativaLogs.result
   console.log(`[jira] changelogs buscados: ${epicLogs.buscados}/${epics.length} epics, ${iniciativaLogs.buscados}/${iniciativas.length} iniciativas`)
 
-  return { iniciativas, epics: epicsWithComments, board2734Config, board2735Config, epicChangelogs, iniciativaChangelogs, arquivadas }
+  return { iniciativas: iniciativasWithComments, epics: epicsWithComments, board2734Config, board2735Config, epicChangelogs, iniciativaChangelogs, arquivadas }
 }
 
 export interface ChangelogEntry {

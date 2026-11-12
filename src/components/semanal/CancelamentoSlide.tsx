@@ -1,61 +1,93 @@
 'use client'
 
+import { CircleX } from 'lucide-react'
 import type { SemanalCancelamento } from '@/lib/semanal'
-import { CANCELAMENTO_LAYOUT as L, fraseDestaque, pctUmaCasa } from '@/lib/semanal-deck'
+import { CANCELAMENTO_PAINEL as L, fraseDestaque, PAINEL, PAINEL_COR, pctUmaCasa } from '@/lib/semanal-deck'
+import { CabecalhoPainel } from './ResumoSlide'
 import { SLIDE_H, SLIDE_W } from './SlideArt'
 
-// Slide "Principais motivos de cancelamento dos Experimentos" (deck do Comitê): total de cancelados, quanto os
-// dois principais motivos concentram e a distribuição por motivo — os dois maiores em vermelho, os demais em cinza.
+// Slide "Principais motivos de cancelamento", no estilo do painel: quantos foram cancelados e o peso no total, quanto
+// os dois principais motivos concentram e o ranking dos motivos (campo "Saída" do épico no Jira).
 
-const RED = '#CC0000'
-const INK = '#1F2328'
-const MUTED = '#6B7280'
-const BARRAS = ['#CC0000', '#8B0000']
-const BARRA_DEMAIS = '#C4C7CE'
-const ARIAL = 'Arial, "Helvetica Neue", Helvetica, sans-serif'
+const c = (h: string) => `#${h}`
+const C = Object.fromEntries(Object.entries(PAINEL_COR).map(([k, v]) => [k, c(v)])) as Record<keyof typeof PAINEL_COR, string>
+const FONTE = '"Segoe UI", Calibri, Arial, sans-serif'
+const BARRA = [C.vermelhoForte, C.bordo]
+const BARRA_DEMAIS = '#D5CCCB'
 
-export default function CancelamentoSlide({ cancelamento: c }: { cancelamento: SemanalCancelamento }) {
-  const max = Math.max(1, ...c.motivos.map(m => m.quantidade))
+export default function CancelamentoSlide({ cancelamento: k, dataLabel }: { cancelamento: SemanalCancelamento; dataLabel: string }) {
+  const max = Math.max(1, ...k.motivos.map(m => m.quantidade))
+  const passo = L.alturaLinhas / Math.max(5, k.motivos.length)
+  const principais = k.destaque?.motivos.length ?? 0
+  const peso = k.totalExperimentos ? (k.total / k.totalExperimentos) * 100 : null
+  const fonte = k.fonte === 'bloqueio' ? 'Motivo de Bloqueio do épico no Jira (nenhum épico cancelado tem a Saída preenchida)' : 'campo Saída do épico no Jira'
+  const P = PAINEL
   return (
-    <div style={{ width: SLIDE_W, height: SLIDE_H, position: 'relative', overflow: 'hidden', background: '#fff', color: INK, fontFamily: ARIAL }}>
-      <div style={{ position: 'absolute', left: 44, top: 30, fontSize: 38, fontWeight: 700, color: RED }}>Principais motivos de cancelamento dos Experimentos</div>
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src="/jira/semanal/logo.png" alt="beOn Labs" style={{ position: 'absolute', right: 44, top: 36, height: 44 }} />
+    <div style={{ width: SLIDE_W, height: SLIDE_H, position: 'relative', overflow: 'hidden', background: C.fundo, color: C.tinta, fontFamily: FONTE }}>
+      <CabecalhoPainel titulo="Principais motivos de cancelamento" data={dataLabel} />
 
-      <div style={{ position: 'absolute', left: 44, top: 116, fontSize: 70, fontWeight: 700, color: RED, lineHeight: 1 }}>{c.total}</div>
-      <div style={{ position: 'absolute', left: 180, top: 130, fontSize: 21, color: MUTED, lineHeight: 1.2 }}>experimentos<br />cancelados</div>
-      {c.destaque && (
-        <>
-          <div style={{ position: 'absolute', left: 500, top: 122, width: 200, textAlign: 'right', fontSize: 56, fontWeight: 700, color: RED, lineHeight: 1 }}>
-            {pctUmaCasa(c.destaque.pct)}
-          </div>
-          <div style={{ position: 'absolute', left: 722, top: 126, width: 520, fontSize: 21, lineHeight: 1.25, color: INK }}>{fraseDestaque(c)}</div>
-        </>
-      )}
+      {/* Total de cancelados */}
+      <div style={{ position: 'absolute', left: L.total.x, top: P.topoCartoes, width: L.total.w, height: P.alturaTopo, background: '#fff', borderRadius: 14,
+        boxShadow: '0 1px 3px rgba(60,20,20,0.06)' }}>
+        <div style={{ position: 'absolute', left: 24, top: 37, width: 56, height: 56, borderRadius: 12, background: C.rosa, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <CircleX size={28} color={C.vermelhoForte} />
+        </div>
+        <div style={{ position: 'absolute', left: 96, top: 24, fontSize: 54, fontWeight: 800, letterSpacing: -1, lineHeight: '60px' }}>{k.total}</div>
+        <div style={{ position: 'absolute', left: 96, top: 84, fontSize: 13.5, color: C.apagado }}>experimentos cancelados</div>
+        {peso !== null && (
+          <>
+            <div style={{ position: 'absolute', left: 300, top: 22, width: 1, height: 86, background: C.linha }} />
+            <div style={{ position: 'absolute', left: 326, top: 34, fontSize: 30, fontWeight: 800, color: C.vermelho }}>{pctUmaCasa(Math.round(peso * 10) / 10)}</div>
+            <div style={{ position: 'absolute', left: 326, top: 78, width: 210, fontSize: 12, color: C.apagado, lineHeight: 1.3 }}>
+              dos {k.totalExperimentos} experimentos do beOn Labs
+            </div>
+          </>
+        )}
+      </div>
 
-      <div style={{ position: 'absolute', left: 44, top: 232, fontSize: 15, fontWeight: 700, color: MUTED, letterSpacing: 0.5 }}>MOTIVO</div>
-      <div style={{ position: 'absolute', left: L.pctDireita - 160, width: 160, top: 232, fontSize: 15, fontWeight: 700, color: MUTED, textAlign: 'right' }}>% DO TOTAL</div>
-      <div style={{ position: 'absolute', left: L.barraX + 10, top: 232, fontSize: 15, fontWeight: 700, color: MUTED }}>QUANTIDADE DE EXPERIMENTOS</div>
+      {/* Concentração nos dois principais motivos */}
+      <div style={{ position: 'absolute', left: L.destaque.x, top: P.topoCartoes, width: L.destaque.w, height: P.alturaTopo, background: C.escuro, borderRadius: 14, color: '#fff' }}>
+        <div style={{ position: 'absolute', left: 30, top: 24, fontSize: 10.5, fontWeight: 800, letterSpacing: 2.6 }}>CONCENTRAÇÃO</div>
+        {k.destaque ? (
+          <>
+            <div style={{ position: 'absolute', left: 30, top: 46, fontSize: 44, fontWeight: 800, letterSpacing: -0.5 }}>{pctUmaCasa(k.destaque.pct)}</div>
+            <div style={{ position: 'absolute', left: 210, top: 52, width: 360, fontSize: 15, lineHeight: 1.35, color: '#EDE8E7' }}>{fraseDestaque(k)}</div>
+          </>
+        ) : (
+          <div style={{ position: 'absolute', left: 30, top: 56, fontSize: 15, color: '#EDE8E7' }}>Nenhum motivo registrado ainda.</div>
+        )}
+      </div>
 
-      {c.motivos.map((m, i) => {
-        const y = L.linhaTopo + i * L.passo(c.motivos.length)
-        const principal = i < (c.destaque?.motivos.length ?? 0)
+      {/* Ranking dos motivos */}
+      <div style={{ position: 'absolute', left: L.tabela.x, top: L.tabela.y, width: L.tabela.w, height: L.tabela.h, background: '#fff', borderRadius: 14,
+        boxShadow: '0 1px 3px rgba(60,20,20,0.06)' }} />
+      {[['MOTIVO DA SAÍDA', L.colMotivo, 'left'], ['QUANTIDADE DE EXPERIMENTOS', L.colBarra, 'left'], ['% DO TOTAL', L.colPct - 120, 'right']].map(([t, x, a]) => (
+        <div key={t as string} style={{ position: 'absolute', left: x as number, top: 256, width: a === 'right' ? 120 : 400, textAlign: a as 'left' | 'right',
+          fontSize: 10, fontWeight: 800, letterSpacing: 1.6, color: C.apagado }}>{t}</div>
+      ))}
+      <div style={{ position: 'absolute', left: 82, right: 1280 - L.tabela.x - L.tabela.w + 24, top: 280, borderTop: `1px solid ${C.linha}` }} />
+      {k.motivos.map((m, i) => {
+        const y = L.topoLinhas + i * passo
+        const principal = i < principais
         const w = Math.max(4, (m.quantidade / max) * L.barraMaxW)
         return (
           <div key={m.motivo}>
-            <div style={{ position: 'absolute', left: 44, top: y, width: 640, fontSize: 25, fontWeight: principal ? 700 : 400, color: INK, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{m.motivo}</div>
-            {m.descricao && (
-              <div style={{ position: 'absolute', left: 52, top: y + 33, width: 640, fontSize: 14, color: INK, fontFamily: 'Calibri, Carlito, "Segoe UI", Arial, sans-serif' }}>{m.descricao}</div>
-            )}
-            <div style={{ position: 'absolute', left: L.pctDireita - 160, width: 160, top: y, textAlign: 'right', fontSize: 25, fontWeight: 700, color: principal ? RED : MUTED }}>{pctUmaCasa(m.pct)}</div>
-            <div style={{ position: 'absolute', left: L.barraX, top: y - 4, width: w, height: L.barraH, background: principal ? BARRAS[i] : BARRA_DEMAIS }} />
-            <div style={{ position: 'absolute', left: L.barraX + w + 8, top: y + 1, fontSize: 21, fontWeight: 700, color: INK }}>{m.quantidade}</div>
+            {i > 0 && <div style={{ position: 'absolute', left: 82, width: L.tabela.w - 48, top: y - 8, borderTop: `1px solid ${C.linha}` }} />}
+            <div style={{ position: 'absolute', left: 82, top: y + 4, width: 26, height: 26, borderRadius: '50%', fontSize: 12, fontWeight: 800,
+              background: principal ? C.vermelhoForte : C.linhaRosa, color: principal ? '#fff' : C.vermelho, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{i + 1}</div>
+            <div style={{ position: 'absolute', left: L.colMotivo, top: y, width: 560 }}>
+              <div style={{ fontSize: 17, fontWeight: principal ? 800 : 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{m.motivo}</div>
+              {m.descricao && <div style={{ fontSize: 11.5, color: C.apagado, marginTop: 3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{m.descricao}</div>}
+            </div>
+            <div style={{ position: 'absolute', left: L.colBarra, top: y + 6, width: w, height: 22, borderRadius: 4, background: principal ? BARRA[i] : BARRA_DEMAIS }} />
+            <div style={{ position: 'absolute', left: L.colBarra + w + 10, top: y + 6, fontSize: 16, fontWeight: 800, lineHeight: '22px' }}>{m.quantidade}</div>
+            <div style={{ position: 'absolute', left: L.colPct - 120, width: 120, top: y + 4, textAlign: 'right', fontSize: 19, fontWeight: 800,
+              color: principal ? C.vermelho : C.apagado }}>{pctUmaCasa(m.pct)}</div>
           </div>
         )
       })}
-
-      <div style={{ position: 'absolute', left: 44, top: 668, fontSize: 15, color: MUTED }}>
-        Base: {c.total} experimentos cancelados. Percentuais arredondados a uma casa decimal.
+      <div style={{ position: 'absolute', left: 82, top: L.tabela.y + L.tabela.h - 34, fontSize: 11, color: C.apagado }}>
+        Base: {k.total} experimentos cancelados. Motivo pelo {fonte}. Percentuais com uma casa decimal.
       </div>
     </div>
   )
