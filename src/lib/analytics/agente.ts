@@ -11,6 +11,7 @@ import { diretorioDoCache } from '@/lib/cache-dados'
 import { experimentosDoSemanal, montarComparativo } from '@/lib/comparativo/montar'
 import { verificarConsistencia, type RelatorioConsistencia } from './consistencia'
 import { avancarFotos, compararFotos, tirarFoto, type Foto } from './movimento'
+import { talvezGerarLeitura } from './leitura-ia-servidor'
 
 /**
  * Executa o Auditor de Analytics no servidor: monta cada visão a partir da leitura do Jira, exatamente como as telas
@@ -71,6 +72,8 @@ export async function rodarAgenteAnalitico(): Promise<RelatorioConsistencia> {
     console.warn(`[auditor] Divergência em "${v.titulo}": ${Object.entries(v.valores).map(([k, n]) => `${k}=${n}`).join(', ')}${v.diagnostico?.causa ? ` · ${v.diagnostico.causa}` : ''}`)
   }
   if (!relatorio.divergencias) console.log(`[auditor] ${relatorio.verificacoes.length} verificações, todas batem.`)
+  // A leitura da IA: uma vez por dia, depois da primeira auditoria do dia, em segundo plano.
+  talvezGerarLeitura(relatorio)
   try {
     fs.mkdirSync(diretorioDoCache(), { recursive: true })
     fs.writeFileSync(arquivo(), JSON.stringify(relatorio, null, 2), 'utf-8')

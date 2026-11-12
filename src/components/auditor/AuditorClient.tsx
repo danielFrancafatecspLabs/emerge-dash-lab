@@ -1,6 +1,7 @@
 'use client'
 
-// Auditor de Analytics (só admins): o relatório completo, escrito para ser lido. De cima para baixo: o parecer (dá para
+// Auditor de Analytics (só admins): o relatório completo, escrito para ser lido. De cima para baixo: a leitura do dia
+// escrita pela IA, o parecer (dá para
 // confiar?), em qual tela confiar, cada divergência explicada (o que acontece, por quê, o impacto e o que fazer), o
 // que mudou no Jira desde a leitura anterior, o cadastro que distorce números, as conferências que batem e o método.
 
@@ -9,6 +10,7 @@ import { AlertTriangle, ArrowRightLeft, CheckCircle2, ExternalLink, RefreshCw, S
 import { Button, cx, focusRing } from '@/components/ui'
 import type { Acao, Alerta, ConfiancaDaTela, Gravidade, ItemRef, Natureza, RelatorioConsistencia, Verificacao } from '@/lib/analytics/consistencia'
 import type { Mudanca } from '@/lib/analytics/movimento'
+import { LeituraDaIA } from './LeituraDaIA'
 
 const reais = (n: number) => (Math.abs(n) >= 1_000_000
   ? `R$ ${(n / 1_000_000).toLocaleString('pt-BR', { maximumFractionDigits: 1 })} mi`
@@ -221,6 +223,9 @@ export default function AuditorClient() {
 
   return (
     <div className="mx-auto w-full max-w-[1200px] space-y-9 px-4 py-6 sm:px-6">
+      {/* 0. A leitura do dia, escrita pela IA a partir desta auditoria */}
+      <LeituraDaIA ia={rel.ia} jiraUrl={rel.jiraUrl} />
+
       {/* 1. Parecer */}
       <section className={cx('rounded-2xl border p-5', tom.borda, tom.fundo)}>
         <div className="flex flex-wrap items-start gap-4">

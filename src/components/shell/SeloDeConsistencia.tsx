@@ -113,6 +113,9 @@ export function SeloDeConsistencia({ className }: { className?: string }) {
             <div className="min-w-0 text-beon-body">
               <p><b className="text-beon-ink">Auditor de Analytics.</b> {rel.parecer?.titulo ?? (rel.resumo ?? []).join(' ')}</p>
               <p className="mt-0.5 text-xs text-beon-muted">{(rel.resumo ?? [])[0]} Auditado em {quando(rel.geradoEm)}.</p>
+              {rel.ia?.estado === 'pronta' && (
+                <p className="mt-1.5 rounded-lg bg-beon-soft px-2 py-1.5 text-xs leading-relaxed text-beon-body"><b className="text-beon-ink">Leitura do dia (IA):</b> {rel.ia.leitura.leitura.manchete}</p>
+              )}
               <Link href="/auditor" className={cx('mt-1.5 inline-flex items-center gap-1 text-xs font-semibold text-beon-red hover:underline', focusRing)}>
                 Abrir o relatório completo, com a explicação de cada caso<ArrowRight className="h-3.5 w-3.5" aria-hidden />
               </Link>

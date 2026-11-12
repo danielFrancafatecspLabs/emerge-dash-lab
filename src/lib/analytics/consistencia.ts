@@ -10,6 +10,7 @@ import type { DashboardData, EpicDetail, JiraBoardConfiguration, JiraStatus } fr
 import { etapaValidada, type WeeklyData } from '@/lib/weekly'
 import { fichaDe, fichaDoAlerta, type Acao, type Ficha, type Gravidade } from './fichas'
 import type { Movimento } from './movimento'
+import type { EstadoDaLeitura } from './leitura-ia-servidor'
 
 export type { Acao, Gravidade } from './fichas'
 
@@ -143,6 +144,8 @@ export interface RelatorioConsistencia {
   movimento?: Movimento
   /** Endereço do Jira, para abrir os itens (o runner preenche). */
   jiraUrl?: string | null
+  /** A leitura da IA do dia (a API acrescenta; ver ./leitura-ia-servidor.ts). */
+  ia?: EstadoDaLeitura
 }
 
 export interface EntradaConsistencia {
